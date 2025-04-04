@@ -1,0 +1,7 @@
+.progress-bar {
+    height: 0.5rem;
+    border-radius: 9999px;
+    background-color: #3b82f6; /* Tailwind's blue-500 */
+    width: var(--progress-width);
+  }
+  
