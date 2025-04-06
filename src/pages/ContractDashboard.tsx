@@ -1,30 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  ArrowLeft,
   MapPin, 
   DollarSign, 
   Calendar, 
   ChevronDown, 
   ChevronRight, 
   Edit2, 
-  X, 
-  Plus, 
-  Save, 
-  Pencil,
   Truck,
-  PenTool as Tool,
-  HardHat,
   ClipboardList,
   AlertTriangle,
-  FileText,
-  BarChart2,
   Clipboard,
   Settings,
   Users,
   FileWarning,
   Calculator,
-  Map,
   Bug
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -84,7 +74,7 @@ export function ContractDashboard() {
   const [wbsGroups, setWbsGroups] = useState<WBSGroup[]>([]);
   const [debugMode, setDebugMode] = useState(false);
   const user = useAuthStore(state => state.user);
-
+  console.log(user) //delete this later when we do set up a call for the user function
   const toolButtons: ToolButton[] = [
     {
       icon: <Clipboard className="w-5 h-5" />,
@@ -220,8 +210,8 @@ export function ContractDashboard() {
           // Process line items
           const processedLineItems = (lineItems || []).map(item => ({
             ...item,
-            total_cost: item.quantity * item.unit_price,
-            amount_paid: item.quantity_completed * item.unit_price
+            total_cost: (item.quantity ?? 0) * (item.unit_price ?? 0),
+            amount_paid: (item.quantity_completed ?? 0) * (item.unit_price ?? 0)
           }));
 
           const mapTotal = processedLineItems.reduce((sum, item) => sum + item.total_cost, 0);
@@ -482,14 +472,14 @@ export function ContractDashboard() {
                               <table className="w-full divide-y divide-background-lighter">
                                 <thead className="bg-background">
                                   <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Line Code</th>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Line Code</th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Description</th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Unit</th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Quantity</th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Budgeted Qty</th>
                                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Unit Price</th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Map Total</th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Qty to Date</th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Amount Paid</th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Budgeted $</th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Used Qty</th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Used $</th>
                                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Progress</th>
                                   </tr>
                                 </thead>
@@ -509,11 +499,11 @@ export function ContractDashboard() {
                                         </td>
                                         <td className="px-4 py-3 text-sm text-gray-300 max-w-[200px] truncate">{item.description}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{item.unit_measure}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300 text-right">{item.quantity.toLocaleString()}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300 text-right">${item.unit_price.toLocaleString()}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300 text-right">${item.total_cost.toLocaleString()}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300 text-right">{item.quantity_completed.toLocaleString()}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300 text-right">${item.amount_paid.toLocaleString()}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300 text-right">{(item.quantity ?? 0).toLocaleString()}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300 text-right">${(item.unit_price ?? 0).toLocaleString()}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300 text-right">${(item.total_cost ?? 0).toLocaleString()}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300 text-right">{(item.quantity_completed ?? 0).toLocaleString()}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300 text-right">${(item.amount_paid ?? 0).toLocaleString()}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-right">
                                           <div className="flex items-center justify-end">
                                             <div className="w-16 bg-background rounded-full h-1.5 mr-2">

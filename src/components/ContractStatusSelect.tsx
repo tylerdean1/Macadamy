@@ -1,16 +1,7 @@
 import React, { useState } from 'react';
-import {
-  AlertCircle,
-  Clock,
-  CheckCircle,
-  PauseCircle,
-  FileCheck,
-  Archive,
-  Loader,
-} from 'lucide-react';
+import { Loader } from 'lucide-react';
+import { Select } from './ui/select';
 import { getStatusColor } from '../utils/status-utils';
-
-
 
 export type ContractStatus =
   | 'Draft'
@@ -35,16 +26,17 @@ export function ContractStatusSelect({
 }: ContractStatusSelectProps) {
   const [loading, setLoading] = useState(false);
 
-  const statuses: { value: ContractStatus; label: string; icon: React.ElementType }[] = [
-    { value: 'Draft', label: 'Draft', icon: AlertCircle },
-    { value: 'Awaiting Assignment', label: 'Awaiting Assignment', icon: Clock },
-    { value: 'Active', label: 'Active', icon: CheckCircle },
-    { value: 'On Hold', label: 'On Hold', icon: PauseCircle },
-    { value: 'Final Review', label: 'Final Review', icon: FileCheck },
-    { value: 'Closed', label: 'Closed', icon: Archive },
+  const statuses: { value: ContractStatus; label: string }[] = [
+    { value: 'Draft', label: 'Draft' },
+    { value: 'Awaiting Assignment', label: 'Awaiting Assignment' },
+    { value: 'Active', label: 'Active' },
+    { value: 'On Hold', label: 'On Hold' },
+    { value: 'Final Review', label: 'Final Review' },
+    { value: 'Closed', label: 'Closed' },
   ];
 
-  const handleChange = async (newStatus: ContractStatus) => {
+  const handleChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newStatus = event.target.value as ContractStatus;
     setLoading(true);
     try {
       await onChange(newStatus);
@@ -55,23 +47,15 @@ export function ContractStatusSelect({
 
   return (
     <div className={`relative ${className}`}>
-      <select
-        aria-label="Contract Status"
+      <Select
+        options={statuses}
         value={value}
-        onChange={(e) => handleChange(e.target.value as ContractStatus)}
-        disabled={disabled}
-        className={`w-full px-4 py-2 bg-background border border-background-lighter rounded-md
-          focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-colors
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${getStatusColor(value)}`}
-        
-      >
-
-        {statuses.map((status) => (
-          <option key={status.value} value={status.value}>
-            {status.label}
-          </option>
-        ))}
-      </select>
+        onChange={handleChange}
+        disabled={disabled || loading}
+        className={`${getStatusColor(value)} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        aria-label="Contract Status"
+        fullWidth
+      />
 
       {loading && (
         <Loader className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted" />
@@ -79,5 +63,3 @@ export function ContractStatusSelect({
     </div>
   );
 }
-
-

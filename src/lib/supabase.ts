@@ -1,12 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
+import { getRequiredEnv } from '../utils/env-validator';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
-}
+// Get required environment variables with validation
+const supabaseUrl = getRequiredEnv('VITE_SUPABASE_URL');
+const supabaseAnonKey = getRequiredEnv('VITE_SUPABASE_ANON_KEY');
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {

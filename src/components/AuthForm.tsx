@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, Mail, Eye, EyeOff, User } from 'lucide-react';
+import { Button } from './ui/button';
+import { Card } from './ui/card';
 
 interface AuthFormProps {
   isLogin: boolean;
@@ -13,9 +15,13 @@ export function AuthForm({ isLogin, onSubmit, onToggleMode, onForgotPassword }: 
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+
+    try {
     if (showForgotPassword) {
       if (!identifier.includes('@')) {
         alert('Please enter a valid email address for password reset');
@@ -26,13 +32,17 @@ export function AuthForm({ isLogin, onSubmit, onToggleMode, onForgotPassword }: 
     } else {
       await onSubmit(identifier, password);
     }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="bg-background-light p-4 sm:p-8 rounded-lg shadow-xl border border-background-lighter w-full max-w-md mx-auto">
+    <Card className="bg-background-light p-4 sm:p-8 rounded-lg shadow-xl border border-background-lighter w-full max-w-md mx-auto">
       <h2 className="text-xl sm:text-2xl font-bold text-white mb-6">
         {showForgotPassword ? 'Reset Password' : isLogin ? 'Welcome Back' : 'Create Account'}
       </h2>
+
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <label htmlFor="identifier" className="block text-sm font-medium text-gray-300 mb-2">
@@ -55,6 +65,7 @@ export function AuthForm({ isLogin, onSubmit, onToggleMode, onForgotPassword }: 
             />
           </div>
         </div>
+
         {!showForgotPassword && (
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
@@ -85,13 +96,15 @@ export function AuthForm({ isLogin, onSubmit, onToggleMode, onForgotPassword }: 
             </div>
           </div>
         )}
-        <button
+        <Button
           type="submit"
+          disabled={loading}
           className="w-full bg-primary hover:bg-primary-hover text-white py-2.5 px-4 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
         >
-          {showForgotPassword ? 'Send Reset Instructions' : isLogin ? 'Sign In' : 'Create Account'}
-        </button>
+          {loading ? 'Processing...' : showForgotPassword ? 'Send Reset Instructions' : isLogin ? 'Sign In' : 'Create Account'}
+        </Button>
       </form>
+
       <div className="mt-6 text-center space-y-2">
         {isLogin && !showForgotPassword && (
           <button
@@ -120,6 +133,6 @@ export function AuthForm({ isLogin, onSubmit, onToggleMode, onForgotPassword }: 
           </button>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

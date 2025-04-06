@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { DollarSign, AlertTriangle } from 'lucide-react';
+import { Card } from './ui/card';
 
 interface BudgetTrackerProps {
   contractBudget: number;
@@ -20,12 +21,11 @@ export function BudgetTracker({ contractBudget, lineItemTotal, className = '' }:
   };
 
   return (
-    <div className={`bg-background-light rounded-lg border border-background-lighter p-4 ${className}`}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-medium text-white">Budget Tracker</h3>
-        <DollarSign className="w-5 h-5 text-primary" />
-      </div>
-
+    <Card
+      title="Budget Tracker"
+      icon={<DollarSign className="w-5 h-5 text-primary" />}
+      className={className}
+    >
       <div className="space-y-4">
         <div>
           <div className="flex justify-between text-sm text-gray-400 mb-1">
@@ -51,13 +51,12 @@ export function BudgetTracker({ contractBudget, lineItemTotal, className = '' }:
             <span className="text-sm text-gray-400">Budget Utilization</span>
             <span className="text-sm font-medium text-white">{percentageUsed.toFixed(1)}%</span>
           </div>
-          <div className="relative h-2 bg-background rounded-full overflow-hidden">
             <div
-              className={`absolute left-0 top-0 h-full transition-all ${getStatusColor()}`}
+              className={`budgetBar ${getStatusColor()}`}
               style={{ width: `${Math.min(percentageUsed, 100)}%` }}
+              data-width={Math.min(percentageUsed, 100)}
             />
           </div>
-        </div>
 
         {percentageUsed > 100 && (
           <div className="flex items-center gap-2 text-sm text-red-500 mt-2">
@@ -66,6 +65,6 @@ export function BudgetTracker({ contractBudget, lineItemTotal, className = '' }:
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

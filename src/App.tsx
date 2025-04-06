@@ -12,6 +12,7 @@ import { useAuthStore } from './lib/store';
 import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
+import { Toaster } from "react-hot-toast";
 
 function DemoRedirect() {
   const { setUser, setProfile } = useAuthStore();
@@ -107,7 +108,7 @@ function DemoRedirect() {
           email: profileData.email,
           phone: profileData.phone || '',
           location: profileData.location || '',
-          company: profileData.organizations?.name || 'Demo Organization',
+          company: profileData.organizations?.[0]?.name || 'Demo Organization',
           username: profileData.username || 'demo_user',
           jobTitleId: profileData.job_title_id,
           organizationId: profileData.organization_id
@@ -158,6 +159,7 @@ function DemoRedirect() {
 export default function App() {
   return (
     <BrowserRouter>
+      <Toaster position="top-right" />
       <Navbar />
       <Routes>
         <Route path="/" element={<LandingPage />} />

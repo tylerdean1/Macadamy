@@ -1,5 +1,7 @@
 import React from 'react';
 import { AlertCircle, Clock, CheckCircle, PauseCircle, FileCheck, Archive } from 'lucide-react';
+import { Badge } from './ui/badge';
+import { BadgeVariant } from '../types';
 
 interface ContractStatusBadgeProps {
   status: 'Draft' | 'Awaiting Assignment' | 'Active' | 'On Hold' | 'Final Review' | 'Closed';
@@ -7,48 +9,34 @@ interface ContractStatusBadgeProps {
 }
 
 export function ContractStatusBadge({ status, className = '' }: ContractStatusBadgeProps) {
-  const getStatusColor = (status: string) => {
+  const getStatusDetails = (status: string): { variant: BadgeVariant, icon: React.ReactNode } => {
     switch (status) {
       case 'Draft':
-        return 'bg-gray-500/10 text-gray-500';
+        return { variant: 'default', icon: <AlertCircle className="w-4 h-4" /> };
       case 'Awaiting Assignment':
-        return 'bg-yellow-500/10 text-yellow-500';
+        return { variant: 'warning', icon: <Clock className="w-4 h-4" /> };
       case 'Active':
-        return 'bg-green-500/10 text-green-500';
+        return { variant: 'success', icon: <CheckCircle className="w-4 h-4" /> };
       case 'On Hold':
-        return 'bg-orange-500/10 text-orange-500';
+        return { variant: 'warning', icon: <PauseCircle className="w-4 h-4" /> };
       case 'Final Review':
-        return 'bg-blue-500/10 text-blue-500';
+        return { variant: 'info', icon: <FileCheck className="w-4 h-4" /> };
       case 'Closed':
-        return 'bg-purple-500/10 text-purple-500';
+        return { variant: 'primary', icon: <Archive className="w-4 h-4" /> };
       default:
-        return 'bg-gray-500/10 text-gray-500';
+        return { variant: 'default', icon: <AlertCircle className="w-4 h-4" /> };
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Draft':
-        return <AlertCircle className="w-4 h-4" />;
-      case 'Awaiting Assignment':
-        return <Clock className="w-4 h-4" />;
-      case 'Active':
-        return <CheckCircle className="w-4 h-4" />;
-      case 'On Hold':
-        return <PauseCircle className="w-4 h-4" />;
-      case 'Final Review':
-        return <FileCheck className="w-4 h-4" />;
-      case 'Closed':
-        return <Archive className="w-4 h-4" />;
-      default:
-        return <AlertCircle className="w-4 h-4" />;
-    }
-  };
+  const { variant, icon } = getStatusDetails(status);
 
   return (
-    <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(status)} ${className}`}>
-      {getStatusIcon(status)}
-      <span>{status}</span>
-    </div>
+    <Badge
+      variant={variant}
+      icon={icon}
+      className={className}
+    >
+      {status}
+    </Badge>
   );
 }
