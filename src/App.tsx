@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 import { Toaster } from 'sonner'; // ✅ This is the correct toast library
+import { ContractSettings } from './pages/ContractSettings';
 
 function DemoRedirect() {
   const { setUser, setProfile } = useAuthStore();
@@ -169,6 +170,11 @@ export default function App() {
           <Route path="/contracts/:id" element={
             <ProtectedRoute>
               <ContractDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/contracts/:id/settings" element={
+            <ProtectedRoute>
+              <ContractSettings />
             </ProtectedRoute>
           } />
         </Routes>
