@@ -624,7 +624,7 @@ export function Dashboard() {
                 </div>
               </div>
               <Button
-                onClick={() => navigate('/demo/create')}
+                onClick={() => navigate('/ContractCreation')}
                 className="flex items-center gap-2"
               >
                 <Plus className="w-5 h-5" />

@@ -12,7 +12,7 @@ import { useAuthStore } from './lib/store';
 import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
-import { Toaster } from "react-hot-toast";
+import { Toaster } from 'sonner'; // ✅ This is the correct toast library
 
 function DemoRedirect() {
   const { setUser, setProfile } = useAuthStore();
@@ -23,8 +23,7 @@ function DemoRedirect() {
     const setupDemoUser = async () => {
       try {
         setLoading(true);
-        
-        // Step 1: Sign in the demo user
+
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
           email: 'test@test.com',
           password: 'test123',
@@ -34,13 +33,10 @@ function DemoRedirect() {
           throw new Error(authError?.message || 'Failed to authenticate demo user');
         }
 
-        // Set the user immediately after authentication
         setUser(authData.user);
 
-        // Step 2: Generate session ID for demo data
         const sessionId = uuidv4();
 
-        // Step 3: Create demo data with error handling
         const { error: cloneError } = await supabase.rpc('create_clone_for_test_user', {
           session_id: sessionId
         });
@@ -50,10 +46,8 @@ function DemoRedirect() {
           throw new Error('Failed to create demo environment');
         }
 
-        // Store session ID for cleanup later
         localStorage.setItem('demo_session_id', sessionId);
 
-        // Step 4: Fetch user profile with retries
         let attempts = 0;
         const maxAttempts = 3;
         let profileData = null;
@@ -101,7 +95,6 @@ function DemoRedirect() {
           throw new Error('Failed to fetch user profile');
         }
 
-        // Step 5: Update profile in store
         setProfile({
           role: profileData.role || 'Admin',
           fullName: profileData.full_name || 'Demo User',
@@ -158,33 +151,29 @@ function DemoRedirect() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Toaster position="top-right" />
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/onboarding" element={<UserOnboarding />} />
-        <Route path="/demo" element={<DemoRedirect />} />
-        <Route path="/demo/create" element={<ContractCreation />} />
-        <Route
-          path="/dashboard"
-          element={
+    <>
+      <Toaster position="top-right" /> {/* ✅ Toast messages show from here */}
+      <BrowserRouter>
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/onboarding" element={<UserOnboarding />} />
+          <Route path="/demo" element={<DemoRedirect />} />
+          <Route path="/demo/create" element={<ContractCreation />} />
+          <Route path="/dashboard" element={
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/contracts/:id"
-          element={
+          } />
+          <Route path="/contracts/:id" element={
             <ProtectedRoute>
               <ContractDashboard />
             </ProtectedRoute>
-          }
-        />
-      </Routes>
-      <Analytics />
-    </BrowserRouter>
+          } />
+        </Routes>
+        <Analytics />
+      </BrowserRouter>
+    </>
   );
 }

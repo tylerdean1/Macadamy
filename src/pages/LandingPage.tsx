@@ -285,7 +285,7 @@ export function LandingPage() {
         email: profileData.email,
         phone: profileData.phone || '',
         location: profileData.location || '',
-        company: profileData.organizations?.name || '',
+        company: profileData.organizations?.[0]?.name || '',
         username: profileData.username || '',
         jobTitleId: profileData.job_title_id,
         organizationId: profileData.organization_id
@@ -315,12 +315,12 @@ export function LandingPage() {
                 Track materials, labor, equipment, and more in one unified platform.
               </p>
               <div className="space-x-4">
-                <button
-                  onClick={() => navigate('/demo')}
-                  className="bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-lg font-semibold transition-colors"
-                >
-                  Try Demo Project
-                </button>
+              <button
+                onClick={handleDevLogin}
+                className="bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-lg font-semibold transition-colors"
+              >
+                Try Demo Project
+              </button>
                 {import.meta.env.DEV && (
                   <button
                     onClick={handleDevLogin}

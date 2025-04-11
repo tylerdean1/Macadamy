@@ -1,96 +1,93 @@
-import { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import ContractInfoForm from '@/components/contract/ContractInfoForm';
+import LineItemsForm from '@/components/contract/LineCodeForm';
+import WbsForm from '@/components/contract/WbsForm';
+import type { WbsSection } from '@/components/contract/LineCodeForm';
+import type { LineItem } from '@/components/contract/LineCodeForm';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/lib/store';
 
 const ContractCreation = () => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('');
-  const [budget, setBudget] = useState<number>(0);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
-  const handleCreateContract = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    const created_by = user?.id;
+  const [contractData, setContractData] = useState({
+    title: '',
+    location: '',
+    start_date: '',
+    end_date: '',
+    status: 'draft',
+    budget: 0,
+    description: '',
+    created_by: user?.id || ''
+  });
 
-    if (!created_by) {
-      alert('User not authenticated');
-      return;
-    }
+  const [wbsSections, setWbsSections] = useState([]);
+  const [lineItems, setLineItems] = useState([]);
 
-    const { error } = await supabase.from('contracts').insert([
-      {
-        title,
-        description,
-        location,
-        budget,
-        start_date: startDate,
-        end_date: endDate,
-        status: 'Draft',
-        created_by,
-      },
-    ]);
+  const handleSave = async () => {
+    try {
+      const { data: contract, error } = await supabase
+        .from('contracts')
+        .insert([contractData])
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Error creating contract:', error);
-    } else {
+      if (error || !contract) throw error;
+
+      const contractId = contract.id;
+
+      const wbsInsert = wbsSections.map((wbs: WbsSection) => ({
+        ...wbs,
+        contract_id: contractId
+      }));
+      
+      const lineItemsInsert = lineItems.map((item: LineItem) => ({
+        ...item,
+        contract_id: contractId
+      }));
+      
+
+      if (wbsInsert.length) await supabase.from('wbs_sections').insert(wbsInsert);
+      if (lineItemsInsert.length) await supabase.from('line_items').insert(lineItemsInsert);
+
+      toast.success('Contract saved as draft.');
       navigate('/dashboard');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save contract.');
     }
   };
 
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-bold mb-4">Create Contract</h1>
-      <input
-        placeholder="Title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        className="block mb-2 border p-2 w-full"
-      />
-      <input
-        placeholder="Description"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        className="block mb-2 border p-2 w-full"
-      />
-      <input
-        placeholder="Location"
-        value={location}
-        onChange={(e) => setLocation(e.target.value)}
-        className="block mb-2 border p-2 w-full"
-      />
-      <input
-        type="number"
-        placeholder="Budget"
-        value={budget}
-        onChange={(e) => setBudget(Number(e.target.value))}
-        className="block mb-2 border p-2 w-full"
-      />
-      <input
-        type="date"
-        placeholder="Start Date"
-        value={startDate}
-        onChange={(e) => setStartDate(e.target.value)}
-        className="block mb-2 border p-2 w-full"
-      />
-      <input
-        type="date"
-        placeholder="End Date"
-        value={endDate}
-        onChange={(e) => setEndDate(e.target.value)}
-        className="block mb-4 border p-2 w-full"
-      />
-      {/* TODO: Add UI for editing WBS and Maps */}
-      <button
-        onClick={handleCreateContract}
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-      >
-        Save Contract
-      </button>
+    <div className="min-h-screen bg-background py-8 px-4 max-w-6xl mx-auto">
+      <h1 className="text-2xl font-bold text-white mb-6">Create New Contract</h1>
+
+      <Card className="mb-6 p-4">
+        <ContractInfoForm data={contractData} onChange={setContractData} />
+      </Card>
+
+      <Card className="mb-6 p-4">
+        <WbsForm sections={wbsSections} onChange={setWbsSections} />
+      </Card>
+
+      <Card className="mb-6 p-4">
+        <LineItemsForm
+          items={lineItems}
+          wbsSections={wbsSections}
+          mapLocations={mapLocations}
+          onChange={setLineItems}
+        />
+      </Card>
+
+      <div className="flex justify-end gap-4">
+        <Button variant="outline" onClick={() => navigate('/dashboard')}>Cancel</Button>
+        <Button onClick={handleSave}>Save Progress</Button>
+      </div>
     </div>
   );
 };

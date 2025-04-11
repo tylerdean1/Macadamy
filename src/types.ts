@@ -18,6 +18,7 @@ export type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'dang
 export type BadgeSize = 'sm' | 'md' | 'lg';
 
 export type ContractStatus = ContractStatusType;
+
 // Form and Data Types
 export interface SelectOption {
   value: string;
@@ -58,4 +59,51 @@ export interface FormSectionProps {
   description?: string;
   children: ReactNode;
   className?: string;
+}
+
+export interface Variable {
+  name: string;
+  unit: string;
+  value?: string | number;
+}
+
+export interface LineItem {
+  line_code: string;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  unit_measure: string;
+  reference_doc: string;
+  formula: string;
+  variables: Variable[];
+}
+
+export interface Template {
+  id: string;
+  title: string;
+  description: string;
+  unit_measure: string;
+  formula: string;
+  variables: Variable[];
+}
+
+export interface FormulaBuilderProps {
+  unitOptions: { label: string; value: string }[];
+  value: {
+    variables: Variable[];
+    formula: string;
+  };
+  onChange: (updated: { variables: Variable[]; formula: string }) => void;
+  isValid?: boolean;
+}
+
+export interface LineItemEntryInput {
+  formula: string;
+  variables: {
+    name: string;
+    unit: string;
+    value: number;
+  }[];
+  result: number;
+  unit: string;
 }

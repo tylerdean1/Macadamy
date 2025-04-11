@@ -1,103 +1,153 @@
-# Continue API Error Handling
+Macadamy.io Construction Project Tracker
 
-This repository provides solutions for handling common Continue API errors, including:
+Macadamy.io is a real-time construction progress tracking platform tailored for transportation infrastructure projects. It enables contractors and engineers to manage quantities, track daily progress, and ensure compliance with government contracts by organizing data by contract, WBS, map, and line code.
 
-1. The "messages must have non-empty content" error
-2. The "Overloaded" server error
 
-## Problem 1: Empty Content Error
+🔧 Key Features
 
-### Error Description
 
-```
-HTTP 500 Internal Server Error from https://api.continue.dev/model-proxy/v1/chat/completions 
-Error in Continue server: {"type":"error","error": 
-{"type":"invalid_request_error","message":"messages.0: all messages must have non-empty content 
-except for the optional final assistant message"}}
-```
 
-This error occurs when one or more messages in your request to the Continue API has empty content. According to the API requirements, all messages must have non-empty content, with the only exception being the final assistant message.
+📊 Line Code Calculators
 
-### Solution
 
-The `ContinueApiClient` class in `src/continue_api.py` implements proper message validation to prevent this error:
+Each pay item (line code) has a dedicated calculator template that tracks input, measurements, and progress. Templates are based on real-world DOT standards (e.g., NCDOT, SCDOT) and include:
 
-```python
-client = ContinueApiClient()
+LC 1 - Mobilization: Tracks lump sum progress
 
-# CORRECT: All messages have non-empty content
-messages = [
-    {"role": "system", "content": "You are a helpful assistant."},  # Non-empty content
-    {"role": "user", "content": "What is a Python generator?"}
-]
+LC 2 - Borrow Excavation: Calculates truck loads with shrinkage
 
-# This will validate the messages before sending
-response = client.chat_completions(messages=messages)
-```
+LC 3 - Incidental Stone Base: Measures by tons
 
-### Key Rules to Remember
+LC 4 - Shoulder Reconstruction: Measures in shoulder miles
 
-1. Always ensure every message has non-empty content
-2. The only exception is the final message IF it's from the assistant
-3. Use the `ContinueApiClient` which validates messages before sending
-4. When editing code, always include both instruction and content
+LC 5–7 - Milling Templates: Track milling areas in SY and CY with precision
 
-## Problem 2: Overloaded Server Error
+LC 8 - Asphalt Paving: Includes spread rate, type, tack rate, and target tonnage
 
-### Error Description
+LC 14 - Patch Milling: Combines milling and asphalt patching logic
 
-```
-HTTP 500 Internal Server Error from https://api.continue.dev/model-proxy/v1/chat/completions
-Error in Continue server: Malformed JSON sent from server: {"type":"error","error":
-{"details":null,"type":"overloaded_error","message":"Overloaded"}}
-```
+LC 15–16 - Curb Ramps: Tracked per EA (each), with station and side of road
 
-This error occurs when the Continue API servers are experiencing high traffic or resource constraints and temporarily cannot handle more requests.
 
-### Solution
+🗺️ Hierarchical Data Structure
 
-The enhanced `ContinueApiClient` in `src/continue_api.py` implements exponential backoff retry logic to handle overloaded errors:
 
-```python
-try:
-    # This has built-in retry logic for overloaded errors
-    response = client.chat_completions(
-        messages=messages,
-        max_retries=5,     # Try up to 5 times
-        retry_delay=2      # Start with 2 seconds, will increase exponentially
-    )
-except OverloadedError as e:
-    print("The Continue API is currently overloaded. Please try again later.")
-    # Handle gracefully - perhaps queue the request for later
-```
+Progress and allocations are structured by:
 
-The `handle_overload_error.py` script demonstrates a complete solution for handling these errors with user-friendly messages.
+Contract → WBS → Map → Line Code Calculations
 
-### Guidelines for Users
+Each map contains multiple line code calculations with allotted and completed totals
 
-If you encounter the 'Overloaded' error:
 
-1. Wait a few minutes before trying again
-2. Try during off-peak hours
-3. Make shorter or simpler requests
-4. If using the edit feature, try applying smaller edits
+🧠 Smart Templates
 
-## Running the Example Scripts
 
-To see these solutions in action, run:
+Templates automatically calculate quantities like:
 
-```bash
-python fix_continue_error.py       # Demonstrates handling empty content errors
-python handle_overload_error.py    # Demonstrates handling overloaded server errors
-```
+SY, CY, LF, EA, TON, GAL, etc.
 
-## Implementation Details
+Handles complex calculations such as asphalt tonnage based on depth and spread rate
 
-The repository includes:
+Conditional logic for paint striping, patch statuses, and excavation loads
 
-- `src/continue_api.py`: A robust client for the Continue API with proper error handling
-- `src/diff_handler.py`: Utility for handling streaming diffs with proper validation
-- `fix_continue_error.py`: Example script showing how to fix empty content errors
-- `handle_overload_error.py`: Example script showing how to handle overloaded errors
-- `test_continue.py`: Basic test file for using the Continue API correctly
-- `test_continue_api.py`: Unit tests for the Continue API client
+
+🧪 Real-Time Updates & Validation
+
+
+Users enter field data from the frontend, which calculates totals in real-time
+
+Backend validations ensure data integrity, including unit consistency and required fields
+
+
+👥 Role-Based Permissions
+
+
+Admins and engineers can create and manage formulas
+
+Field users input measurements without affecting templates
+
+
+🧰 Tech Stack
+
+
+Frontend: React (TypeScript), Tailwind CSS
+
+Backend: Supabase (PostgreSQL, Auth, Realtime)
+
+Database: SQL-defined templates and structure with real-time triggers
+
+Authentication: Supabase Auth with custom profile handling and avatars
+
+Infrastructure: Vercel (frontend hosting), Supabase (DB and API)
+
+Dev Tools: Docker (optional for local Supabase testing), Continue Extension for AI-enhanced development
+
+
+📁 Project Structure
+
+
+project-root/
+├── src/
+│   ├── components/      # UI components
+│   ├── pages/           # Main app pages (ContractDashboard, Settings, etc.)
+│   ├── types/           # Supabase TypeScript types (auto-generated)
+├── supabase/            # (Removed if using remote-only mode)
+├── .env.local           # Environment config
+├── package.json
+
+
+📌 Current Status
+
+
+✅ Fully integrated with remote Supabase project: koaxmrtrzhilnzjbiybr
+
+✅ Supabase types generated to src/types/supabase.ts
+
+✅ Docker removed (project uses remote Supabase only)
+
+✅ Line code templates finalized for LC 1 through LC 16
+
+✅ User profile and auth flow implemented
+
+🗑️ Docker Removal
+
+Docker was originally used to run Supabase locally but was removed to simplify the setup. All data now runs against the remote Supabase backend.
+
+To reflect this change:
+
+The /supabase folder was deleted
+
+supabase start / supabase stop are no longer required
+
+
+🚀 Getting Started
+
+
+# 1. Install dependencies
+npm install
+
+# 2. Run the dev server
+npm run dev
+
+# 3. Generate types (optional)
+supabase gen types typescript > src/types/supabase.ts
+
+
+📢 Contribution Notes
+
+
+Line codes are modular and defined via SQL inserts
+
+Each calculator can be filtered by map, WBS, or contract
+
+Every update recalculates progress totals per map
+
+
+🧼 Dev Tips
+
+
+Be sure your Supabase CLI is up-to-date
+
+Keep your supabase.ts types file synced using the command above
+
+When debugging Supabase, try supabase link again if your project changes

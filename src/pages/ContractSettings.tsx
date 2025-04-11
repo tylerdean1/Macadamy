@@ -1,252 +1,262 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Users, Building2, MapPin, Calendar } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, PlusCircle, ChevronRight, ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
+import WbsForm from '@/components/contract/WbsForm';
+import { MapsForm } from '@/components/contract/MapsForm';
+import { LineItemModal } from '@/components/contract/LineItemModal';
+import { toast } from 'sonner';
 
-type Contract = Database['public']['Tables']['contracts']['Row'];
+const STATUS_OPTIONS = ['Draft', 'Active', 'On Hold', 'Final Review', 'Closed'];
 
 export function ContractSettings() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [contract, setContract] = useState<Contract | null>(null);
+  const [contract, setContract] = useState<Database['public']['Tables']['contracts']['Row'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const [wbsSections, setWbsSections] = useState<{ wbs_number: string; description: string }[]>([]);
+  const [maps, setMaps] = useState<{ id: string; map_number: string; location_description: string }[]>([]);
+  const [mapRefresh, setMapRefresh] = useState(false);
+
+  const [lineItems, setLineItems] = useState<{ id: string; line_code: string; description: string; quantity: number; unit_measure: string; unit_price: number }[]>([]);
+  const [showLineItemModal, setShowLineItemModal] = useState(false);
+  const [templates, setTemplates] = useState<{ id: string; name: string; description: string }[]>([]);
+  const unitOptions = ['kg', 'm', 'pcs', 'liters'];
+
+  const [openSection, setOpenSection] = useState<string>('info');
+
+  const fetchContract = useCallback(async () => {
+    if (!id) return;
+    const { data, error } = await supabase.from('contracts').select('*').eq('id', id).maybeSingle();
+    if (error || !data) return toast.error('Contract not found');
+    setContract(data);
+    setLoading(false);
+  }, [id]);
+
+  const fetchWbsSections = useCallback(async () => {
+    if (!id) return;
+    const { data } = await supabase.from('wbs').select('wbs_number, description').eq('contract_id', id).order('wbs_number');
+    if (data) setWbsSections(data);
+  }, [id]);
+
+  const fetchMaps = useCallback(async () => {
+    if (!id) return;
+    const { data } = await supabase.from('maps').select('*').eq('contract_id', id);
+    if (data) setMaps(data);
+  }, [id]);
+
+  const fetchLineItems = useCallback(async () => {
+    if (!id) return;
+    const { data } = await supabase.from('line_items').select('*').eq('contract_id', id);
+    if (data) setLineItems(data);
+  }, [id]);
+
+  const fetchTemplates = useCallback(async () => {
+    const { data } = await supabase.from('line_item_templates').select('*');
+    if (data) setTemplates(data);
+  }, []);
 
   useEffect(() => {
     fetchContract();
-  }, [id]);
-
-  const fetchContract = async () => {
-    if (!id) return;
-    
-    try {
-      setLoading(true);
-      setError(null);
-
-      // First try to fetch from contracts table
-      const { data: contractData, error: contractError } = await supabase
-        .from('contracts')
-        .select('*')
-        .eq('id', id)
-        .limit(1)
-        .maybeSingle();
-
-      if (contractError) {
-        throw contractError;
-      }
-
-      if (!contractData) {
-        // If no contract found, check if this is the demo contract
-        if (id === '00000000-0000-0000-0000-000000000001') {
-          setContract({
-            id,
-            title: 'Contract Resurfacing',
-            description: 'Contract resurfacing for multiple sections',
-            location: 'Various Locations',
-            status: 'active',
-            budget: 2500000.00,
-            start_date: '2024-03-01',
-            end_date: '2024-12-31',
-            created_by: '00000000-0000-0000-0000-000000000000',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-        } else {
-          setError('Contract not found');
-        }
-      } else {
-        setContract(contractData);
-      }
-    } catch (error) {
-      console.error('Error fetching contract:', error);
-      setError('Error loading contract details');
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchWbsSections();
+    fetchMaps();
+    fetchLineItems();
+    fetchTemplates();
+  }, [fetchContract, fetchWbsSections, fetchMaps, fetchLineItems, fetchTemplates, id, mapRefresh]);
 
   const handleSave = async () => {
     if (!contract) return;
+    setSaving(true);
+    const { error } = await supabase.from('contracts').update({
+      title: contract.title,
+      description: contract.description,
+      location: contract.location,
+      start_date: contract.start_date,
+      end_date: contract.end_date,
+      status: contract.status,
+    }).eq('id', contract.id);
+    if (error) toast.error('Error saving contract');
+    else toast.success('Contract updated!');
+    setSaving(false);
+  };
 
-    try {
-      setSaving(true);
-      setError(null);
+  const saveWbsSections = async () => {
+    if (!id) return;
+    await supabase.from('wbs').delete().eq('contract_id', id);
+    const inserts = wbsSections.map(s => ({ ...s, contract_id: id }));
+    const { error } = await supabase.from('wbs').insert(inserts);
+    if (error) toast.error('Failed to save WBS');
+    else toast.success('WBS saved!');
+  };
 
-      // Don't try to update the demo contract
-      if (contract.id === '00000000-0000-0000-0000-000000000001') {
-        navigate(`/contracts/${contract.id}`);
-        return;
-      }
-
-      const { error: updateError } = await supabase
-        .from('contracts')
-        .update({
-          title: contract.title,
-          description: contract.description,
-          location: contract.location,
-          start_date: contract.start_date,
-          end_date: contract.end_date
-        })
-        .eq('id', contract.id);
-
-      if (updateError) throw updateError;
-      navigate(`/contracts/${contract.id}`);
-    } catch (error) {
-      console.error('Error updating contract:', error);
-      setError('Error saving changes');
-    } finally {
-      setSaving(false);
+  const deleteMap = async (mapId: string) => {
+    const { error } = await supabase.from('maps').delete().eq('id', mapId);
+    if (!error) {
+      toast.success('Map deleted');
+      setMapRefresh(!mapRefresh);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  const deleteLineItem = async (itemId: string) => {
+    const { error } = await supabase.from('line_items').delete().eq('id', itemId);
+    if (!error) {
+      toast.success('Line item deleted');
+      fetchLineItems();
+    }
+  };
 
-  if (error || !contract) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-xl text-gray-400">{error || 'Contract not found'}</p>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="mt-4 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-md transition-colors"
-          >
-            Return to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const handleLineItemSave = async (data: { line_code: string; description: string; quantity: number; unit_measure: string; unit_price: number }) => {
+    const { error } = await supabase.from('line_items').insert([{ ...data, contract_id: id }]);
+    if (!error) {
+      toast.success('Line item added!');
+      fetchLineItems();
+      setShowLineItemModal(false);
+    }
+  };
+
+  const totalBudget = lineItems.reduce((acc, item) => acc + (item.unit_price * item.quantity), 0);
+
+  const SectionToggle = ({ id, title }: { id: string; title: string }) => (
+    <button
+      type="button"
+      className="w-full flex justify-between items-center bg-background-light px-4 py-2 text-left border-b border-background-lighter hover:bg-background"
+      onClick={() => setOpenSection(prev => (prev === id ? '' : id))}
+    >
+      <span className="text-lg font-semibold">{title}</span>
+      {openSection === id ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+    </button>
+  );
+
+  if (loading) return <div className="text-white p-8">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate(`/contracts/${id}`)}
-              className="p-2 text-gray-400 hover:text-white hover:bg-background-lighter rounded-lg transition-colors"
+    <div className="p-6 text-white">
+      <div className="flex justify-between items-center mb-6">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white">
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+        <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-primary text-white rounded">
+          <Save className="w-4 h-4 inline mr-1" /> {saving ? 'Saving...' : 'Save Contract'}
+        </button>
+      </div>
+
+      <div className="rounded overflow-hidden border border-background-lighter">
+        <SectionToggle id="info" title="Contract Info" />
+        {openSection === 'info' && contract && (
+          <div className="p-4 space-y-4">
+            <div className="text-green-400 font-semibold">Total Budget: ${totalBudget.toLocaleString()}</div>
+            <input
+              placeholder="Contract Title"
+              value={contract.title || ''}
+              onChange={e => setContract(c => c ? { ...c, title: e.target.value } : c)}
+              className="w-full p-2 bg-background border rounded"
+            />
+            <textarea
+              placeholder="Contract Description"
+              value={contract.description || ''}
+              onChange={e => setContract(c => c ? { ...c, description: e.target.value } : c)}
+              className="w-full p-2 bg-background border rounded"
+            />
+            <input
+              placeholder="Location"
+              value={contract.location || ''}
+              onChange={e => setContract(c => c ? { ...c, location: e.target.value } : c)}
+              className="w-full p-2 bg-background border rounded"
+            />
+            <div className="flex gap-4">
+              <input
+                type="date"
+                aria-label="Start Date"
+                title="Start Date"
+                value={contract.start_date || ''}
+                onChange={e => setContract(c => c ? { ...c, start_date: e.target.value } : c)}
+                className="w-full p-2 bg-background border rounded"
+              />
+              <input
+                type="date"
+                aria-label="End Date"
+                title="End Date"
+                value={contract.end_date || ''}
+                onChange={e => setContract(c => c ? { ...c, end_date: e.target.value } : c)}
+                className="w-full p-2 bg-background border rounded"
+              />
+            </div>
+            <select
+              aria-label="Contract Status"
+              value={contract.status || ''}
+              onChange={e => setContract(c => c ? { ...c, status: e.target.value as Database['public']['Tables']['contracts']['Row']['status'] } : c)}
+              className="w-full p-2 bg-background border rounded"
             >
-              <ArrowLeft className="w-6 h-6" />
-            </button>
-            <h1 className="text-2xl font-bold text-white">Contract Settings</h1>
+              {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
           </div>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Save className="w-5 h-5 mr-2" />
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
+        )}
 
-        <div className="space-y-6">
-          <div className="bg-background-light rounded-lg border border-background-lighter p-6">
-            <h2 className="text-lg font-medium text-white mb-4">Contract Details</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Contract Title
-                </label>
-                <input
-                  type="text"
-                  value={contract.title}
-                  onChange={(e) => setContract({ ...contract, title: e.target.value })}
-                  className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={contract.description || ''}
-                  onChange={(e) => setContract({ ...contract, description: e.target.value })}
-                  rows={3}
-                  className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Location
-                </label>
-                <input
-                  type="text"
-                  value={contract.location}
-                  onChange={(e) => setContract({ ...contract, location: e.target.value })}
-                  className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={contract.start_date}
-                    onChange={(e) => setContract({ ...contract, start_date: e.target.value })}
-                    className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={contract.end_date}
-                    onChange={(e) => setContract({ ...contract, end_date: e.target.value })}
-                    className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                  />
-                </div>
-              </div>
+        <SectionToggle id="wbs" title="WBS Sections" />
+        {openSection === 'wbs' && (
+          <div className="p-4">
+            <div className="flex justify-between mb-2">
+              <span className="text-green-400">Total: {wbsSections.length} sections</span>
+              <button onClick={saveWbsSections} className="text-sm bg-primary px-3 py-1 rounded">Save WBS</button>
             </div>
+            <WbsForm sections={wbsSections} onChange={setWbsSections} />
           </div>
+        )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-background-light rounded-lg border border-background-lighter p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium text-white">Team</h2>
-                <Users className="w-5 h-5 text-gray-400" />
+        <SectionToggle id="maps" title="Maps" />
+        {openSection === 'maps' && (
+          <div className="p-4 space-y-3">
+            <div className="text-green-400">Total: {maps.length} map(s)</div>
+            {maps.map(map => (
+              <div key={map.id} className="flex justify-between items-center border-b border-gray-700 py-2">
+                <span>{map.map_number} – {map.location_description}</span>
+                <button onClick={() => deleteMap(map.id)} className="text-red-500 hover:text-white" title="Delete Map">
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
-              <p className="text-gray-400">Manage team members and permissions</p>
-              <button className="mt-4 w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md hover:bg-background-lighter transition-colors">
-                Manage Team
+            ))}
+            <MapsForm contractId={id!} wbsId={wbsSections[0]?.wbs_number} onMapSaved={() => setMapRefresh(!mapRefresh)} />
+          </div>
+        )}
+
+        <SectionToggle id="lineitems" title="Line Items" />
+        {openSection === 'lineitems' && (
+          <div className="p-4 space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-green-400">Total: {lineItems.length} items</span>
+              <button onClick={() => setShowLineItemModal(true)} className="text-sm bg-primary px-3 py-1 rounded flex items-center gap-1">
+                <PlusCircle className="w-4 h-4" /> Add Line Item
               </button>
             </div>
-
-            <div className="bg-background-light rounded-lg border border-background-lighter p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium text-white">Subcontractors</h2>
-                <Building2 className="w-5 h-5 text-gray-400" />
+            {lineItems.map(item => (
+              <div key={item.id} className="flex justify-between items-center border-b border-gray-700 py-2">
+                <span>{item.line_code} – {item.description} – {item.quantity} {item.unit_measure}</span>
+                <button onClick={() => deleteLineItem(item.id)} className="text-red-500 hover:text-white" title="Delete Line Item">
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
-              <p className="text-gray-400">Manage subcontractors and agreements</p>
-              <button className="mt-4 w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md hover:bg-background-lighter transition-colors">
-                Manage Subcontractors
-              </button>
-            </div>
-
-            <div className="bg-background-light rounded-lg border border-background-lighter p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium text-white">Locations</h2>
-                <MapPin className="w-5 h-5 text-gray-400" />
-              </div>
-              <p className="text-gray-400">Manage project locations and maps</p>
-              <button className="mt-4 w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md hover:bg-background-lighter transition-colors">
-                Manage Locations
-              </button>
-            </div>
+            ))}
           </div>
-        </div>
+        )}
+
+        {showLineItemModal && (
+          <LineItemModal
+            open={showLineItemModal}
+            onClose={() => setShowLineItemModal(false)}
+            templates={templates.map(template => ({
+              ...template,
+              title: template.name,
+              unit_measure: '',
+              formula: '',
+              variables: []
+            }))}
+            unitOptions={unitOptions.map(option => ({ label: option, value: option }))}
+            onSave={handleLineItemSave}
+          />
+        )}
       </div>
     </div>
   );

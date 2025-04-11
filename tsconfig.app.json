@@ -22,9 +22,9 @@
     "noFallthroughCasesInSwitch": true,
 
     /* Absolute import support */
-    "baseUrl": "./src",
+    "baseUrl": ".",  // points to root
     "paths": {
-      "@/*": ["*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src"]
