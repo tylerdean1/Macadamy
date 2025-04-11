@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import ContractInfoForm from '@/components/contract/ContractInfoForm';
-import LineItemsForm from '@/components/contract/LineCodeForm';
+import { LineItemsForm } from '@/components/contract/LineItemsForm';
 import WbsForm from '@/components/contract/WbsForm';
-import type { WbsSection } from '@/components/contract/LineCodeForm';
-import type { LineItem } from '@/components/contract/LineCodeForm';
+import type { LineItem, Template } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
 
@@ -27,7 +26,32 @@ const ContractCreation = () => {
   });
 
   const [wbsSections, setWbsSections] = useState([]);
-  const [lineItems, setLineItems] = useState([]);
+  const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [unitOptions, setUnitOptions] = useState<{ label: string; value: string }[]>([]);
+
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      const { data, error } = await supabase.from('calculator_templates').select('*');
+      if (!error && data) {
+        setTemplates(data);
+      }
+    };
+
+    const fetchUnits = async () => {
+      const { data, error } = await supabase.from('unit_types').select('*');
+      if (!error && data) {
+        const formatted = data.map((u: { name: string }) => ({
+          label: u.name,
+          value: u.name
+        }));
+        setUnitOptions(formatted);
+      }
+    };
+
+    fetchTemplates();
+    fetchUnits();
+  }, []);
 
   const handleSave = async () => {
     try {
@@ -41,16 +65,15 @@ const ContractCreation = () => {
 
       const contractId = contract.id;
 
-      const wbsInsert = wbsSections.map((wbs: WbsSection) => ({
-        ...wbs,
+      const wbsInsert = wbsSections.map((wbs) => ({
+        ...(typeof wbs === 'object' && wbs !== null ? wbs : {}),
         contract_id: contractId
       }));
-      
-      const lineItemsInsert = lineItems.map((item: LineItem) => ({
+
+      const lineItemsInsert = lineItems.map((item) => ({
         ...item,
         contract_id: contractId
       }));
-      
 
       if (wbsInsert.length) await supabase.from('wbs_sections').insert(wbsInsert);
       if (lineItemsInsert.length) await supabase.from('line_items').insert(lineItemsInsert);
@@ -68,7 +91,12 @@ const ContractCreation = () => {
       <h1 className="text-2xl font-bold text-white mb-6">Create New Contract</h1>
 
       <Card className="mb-6 p-4">
-        <ContractInfoForm data={contractData} onChange={setContractData} />
+        <ContractInfoForm
+          data={contractData}
+          onChange={(updatedData) =>
+            setContractData((prevData) => ({ ...prevData, ...updatedData }))
+          }
+        />
       </Card>
 
       <Card className="mb-6 p-4">
@@ -78,8 +106,8 @@ const ContractCreation = () => {
       <Card className="mb-6 p-4">
         <LineItemsForm
           items={lineItems}
-          wbsSections={wbsSections}
-          mapLocations={mapLocations}
+          templates={templates}
+          unitOptions={unitOptions}
           onChange={setLineItems}
         />
       </Card>
