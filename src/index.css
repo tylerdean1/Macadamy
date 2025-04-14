@@ -2,15 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Define a dark color scheme */
 :root {
   color-scheme: dark;
 }
 
+/* Global body styles */
 body {
   @apply bg-gray-900 text-gray-100;
 }
 
-/* Custom scrollbar for modern browsers */
+/* Custom scrollbar styling for WebKit browsers */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

@@ -1,153 +1,178 @@
 Macadamy.io Construction Project Tracker
-
 Macadamy.io is a real-time construction progress tracking platform tailored for transportation infrastructure projects. It enables contractors and engineers to manage quantities, track daily progress, and ensure compliance with government contracts by organizing data by contract, WBS, map, and line code.
 
+Table of Contents
+Pages and Components Overview
+Installation
+Usage
+License
+Pages and Components Overview:
 
-🔧 Key Features
+1. CalculatorCreation.tsx
+Functionality: Enables users to create calculator templates by defining variables and formulas related to project calculations.
 
+Usage: Used whenever customized calculators for line items are needed.
 
+Conclusion: Critical Part for specific calculations and estimations in projects.
 
-📊 Line Code Calculators
 
+2. Calculators.tsx
 
-Each pay item (line code) has a dedicated calculator template that tracks input, measurements, and progress. Templates are based on real-world DOT standards (e.g., NCDOT, SCDOT) and include:
+Functionality: Displays a list of calculator templates associated with a contract. Users can create new calculators and view existing ones.
 
-LC 1 - Mobilization: Tracks lump sum progress
+Usage: Provides an overview of calculator templates for easy management.
 
-LC 2 - Borrow Excavation: Calculates truck loads with shrinkage
+Conclusion: Critical Part for user interactions with project calculators.
 
-LC 3 - Incidental Stone Base: Measures by tons
 
-LC 4 - Shoulder Reconstruction: Measures in shoulder miles
+3. ContractCreation.tsx
 
-LC 5–7 - Milling Templates: Track milling areas in SY and CY with precision
+Functionality: Facilitates the creation of new contracts, allowing users to input necessary information such as title, description, and budget.
 
-LC 8 - Asphalt Paving: Includes spread rate, type, tack rate, and target tonnage
+Usage: Used when establishing new contracts within the system.
 
-LC 14 - Patch Milling: Combines milling and asphalt patching logic
+Conclusion: Critical Part for contract management.
 
-LC 15–16 - Curb Ramps: Tracked per EA (each), with station and side of road
 
+4. ContractSettings.tsx
 
-🗺️ Hierarchical Data Structure
+Functionality: Manages and allows for the editing of details for existing contracts, including WBS sections and line items.
 
+Usage: Provides an interface for users to view and adjust contract-specific data.
 
-Progress and allocations are structured by:
+Conclusion: Critical Part for maintaining contract details.
 
-Contract → WBS → Map → Line Code Calculations
 
-Each map contains multiple line code calculations with allotted and completed totals
+5. DailyReports.tsx
 
+Functionality: Allows users to create and manage daily work logs, documenting work performed, weather conditions, and incidents.
 
-🧠 Smart Templates
+Usage: Essential for tracking daily activities and reporting relevant project information.
 
+Conclusion: Critical Part for real-time tracking of project status.
 
-Templates automatically calculate quantities like:
 
-SY, CY, LF, EA, TON, GAL, etc.
+6. Dashboard.tsx
 
-Handles complex calculations such as asphalt tonnage based on depth and spread rate
+Functionality: Displays key metrics and an overview of active contracts and issues.
 
-Conditional logic for paint striping, patch statuses, and excavation loads
+Usage: Serves as the main landing page for users to access project summaries.
 
+Conclusion: Critical Part for providing an immediate overview of project health.
 
-🧪 Real-Time Updates & Validation
 
+7. EquipmentLog.tsx
 
-Users enter field data from the frontend, which calculates totals in real-time
+Functionality: Manages and tracks the usage of equipment related to line items, logging details about type and usage time.
 
-Backend validations ensure data integrity, including unit consistency and required fields
+Usage: Important for accountability in equipment usage on-site.
 
+Conclusion: Critical Part for tracking resources efficiently on projects.
 
-👥 Role-Based Permissions
 
+8. Inspections.tsx
 
-Admins and engineers can create and manage formulas
+Functionality: Manages inspection reports for contracts, enabling users to create and view findings during inspections.
 
-Field users input measurements without affecting templates
+Usage: Ensures compliance with safety and quality standards.
 
+Conclusion: Critical Part for maintaining project safety and regulations.
 
-🧰 Tech Stack
 
+9. Issues.tsx
 
-Frontend: React (TypeScript), Tailwind CSS
+Functionality: Tracks project issues, allowing users to record and manage the status of various problems.
 
-Backend: Supabase (PostgreSQL, Auth, Realtime)
+Usage: Offers a systematic approach to issue management.
 
-Database: SQL-defined templates and structure with real-time triggers
+Conclusion: Critical Part for proactive project problem resolution.
 
-Authentication: Supabase Auth with custom profile handling and avatars
 
-Infrastructure: Vercel (frontend hosting), Supabase (DB and API)
+10. LaborRecords.tsx
 
-Dev Tools: Docker (optional for local Supabase testing), Continue Extension for AI-enhanced development
+Functionality: Tracks labor-related records including types of work performed, hours worked, and number of workers.
 
+Usage: Used for managing labor resources and efficiency tracking.
 
-📁 Project Structure
+Conclusion: Critical Part for labor cost management.
 
 
-project-root/
-├── src/
-│   ├── components/      # UI components
-│   ├── pages/           # Main app pages (ContractDashboard, Settings, etc.)
-│   ├── types/           # Supabase TypeScript types (auto-generated)
-├── supabase/            # (Removed if using remote-only mode)
-├── .env.local           # Environment config
-├── package.json
+11. LandingPage.tsx
 
+Functionality: Acts as the entry point for users, providing an overview of the platform's capabilities and login options.
 
-📌 Current Status
+Usage: Provides access to user authentication features.
 
+Conclusion: Critical Part for user engagement at the start.
 
-✅ Fully integrated with remote Supabase project: koaxmrtrzhilnzjbiybr
 
-✅ Supabase types generated to src/types/supabase.ts
+12. ResetPassword.tsx
 
-✅ Docker removed (project uses remote Supabase only)
+Functionality: Allows users to reset their password, with validation for matching and length requirements.
 
-✅ Line code templates finalized for LC 1 through LC 16
+Usage: Facilitates the user access recovery process.
 
-✅ User profile and auth flow implemented
+Conclusion: Important but could be integrated into modal functionalities elsewhere in the application.
 
-🗑️ Docker Removal
 
-Docker was originally used to run Supabase locally but was removed to simplify the setup. All data now runs against the remote Supabase backend.
+13. ProfileImageUpload.tsx
 
-To reflect this change:
+Functionality: Handles the upload and cropping of the user's profile image.
 
-The /supabase folder was deleted
+Usage: Allows profile picture management.
 
-supabase start / supabase stop are no longer required
+Conclusion: Redundant if similar functionality exists in modals.
 
 
-🚀 Getting Started
+14. ProtectedRoute.tsx
 
+Functionality: Guards access to specific routes, ensuring only authenticated users can view them.
 
-# 1. Install dependencies
-npm install
+Usage: Used in route configurations to protect sensitive pages.
 
-# 2. Run the dev server
-npm run dev
+Conclusion: Critical Part to enforce user authentication.
 
-# 3. Generate types (optional)
-supabase gen types typescript > src/types/supabase.ts
 
+15. OrganizationSelect.tsx
 
-📢 Contribution Notes
+Functionality: Facilitates a dropdown list for selecting organizations from a pre-set list.
 
+Usage: Important for forms related to user onboarding and profile management.
 
-Line codes are modular and defined via SQL inserts
+Conclusion: Critical Part for managing organizational data.
 
-Each calculator can be filtered by map, WBS, or contract
 
-Every update recalculates progress totals per map
+16. Navbar.tsx
 
+Functionality: Provides navigation links and a sign-out button for authenticated users.
 
-🧼 Dev Tips
+Usage: Essential for navigating between core areas of the application.
 
+Conclusion: Critical Part for user navigation and orientation within the app.
 
-Be sure your Supabase CLI is up-to-date
 
-Keep your supabase.ts types file synced using the command above
+17. Modal.tsx
 
-When debugging Supabase, try supabase link again if your project changes
+Functionality: A reusable modal component for displaying content, alerts, forms, etc.
+
+Usage: Used across various pages for interactions, including profile updates and confirmations.
+
+Conclusion: Critical Part for enhancing user interactions.
+
+
+18. Select.tsx
+
+Functionality: Custom select input for choosing options from a dropdown menu.
+
+Usage: Used in forms where users need to select predefined options.
+
+Conclusion: Useful but can be redundant if other select components fulfill similar roles.
+
+
+19. UserOnboarding.tsx
+
+Functionality: Facilitates the onboarding process for new users, collecting their information and preferences.
+
+Usage: Essential for setting up new user accounts properly.
+
+Conclusion: Critical Part to ensure a smooth onboarding experience.

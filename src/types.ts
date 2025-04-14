@@ -38,7 +38,7 @@ export type CardProps = LibCardProps;
 // Component props types
 export interface BadgeProps {
   children: ReactNode;
-  variant?: BadgeVariant;
+  variant?: BadgeVariant; 
   size?: BadgeSize;
   icon?: ReactNode;
   className?: string;
@@ -68,12 +68,12 @@ export interface Variable {
 }
 
 export interface LineItem {
-  line_code: string;
+  lineCode: string; // Changed from snake_case to camelCase for consistency
   description: string;
   quantity: number;
-  unit_price: number;
-  unit_measure: string;
-  reference_doc: string;
+  unitPrice: number; // Changed from snake_case to camelCase for consistency
+  unitMeasure: string; // Changed from snake_case to camelCase for consistency
+  referenceDoc: string; // Changed from snake_case to camelCase for consistency
   formula: string;
   variables: Variable[];
 }
@@ -82,7 +82,7 @@ export interface Template {
   id: string;
   title: string;
   description: string;
-  unit_measure: string;
+  unitMeasure: string; // Changed from snake_case to camelCase for consistency
   formula: string;
   variables: Variable[];
 }

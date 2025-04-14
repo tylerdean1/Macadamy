@@ -1,298 +1,264 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Truck, Clock, User, Calendar, Save } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../lib/store';
 
 interface EquipmentUsage {
   id?: string;
-  line_item_id: string;
-  equipment_type: string;
-  hours_used: number;
+  equipment_id: string;
+  map_id?: string;
+  line_item_id?: string;
   usage_date: string;
-  operator: string | null;
+  hours_used: number;
+  operator_id?: string | null;
+  operator_name?: string | null;
   notes: string;
 }
 
-const EQUIPMENT_TYPES = [
-  'Excavator',
-  'Bulldozer',
-  'Grader',
-  'Loader',
-  'Paver',
-  'Roller',
-  'Dump Truck',
-  'Water Truck',
-  'Crane',
-  'Other'
-];
+interface Operator {
+  id: string;
+  full_name: string;
+}
+
+interface EquipmentItem {
+  id: string;
+  user_defined_id: string;
+  name: string;
+  description: string;
+}
 
 export function EquipmentLog() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [logs, setLogs] = useState<EquipmentUsage[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
-  const [operators, setOperators] = useState<any[]>([]);
-  const [newLog, setNewLog] = useState<EquipmentUsage>({
-    line_item_id: id || '',
-    equipment_type: '',
-    hours_used: 0,
-    usage_date: new Date().toISOString().split('T')[0],
-    operator: null,
-    notes: ''
-  });
   const user = useAuthStore(state => state.user);
 
-  useEffect(() => {
-    fetchLogs();
-    fetchOperators();
-  }, [id]);
+  const [logs, setLogs] = useState<EquipmentUsage[]>([]);
+  const [operators, setOperators] = useState<Operator[]>([]);
+  const [equipmentList, setEquipmentList] = useState<EquipmentItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
+  const [showAddEquipment, setShowAddEquipment] = useState(false);
 
-  const fetchLogs = async () => {
+  const [newEquipment, setNewEquipment] = useState({
+    user_defined_id: '',
+    name: '',
+    description: '',
+  });
+
+  const [newLog, setNewLog] = useState<EquipmentUsage>({
+    equipment_id: '',
+    usage_date: new Date().toISOString().split('T')[0],
+    hours_used: 0,
+    operator_id: null,
+    operator_name: '',
+    notes: '',
+  });
+
+  const fetchLogs = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('equipment_usage')
-        .select(`
-          *,
-          operator:profiles!operator (
-            full_name,
-            email
-          )
-        `)
-        .eq('line_item_id', id)
+        .select('*')
         .order('usage_date', { ascending: false });
 
       if (error) throw error;
       setLogs(data || []);
     } catch (error) {
-      console.error('Error fetching equipment logs:', error);
+      console.error('Error fetching logs:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchOperators = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .order('full_name');
+  const fetchOperators = useCallback(async () => {
+    const { data, error } = await supabase.from('profiles').select('id, full_name');
+    if (!error) setOperators(data || []);
+  }, []);
 
-      if (error) throw error;
-      setOperators(data || []);
-    } catch (error) {
-      console.error('Error fetching operators:', error);
-    }
-  };
+  const fetchEquipment = useCallback(async () => {
+    const { data, error } = await supabase.from('equipment').select('*');
+    if (!error) setEquipmentList(data || []);
+  }, []);
+
+  useEffect(() => {
+    fetchLogs();
+    fetchOperators();
+    fetchEquipment();
+  }, [fetchLogs, fetchOperators, fetchEquipment]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from('equipment_usage')
-        .insert({
-          ...newLog,
-          created_by: user.id
-        });
+      const { error } = await supabase.from('equipment_usage').insert({
+        ...newLog,
+        created_by: user.id,
+      });
 
       if (error) throw error;
 
       setIsCreating(false);
       fetchLogs();
       setNewLog({
-        line_item_id: id || '',
-        equipment_type: '',
-        hours_used: 0,
+        equipment_id: '',
         usage_date: new Date().toISOString().split('T')[0],
-        operator: null,
-        notes: ''
+        hours_used: 0,
+        operator_id: null,
+        operator_name: '',
+        notes: '',
       });
-    } catch (error) {
-      console.error('Error creating equipment log:', error);
-      alert('Error creating equipment log');
+    } catch {
+      alert('Error saving log');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  const handleAddEquipment = async () => {
+    if (!user) return;
+    try {
+      const { error } = await supabase.from('equipment').insert({
+        ...newEquipment,
+        created_by: user.id,
+      });
+      if (error) throw error;
+      setShowAddEquipment(false);
+      setNewEquipment({ user_defined_id: '', name: '', description: '' });
+      fetchEquipment();
+    } catch {
+      alert('Error adding equipment');
+    }
+  };
+
+  if (loading) return <div className="text-white p-6">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate(`/contracts/${id}`)}
-              className="p-2 text-gray-400 hover:text-white hover:bg-background-lighter rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button>
-            <h1 className="text-2xl font-bold text-white">Equipment Log</h1>
-          </div>
-          <button
-            onClick={() => setIsCreating(true)}
-            className="flex items-center px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors"
+    <div className="p-6 text-white">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Equipment Log</h1>
+        <button onClick={() => setIsCreating(true)} className="bg-blue-600 px-4 py-2 rounded">
+          + New
+        </button>
+      </div>
+
+      {isCreating && (
+        <form onSubmit={handleSubmit} className="bg-background-light p-4 rounded border space-y-4">
+          <select
+            aria-label="Select equipment"
+            value={newLog.equipment_id}
+            onChange={(e) => {
+              if (e.target.value === 'add-new') {
+                setShowAddEquipment(true);
+                return;
+              }
+              setNewLog({ ...newLog, equipment_id: e.target.value });
+            }}
+            className="w-full text-black px-4 py-2 rounded"
+            required
           >
-            <Plus className="w-5 h-5 mr-2" />
-            New Entry
-          </button>
-        </div>
+            <option value="">Select Equipment</option>
+            {equipmentList.map(eq => (
+              <option key={eq.id} value={eq.id}>
+                {eq.user_defined_id} – {eq.name}
+              </option>
+            ))}
+            <option value="add-new">+ Add New Equipment</option>
+          </select>
 
-        {isCreating && (
-          <div className="mb-8 bg-background-light rounded-lg border border-background-lighter p-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Equipment Type
-                  </label>
-                  <select
-                    value={newLog.equipment_type}
-                    onChange={(e) => setNewLog({ ...newLog, equipment_type: e.target.value })}
-                    className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                    required
-                  >
-                    <option value="">Select Equipment Type</option>
-                    {EQUIPMENT_TYPES.map(type => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Operator
-                  </label>
-                  <select
-                    value={newLog.operator || ''}
-                    onChange={(e) => setNewLog({ ...newLog, operator: e.target.value || null })}
-                    className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                  >
-                    <option value="">Select Operator</option>
-                    {operators.map(op => (
-                      <option key={op.id} value={op.id}>{op.full_name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+          <input
+            type="date"
+            value={newLog.usage_date}
+            onChange={(e) => setNewLog({ ...newLog, usage_date: e.target.value })}
+            className="w-full text-black px-4 py-2 rounded"
+            aria-label="Usage date"
+          />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Usage Date
-                  </label>
-                  <input
-                    type="date"
-                    value={newLog.usage_date}
-                    onChange={(e) => setNewLog({ ...newLog, usage_date: e.target.value })}
-                    className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Hours Used
-                  </label>
-                  <input
-                    type="number"
-                    value={newLog.hours_used}
-                    onChange={(e) => setNewLog({ ...newLog, hours_used: Number(e.target.value) })}
-                    min="0"
-                    step="0.5"
-                    className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                    required
-                  />
-                </div>
-              </div>
+          <input
+            type="number"
+            value={newLog.hours_used}
+            onChange={(e) =>
+              setNewLog({ ...newLog, hours_used: Number(e.target.value) })
+            }
+            className="w-full text-black px-4 py-2 rounded"
+            placeholder="Hours used"
+            min="0"
+            aria-label="Hours used"
+          />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Notes
-                </label>
-                <textarea
-                  value={newLog.notes}
-                  onChange={(e) => setNewLog({ ...newLog, notes: e.target.value })}
-                  rows={3}
-                  className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                />
-              </div>
+          <select
+            aria-label="Select operator"
+            value={newLog.operator_id || ''}
+            onChange={(e) => setNewLog({ ...newLog, operator_id: e.target.value || null })}
+            className="w-full text-black px-4 py-2 rounded"
+          >
+            <option value="">Select Operator (optional)</option>
+            {operators.map(op => (
+              <option key={op.id} value={op.id}>{op.full_name}</option>
+            ))}
+          </select>
 
-              <div className="flex justify-end space-x-4">
-                <button
-                  type="button"
-                  onClick={() => setIsCreating(false)}
-                  className="px-4 py-2 bg-background border border-background-lighter text-white rounded-md hover:bg-background-lighter transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex items-center px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-md transition-colors"
-                >
-                  <Save className="w-5 h-5 mr-2" />
-                  Save Entry
-                </button>
-              </div>
-            </form>
+          <textarea
+            value={newLog.notes}
+            onChange={(e) => setNewLog({ ...newLog, notes: e.target.value })}
+            className="w-full text-black px-4 py-2 rounded"
+            placeholder="Notes"
+            aria-label="Notes"
+          />
+
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setIsCreating(false)} type="button" className="bg-gray-600 px-4 py-2 rounded">
+              Cancel
+            </button>
+            <button type="submit" className="bg-green-600 px-4 py-2 rounded">
+              Save
+            </button>
           </div>
-        )}
+        </form>
+      )}
 
-        <div className="space-y-4">
-          {logs.length === 0 && !isCreating ? (
-            <div className="bg-background-light rounded-lg border border-background-lighter p-8 text-center">
-              <Truck className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">No Equipment Logs</h3>
-              <p className="text-gray-400 mb-6">Start tracking equipment usage by creating a new entry.</p>
-              <button
-                onClick={() => setIsCreating(true)}
-                className="inline-flex items-center px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Create Entry
+      {showAddEquipment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-background p-6 rounded w-full max-w-md space-y-4">
+            <h2 className="text-xl font-bold">Add New Equipment</h2>
+            <input
+              type="text"
+              placeholder="User Defined ID"
+              value={newEquipment.user_defined_id}
+              onChange={(e) => setNewEquipment({ ...newEquipment, user_defined_id: e.target.value })}
+              className="w-full text-black px-4 py-2 rounded"
+              aria-label="User defined ID"
+            />
+            <input
+              type="text"
+              placeholder="Name"
+              value={newEquipment.name}
+              onChange={(e) => setNewEquipment({ ...newEquipment, name: e.target.value })}
+              className="w-full text-black px-4 py-2 rounded"
+              aria-label="Equipment name"
+            />
+            <textarea
+              placeholder="Description"
+              value={newEquipment.description}
+              onChange={(e) => setNewEquipment({ ...newEquipment, description: e.target.value })}
+              className="w-full text-black px-4 py-2 rounded"
+              aria-label="Equipment description"
+            />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowAddEquipment(false)} className="bg-gray-600 px-4 py-2 rounded">
+                Cancel
+              </button>
+              <button onClick={handleAddEquipment} className="bg-blue-600 px-4 py-2 rounded">
+                Add Equipment
               </button>
             </div>
-          ) : (
-            logs.map((log) => (
-              <div
-                key={log.id}
-                className="bg-background-light rounded-lg border border-background-lighter p-6 hover:border-primary transition-colors cursor-pointer"
-                onClick={() => navigate(`/contracts/${id}/equipment/${log.id}`)}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-medium text-white">{log.equipment_type}</h3>
-                    <div className="flex items-center gap-4 mt-2">
-                      <div className="flex items-center text-gray-400">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        {new Date(log.usage_date).toLocaleDateString()}
-                      </div>
-                      <div className="flex items-center text-gray-400">
-                        <Clock className="w-4 h-4 mr-2" />
-                        {log.hours_used} hours
-                      </div>
-                      <div className="flex items-center text-gray-400">
-                        <User className="w-4 h-4 mr-2" />
-                        {log.operator?.full_name || 'Unassigned'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {log.notes && (
-                  <div className="border-t border-background-lighter pt-4 mt-4">
-                    <p className="text-gray-300">{log.notes}</p>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
+          </div>
         </div>
+      )}
+
+      <div className="mt-8 space-y-4">
+        {logs.map((log) => (
+          <div key={log.id} className="bg-background-light p-4 rounded border">
+            <div className="font-semibold">{log.equipment_id}</div>
+            <div>{log.usage_date} – {log.hours_used} hrs</div>
+            <div className="text-sm text-gray-400">{log.notes}</div>
+          </div>
+        ))}
       </div>
     </div>
   );

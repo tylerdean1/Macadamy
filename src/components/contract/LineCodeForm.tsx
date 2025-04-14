@@ -1,33 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { FormField, FormSection } from '@/components/ui/form';
-import type { Template, Variable } from '@/types';
+import React, { useState, useEffect } from 'react'; // Import React and hooks
+import { Input } from '@/components/ui/input'; // Import custom Input component
+import { Select } from '@/components/ui/select'; // Import custom Select component
+import { FormField, FormSection } from '@/components/ui/form'; // Import form field components
+import type { Template, Variable } from '@/types'; // Import types for Template and Variable
 
+/** 
+ * LineCodeForm component for managing line item details.
+ * 
+ * This component allows users to select a template for a line item 
+ * and input its specific attributes such as line code, description,
+ * quantity, unit price, unit of measure, and any reference documents. 
+ * It also integrates state management to track the currently entered line 
+ * item data and invokes an onChange callback to update the parent component 
+ * whenever changes are made to the input fields.
+ */
 interface LineCodeFormProps {
-  templates: Template[];
-  unitOptions: { label: string; value: string }[];
-  onChange: (updated: LineCodeData) => void;
+  templates: Template[]; // Array of templates to choose from
+  unitOptions: { label: string; value: string }[]; // Options for units of measurement
+  onChange: (updated: LineCodeData) => void; // Callback to handle changes in line code data
 }
 
+// Define the structure of line code data
 interface LineCodeData {
-  line_code: string;
-  description: string;
-  quantity: number;
-  unit_price: number;
-  unit_measure: string;
-  reference_doc: string;
-  formula?: string;
-  variables?: Variable[];
+  line_code: string; // Code for the line item
+  description: string; // Description of the line item
+  quantity: number; // Quantity of the line item
+  unit_price: number; // Price per unit
+  unit_measure: string; // Unit of measure for the item
+  reference_doc: string; // Reference document for the item
+  formula?: string; // Optional formula associated with the item
+  variables?: Variable[]; // Optional variables for the formula
 }
 
+// LineCodeForm component for managing line item details
 export const LineCodeForm: React.FC<LineCodeFormProps> = ({
-  templates,
-  unitOptions,
-  onChange
+  templates, // Templates for line items
+  unitOptions, // Options for units of measurement
+  onChange // Callback for updating line item data
 }) => {
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('custom');
-  const [lineCodeData, setLineCodeData] = useState<LineCodeData>({
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('custom'); // State for selected template
+  const [lineCodeData, setLineCodeData] = useState<LineCodeData>({ // State for line item data
     line_code: '',
     description: '',
     quantity: 0,
@@ -37,49 +49,51 @@ export const LineCodeForm: React.FC<LineCodeFormProps> = ({
   });
 
   useEffect(() => {
+    // Use effect to update line code data when a template is selected
     if (selectedTemplate !== 'custom') {
-      const template = templates.find(t => t.id === selectedTemplate);
+      const template = templates.find(t => t.id === selectedTemplate); // Find selected template
       if (template) {
-        const updated: LineCodeData = {
+        const updated: LineCodeData = {  // Prepare updated line code data
           ...lineCodeData,
-          description: template.description,
-          unit_measure: template.unit_measure,
-          formula: template.formula,
-          variables: template.variables,
+          description: template.description, // Update description from template
+          unit_measure: template.unit_measure, // Update unit measure from template
+          formula: template.formula, // Update formula from template
+          variables: template.variables, // Update variables from template
         };
-        setLineCodeData(updated);
-        onChange(updated);
+        setLineCodeData(updated); // Update state
+        onChange(updated); // Notify parent component of changes
       }
     }
-  }, [selectedTemplate, templates, lineCodeData, onChange]);
+  }, [selectedTemplate, templates, lineCodeData, onChange]); // Dependencies for effect
 
+  // Handle changes from input fields
   const handleChange = (field: keyof LineCodeData, value: string | number) => {
-    const updated = { ...lineCodeData, [field]: value };
-    setLineCodeData(updated);
-    onChange(updated);
+    const updated = { ...lineCodeData, [field]: value }; // Create updated line code data
+    setLineCodeData(updated); // Update state
+    onChange(updated); // Notify parent component of changes
   };
 
   return (
-    <FormSection title="Line Code Details">
-      <FormField label="Select Template" htmlFor="template">
+    <FormSection title="Line Code Details"> {/* Section title */}
+      <FormField label="Select Template" htmlFor="template"> {/* Template selection */}
         <Select
           id="template"
           value={selectedTemplate}
-          onChange={(e) => setSelectedTemplate(e.target.value)}
-          options={[
+          onChange={(e) => setSelectedTemplate(e.target.value)} // Update selected template
+          options={[ // Options for template selection
             { value: 'custom', label: 'Build Custom' },
-            ...templates.map(t => ({ value: t.id, label: t.title }))
+            ...templates.map(t => ({ value: t.id, label: t.title })), // Populate with templates
           ]}
           fullWidth
         />
       </FormField>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Grid layout for inputs */}
         <FormField label="Line Code" htmlFor="line_code" required>
           <Input
             id="line_code"
             value={lineCodeData.line_code}
-            onChange={(e) => handleChange('line_code', e.target.value)}
+            onChange={(e) => handleChange('line_code', e.target.value)} // Update line code
             fullWidth
           />
         </FormField>
@@ -89,7 +103,7 @@ export const LineCodeForm: React.FC<LineCodeFormProps> = ({
             id="quantity"
             type="number"
             value={lineCodeData.quantity}
-            onChange={(e) => handleChange('quantity', parseFloat(e.target.value))}
+            onChange={(e) => handleChange('quantity', parseFloat(e.target.value))} // Update quantity
             fullWidth
           />
         </FormField>
@@ -99,7 +113,7 @@ export const LineCodeForm: React.FC<LineCodeFormProps> = ({
             id="unit_price"
             type="number"
             value={lineCodeData.unit_price}
-            onChange={(e) => handleChange('unit_price', parseFloat(e.target.value))}
+            onChange={(e) => handleChange('unit_price', parseFloat(e.target.value))} // Update unit price
             fullWidth
           />
         </FormField>
@@ -108,8 +122,8 @@ export const LineCodeForm: React.FC<LineCodeFormProps> = ({
           <Select
             id="unit_measure"
             value={lineCodeData.unit_measure}
-            onChange={(e) => handleChange('unit_measure', e.target.value)}
-            options={unitOptions}
+            onChange={(e) => handleChange('unit_measure', e.target.value)} // Update unit measure
+            options={unitOptions} // Pass unit options
             fullWidth
           />
         </FormField>
@@ -119,7 +133,7 @@ export const LineCodeForm: React.FC<LineCodeFormProps> = ({
             id="reference_doc"
             placeholder="Paste a file link or upload system coming later"
             value={lineCodeData.reference_doc}
-            onChange={(e) => handleChange('reference_doc', e.target.value)}
+            onChange={(e) => handleChange('reference_doc', e.target.value)} // Update reference document
             fullWidth
           />
         </FormField>
@@ -128,7 +142,7 @@ export const LineCodeForm: React.FC<LineCodeFormProps> = ({
           <Input
             id="description"
             value={lineCodeData.description}
-            onChange={(e) => handleChange('description', e.target.value)}
+            onChange={(e) => handleChange('description', e.target.value)} // Update description
             fullWidth
           />
         </FormField>

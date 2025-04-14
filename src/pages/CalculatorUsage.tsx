@@ -1,45 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calculator, Save, History, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Save, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../lib/store';
 
+// This interface defines the structure for Variables used in calculations
 interface Variable {
-  name: string;
-  label: string;
-  type: string;
-  unit: string;
-  defaultValue: number;
+  name: string;        // The name of the variable used in calculations
+  label: string;       // Display label for the variable
+  type: string;        // Specify the variable type (e.g., number)
+  unit: string;        // Unit associated with the variable
+  defaultValue: number; // Default value for the variable
 }
 
+// This interface defines the structure for Formula objects in the calculator
 interface Formula {
-  name: string;
-  expression: string;
-  description: string;
+  name: string;         // Name of the formula
+  expression: string;   // Mathematical expression for calculation
+  description: string;  // Description of the formula's purpose
 }
 
+// This interface defines the structure for Calculator templates fetched from the database
 interface CalculatorTemplate {
-  id: string;
-  line_code: string;
-  name: string;
-  description: string;
-  variables: Variable[];
-  formulas: Formula[];
+  id: string;             // Unique identifier for the calculator template
+  line_code: string;      // Line code associated with the calculator template
+  name: string;           // The name of the calculator template
+  description: string;    // Description detailing the template
+  variables: Variable[];  // List of variables associated with this template
+  formulas: Formula[];    // List of formulas used in the calculator
 }
 
+// This interface defines the structure for calculations performed using the template
 interface Calculation {
-  id?: string;
-  line_item_id: string;
-  template_id: string;
-  station_number?: string;
-  values: Record<string, number>;
-  results: Record<string, number>;
-  notes?: string;
+  id?: string;                     // Optional ID for the calculation
+  line_item_id: string;            // ID linking to the line item
+  template_id: string;             // Template ID linked to the calculation
+  station_number?: string;         // Station number associated with this calculation
+  values: Record<string, number>;  // Variable values in the calculation
+  results: Record<string, number>; // Calculation results from formulas
+  notes?: string;                  // Additional notes associated with the calculation
+  created_at?: string;             // Optional created_at timestamp from database
 }
 
 export function CalculatorUsage() {
-  const { id, templateId } = useParams();
+  const { id, templateId } = useParams(); // Extract contract ID and template ID from route parameters
   const navigate = useNavigate();
+
   const [template, setTemplate] = useState<CalculatorTemplate | null>(null);
   const [calculations, setCalculations] = useState<Calculation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,14 +54,11 @@ export function CalculatorUsage() {
   const [stationNumber, setStationNumber] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const user = useAuthStore(state => state.user);
 
-  useEffect(() => {
-    fetchTemplate();
-    fetchCalculations();
-  }, [templateId]);
+  const user = useAuthStore((state) => state.user);
 
-  const fetchTemplate = async () => {
+  // Fetch the calculator template from the database using Supabase
+  const fetchTemplate = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('calculator_templates')
@@ -66,19 +69,23 @@ export function CalculatorUsage() {
       if (error) throw error;
       setTemplate(data);
 
-      // Initialize values with default values
-      const initialValues = data.variables.reduce((acc, v) => {
-        acc[v.name] = v.defaultValue;
-        return acc;
-      }, {} as Record<string, number>);
+      // Initialize input values with default values from the template
+      const initialValues = data.variables.reduce(
+        (acc: Record<string, number>, v: Variable) => {
+          acc[v.name] = v.defaultValue;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
       setValues(initialValues);
     } catch (error) {
       console.error('Error fetching template:', error);
       setError('Error loading calculator template');
     }
-  };
+  }, [templateId]); // <-- Include templateId in dependencies
 
-  const fetchCalculations = async () => {
+  // Fetch previously saved calculations from the database
+  const fetchCalculations = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('line_item_calculations')
@@ -94,19 +101,17 @@ export function CalculatorUsage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [templateId, id]); // <-- Include templateId and id in dependencies
 
+  // Evaluate a mathematical expression and return its evaluated result
   const evaluateExpression = (expression: string, values: Record<string, number>): number => {
     try {
-      // Replace variable names with their values
       const evalString = expression.replace(/[a-zA-Z_][a-zA-Z0-9_]*/g, (match) => {
         if (match in values) {
           return values[match].toString();
         }
         throw new Error(`Unknown variable: ${match}`);
       });
-
-      // Use Function constructor to create a safe evaluation environment
       return new Function(`return ${evalString}`)();
     } catch (error) {
       console.error('Error evaluating expression:', error);
@@ -114,27 +119,33 @@ export function CalculatorUsage() {
     }
   };
 
-  const calculateResults = () => {
+  // Wrap calculateResults in useCallback so it can be used as an effect dependency
+  const calculateResults = useCallback(() => {
     if (!template) return;
-
-    const newResults = template.formulas.reduce((acc, formula) => {
-      acc[formula.name] = evaluateExpression(formula.expression, values);
-      return acc;
-    }, {} as Record<string, number>);
-
+    const newResults = template.formulas.reduce(
+      (acc: Record<string, number>, formula: Formula) => {
+        acc[formula.name] = evaluateExpression(formula.expression, values);
+        return acc;
+      },
+      {} as Record<string, number>
+    );
     setResults(newResults);
-  };
+  }, [template, values]);
 
   useEffect(() => {
     calculateResults();
-  }, [values, template]);
+  }, [calculateResults]);
 
+  useEffect(() => {
+    fetchTemplate();
+    fetchCalculations();
+  }, [templateId, fetchTemplate, fetchCalculations]);
+
+  // Save the current calculation to the database
   const handleSave = async () => {
     if (!template || !user) return;
-
     try {
       setError(null);
-
       const { error } = await supabase
         .from('line_item_calculations')
         .insert({
@@ -148,12 +159,8 @@ export function CalculatorUsage() {
         });
 
       if (error) throw error;
-
-      // Reset form
       setStationNumber('');
       setNotes('');
-      
-      // Refresh calculations
       fetchCalculations();
     } catch (error) {
       console.error('Error saving calculation:', error);
@@ -161,12 +168,14 @@ export function CalculatorUsage() {
     }
   };
 
+  // Load a previous calculation into the form
   const handleLoadCalculation = (calculation: Calculation) => {
     setValues(calculation.values);
     setStationNumber(calculation.station_number || '');
     setNotes(calculation.notes || '');
   };
 
+  // Loading indicator
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -175,6 +184,7 @@ export function CalculatorUsage() {
     );
   }
 
+  // If no template found
   if (!template) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -183,6 +193,7 @@ export function CalculatorUsage() {
           <button
             onClick={() => navigate(`/contracts/${id}/calculators`)}
             className="mt-4 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-md transition-colors"
+            aria-label="Return to calculators"
           >
             Return to Calculators
           </button>
@@ -194,11 +205,14 @@ export function CalculatorUsage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate(`/contracts/${id}/calculators`)}
               className="p-2 text-gray-400 hover:text-white hover:bg-background-lighter rounded-lg transition-colors"
+              aria-label="Go back to calculators list"
+              title="Go back"
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
@@ -217,21 +231,28 @@ export function CalculatorUsage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
+            {/* Input Values */}
             <div className="bg-background-light rounded-lg border border-background-lighter p-6">
               <h2 className="text-lg font-medium text-white mb-4">Input Values</h2>
               <div className="grid grid-cols-2 gap-4">
                 {template.variables.map((variable) => (
                   <div key={variable.name}>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                    <label
+                      htmlFor={`input-${variable.name}`}
+                      className="block text-sm font-medium text-gray-400 mb-1"
+                    >
                       {variable.label} ({variable.unit})
                     </label>
                     <input
+                      id={`input-${variable.name}`}
                       type="number"
                       value={values[variable.name]}
-                      onChange={(e) => setValues({
-                        ...values,
-                        [variable.name]: Number(e.target.value)
-                      })}
+                      onChange={(e) =>
+                        setValues({
+                          ...values,
+                          [variable.name]: Number(e.target.value),
+                        })
+                      }
                       className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                     />
                   </div>
@@ -239,6 +260,7 @@ export function CalculatorUsage() {
               </div>
             </div>
 
+            {/* Results */}
             <div className="bg-background-light rounded-lg border border-background-lighter p-6">
               <h2 className="text-lg font-medium text-white mb-4">Results</h2>
               <div className="grid grid-cols-2 gap-4">
@@ -253,14 +275,19 @@ export function CalculatorUsage() {
               </div>
             </div>
 
+            {/* Additional Information */}
             <div className="bg-background-light rounded-lg border border-background-lighter p-6">
               <h2 className="text-lg font-medium text-white mb-4">Additional Information</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
+                  <label
+                    htmlFor="stationNumber"
+                    className="block text-sm font-medium text-gray-400 mb-1"
+                  >
                     Station Number (optional)
                   </label>
                   <input
+                    id="stationNumber"
                     type="text"
                     value={stationNumber}
                     onChange={(e) => setStationNumber(e.target.value)}
@@ -268,10 +295,14 @@ export function CalculatorUsage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
+                  <label
+                    htmlFor="notes"
+                    className="block text-sm font-medium text-gray-400 mb-1"
+                  >
                     Notes (optional)
                   </label>
                   <textarea
+                    id="notes"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     rows={3}
@@ -283,6 +314,7 @@ export function CalculatorUsage() {
                 <button
                   onClick={handleSave}
                   className="flex items-center px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-md transition-colors"
+                  aria-label="Save calculation"
                 >
                   <Save className="w-5 h-5 mr-2" />
                   Save Calculation
@@ -291,15 +323,15 @@ export function CalculatorUsage() {
             </div>
           </div>
 
+          {/* History */}
           <div className="space-y-6">
             <div className="bg-background-light rounded-lg border border-background-lighter p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium text-white">History</h2>
-                <History className="w-5 h-5 text-gray-400" />
-              </div>
+              <h2 className="text-lg font-medium text-white mb-4">History</h2>
               <div className="space-y-4">
                 {calculations.length === 0 ? (
-                  <p className="text-gray-400 text-center py-4">No calculations saved yet</p>
+                  <p className="text-gray-400 text-center py-4">
+                    No calculations saved yet
+                  </p>
                 ) : (
                   calculations.map((calc) => (
                     <div
@@ -309,7 +341,7 @@ export function CalculatorUsage() {
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="text-sm text-gray-400">
-                          {new Date(calc.created_at!).toLocaleString()}
+                          {calc.created_at ? new Date(calc.created_at).toLocaleString() : ''}
                         </div>
                         <button
                           onClick={(e) => {
@@ -317,6 +349,8 @@ export function CalculatorUsage() {
                             handleLoadCalculation(calc);
                           }}
                           className="p-1 text-gray-400 hover:text-primary transition-colors"
+                          aria-label="Load this calculation"
+                          title="Load Calculation"
                         >
                           <RefreshCw className="w-4 h-4" />
                         </button>

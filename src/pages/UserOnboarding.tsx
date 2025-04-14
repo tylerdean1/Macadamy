@@ -6,50 +6,53 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../lib/store';
 
+// Interface for the job titles
 interface JobTitle {
   id: string;
   title: string;
   is_custom: boolean;
 }
 
+// Interface for the onboarding form data
 interface OnboardingForm {
-  username: string;
-  fullName: string;
-  company: string;
-  role: 'Admin' | 'Contractor' | 'Engineer' | 'Project Manager' | 'Inspector';
-  jobTitleId: string;
-  customJobTitle: string;
-  phone: string;
-  location: string;
-  email: string;
+  username: string; // User's chosen username
+  fullName: string; // User's full name
+  company: string; // User's company name
+  role: 'Admin' | 'Contractor' | 'Engineer' | 'Project Manager' | 'Inspector'; // User's role
+  jobTitleId: string; // ID of the user's job title
+  customJobTitle: string; // Custom job title if specified
+  phone: string; // User's phone number
+  location: string; // User's location
+  email: string; // User's email
 }
 
 export function UserOnboarding() {
-  const navigate = useNavigate();
-  const { user, setProfile } = useAuthStore();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState(1);
-  const [usernameAvailable, setUsernameAvailable] = useState(false);
-  const [checkingUsername, setCheckingUsername] = useState(false);
-  const [jobTitles, setJobTitles] = useState<JobTitle[]>([]);
-  const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([]);
-  const [isNewCompany, setIsNewCompany] = useState(false);
+  const navigate = useNavigate(); // Hook for navigation
+  const { user, setProfile } = useAuthStore(); // Get user and set profile from auth store
+  const [loading, setLoading] = useState(false); // Loading state for actions
+  const [error, setError] = useState<string | null>(null); // State for error messages
+  const [step, setStep] = useState(1); // Current step in the onboarding process
+  const [usernameAvailable, setUsernameAvailable] = useState(false); // Check if username is available
+  const [checkingUsername, setCheckingUsername] = useState(false); // Loading state for checking username
+  const [jobTitles, setJobTitles] = useState<JobTitle[]>([]); // State for available job titles
+  const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([]); // State for organizations
+  const [isNewCompany, setIsNewCompany] = useState(false); // State to toggle between creating a new company or selecting existing
 
   const [form, setForm] = useState<OnboardingForm>({
     username: '',
     fullName: '',
     company: '',
-    role: 'Admin',
-    jobTitleId: '',
+    role: 'Admin', // Default role
+    jobTitleId: '', // Default to no job title
     customJobTitle: '',
     phone: '',
     location: '',
     email: '',
   });
 
-  const autocompleteRef = useRef<HTMLInputElement | null>(null);
+  const autocompleteRef = useRef<HTMLInputElement | null>(null); // Reference for location autocomplete
 
+  // Fetch job titles and organizations when the component mounts
   useEffect(() => {
     const fetchData = async () => {
       const [jobTitleRes, orgRes] = await Promise.all([
@@ -62,6 +65,7 @@ export function UserOnboarding() {
     fetchData();
   }, []);
 
+  // Google Autocomplete for location input
   useEffect(() => {
     if (!autocompleteRef.current || !window.google) return;
 
@@ -74,11 +78,12 @@ export function UserOnboarding() {
       const place = autocomplete.getPlace();
       const isState = place.types?.includes('administrative_area_level_1');
       if (isState && place.formatted_address) {
-        setForm(prev => ({ ...prev, location: place.formatted_address ?? '' }));
+        setForm(prev => ({ ...prev, location: place.formatted_address ?? '' })); // Set address from autocomplete
       }
     });
   }, []);
 
+  // Check if the username is available
   useEffect(() => {
     const checkUsername = async () => {
       if (!form.username || form.username.length < 3) {
@@ -87,20 +92,21 @@ export function UserOnboarding() {
       }
       setCheckingUsername(true);
       const { data } = await supabase.from('profiles').select('username').eq('username', form.username).maybeSingle();
-      setUsernameAvailable(!data);
+      setUsernameAvailable(!data); // Update availability status
       setCheckingUsername(false);
     };
     const timeout = setTimeout(checkUsername, 500);
-    return () => clearTimeout(timeout);
+    return () => clearTimeout(timeout); // Cleanup timeout
   }, [form.username]);
 
+  // Handle the final form submission
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
+    e.preventDefault(); // Prevent default form submission
+    if (!user) return; // Ensure user is authenticated
 
     try {
       setLoading(true);
-      setError(null);
+      setError(null); // Reset error state
 
       const { data: existingOrg } = await supabase
         .from('organizations')
@@ -108,7 +114,7 @@ export function UserOnboarding() {
         .eq('name', form.company)
         .maybeSingle();
 
-      let organizationId = existingOrg?.id;
+      let organizationId = existingOrg?.id; // Get organization ID if it exists
 
       if (!organizationId) {
         const { data: newOrg } = await supabase
@@ -116,9 +122,10 @@ export function UserOnboarding() {
           .insert({ name: form.company, created_by: user.id })
           .select()
           .single();
-        organizationId = newOrg.id;
+        organizationId = newOrg.id; // Get the newly created organization's ID
       }
 
+      // Update the user's profile with onboarding information
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -132,9 +139,9 @@ export function UserOnboarding() {
         })
         .eq('id', user.id);
 
-      if (updateError) throw updateError;
+      if (updateError) throw updateError; // Handle errors during update
 
-      setProfile({
+      setProfile({ // Update user profile state
         role: form.role,
         fullName: form.fullName,
         company: form.company,
@@ -145,15 +152,14 @@ export function UserOnboarding() {
         organizationId
       });
 
-      navigate('/dashboard');
+      navigate('/dashboard'); // Redirect to the dashboard after onboarding
     } catch (err) {
       console.error(err);
-      setError('Failed to complete onboarding.');
-    } finally {
-      setLoading(false);
+      setError('Failed to complete onboarding.'); // Set error message
     }
   };
 
+  // Card for selecting user roles in onboarding
   const roleCards = [
     { role: 'Contractor', title: 'Contractor', icon: <HardHat className="w-6 h-6" /> },
     { role: 'Engineer', title: 'Engineer', icon: <Tool className="w-6 h-6" /> },
@@ -174,7 +180,7 @@ export function UserOnboarding() {
                   type="button"
                   onClick={() => {
                     setForm(prev => ({ ...prev, role: card.role as OnboardingForm['role'] }));
-                    setStep(2);
+                    setStep(2); // Move to the next step
                   }}
                   className={`p-4 border rounded-lg text-left ${
                     form.role === card.role ? 'border-primary bg-primary/10' : 'border-gray-700'
@@ -237,15 +243,15 @@ export function UserOnboarding() {
             <div className="flex justify-between">
               <button
                 type="button"
-                onClick={() => setStep(1)}
+                onClick={() => setStep(1)} // Go back to role selection
                 className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded"
               >
                 Back
               </button>
               <button
                 type="button"
-                onClick={() => setStep(3)}
-                disabled={!usernameAvailable}
+                onClick={() => setStep(3)} // Move to company info
+                disabled={!usernameAvailable} // Disable if username isn't available
                 className="px-4 py-2 bg-primary hover:bg-primary-hover rounded"
               >
                 Next
@@ -281,7 +287,7 @@ export function UserOnboarding() {
             )}
             <p
               className="text-sm text-primary cursor-pointer mt-2"
-              onClick={() => setIsNewCompany(!isNewCompany)}
+              onClick={() => setIsNewCompany(!isNewCompany)} // Toggle between creating a new company or selecting an existing one
             >
               {isNewCompany ? '← Choose from existing companies' : '+ Create new company'}
             </p>
@@ -289,20 +295,20 @@ export function UserOnboarding() {
             <div className="flex justify-between mt-4">
               <button
                 type="button"
-                onClick={() => setStep(2)}
+                onClick={() => setStep(2)} // Go back to personal info
                 className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded"
               >
                 Back
               </button>
               <button
-                type="submit"
+                type="submit" // Complete onboarding process
                 disabled={loading}
                 className="px-4 py-2 bg-primary hover:bg-primary-hover rounded"
               >
                 {loading ? 'Submitting...' : 'Complete Setup'}
               </button>
             </div>
-            {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+            {error && <p className="text-red-500 text-sm mt-2">{error}</p>} {/* Display any error messages */}
           </>
         )}
       </form>

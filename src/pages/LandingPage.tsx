@@ -41,13 +41,15 @@ function Logo() {
   );
 }
 
+// Define the props for each feature section
 type FeatureSectionProps = {
   title: string;
   description: string;
-  icon: React.ReactNode;
-  features: string[];
+  icon: React.ReactNode; // Icon for the section
+  features: string[]; // List of features for this section
 };
 
+// Component to display individual feature sections
 function FeatureSection({ title, description, icon, features }: FeatureSectionProps) {
   return (
     <div className="bg-background-light p-6 rounded-lg border border-background-lighter hover:border-primary transition-colors">
@@ -67,19 +69,20 @@ function FeatureSection({ title, description, icon, features }: FeatureSectionPr
 }
 
 export function LandingPage() {
-  const [isLogin, setIsLogin] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const navigate = useNavigate();
-  const { setUser, clearAuth, setProfile } = useAuthStore();
+  const [isLogin, setIsLogin] = useState(true); // State for tracking login/signup mode
+  const [error, setError] = useState<string | null>(null); // State for error messages
+  const [success, setSuccess] = useState<string | null>(null); // State for success messages
+  const navigate = useNavigate(); // Hook for navigation
+  const { setUser, clearAuth, setProfile } = useAuthStore(); // Get auth store methods
 
+  // Handle authentication for logging in or signing up
   const handleAuth = async (identifier: string, password: string) => {
     try {
-      setError(null);
-      setSuccess(null);
+      setError(null); // Reset error state
+      setSuccess(null); // Reset success state
 
       if (isLogin) {
-        const isEmail = identifier.includes('@');
+        const isEmail = identifier.includes('@'); // Check if the identifier is an email
         let email = identifier;
 
         if (!isEmail) {
@@ -101,9 +104,10 @@ export function LandingPage() {
           password,
         });
 
-        if (signInError) throw signInError;
+        if (signInError) throw signInError; // Handle sign-in errors
 
         if (signInData.user) {
+          // If logged in with a test account, create a test session
           if (signInData.user.email === 'test@test.com') {
             const sessionId = uuidv4();
             const { error: cloneError } = await supabase.rpc('create_clone_for_test_user', {
@@ -125,7 +129,7 @@ export function LandingPage() {
             .single();
 
           if (profileData) {
-            setUser(signInData.user);
+            setUser(signInData.user); // Set user in auth store
             setProfile({
               role: profileData.role,
               fullName: profileData.full_name,
@@ -137,9 +141,9 @@ export function LandingPage() {
               jobTitleId: profileData.job_title_id,
               organizationId: profileData.organization_id
             });
-            navigate('/dashboard');
+            navigate('/dashboard'); // Redirect to dashboard
           } else {
-            navigate('/onboarding');
+            navigate('/onboarding'); // Redirect to onboarding if no profile found
           }
         }
       } else {
@@ -157,12 +161,13 @@ export function LandingPage() {
           throw new Error('An account with this email already exists');
         }
 
+        // Sign up a new user
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: identifier,
           password,
         });
 
-        if (signUpError) throw signUpError;
+        if (signUpError) throw signUpError; // Handle sign-up errors
 
         if (signUpData.user) {
           const { error: profileError } = await supabase
@@ -170,7 +175,7 @@ export function LandingPage() {
             .insert({
               id: signUpData.user.id,
               email: identifier,
-              role: 'Contractor',
+              role: 'Contractor', // Default role
               full_name: ''
             });
 
@@ -179,34 +184,35 @@ export function LandingPage() {
             throw new Error('Error creating user profile');
           }
 
-          setUser(signUpData.user);
-          navigate('/onboarding');
+          setUser(signUpData.user); // Set user in auth store
+          navigate('/onboarding'); // Redirect to onboarding
         }
       }
     } catch (error: unknown) {
       const err = error as Error;
       console.error('Authentication error:', err);
       setError(err.message);
-      clearAuth();
+      clearAuth(); // Clear auth on error
     }    
   };
 
   const handleForgotPassword = async (email: string) => {
     try {
-      setError(null);
-      setSuccess(null);
+      setError(null); // Reset error state
+      setSuccess(null); // Reset success state
 
+      // Send password reset instructions to the user
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      if (error) throw error;
+      if (error) throw error; // Handle errors during reset
 
-      setSuccess('Password reset instructions have been sent to your email');
+      setSuccess('Password reset instructions have been sent to your email'); // Notify the user
     } catch (error: unknown) {
       const err = error as Error;
       console.error('Reset password error:', err);
-      setError('Error sending reset instructions. Please try again.');
+      setError('Error sending reset instructions. Please try again.'); // Alert of any failures
     }
   };
 
@@ -222,7 +228,7 @@ export function LandingPage() {
         return;
       }
 
-      const sessionId = uuidv4();
+      const sessionId = uuidv4(); // Create a session ID for the test user
       const { error: cloneError } = await supabase.rpc('create_clone_for_test_user', {
         session_id: sessionId
       });
@@ -232,7 +238,7 @@ export function LandingPage() {
         return;
       }
 
-      localStorage.setItem('test_session_id', sessionId);
+      localStorage.setItem('test_session_id', sessionId); // Store the session ID
 
       // Fetch profile with retries
       let profileData = null;
@@ -269,7 +275,7 @@ export function LandingPage() {
 
         attempts++;
         if (attempts < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempts)); // Wait before retrying
         }
       }
 
@@ -278,7 +284,7 @@ export function LandingPage() {
         return;
       }
 
-      useAuthStore.getState().setUser(data.user);
+      useAuthStore.getState().setUser(data.user); // Set user in the auth store
       useAuthStore.getState().setProfile({
         role: profileData.role,
         fullName: profileData.full_name,
@@ -291,7 +297,7 @@ export function LandingPage() {
         organizationId: profileData.organization_id
       });
 
-      navigate('/dashboard');
+      navigate('/dashboard'); // Redirect to the dashboard
     } catch (error) {
       console.error('Demo setup failed:', error);
     }
@@ -315,12 +321,12 @@ export function LandingPage() {
                 Track materials, labor, equipment, and more in one unified platform.
               </p>
               <div className="space-x-4">
-              <button
-                onClick={handleDevLogin}
-                className="bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-lg font-semibold transition-colors"
-              >
-                Try Demo Project
-              </button>
+                <button
+                  onClick={handleDevLogin}
+                  className="bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-lg font-semibold transition-colors"
+                >
+                  Try Demo Project
+                </button>
                 {import.meta.env.DEV && (
                   <button
                     onClick={handleDevLogin}
@@ -352,37 +358,37 @@ export function LandingPage() {
             icon={<ClipboardList className="w-8 h-8" />}
             title="Contract Management"
             description="Efficiently manage contracts and work breakdown structures"
-            features={['Detailed contract tracking','WBS organization','Line item management','Change order tracking']}
+            features={['Detailed contract tracking', 'WBS organization', 'Line item management', 'Change order tracking']}
           />
           <FeatureSection
             icon={<Truck className="w-8 h-8" />}
             title="Resource Tracking"
             description="Monitor all project resources in real-time"
-            features={['Material inventory','Equipment usage logs','Labor tracking','Supplier management']}
+            features={['Material inventory', 'Equipment usage logs', 'Labor tracking', 'Supplier management']}
           />
           <FeatureSection
             icon={<Tool className="w-8 h-8" />}
             title="Field Operations"
             description="Manage day-to-day field activities"
-            features={['Daily work logs','Field measurements','Equipment scheduling','Safety incident tracking']}
+            features={['Daily work logs', 'Field measurements', 'Equipment scheduling', 'Safety incident tracking']}
           />
           <FeatureSection
             icon={<FileText className="w-8 h-8" />}
             title="Quality Control"
             description="Maintain high standards with comprehensive QC tools"
-            features={['Inspection reports','Quality checklists','Issue tracking','Photo documentation']}
+            features={['Inspection reports', 'Quality checklists', 'Issue tracking', 'Photo documentation']}
           />
           <FeatureSection
             icon={<TrendingUp className="w-8 h-8" />}
             title="Progress Monitoring"
             description="Track project progress and performance"
-            features={['Progress tracking','Cost monitoring','Schedule updates','Performance metrics']}
+            features={['Progress tracking', 'Cost monitoring', 'Schedule updates', 'Performance metrics']}
           />
           <FeatureSection
             icon={<Settings className="w-8 h-8" />}
             title="Project Tools"
             description="Specialized tools for construction management"
-            features={['Quantity calculators','Cost estimators','Schedule planners','Document templates']}
+            features={['Quantity calculators', 'Cost estimators', 'Schedule planners', 'Document templates']}
           />
         </div>
       </div>

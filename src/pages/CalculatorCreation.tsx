@@ -1,24 +1,26 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Minus, Save, Calculator } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Save } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../lib/store';
 
+// Define the structure of a variable for the calculator
 interface Variable {
-  name: string;
-  label: string;
-  type: string;
-  unit: string;
-  defaultValue: number;
+  name: string;        // Variable name used in expressions
+  label: string;       // Display label for the variable
+  type: string;        // Type of variable (e.g., number)
+  unit: string;        // Measurement unit (e.g., 'ft')
+  defaultValue: number; // Default value for the variable
 }
 
+// Define the structure of a formula
 interface Formula {
-  name: string;
-  expression: string;
-  description: string;
+  name: string;         // Name of the formula
+  expression: string;   // Mathematical expression
+  description: string;  // Description of the formula
 }
 
-// Math operations available for formulas
+// Available math operations
 const MATH_OPERATIONS = [
   { symbol: '+', description: 'Addition' },
   { symbol: '-', description: 'Subtraction' },
@@ -30,6 +32,7 @@ const MATH_OPERATIONS = [
   { symbol: ')', description: 'Close Parenthesis' },
 ];
 
+// Available math functions
 const MATH_FUNCTIONS = [
   { name: 'abs', description: 'Absolute value' },
   { name: 'ceil', description: 'Round up to nearest integer' },
@@ -52,98 +55,102 @@ const MATH_FUNCTIONS = [
 ];
 
 export function CalculatorCreation() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const { id } = useParams(); // Get the contract ID from URL parameters
+  const navigate = useNavigate(); // Hook to navigate between routes
+  const [name, setName] = useState(''); // State for calculator template name
+  const [description, setDescription] = useState(''); // State for description
   const [variables, setVariables] = useState<Variable[]>([
     {
-      name: 'length',
-      label: 'Length',
-      type: 'number',
-      unit: 'ft',
-      defaultValue: 0
-    }
+      name: 'length',  // Default variable name
+      label: 'Length', // Default label
+      type: 'number',  // Type set as number
+      unit: 'ft',      // Default unit
+      defaultValue: 0, // Default value
+    },
   ]);
   const [formulas, setFormulas] = useState<Formula[]>([
     {
-      name: 'result',
-      expression: 'length',
-      description: 'Basic calculation'
-    }
+      name: 'result',         // Default formula name
+      expression: 'length',   // Default expression referencing the variable
+      description: 'Basic calculation', // Default description
+    },
   ]);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedVariable, setSelectedVariable] = useState<string>('');
-  const [selectedFunction, setSelectedFunction] = useState<string>('');
-  const user = useAuthStore(state => state.user);
+  const [error, setError] = useState<string | null>(null); // Error message state
 
+  // Get current user from auth store
+  const user = useAuthStore((state) => state.user) as { id: string; email: string } | null;
+
+  // Add a new variable to the list
   const handleAddVariable = () => {
     setVariables([
       ...variables,
-      {
-        name: '',
-        label: '',
-        type: 'number',
-        unit: '',
-        defaultValue: 0
-      }
+      { name: '', label: '', type: 'number', unit: '', defaultValue: 0 },
     ]);
   };
 
+  // Remove a variable by index
   const handleRemoveVariable = (index: number) => {
     setVariables(variables.filter((_, i) => i !== index));
   };
 
-  const handleVariableChange = (index: number, field: keyof Variable, value: string | number) => {
+  // Update a variable's field by index
+  const handleVariableChange = (
+    index: number,
+    field: keyof Variable,
+    value: string | number
+  ) => {
     const newVariables = [...variables];
     if (field === 'defaultValue') {
-      newVariables[index][field] = Number(value);
+      // Convert the value to a number
+      newVariables[index][field] =
+        typeof value === 'string' ? parseFloat(value) : value;
     } else {
       newVariables[index][field] = value as string;
     }
     setVariables(newVariables);
   };
 
+  // Add a new formula to the list
   const handleAddFormula = () => {
-    setFormulas([
-      ...formulas,
-      {
-        name: '',
-        expression: '',
-        description: ''
-      }
-    ]);
+    setFormulas([...formulas, { name: '', expression: '', description: '' }]);
   };
 
+  // Remove a formula by index
   const handleRemoveFormula = (index: number) => {
     setFormulas(formulas.filter((_, i) => i !== index));
   };
 
-  const handleFormulaChange = (index: number, field: keyof Formula, value: string) => {
+  // Update a formula's field by index
+  const handleFormulaChange = (
+    index: number,
+    field: keyof Formula,
+    value: string
+  ) => {
     const newFormulas = [...formulas];
     newFormulas[index][field] = value;
     setFormulas(newFormulas);
   };
 
+  // Insert text into a formula expression at the current cursor position
   const insertIntoFormula = (index: number, text: string) => {
     const formula = formulas[index];
-    const cursorPosition = (document.activeElement as HTMLInputElement)?.selectionStart || formula.expression.length;
-    const newExpression = 
-      formula.expression.slice(0, cursorPosition) + 
-      text + 
+    const activeElement = document.activeElement as HTMLInputElement | null;
+    const cursorPosition = activeElement?.selectionStart || formula.expression.length;
+    const newExpression =
+      formula.expression.slice(0, cursorPosition) +
+      text +
       formula.expression.slice(cursorPosition);
-    
     handleFormulaChange(index, 'expression', newExpression);
   };
 
+  // Handle form submission to save the calculator template
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     try {
       setError(null);
-
-      // Validate variable names are unique
+      // Validate that variable names are unique
       const variableNames = new Set();
       for (const variable of variables) {
         if (variableNames.has(variable.name)) {
@@ -152,7 +159,7 @@ export function CalculatorCreation() {
         variableNames.add(variable.name);
       }
 
-      // Validate formula names are unique
+      // Validate that formula names are unique
       const formulaNames = new Set();
       for (const formula of formulas) {
         if (formulaNames.has(formula.name)) {
@@ -161,6 +168,7 @@ export function CalculatorCreation() {
         formulaNames.add(formula.name);
       }
 
+      // Save the calculator template to the database
       const { error: insertError } = await supabase
         .from('calculator_templates')
         .insert({
@@ -168,26 +176,33 @@ export function CalculatorCreation() {
           description,
           variables,
           formulas,
-          created_by: user.id
+          created_by: user.id,
         });
 
       if (insertError) throw insertError;
-
       navigate(`/contracts/${id}/calculators`);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error creating calculator template:', error);
-      setError(error.message);
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('An unknown error occurred');
+      }
     }
   };
 
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Header with navigation back button and title */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
+            {/* Icon-only button => add an aria-label or a readable text to pass accessibility checks */}
             <button
               onClick={() => navigate(`/contracts/${id}/calculators`)}
               className="p-2 text-gray-400 hover:text-white hover:bg-background-lighter rounded-lg transition-colors"
+              aria-label="Go back to calculators list"
+              title="Go back"
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
@@ -195,161 +210,254 @@ export function CalculatorCreation() {
           </div>
         </div>
 
+        {/* Display error message if any */}
         {error && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500">
             {error}
           </div>
         )}
 
+        {/* Form for entering calculator template details */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="bg-background-light rounded-lg border border-background-lighter p-6">
             <h2 className="text-lg font-medium text-white mb-4">Template Details</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
+                <label
+                  className="block text-sm font-medium text-gray-400 mb-1"
+                  htmlFor="templateName"
+                >
                   Template Name
                 </label>
                 <input
+                  id="templateName"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                  placeholder="Enter template name"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
+                <label
+                  className="block text-sm font-medium text-gray-400 mb-1"
+                  htmlFor="templateDescription"
+                >
                   Description
                 </label>
                 <textarea
+                  id="templateDescription"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                  placeholder="Enter description"
                 />
               </div>
             </div>
           </div>
 
+          {/* Section for managing variables */}
           <div className="bg-background-light rounded-lg border border-background-lighter p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium text-white">Variables</h2>
+              {/* Icon-only button => add an accessible name */}
               <button
                 type="button"
                 onClick={handleAddVariable}
                 className="p-2 text-gray-400 hover:text-white hover:bg-background rounded-full transition-colors"
+                aria-label="Add a new variable"
+                title="Add Variable"
               >
                 <Plus className="w-5 h-5" />
               </button>
             </div>
             <div className="space-y-4">
-              {variables.map((variable, index) => (
-                <div key={index} className="grid grid-cols-5 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      value={variable.name}
-                      onChange={(e) => handleVariableChange(index, 'name', e.target.value)}
-                      className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                      required
-                    />
+              {variables.map((variable, index) => {
+                const nameId = `variableName-${index}`;
+                const labelId = `variableLabel-${index}`;
+                const unitId = `variableUnit-${index}`;
+                const defaultValId = `variableDefaultVal-${index}`;
+                return (
+                  <div key={index} className="grid grid-cols-5 gap-4">
+                    {/* Name field */}
+                    <div>
+                      <label
+                        className="block text-sm font-medium text-gray-400 mb-1"
+                        htmlFor={nameId}
+                      >
+                        Name
+                      </label>
+                      <input
+                        id={nameId}
+                        type="text"
+                        value={variable.name}
+                        onChange={(e) =>
+                          handleVariableChange(index, 'name', e.target.value)
+                        }
+                        className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                        required
+                      />
+                    </div>
+
+                    {/* Label field */}
+                    <div>
+                      <label
+                        className="block text-sm font-medium text-gray-400 mb-1"
+                        htmlFor={labelId}
+                      >
+                        Label
+                      </label>
+                      <input
+                        id={labelId}
+                        type="text"
+                        value={variable.label}
+                        onChange={(e) =>
+                          handleVariableChange(index, 'label', e.target.value)
+                        }
+                        className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                        placeholder="Variable Label"
+                        aria-label="Variable Label"
+                        required
+                      />
+                    </div>
+
+                    {/* Unit field */}
+                    <div>
+                      <label
+                        className="block text-sm font-medium text-gray-400 mb-1"
+                        htmlFor={unitId}
+                      >
+                        Unit
+                      </label>
+                      <input
+                        id={unitId}
+                        type="text"
+                        value={variable.unit}
+                        onChange={(e) =>
+                          handleVariableChange(index, 'unit', e.target.value)
+                        }
+                        className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                        required
+                      />
+                    </div>
+
+                    {/* Default Value field */}
+                    <div>
+                      <label
+                        className="block text-sm font-medium text-gray-400 mb-1"
+                        htmlFor={defaultValId}
+                      >
+                        Default Value
+                      </label>
+                      <input
+                        id={defaultValId}
+                        type="number"
+                        value={variable.defaultValue}
+                        onChange={(e) =>
+                          handleVariableChange(
+                            index,
+                            'defaultValue',
+                            parseFloat(e.target.value)
+                          )
+                        }
+                        className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                        required
+                      />
+                    </div>
+
+                    {/* Remove Variable icon-only button => add an accessible name */}
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveVariable(index)}
+                        className="w-full px-4 py-2 bg-background border border-background-lighter text-warning hover:text-warning-hover rounded-md transition-colors"
+                        aria-label="Remove this variable"
+                        title="Remove Variable"
+                      >
+                        <Minus className="w-5 h-5 mx-auto" />
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
-                      Label
-                    </label>
-                    <input
-                      type="text"
-                      value={variable.label}
-                      onChange={(e) => handleVariableChange(index, 'label', e.target.value)}
-                      className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
-                      Unit
-                    </label>
-                    <input
-                      type="text"
-                      value={variable.unit}
-                      onChange={(e) => handleVariableChange(index, 'unit', e.target.value)}
-                      className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
-                      Default Value
-                    </label>
-                    <input
-                      type="number"
-                      value={variable.defaultValue}
-                      onChange={(e) => handleVariableChange(index, 'defaultValue', e.target.value)}
-                      className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                      required
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveVariable(index)}
-                      className="w-full px-4 py-2 bg-background border border-background-lighter text-warning hover:text-warning-hover rounded-md transition-colors"
-                    >
-                      <Minus className="w-5 h-5 mx-auto" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
+          {/* Section for managing formulas */}
           <div className="bg-background-light rounded-lg border border-background-lighter p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium text-white">Formulas</h2>
+              {/* Icon-only button => add an accessible name */}
               <button
                 type="button"
                 onClick={handleAddFormula}
                 className="p-2 text-gray-400 hover:text-white hover:bg-background rounded-full transition-colors"
+                aria-label="Add a new formula"
+                title="Add Formula"
               >
                 <Plus className="w-5 h-5" />
               </button>
             </div>
+
             <div className="space-y-6">
               {formulas.map((formula, formulaIndex) => (
                 <div key={formulaIndex} className="space-y-4">
                   <div className="grid grid-cols-4 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                      <label
+                        className="block text-sm font-medium text-gray-400 mb-1"
+                        htmlFor={`formulaName-${formulaIndex}`}
+                      >
                         Name
                       </label>
                       <input
+                        id={`formulaName-${formulaIndex}`}
                         type="text"
                         value={formula.name}
-                        onChange={(e) => handleFormulaChange(formulaIndex, 'name', e.target.value)}
+                        onChange={(e) =>
+                          handleFormulaChange(
+                            formulaIndex,
+                            'name',
+                            e.target.value
+                          )
+                        }
                         className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                        placeholder="Enter formula name"
                         required
                       />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                      <label
+                        className="block text-sm font-medium text-gray-400 mb-1"
+                        htmlFor={`formulaDescription-${formulaIndex}`}
+                      >
                         Description
                       </label>
                       <input
+                        id={`formulaDescription-${formulaIndex}`}
                         type="text"
                         value={formula.description}
-                        onChange={(e) => handleFormulaChange(formulaIndex, 'description', e.target.value)}
+                        onChange={(e) =>
+                          handleFormulaChange(
+                            formulaIndex,
+                            'description',
+                            e.target.value
+                          )
+                        }
                         className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                        placeholder="Enter formula description"
                       />
                     </div>
                     <div className="flex items-end">
+                      {/* Remove formula button => add an accessible name */}
                       <button
                         type="button"
                         onClick={() => handleRemoveFormula(formulaIndex)}
                         className="w-full px-4 py-2 bg-background border border-background-lighter text-warning hover:text-warning-hover rounded-md transition-colors"
+                        aria-label="Remove this formula"
+                        title="Remove Formula"
                       >
                         <Minus className="w-5 h-5 mx-auto" />
                       </button>
@@ -357,14 +465,26 @@ export function CalculatorCreation() {
                   </div>
 
                   <div className="bg-background rounded-lg border-2 border-primary/20 p-4 space-y-4">
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                    <label
+                      className="block text-sm font-medium text-gray-400 mb-1"
+                      htmlFor={`formulaExpression-${formulaIndex}`}
+                    >
                       Expression
                     </label>
                     <textarea
+                      id={`formulaExpression-${formulaIndex}`}
                       value={formula.expression}
-                      onChange={(e) => handleFormulaChange(formulaIndex, 'expression', e.target.value)}
+                      onChange={(e) =>
+                        handleFormulaChange(
+                          formulaIndex,
+                          'expression',
+                          e.target.value
+                        )
+                      }
                       rows={3}
                       className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors font-mono"
+                      placeholder="Enter formula expression"
+                      title="Formula Expression"
                       required
                     />
 
@@ -378,15 +498,21 @@ export function CalculatorCreation() {
                             <button
                               key={varIndex}
                               type="button"
-                              onClick={() => insertIntoFormula(formulaIndex, v.name)}
+                              onClick={() =>
+                                insertIntoFormula(formulaIndex, v.name)
+                              }
+                              onDragStart={(e) =>
+                                e.dataTransfer.setData('text/plain', v.name)
+                              }
                               className="px-3 py-1.5 bg-indigo-500/10 text-indigo-500 rounded-md hover:bg-indigo-500/20 transition-colors text-sm font-mono"
+                              aria-label={`Insert variable "${v.name}" into formula`}
+                              title={`Insert variable "${v.name}"`}
                             >
                               {v.name}
                             </button>
                           ))}
                         </div>
                       </div>
-
                       <div>
                         <label className="block text-sm font-medium text-gray-400 mb-2">
                           Operations
@@ -396,8 +522,21 @@ export function CalculatorCreation() {
                             <button
                               key={opIndex}
                               type="button"
-                              onClick={() => insertIntoFormula(formulaIndex, op.insert || op.symbol)}
+                              onClick={() =>
+                                insertIntoFormula(
+                                  formulaIndex,
+                                  op.insert || op.symbol
+                                )
+                              }
+                              onDragStart={(e) =>
+                                e.dataTransfer.setData(
+                                  'text/plain',
+                                  op.insert || op.symbol
+                                )
+                              }
                               className="w-8 h-8 flex items-center justify-center bg-blue-500/10 text-blue-500 rounded-md hover:bg-blue-500/20 transition-colors text-lg font-mono"
+                              aria-label={`Insert operation "${op.description}"`}
+                              title={op.description}
                             >
                               {op.symbol}
                             </button>
@@ -415,8 +554,11 @@ export function CalculatorCreation() {
                           <button
                             key={fnIndex}
                             type="button"
-                            onClick={() => insertIntoFormula(formulaIndex, `${fn.name}(`)}
+                            onClick={() =>
+                              insertIntoFormula(formulaIndex, `${fn.name}(`)
+                            }
                             className="px-3 py-1.5 bg-purple-500/10 text-purple-500 rounded-md hover:bg-purple-500/20 transition-colors text-sm font-mono"
+                            aria-label={`Insert function "${fn.name}"`}
                             title={fn.description}
                           >
                             {fn.name}
@@ -431,9 +573,11 @@ export function CalculatorCreation() {
           </div>
 
           <div className="flex justify-end">
+            {/* Submit button with descriptive text => good for A11y */}
             <button
               type="submit"
               className="flex items-center px-6 py-3 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors"
+              aria-label="Save this Calculator Template"
             >
               <Save className="w-5 h-5 mr-2" />
               Save Template

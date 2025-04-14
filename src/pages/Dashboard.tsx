@@ -20,28 +20,28 @@ import { FormField, FormSection } from '@/components/ui/form';
 import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 
-// Add missing type definitions
+// Definition for the editable form structure when modifying user information
 interface EditForm {
-  avatar_id?: string;
-  organization_id?: string;
-  job_title_id?: string;
-  address?: string;
-  phone?: string;
-  email?: string;
-  custom_job_title?: string;
+  avatar_id?: string; // Avatar ID of the user
+  organization_id?: string; // Organization affiliation
+  job_title_id?: string; // Job title ID
+  address?: string; // User's address
+  phone?: string; // User's phone number
+  email?: string; // User's email
+  custom_job_title?: string; // Custom job title if applicable
 }
 
 export function Dashboard() {
-  const navigate = useNavigate();
-  const { user } = useAuthStore();
-  const [contracts, setContracts] = useState<Database['public']['Tables']['contracts']['Row'][]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [avatars, setAvatars] = useState<Avatar[]>([]);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [jobTitles, setJobTitles] = useState<JobTitle[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate(); // Hook for navigation
+  const { user } = useAuthStore(); // Get the authenticated user information
+  const [contracts, setContracts] = useState<Database['public']['Tables']['contracts']['Row'][]>([]); // Contracts associated with the user
+  const [loading, setLoading] = useState(true); // Loading state for initial data fetching
+  const [searchQuery, setSearchQuery] = useState(''); // Search input for filtering contracts
+  const [profile, setProfile] = useState<Profile | null>(null); // User profile information
+  const [avatars, setAvatars] = useState<Avatar[]>([]); // Store available avatars
+  const [organizations, setOrganizations] = useState<Organization[]>([]); // Store organizations
+  const [jobTitles, setJobTitles] = useState<JobTitle[]>([]); // Store job titles
+  const [isModalOpen, setIsModalOpen] = useState(false); // Modal state for editing profile
   const [editForm, setEditForm] = useState<EditForm>({
     avatar_id: '',
     organization_id: '',
@@ -55,27 +55,27 @@ export function Dashboard() {
     activeContracts: 0,
     openIssues: 0,
     pendingInspections: 0
-  });
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  }); // Store metrics for dashboard overview
+  const [crop, setCrop] = useState({ x: 0, y: 0 }); // Crop coordinates for the avatar image
+  const [zoom, setZoom] = useState(1); // Zoom level for cropping avatar
+  const [selectedImage, setSelectedImage] = useState<string | null>(null); // Store selected image for cropping
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null); // Store cropped area dimensions
 
-  // Handle crop and upload function
+  // Handle the crop and upload action for the user's avatar
   const handleCropAndUpload = async () => {
     if (!selectedImage || !croppedAreaPixels || !user) return;
   
     try {
-      const croppedBlob = await getCroppedImg(selectedImage, croppedAreaPixels);
+      const croppedBlob = await getCroppedImg(selectedImage, croppedAreaPixels); // Get the cropped image blob
   
-      const fileName = `avatar`;
-      const filePath = `${user.id}/${fileName}`;
-  
+      const fileName = `avatar`; // Define the file name for the image
+      const filePath = `${user.id}/${fileName}`; // File path
+        
       const { error } = await supabase.storage
-            .from('avatar-private')
+        .from('avatar-private')
         .upload(filePath, croppedBlob, {
-          upsert: true,
-          contentType: 'image/jpeg',
+          upsert: true, // Allows overwriting the file
+          contentType: 'image/jpeg', // Set content type for the uploaded image
         });
 
       if (error) throw error;
@@ -85,28 +85,29 @@ export function Dashboard() {
         .storage
         .from('avatar-private')
         .getPublicUrl(filePath);
-      // Update profile with new avatar
-      await handleAvatarSelect(publicUrl);
 
-      toast.success('Avatar uploaded successfully!');
-      setSelectedImage(null); // Reset selection
+      await handleAvatarSelect(publicUrl); // Update avatar in user profile
+
+      toast.success('Avatar uploaded successfully!'); // Notify the user
+      setSelectedImage(null); // Reset the selected image
     } catch (err) {
       console.error(err);
-      toast.error('Upload failed');
+      toast.error('Upload failed'); // Notify of potential errors
     }
   };
 
+  // Fetch data for the dashboard when the component mounts
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true);
 
         if (!user) {
-          navigate('/');
+          navigate('/'); // Redirect if the user is not authenticated
           return;
         }
 
-        // Fetch organizations to prevent reference error
+        // Fetch organizations
         const { data: organizationsData } = await supabase.from('organizations').select('*');
         setOrganizations(organizationsData || []);
 
@@ -114,6 +115,7 @@ export function Dashboard() {
         const { data: jobData } = await supabase.from('job_titles').select('*');
         setJobTitles(jobData || []);
 
+        // Fetch profile data
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select(`
@@ -124,7 +126,7 @@ export function Dashboard() {
             username,
             phone,
             location,
-            avatar_url,
+            avatarUrl,
             organization_id,
             job_title_id,
             organizations!profiles_organization_id_fkey (
@@ -138,17 +140,19 @@ export function Dashboard() {
               is_custom
             )
           `)
-        .eq('id', user.id)
-        .single();
+          .eq('id', user.id)
+          .single();
 
-        if (profileError) throw profileError;
+        if (profileError) throw profileError; // Handle errors while fetching profile
 
-        const safeProfile = profileData as unknown as Profile;
+        const safeProfile = profileData as unknown as Profile; // Typecast the fetched profile data
         setProfile(safeProfile);
 
+        // Determine if the job title is custom
         const resolvedJobTitleId = profileData.job_title_id;
         let customJobTitle = '';
 
+        // Check if job titles exist and get custom title if applicable
         if (profileData.job_title_id && jobData && jobData.length > 0) {
           const matchingTitle = jobData.find(j => j.id === profileData.job_title_id);
           if (matchingTitle?.is_custom) {
@@ -156,8 +160,9 @@ export function Dashboard() {
           }
         }
 
+        // Set edit form values
         setEditForm({
-          avatar_id: profileData.avatar_url ?? '',
+          avatar_id: profileData.avatarUrl ?? '',
           organization_id: profileData.organization_id ?? '',
           job_title_id: resolvedJobTitleId ?? '',
           address: profileData.location ?? '',
@@ -166,6 +171,7 @@ export function Dashboard() {
           custom_job_title: customJobTitle,
         });
 
+        // Fetch user avatars
         const { data: avatarData } = await supabase
           .from('avatars')
           .select('*')
@@ -174,6 +180,7 @@ export function Dashboard() {
 
         setAvatars(avatarData || []);
 
+        // Fetch user contracts
         const { data: userContracts, error: userContractsError } = await supabase
           .from('user_contracts')
           .select('contract_id')
@@ -181,14 +188,15 @@ export function Dashboard() {
 
         if (userContractsError) throw userContractsError;
 
-        const contractIds = userContracts?.map((uc) => uc.contract_id);
+        const contractIds = userContracts?.map((uc) => uc.contract_id) || []; // Extract contract IDs
 
-        if (!contractIds || contractIds.length === 0) {
-          setContracts([]);
+        if (contractIds.length === 0) {
+          setContracts([]); // No contracts found
           setMetrics({ activeContracts: 0, openIssues: 0, pendingInspections: 0 });
           return;
         }
 
+        // Fetch contracts data associated with the user
         const { data: contractData, error: contractError } = await supabase
           .from('contracts')
           .select(`
@@ -206,10 +214,12 @@ export function Dashboard() {
           `)
           .in('id', contractIds)
           .order('created_at', { ascending: false });
-        setContracts((contractData || []) as Database['public']['Tables']['contracts']['Row'][]);
-        if (contractError) throw contractError;
-        setContracts(contractData || []);
 
+        if (contractError) throw contractError;
+
+        setContracts(contractData || []); // Set the contracts data
+
+        // Fetch active contracts
         const { data: activeContracts, error: activeError } = await supabase
           .from('contracts')
           .select('id')
@@ -218,6 +228,7 @@ export function Dashboard() {
 
         if (activeError) throw activeError;
 
+        // Fetch open issues count
         const { count: issuesCount, error: issuesError } = await supabase
           .from('issues')
           .select('*', { count: 'exact', head: true })
@@ -229,41 +240,44 @@ export function Dashboard() {
         setMetrics({
           activeContracts: activeContracts?.length || 0,
           openIssues: issuesCount || 0,
-          pendingInspections: 0
+          pendingInspections: 0 // Placeholder to track pending inspections
         });
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
-        setLoading(false);
+        setLoading(false); // Stop loading when data fetching is complete
       }
     }
 
-    fetchData();
+    fetchData(); // Call fetch data function
   }, [user, navigate]);
 
+  // Handle avatar selection and update profile
   const handleAvatarSelect = async (url: string) => {
     if (!user) return;
     await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id);
     if (profile) {
-      setProfile({ ...profile, avatar_url: url });
+      setProfile({ ...profile, avatarUrl: url });
     }
     setIsModalOpen(false);
   };
 
+  // Handle changes in profile form inputs
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name === 'organization_id' && value === 'create-new') {
-      navigate('/create-organization');
+      navigate('/create-organization'); // Redirect to create new organization
       return;
     }
-    setEditForm(prev => ({ ...prev, [name]: value }));
+    setEditForm(prev => ({ ...prev, [name]: value })); // Update the edit form state
   };
 
+  // Save profile information
   const handleSaveProfile = async () => {
     if (!user) return;
 
     let jobTitleId = editForm.job_title_id;
-
+    
     // Insert custom job title if needed
     if (!jobTitleId && editForm.custom_job_title?.trim()) {
       const { data: newJobTitle, error } = await supabase
@@ -275,7 +289,7 @@ export function Dashboard() {
         toast.error('Failed to create job title.');
         return;
       }
-      jobTitleId = newJobTitle.id;
+      jobTitleId = newJobTitle.id; // Retrieve the custom job title ID
     }
 
     const { error: updateError } = await supabase.from('profiles').update({
@@ -290,7 +304,7 @@ export function Dashboard() {
       toast.error('Failed to update profile.');
     } else {
       toast.success('Profile updated!');
-      // Re-fetch profile
+      // Re-fetch profile data
       const { data: updatedProfile } = await supabase
         .from('profiles')
         .select(`
@@ -310,8 +324,8 @@ export function Dashboard() {
         .eq('id', user.id)
         .single();
 
-      setProfile(updatedProfile as unknown as Profile);
-      setIsModalOpen(false);
+      setProfile(updatedProfile as unknown as Profile); // Update profile state
+      setIsModalOpen(false); // Close the modal
     }
   };
 
@@ -319,7 +333,7 @@ export function Dashboard() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      setSelectedImage(reader.result as string);
+      setSelectedImage(reader.result as string); // Set selected image for cropping
     };
     reader.readAsDataURL(file);
   };
@@ -327,7 +341,7 @@ export function Dashboard() {
   const filteredContracts = contracts.filter(contract =>
     contract.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (contract.description && contract.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    contract.location.toLowerCase().includes(searchQuery.toLowerCase())
+    contract.location.toLowerCase().includes(searchQuery.toLowerCase()) // Filtering contracts based on the search query
   );
 
   if (loading) {
@@ -346,12 +360,12 @@ export function Dashboard() {
           <div className="flex flex-col md:flex-row justify-between items-start gap-6">
             <div className="flex-1">
               <div className="flex items-center gap-4 mb-4">
-                {profile?.avatar_url && (
-                  <img src={profile.avatar_url} alt="Avatar" className="w-14 h-14 rounded-full border border-background-lighter" />
+                {profile?.avatarUrl && (
+                  <img src={profile.avatarUrl} alt="Avatar" className="w-14 h-14 rounded-full border border-background-lighter" />
                 )}
                 <div>
                   <h1 className="text-3xl font-bold text-white">
-                    Welcome back, {profile?.full_name}
+                    Welcome back, {profile?.fullName}
                   </h1>
                   <Button
                     onClick={() => setIsModalOpen(true)}
@@ -364,7 +378,7 @@ export function Dashboard() {
                   </Button>
                 </div>
               </div>
-              {(profile?.organizations || profile?.job_titles) && (
+              {(profile?.organizations || profile?.jobTitles) && (
                 <div className="text-gray-400 space-y-1">
                   {profile?.organizations?.name && (
                     <p className="flex items-center">
@@ -372,10 +386,10 @@ export function Dashboard() {
                       {profile.organizations.name}
                     </p>
                   )}
-                  {profile?.job_titles?.title && (
+                  {profile?.jobTitles?.title && (
                     <p className="flex items-center">
                       <FileText className="w-4 h-4 mr-2" />
-                      {profile.job_titles.title}
+                      {profile.jobTitles.title}
                     </p>
                   )}
                   {profile?.organizations?.address && (
@@ -417,169 +431,169 @@ export function Dashboard() {
           className="max-w-lg"
         >
           <div className="px-6 pb-6 custom-scrollbar" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-                <FormSection title="Avatar">
-                  <div className="grid grid-cols-3 gap-4 mb-4">
-                    {avatars.map((avatar) => (
-                      <button
-                        key={avatar.id}
-                        onClick={() => handleAvatarSelect(avatar.url)}
-                        className={`rounded-lg overflow-hidden border-2 ${profile?.avatar_url === avatar.url ? 'border-primary' : 'border-background-lighter'}`}
-                      >
-                        <img src={avatar.url} alt={avatar.name} className="w-full h-24 object-cover" />
-                      </button>
-                    ))}
-                    <label
-                      className="relative cursor-pointer rounded-lg overflow-hidden border-2 border-dashed border-background-lighter hover:border-primary transition-colors"
-                    >
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="text-center">
-                          <Plus className="w-8 h-8 mx-auto text-gray-400" />
-                          <span className="block mt-1 text-sm text-gray-400">Upload</span>
-                        </div>
-                      </div>
-                      <div className="h-24"></div>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleAvatarUpload(file);
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-
-                  {selectedImage && (
-                    <div className="relative w-full h-[300px] bg-black rounded-lg overflow-hidden mt-4">
-                      <Cropper
-                        image={selectedImage}
-                        crop={crop}
-                        zoom={zoom}
-                        aspect={1}
-                        cropShape="round"
-                        showGrid={false}
-                        onCropChange={setCrop}
-                        onZoomChange={setZoom}
-                        onCropComplete={(_, croppedAreaPixels) =>
-                          setCroppedAreaPixels(croppedAreaPixels)}
-                      />
-                      <Button
-                        className="absolute bottom-3 right-3"
-                        onClick={handleCropAndUpload}
-                        size="sm"
-                      >
-                        Crop & Upload
-                      </Button>
+            <FormSection title="Avatar">
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                {avatars.map((avatar) => (
+                  <button
+                    key={avatar.id}
+                    onClick={() => handleAvatarSelect(avatar.url)}
+                    className={`rounded-lg overflow-hidden border-2 ${profile?.avatarUrl === avatar.url ? 'border-primary' : 'border-background-lighter'}`}
+                  >
+                    <img src={avatar.url} alt={avatar.name} className="w-full h-24 object-cover" />
+                  </button>
+                ))}
+                <label
+                  className="relative cursor-pointer rounded-lg overflow-hidden border-2 border-dashed border-background-lighter hover:border-primary transition-colors"
+                >
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <Plus className="w-8 h-8 mx-auto text-gray-400" />
+                      <span className="block mt-1 text-sm text-gray-400">Upload</span>
                     </div>
-                  )}
-                </FormSection>
-
-                <FormField
-                  label="Organization"
-                  htmlFor="organization_id"
-                  className="mb-4"
-                >
-                  <Select
-                    id="organization_id"
-                    name="organization_id"
-                    value={editForm.organization_id || ''}
-                    onChange={handleFormChange}
-                    options={[
-                      { value: "", label: "-- Select Organization --" },
-                      ...organizations.map(org => ({ value: org.id, label: org.name })),
-                      { value: "create-new", label: "➕ Add New Organization" }
-                    ]}
-                  />
-                </FormField>
-
-                <FormField
-                  label="Role"
-                  htmlFor="job_title_id"
-                  className="mb-4"
-                >
-                  <Select
-                    id="job_title_id"
-                    name="job_title_id"
-                    value={editForm.job_title_id || ''}
+                  </div>
+                  <div className="h-24"></div>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
                     onChange={(e) => {
-                      if (e.target.value === 'custom-role') {
-                        setEditForm((prev) => ({ ...prev, job_title_id: '', custom_job_title: '' }));
-                      } else {
-                        handleFormChange(e);
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleAvatarUpload(file); // Handle avatar upload
                       }
                     }}
-                    options={[
-                      { value: "", label: "-- Select Role --" },
-                      ...jobTitles.map(title => ({ value: title.id, label: title.title })),
-                      { value: "custom-role", label: "➕ Add Custom Role" }
-                    ]}
                   />
-
-                  {editForm.job_title_id === '' && (
-                    <Input
-                      type="text"
-                      name="custom_job_title"
-                      placeholder="Enter your role"
-                      value={editForm.custom_job_title || ''}
-                      onChange={handleFormChange}
-                      className="mt-2"
-                    />
-                  )}
-                </FormField>
-
-                <FormField
-                  label="Address"
-                  htmlFor="address"
-                  className="mb-4"
-                >
-                  <Input
-                    type="text"
-                    id="address"
-                    name="address"
-                    value={editForm.address || ''}
-                    onChange={handleFormChange}
-                  />
-                </FormField>
-
-                <FormField
-                  label="Phone"
-                  htmlFor="phone"
-                  className="mb-4"
-                >
-                  <Input
-                    type="text"
-                    id="phone"
-                    name="phone"
-                    value={editForm.phone || ''}
-                    onChange={handleFormChange}
-                  />
-                </FormField>
-
-                <FormField
-                  label="Email"
-                  htmlFor="email"
-                  className="mb-4"
-                >
-                  <Input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={editForm.email || ''}
-                    onChange={handleFormChange}
-                  />
-                </FormField>
-
-                <Button
-                  onClick={handleSaveProfile}
-                  className="w-full mt-4"
-                >
-                  Save
-                </Button>
+                </label>
               </div>
+
+              {selectedImage && (
+                <div className="relative w-full h-[300px] bg-black rounded-lg overflow-hidden mt-4">
+                  <Cropper
+                    image={selectedImage} // Set the selected image for cropping
+                    crop={crop} // Current crop coordinates
+                    zoom={zoom} // Zoom level
+                    aspect={1} // Aspect ratio for cropping
+                    cropShape="round" // Shape of the crop
+                    showGrid={false} // Disable the grid
+                    onCropChange={setCrop} // Update crop coordinates
+                    onZoomChange={setZoom} // Update zoom level
+                    onCropComplete={(_, croppedAreaPixels) =>
+                      setCroppedAreaPixels(croppedAreaPixels)} // Save the cropped area
+                  />
+                  <Button
+                    className="absolute bottom-3 right-3"
+                    onClick={handleCropAndUpload} // Upload cropped image
+                    size="sm"
+                  >
+                    Crop & Upload
+                  </Button>
+                </div>
+              )}
+            </FormSection>
+
+            <FormField
+              label="Organization"
+              htmlFor="organization_id"
+              className="mb-4"
+            >
+              <Select
+                id="organization_id"
+                name="organization_id"
+                value={editForm.organization_id || ''}
+                onChange={handleFormChange}
+                options={[
+                  { value: "", label: "-- Select Organization --" },
+                  ...organizations.map(org => ({ value: org.id, label: org.name })),
+                  { value: "create-new", label: "➕ Add New Organization" }
+                ]}
+              />
+            </FormField>
+
+            <FormField
+              label="Role"
+              htmlFor="job_title_id"
+              className="mb-4"
+            >
+              <Select
+                id="job_title_id"
+                name="job_title_id"
+                value={editForm.job_title_id || ''}
+                onChange={(e) => {
+                  if (e.target.value === 'custom-role') {
+                    setEditForm((prev) => ({ ...prev, job_title_id: '', custom_job_title: '' }));
+                  } else {
+                    handleFormChange(e);
+                  }
+                }}
+                options={[
+                  { value: "", label: "-- Select Role --" },
+                  ...jobTitles.map(title => ({ value: title.id, label: title.title })),
+                  { value: "custom-role", label: "➕ Add Custom Role" }
+                ]}
+              />
+              {editForm.job_title_id === '' && (
+                <Input
+                  type="text"
+                  name="custom_job_title"
+                  placeholder="Enter your role"
+                  value={editForm.custom_job_title || ''}
+                  onChange={handleFormChange}
+                  className="mt-2"
+                />
+              )}
+            </FormField>
+
+            <FormField
+              label="Address"
+              htmlFor="address"
+              className="mb-4"
+            >
+              <Input
+                type="text"
+                id="address"
+                name="address"
+                value={editForm.address || ''}
+                onChange={handleFormChange}
+              />
+            </FormField>
+
+            <FormField
+              label="Phone"
+              htmlFor="phone"
+              className="mb-4"
+            >
+              <Input
+                type="text"
+                id="phone"
+                name="phone"
+                value={editForm.phone || ''}
+                onChange={handleFormChange}
+              />
+            </FormField>
+
+            <FormField
+              label="Email"
+              htmlFor="email"
+              className="mb-4"
+            >
+              <Input
+                type="email"
+                id="email"
+                name="email"
+                value={editForm.email || ''}
+                onChange={handleFormChange}
+              />
+            </FormField>
+
+            <Button
+              onClick={handleSaveProfile} // Save changes to the profile
+              className="w-full mt-4"
+            >
+              Save
+            </Button>
+          </div>
         </Modal>
+
         {/* Metrics and Contracts Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="p-6 bg-card rounded-lg border border-border">
@@ -618,13 +632,13 @@ export function Dashboard() {
                     type="text"
                     placeholder="Search contracts..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => setSearchQuery(e.target.value)} // Handle search input for filtering contracts
                     className="w-full sm:w-64 pl-10"
                   />
                 </div>
               </div>
               <Button
-                onClick={() => navigate('/ContractCreation')}
+                onClick={() => navigate('/ContractCreation')} // Navigate to create a new contract
                 className="flex items-center gap-2"
               >
                 <Plus className="w-5 h-5" />
@@ -634,7 +648,7 @@ export function Dashboard() {
           </div>
 
           <div className="space-y-4">
-            {filteredContracts.length === 0 ? (
+            {filteredContracts.length === 0 ? ( // Check if there are no contracts matching the search
               <div className="text-center py-8">
                 <FileText className="w-12 h-12 text-gray-500 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-white mb-2">No Contracts Found</h3>
@@ -645,11 +659,11 @@ export function Dashboard() {
                 </p>
               </div>
             ) : (
-              filteredContracts.map((contract) => (
+              filteredContracts.map((contract) => ( // Map over filtered contracts to display them
                 <div
                   key={contract.id}
                   className="p-4 bg-card rounded-lg border border-border hover:border-primary transition-colors cursor-pointer"
-                  onClick={() => navigate(`/contracts/${contract.id}`)}
+                  onClick={() => navigate(`/contracts/${contract.id}`)} // Navigate to contract details
                 >
                   <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                     <div>
@@ -666,7 +680,7 @@ export function Dashboard() {
                         </div>
                         <div className="flex items-center">
                           <DollarSign className="w-4 h-4 mr-2" />
-                          ${contract.budget.toLocaleString()}
+                          ${contract.budget.toLocaleString()} {/* Display contract budget */}
                         </div>
                       </div>
                     </div>
@@ -679,7 +693,7 @@ export function Dashboard() {
                           'warning'
                         }
                       >
-                        {contract.status}
+                        {contract.status} {/* Display the contract status with appropriate coloring */}
                       </Badge>
                     </div>
                   </div>

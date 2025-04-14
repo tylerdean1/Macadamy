@@ -1,3 +1,7 @@
+/**
+ * Styles for various UI components in the application.
+ */
+
 /* Card component styles */
 .card {
   background-color: rgb(31, 41, 55); /* bg-gray-800 */
@@ -12,53 +16,49 @@
   overflow-y: auto; /* Enable vertical scrolling */
 }
 
-/* Add custom scrollbar styling for the modal */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(75, 85, 99, 0.5) rgba(31, 41, 55, 0.1);
-}
-
+/* Custom scrollbar styling for the modal */
+/* Removed unsupported scrollbar-width and scrollbar-color properties */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+  width: 6px; /* Width of the scrollbar */
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(31, 41, 55, 0.1);
-  border-radius: 6px;
+  background: rgba(31, 41, 55, 0.1); /* Background of the scrollbar track */
+  border-radius: 6px; /* Round corners of the scrollbar track */
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(75, 85, 99, 0.5);
-  border-radius: 6px;
+  background-color: rgba(75, 85, 99, 0.5); /* Color of the scrollbar thumb */
+  border-radius: 6px; /* Round corners of the scrollbar thumb */
 }
 
 /* Modal overlay styles */
 .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: 1rem;
-  overflow-y: auto;
+  position: fixed; /* Fix overlay to the viewport */
+  top: 0; /* Align to the top */
+  left: 0; /* Align to the left */
+  right: 0; /* Align to the right */
+  bottom: 0; /* Align to the bottom */
+  background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent black background */
+  display: flex; /* Use flexbox for centering */
+  align-items: center; /* Center vertically */
+  justify-content: center; /* Center horizontally */
+  z-index: 50; /* Ensure overlay is above other content */
+  padding: 1rem; /* Padding around overlay */
+  overflow-y: auto; /* Enable vertical scrolling if needed */
 }
 
 /* Modal content styles */
 .modal-content {
-  background-color: rgb(31, 41, 55);
-  border-radius: 0.5rem;
-  border: 1px solid rgba(75, 85, 99, 0.4);
-  max-width: 32rem;
-  width: 100%;
-  max-height: 90vh;
-  overflow: hidden;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+  background-color: rgb(31, 41, 55); /* bg-gray-800 */
+  border-radius: 0.5rem; /* rounded-lg */
+  border: 1px solid rgba(75, 85, 99, 0.4); /* Border around modal */
+  max-width: 32rem; /* Maximum width of the modal */
+  width: 100%; /* Full width */
+  max-height: 90vh; /* Limit height to 90% of viewport height */
+  overflow: hidden; /* Hide overflow content */
+  position: relative; /* Position relative for child elements */
+  display: flex; /* Use flexbox for layout */
+  flex-direction: column; /* Layout children in a column */
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); /* Shadow for depth */
 }

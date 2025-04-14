@@ -1,4 +1,3 @@
-// utils/cropImage.ts
 import { Area } from '../lib/types';
 
 export const getCroppedImg = async (

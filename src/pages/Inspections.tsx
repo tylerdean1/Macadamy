@@ -1,337 +1,307 @@
+/**
+ * Inspections.tsx - Inspection Management Page
+ *
+ * Overview:
+ * - Allows users to upload PDF inspection reports with optional photo attachments.
+ * - Associates each inspection with a specific contract, WBS, map, and line item via dropdowns.
+ * - Supports viewing and editing of inspections.
+ * - Ensures proper role-based permissions:
+ *   - All users can view inspection reports and photos.
+ *   - Only 'admin', 'engineer', and 'inspector' roles can create or edit inspections.
+ *
+ * Future Enhancements:
+ * - Support for inspection templates (structured test types like compaction, density, etc.).
+ * - Dynamic form generation based on template type.
+ * - Pass/fail status flags and report export.
+ */
+
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, ClipboardList, Calendar, User, CheckCircle, XCircle, Camera, Save } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../lib/store';
+import { FileText, Plus, Pencil } from 'lucide-react';
 
-interface InspectionReport {
+// Define the structure of an inspection record
+interface Inspection {
   id?: string;
+  name: string;
+  description: string;
+  contract_id: string;
+  wbs_id: string;
+  map_id: string;
   line_item_id: string;
-  inspector: string;
-  inspection_date: string;
-  status: string;
-  findings: string;
-  recommendations: string;
-  photos?: string[];
+  pdf_url: string;
+  photo_urls: string[];
+  created_by?: string;
+  updated_by?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
-const STATUSES = ['Pending', 'Passed', 'Failed', 'Needs Review'] as const;
+// Generic structure for dropdown options
+interface Option {
+  id: string;
+  name: string;
+}
 
 export function Inspections() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [inspections, setInspections] = useState<InspectionReport[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
-  const [inspectors, setInspectors] = useState<any[]>([]);
-  const [newInspection, setNewInspection] = useState<InspectionReport>({
-    line_item_id: id || '',
-    inspector: '',
-    inspection_date: new Date().toISOString().split('T')[0],
-    status: 'Pending',
-    findings: '',
-    recommendations: '',
-    photos: []
-  });
   const user = useAuthStore(state => state.user);
 
+  // State variables
+  const [inspections, setInspections] = useState<Inspection[]>([]);
+  const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [photoFiles, setPhotoFiles] = useState<FileList | null>(null);
+
+  // Holds form data for creating/editing inspections
+  const [newInspection, setNewInspection] = useState<Partial<Inspection>>({
+    name: '',
+    description: '',
+    contract_id: '',
+    wbs_id: '',
+    map_id: '',
+    line_item_id: '',
+    photo_urls: [],
+  });
+
+  // Dropdown data
+  const [contracts, setContracts] = useState<Option[]>([]);
+  const [wbsList, setWbsList] = useState<Option[]>([]);
+  const [mapList, setMapList] = useState<Option[]>([]);
+  const [lineItems, setLineItems] = useState<Option[]>([]);
+
+  // Check if the user has edit permissions
+  const canEdit = ['admin', 'engineer', 'inspector'].includes(user?.role || '');
+
+  // Initial load
   useEffect(() => {
+    loadOptions();
     fetchInspections();
-    fetchInspectors();
-  }, [id]);
+  }, []);
 
-  const fetchInspections = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('inspection_reports')
-        .select(`
-          *,
-          inspector:profiles!inspector (
-            full_name,
-            email
-          )
-        `)
-        .eq('line_item_id', id)
-        .order('inspection_date', { ascending: false });
+  // Dynamically load WBS after contract is selected
+  useEffect(() => {
+    if (newInspection.contract_id) fetchWbs(newInspection.contract_id);
+  }, [newInspection.contract_id]);
 
-      if (error) throw error;
-      setInspections(data || []);
-    } catch (error) {
-      console.error('Error fetching inspections:', error);
-    } finally {
-      setLoading(false);
+  // Load maps once WBS is selected
+  useEffect(() => {
+    if (newInspection.wbs_id) fetchMaps(newInspection.wbs_id);
+  }, [newInspection.wbs_id]);
+
+  // Load line items when map is selected
+  useEffect(() => {
+    if (newInspection.map_id) fetchLineItems(newInspection.map_id);
+  }, [newInspection.map_id]);
+
+  // Fetch contract list
+  async function loadOptions() {
+    const { data: contractsData } = await supabase.from('contracts').select('id, name');
+    setContracts(contractsData || []);
+  }
+
+  // Fetch WBS entries for a contract
+  async function fetchWbs(contractId: string) {
+    const { data } = await supabase.from('wbs').select('id, name').eq('contract_id', contractId);
+    setWbsList(data || []);
+  }
+
+  // Fetch maps for a WBS
+  async function fetchMaps(wbsId: string) {
+    const { data } = await supabase.from('maps').select('id, name').eq('wbs_id', wbsId);
+    setMapList(data || []);
+  }
+
+  // Fetch line items for a map
+  async function fetchLineItems(mapId: string) {
+    const { data } = await supabase.from('line_items').select('id, description').eq('map_id', mapId);
+    setLineItems(data?.map(l => ({ id: l.id, name: l.description })) || []);
+  }
+
+  // Load inspection records
+  async function fetchInspections() {
+    const { data } = await supabase.from('inspections').select('*').order('created_at', { ascending: false });
+    setInspections(data || []);
+  }
+
+  // Upload file (PDF or image) to Supabase Storage and return public URL
+  async function uploadFile(file: File, folder: string): Promise<string | null> {
+    const path = `${folder}/${crypto.randomUUID()}-${file.name}`;
+    const { error } = await supabase.storage.from('documents').upload(path, file);
+    if (error) {
+      alert('Failed to upload file');
+      return null;
     }
-  };
+    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(path);
+    return urlData?.publicUrl || null;
+  }
 
-  const fetchInspectors = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .eq('role', 'engineer')
-        .order('full_name');
-
-      if (error) throw error;
-      setInspectors(data || []);
-    } catch (error) {
-      console.error('Error fetching inspectors:', error);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Save inspection (create or update)
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !newInspection.name || !newInspection.contract_id || !pdfFile) return;
 
-    try {
-      const { error } = await supabase
-        .from('inspection_reports')
-        .insert({
-          ...newInspection,
-          created_by: user.id
-        });
+    const pdfUrl = await uploadFile(pdfFile, 'inspections');
+    if (!pdfUrl) return;
 
-      if (error) throw error;
+    const photoUrls: string[] = [];
+    if (photoFiles) {
+      for (const file of Array.from(photoFiles)) {
+        const url = await uploadFile(file, 'inspection-photos');
+        if (url) photoUrls.push(url);
+      }
+    }
 
-      setIsCreating(false);
+    const insertData = {
+      ...newInspection,
+      pdf_url: pdfUrl,
+      photo_urls: photoUrls,
+      created_by: user.id,
+      updated_by: user.id,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = editingId
+      ? await supabase.from('inspections').update(insertData).eq('id', editingId)
+      : await supabase.from('inspections').insert(insertData);
+
+    if (error) {
+      alert('Error saving inspection');
+    } else {
+      setCreating(false);
+      setEditingId(null);
+      setNewInspection({ name: '', description: '', contract_id: '', wbs_id: '', map_id: '', line_item_id: '', photo_urls: [] });
+      setPdfFile(null);
+      setPhotoFiles(null);
       fetchInspections();
-      setNewInspection({
-        line_item_id: id || '',
-        inspector: '',
-        inspection_date: new Date().toISOString().split('T')[0],
-        status: 'Pending',
-        findings: '',
-        recommendations: '',
-        photos: []
-      });
-    } catch (error) {
-      console.error('Error creating inspection:', error);
-      alert('Error creating inspection report');
     }
-  };
+  }
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'passed':
-        return 'bg-green-500/10 text-green-500';
-      case 'failed':
-        return 'bg-red-500/10 text-red-500';
-      case 'needs review':
-        return 'bg-yellow-500/10 text-yellow-500';
-      default:
-        return 'bg-gray-500/10 text-gray-500';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'passed':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'failed':
-        return <XCircle className="w-5 h-5 text-red-500" />;
-      default:
-        return null;
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+  // Load inspection data into form for editing
+  function handleEdit(insp: Inspection) {
+    setNewInspection(insp);
+    setEditingId(insp.id!);
+    setCreating(true);
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate(`/contracts/${id}`)}
-              className="p-2 text-gray-400 hover:text-white hover:bg-background-lighter rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button>
-            <h1 className="text-2xl font-bold text-white">Inspections</h1>
-          </div>
-          <button
-            onClick={() => setIsCreating(true)}
-            className="flex items-center px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            New Inspection
+    <div className="p-6 text-white">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Inspections</h1>
+        {canEdit && (
+          <button className="bg-blue-600 px-4 py-2 rounded flex items-center gap-2" onClick={() => setCreating(true)}>
+            <Plus className="w-4 h-4" /> New Inspection
           </button>
-        </div>
-
-        {isCreating && (
-          <div className="mb-8 bg-background-light rounded-lg border border-background-lighter p-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Inspector
-                  </label>
-                  <select
-                    value={newInspection.inspector}
-                    onChange={(e) => setNewInspection({ ...newInspection, inspector: e.target.value })}
-                    className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                    required
-                  >
-                    <option value="">Select Inspector</option>
-                    {inspectors.map(inspector => (
-                      <option key={inspector.id} value={inspector.id}>{inspector.full_name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Inspection Date
-                  </label>
-                  <input
-                    type="date"
-                    value={newInspection.inspection_date}
-                    onChange={(e) => setNewInspection({ ...newInspection, inspection_date: e.target.value })}
-                    className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Status
-                  </label>
-                  <select
-                    value={newInspection.status}
-                    onChange={(e) => setNewInspection({ ...newInspection, status: e.target.value })}
-                    className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                  >
-                    {STATUSES.map(status => (
-                      <option key={status} value={status}>{status}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Findings
-                </label>
-                <textarea
-                  value={newInspection.findings}
-                  onChange={(e) => setNewInspection({ ...newInspection, findings: e.target.value })}
-                  rows={3}
-                  className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Recommendations
-                </label>
-                <textarea
-                  value={newInspection.recommendations}
-                  onChange={(e) => setNewInspection({ ...newInspection, recommendations: e.target.value })}
-                  rows={3}
-                  className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Photos
-                </label>
-                <div className="flex items-center justify-center w-full">
-                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-background border-background-lighter hover:bg-background-lighter transition-colors">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Camera className="w-8 h-8 mb-3 text-gray-400" />
-                      <p className="mb-2 text-sm text-gray-400">
-                        <span className="font-semibold">Click to upload</span> or drag and drop
-                      </p>
-                      <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
-                    </div>
-                    <input type="file" className="hidden" accept="image/*" multiple />
-                  </label>
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-4">
-                <button
-                  type="button"
-                  onClick={() => setIsCreating(false)}
-                  className="px-4 py-2 bg-background border border-background-lighter text-white rounded-md hover:bg-background-lighter transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex items-center px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-md transition-colors"
-                >
-                  <Save className="w-5 h-5 mr-2" />
-                  Save Report
-                </button>
-              </div>
-            </form>
-          </div>
         )}
+      </div>
 
-        <div className="space-y-4">
-          {inspections.length === 0 && !isCreating ? (
-            <div className="bg-background-light rounded-lg border border-background-lighter p-8 text-center">
-              <ClipboardList className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">No Inspections</h3>
-              <p className="text-gray-400 mb-6">Start tracking inspections by creating a new report.</p>
-              <button
-                onClick={() => setIsCreating(true)}
-                className="inline-flex items-center px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Create Inspection
-              </button>
-            </div>
-          ) : (
-            inspections.map((inspection) => (
-              <div
-                key={inspection.id}
-                className="bg-background-light rounded-lg border border-background-lighter p-6 hover:border-primary transition-colors cursor-pointer"
-                onClick={() => navigate(`/contracts/${id}/inspections/${inspection.id}`)}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-medium text-white">Inspection Report</h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(inspection.status)}`}>
-                        {inspection.status}
-                      </span>
-                      {getStatusIcon(inspection.status)}
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center text-gray-400">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        {new Date(inspection.inspection_date).toLocaleDateString()}
-                      </div>
-                      <div className="flex items-center text-gray-400">
-                        <User className="w-4 h-4 mr-2" />
-                        Inspector: {inspection.inspector.full_name}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-400 mb-1">Findings</h4>
-                    <p className="text-gray-300">{inspection.findings}</p>
-                  </div>
-                  {inspection.recommendations && (
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-400 mb-1">Recommendations</h4>
-                      <p className="text-gray-300">{inspection.recommendations}</p>
-                    </div>
-                  )}
-                </div>
+      {/* Inspection Form */}
+      {creating && (
+        <form onSubmit={handleSave} className="space-y-4 bg-background-light p-4 rounded border">
+          <input
+            type="text"
+            placeholder="Name"
+            value={newInspection.name}
+            onChange={(e) => setNewInspection({ ...newInspection, name: e.target.value })}
+            className="w-full px-4 py-2 text-black rounded"
+            required
+          />
+          <textarea
+            placeholder="Description"
+            value={newInspection.description}
+            onChange={(e) => setNewInspection({ ...newInspection, description: e.target.value })}
+            className="w-full px-4 py-2 text-black rounded"
+          />
+          <label htmlFor="contractSelect" className="sr-only">Select Contract</label>
+          <select
+            id="contractSelect"
+            className="w-full text-black px-4 py-2 rounded"
+            value={newInspection.contract_id}
+            onChange={(e) => setNewInspection({ ...newInspection, contract_id: e.target.value })}
+            required
+          >
+            <option value="">Select Contract</option>
+            {contracts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <label htmlFor="wbsSelect" className="sr-only">Select WBS</label>
+          <select
+            id="wbsSelect"
+            className="w-full text-black px-4 py-2 rounded"
+            value={newInspection.wbs_id}
+            onChange={(e) => setNewInspection({ ...newInspection, wbs_id: e.target.value })}
+          >
+            <option value="">Select WBS</option>
+            {wbsList.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+          </select>
+          <label htmlFor="mapSelect" className="sr-only">Select Map</label>
+          <select
+            id="mapSelect"
+            className="w-full text-black px-4 py-2 rounded"
+            value={newInspection.map_id}
+            onChange={(e) => setNewInspection({ ...newInspection, map_id: e.target.value })}
+          >
+            <option value="">Select Map</option>
+            {mapList.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+          <label htmlFor="lineItemSelect" className="sr-only">Select Line Item</label>
+          <select
+            id="lineItemSelect"
+            className="w-full text-black px-4 py-2 rounded"
+            value={newInspection.line_item_id}
+            onChange={(e) => setNewInspection({ ...newInspection, line_item_id: e.target.value })}
+          >
+            <option value="">Select Line Item</option>
+            {lineItems.map(li => <option key={li.id} value={li.id}>{li.name}</option>)}
+          </select>
+
+          <label>PDF Report *</label>
+          <input type="file" required accept="application/pdf" title="Upload a PDF report" onChange={(e) => setPdfFile(e.target.files?.[0] || null)} />
+
+          <label htmlFor="photoFiles">Photos (optional)</label>
+          <input
+            id="photoFiles"
+            type="file"
+            multiple
+            accept="image/*"
+            title="Upload photos for the inspection"
+            onChange={(e) => setPhotoFiles(e.target.files)}
+          />
+
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => { setCreating(false); setEditingId(null); }} className="bg-gray-600 px-4 py-2 rounded">Cancel</button>
+            <button type="submit" className="bg-green-600 px-4 py-2 rounded">Save</button>
+          </div>
+        </form>
+      )}
+
+      <div className="mt-6 space-y-4">
+        {inspections.map((insp) => (
+          <div key={insp.id} className="bg-background-light p-4 rounded border">
+            <div className="flex justify-between">
+              <div>
+                <div className="text-lg font-bold">{insp.name}</div>
+                <p className="text-gray-400 text-sm">{insp.description}</p>
+                <a href={insp.pdf_url} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline inline-flex gap-1 mt-1">
+                  <FileText className="w-4 h-4" /> View PDF
+                </a>
               </div>
-            ))
-          )}
-        </div>
+              {canEdit && (
+                <button onClick={() => handleEdit(insp)} className="bg-blue-600 px-2 py-1 rounded h-fit mt-1" title="Edit Inspection">
+                  <Pencil className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            {insp.photo_urls?.length > 0 && (
+              <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2">
+                {insp.photo_urls.map((url, i) => (
+                  <img key={i} src={url} alt={`Inspection photo ${i + 1}`} className="rounded shadow-md" />
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
