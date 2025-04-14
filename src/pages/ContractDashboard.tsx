@@ -321,60 +321,57 @@ export function ContractDashboard() {
   }
 
   return (
-    <>
-      <div className="min-h-screen bg-background">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="bg-background-light rounded-lg shadow-lg border border-background-lighter p-6">
-            <div className="border-b border-background-lighter pb-6 mb-6">
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-4">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 break-words">
-                      {contract.title || 'N/A'}
-                    </h1>
-                    <ContractStatusSelect
-                      value={contract.status as Contract['status']}
-                      onChange={async (newStatus) => {
-                        const { error } = await supabase
-                          .from('contracts')
-                          .update({ status: newStatus })
-                          .eq('id', contract.id);
-                        if (!error) {
-                          setContract((prev) =>
-                            prev ? { ...prev, status: newStatus } : null // Update contract status
-                          );
-                        }
-                      }}
-                    />
-                  </div>
-                  <h2 className="text-lg sm:text-xl text-gray-400">{contract.description}</h2> // Description display
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="bg-background-light rounded-lg shadow-lg border border-background-lighter p-6">
+          <div className="border-b border-background-lighter pb-6 mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-4">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 break-words">
+                    {contract.title || 'N/A'}
+                  </h1>
+                  <ContractStatusSelect
+                    value={contract.status as Contract['status']}
+                    onChange={async (newStatus) => {
+                      const { error } = await supabase
+                        .from('contracts')
+                        .update({ status: newStatus })
+                        .eq('id', contract.id);
+                      if (!error) {
+                        setContract((prev) =>
+                          prev ? { ...prev, status: newStatus } : null
+                        );
+                      }
+                    }}
+                  />
                 </div>
-                <div className="w-full sm:w-auto text-left sm:text-right">
-                  <p className="text-sm text-gray-500">Contract Period</p>
-                  <p className="text-gray-300">
-                    {contract.start_date && contract.end_date
-                      ? `${new Date(contract.start_date).toLocaleDateString()} - ${new Date(contract.end_date).toLocaleDateString()}`
-                      : 'N/A'} // Show contract periods; display N/A if not set
-                  </p>
-                </div>
+                <h2 className="text-lg sm:text-xl text-gray-400">{contract.description}</h2>
+              </div>
+              <div className="w-full sm:w-auto text-left sm:text-right">
+                <p className="text-sm text-gray-500">Contract Period</p>
+                <p className="text-gray-300">
+                  {contract.start_date && contract.end_date
+                    ? `${new Date(contract.start_date).toLocaleDateString()} - ${new Date(contract.end_date).toLocaleDateString()}`
+                    : 'N/A'}
+                </p>
               </div>
             </div>
-
-            {/* Tool Buttons for navigation */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              {toolButtons.map((btn, index) => (
-                <button // Rendering tool buttons for different functionalities
-                  key={index}
-                  onClick={btn.onClick}
-                  className={`flex items-center justify-center gap-2 rounded-md transition-colors ${btn.color} p-2`}
-                >
-                  {btn.icon} // Display button icon
-                  <span className="hidden sm:inline">{btn.label}</span> // Label for button
-                </button>
-              ))}
-            </div>
-
-            {/* Render WBS Groups for the contract */}
+          </div>
+  
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {toolButtons.map((btn, index) => (
+              <button
+                key={index}
+                onClick={btn.onClick}
+                className={`flex items-center justify-center gap-2 rounded-md transition-colors ${btn.color} p-2`}
+              >
+                {btn.icon}
+                <span className="hidden sm:inline">{btn.label}</span>
+              </button>
+            ))}
+          </div>
+  
           <div className="space-y-4">
             {wbsGroups.map((group) => (
               <div
@@ -382,30 +379,30 @@ export function ContractDashboard() {
                 className="border border-background-lighter rounded-lg overflow-hidden"
               >
                 <button
-                  onClick={() => toggleWBS(group.wbs)} // Toggle visibility of WBS group
+                  onClick={() => toggleWBS(group.wbs)}
                   className="w-full bg-background px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between hover:bg-background-light transition-colors gap-4"
                 >
                   <div className="flex items-center space-x-4">
                     {expandedWBS.includes(group.wbs) ? (
-                      <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" /> // Down arrow if expanded
+                      <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
                     ) : (
-                      <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" /> // Right arrow if collapsed
+                      <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
                     )}
                     <div>
                       <h3 className="text-lg font-semibold text-white">WBS {group.wbs}</h3>
-                      <p className="text-sm text-gray-400">{group.description}</p> // Show description of WBS
+                      <p className="text-sm text-gray-400">{group.description}</p>
                     </div>
                   </div>
                   <Button
                     variant="outlined"
                     startIcon={<MapPinIcon />}
                     onClick={(e) => {
-                      e.stopPropagation(); // Prevent click event from bubbling
-                      handleWbsLevelClick(group); // Handle WBS group click to show map
+                      e.stopPropagation();
+                      handleWbsLevelClick(group);
                     }}
                     size="small"
                   >
-                    View WBS Map // Button to view the WBS map
+                    View WBS Map
                   </Button>
                 </button>
                 {expandedWBS.includes(group.wbs) && (
@@ -416,18 +413,18 @@ export function ContractDashboard() {
                         className="border-b border-background-lighter last:border-b-0"
                       >
                         <button
-                          onClick={() => toggleMap(map.id)} // Toggle individual map visibility
+                          onClick={() => toggleMap(map.id)}
                           className="w-full px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between hover:bg-background transition-colors gap-4"
                         >
                           <div className="flex items-center space-x-4">
                             {expandedMaps.includes(map.id) ? (
-                              <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" /> // Down arrow if expanded
+                              <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
                             ) : (
-                              <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" /> // Right arrow if collapsed
+                              <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
                             )}
                             <div>
-                              <h4 className="text-md font-medium text-white">Map {map.map_number}</h4> // Display map number
-                              <p className="text-sm text-gray-400">{map.location_description}</p> // Show location description
+                              <h4 className="text-md font-medium text-white">Map {map.map_number}</h4>
+                              <p className="text-sm text-gray-400">{map.location_description}</p>
                             </div>
                           </div>
                           <Button
@@ -435,16 +432,16 @@ export function ContractDashboard() {
                             size="small"
                             startIcon={<MapPinIcon />}
                             onClick={(e) => {
-                              e.stopPropagation(); // Prevent click event bubbling
-                              handleMapLevelClick(map); // Handle map click event
+                              e.stopPropagation();
+                              handleMapLevelClick(map);
                             }}
                           >
-                            View // Button text to view the map
+                            View
                           </Button>
                         </button>
                         {expandedMaps.includes(map.id) && (
                           <div className="overflow-x-auto">
-                            {/* Table or details for line items, etc. */}
+                            {/* Table or line item details */}
                           </div>
                         )}
                       </div>
@@ -454,27 +451,20 @@ export function ContractDashboard() {
               </div>
             ))}
           </div>
-
-          {/* Contract Totals Section */}
+  
           <div className="bg-background-light p-4 sm:p-6 rounded-lg mt-6 border border-background-lighter">
             <h3 className="text-xl font-semibold text-white mb-4">Contract Totals</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8">
               <div>
                 <p className="text-sm text-gray-400 mb-1">Total Contract Value</p>
                 <p className="text-xl sm:text-2xl font-bold text-white">
-                  $
-                  {totals.contractTotal.toLocaleString(undefined, {
-                    minimumFractionDigits: 2 // Format total value correctly
-                  })}
+                  ${totals.contractTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-400 mb-1">Total Amount Paid</p>
                 <p className="text-xl sm:text-2xl font-bold text-white">
-                  $
-                  {totals.amountPaid.toLocaleString(undefined, {
-                    minimumFractionDigits: 2 // Format amount paid correctly
-                  })}
+                  ${totals.amountPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
               </div>
               <div>
@@ -483,25 +473,24 @@ export function ContractDashboard() {
                   <div className="w-24 sm:w-32 bg-background-lighter rounded-full h-3 mr-3">
                     <div
                       className="bg-primary rounded-full h-3 progress-bar"
-                      style={{ width: `${overallProgress}%` }} // Dynamic width based on progress
+                      style={{ width: `${overallProgress}%` }}
                     ></div>
                   </div>
                   <span className="text-xl sm:text-2xl font-bold text-white">
-                    {overallProgress}% // Display overall progress percentage
+                    {overallProgress}%
                   </span>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Map Modal */}
+  
           <MapModal
-            isOpen={openMapModal} // Control modal visibility
-            onClose={() => setOpenMapModal(false)} // Close modal handler
-            mapLocations={modalPins} // Pass the pin locations for the modal
+            isOpen={openMapModal}
+            onClose={() => setOpenMapModal(false)}
+            mapLocations={modalPins}
           />
         </div>
       </div>
-    </>
+    </div>
   );
 }
