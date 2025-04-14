@@ -1,4 +1,4 @@
-export {};
+// Type declarations for custom Google Maps components in JSX
 
 declare global {
   namespace JSX {
@@ -20,8 +20,10 @@ declare global {
       };
 
       'gmp-advanced-marker': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
-        position?: google.maps.LatLngLiteral;
+        position?: google.maps.LatLngLiteral; // Ensure google.maps is properly referenced
       };
     }
   }
 }
+
+export {};
