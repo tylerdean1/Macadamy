@@ -56,7 +56,7 @@ export const LineCodeForm: React.FC<LineCodeFormProps> = ({
         const updated: LineCodeData = {  // Prepare updated line code data
           ...lineCodeData,
           description: template.description, // Update description from template
-          unit_measure: template.unit_measure, // Update unit measure from template
+          unit_measure: template.unitMeasure, // Update unit measure from template
           formula: template.formula, // Update formula from template
           variables: template.variables, // Update variables from template
         };

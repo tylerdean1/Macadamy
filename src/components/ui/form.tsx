@@ -17,13 +17,13 @@ export function FormField({
         className="block text-sm font-medium text-gray-300 mb-1" // Styling for the label
       >
         {label}
-        {required && <span className="text-red-500 ml-1">*</span>} // Show asterisk if required
+        {required && <span className="text-red-500 ml-1">*</span>} {/* Show asterisk if required */}
       </label>
       {description && (
         <p className="text-sm text-gray-400 mb-1">{description}</p> // Render description if provided
       )}
-      {children} // Render the children (input field)
-      {error && <p className="mt-1 text-sm text-red-500">{error}</p>} // Render error message if present
+      {children} {/* Render the children (input field)*/}
+      {error && <p className="mt-1 text-sm text-red-500">{error}</p>} {/* Render error message if present*/}
     </div>
   );
 }

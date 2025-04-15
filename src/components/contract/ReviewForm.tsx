@@ -87,49 +87,49 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ contractData, wbsSections, mapL
           <Box>
             <Typography variant="subtitle2">Title</Typography>
             <Typography variant="body1" gutterBottom>
-              {contractData.title || 'Not provided'} // Show title or default message
+              {contractData.title || 'Not provided'} {/* Show title or default message */}
             </Typography>
           </Box>
 
           <Box>
             <Typography variant="subtitle2">Location</Typography>
             <Typography variant="body1" gutterBottom>
-              {contractData.location || 'Not provided'} // Show location or default message
+              {contractData.location || 'Not provided'} {/* Show location or default message */}
             </Typography>
           </Box>
 
           <Box>
             <Typography variant="subtitle2">Status</Typography>
             <Typography variant="body1" gutterBottom>
-              {contractData.status || 'Not provided'} // Show status or default message
+              {contractData.status || 'Not provided'} {/* Show status or default message */}
             </Typography>
           </Box>
 
           <Box>
             <Typography variant="subtitle2">Budget</Typography>
             <Typography variant="body1" gutterBottom>
-              ${(contractData.budget || 0).toLocaleString('en-US', {minimumFractionDigits: 2})} // Format budget
+              ${(contractData.budget || 0).toLocaleString('en-US', {minimumFractionDigits: 2})} {/* Format budget */}
             </Typography>
           </Box>
 
           <Box>
             <Typography variant="subtitle2">Start Date</Typography>
             <Typography variant="body1" gutterBottom>
-              {formatDate(contractData.start_date)} // Show formatted start date
+              {formatDate(contractData.start_date)} {/* Show formatted start date */}
             </Typography>
           </Box>
 
           <Box>
             <Typography variant="subtitle2">End Date</Typography>
             <Typography variant="body1" gutterBottom>
-              {formatDate(contractData.end_date)} // Show formatted end date
+              {formatDate(contractData.end_date)} {/* Show formatted end date */}
             </Typography>
           </Box>
 
           <Box>
             <Typography variant="subtitle2">Description</Typography>
             <Typography variant="body1" gutterBottom>
-              {contractData.description || 'No description provided'} // Show description or default message
+              {contractData.description || 'No description provided'} {/* Show description or default message */}
             </Typography>
           </Box>
         </Stack>
@@ -188,7 +188,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ contractData, wbsSections, mapL
                   secondary={
                     <>
                       <Typography component="span" variant="body2">
-                        {`${item.quantity} ${item.unit_measure} at $${item.unit_price.toFixed(2)} each = $${(item.quantity * item.unit_price).toFixed(2)}`} // Display item details
+                        {`${item.quantity} ${item.unit_measure} at $${item.unit_price.toFixed(2)} each = $${(item.quantity * item.unit_price).toFixed(2)}`} {/* Display item details */}
                       </Typography>
                       <br />
                       <Chip 
@@ -215,7 +215,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ contractData, wbsSections, mapL
           <Box display="flex" justifyContent="space-between">
             <Typography variant="subtitle1">Total From Line Items:</Typography>
             <Typography variant="subtitle1" fontWeight="bold">
-              ${calculateLineItemsTotal().toLocaleString('en-US', { minimumFractionDigits: 2 })} // Display total line items cost
+              ${calculateLineItemsTotal().toLocaleString('en-US', { minimumFractionDigits: 2 })} {/* Display total line items cost */}
             </Typography>
           </Box>
         </Paper>

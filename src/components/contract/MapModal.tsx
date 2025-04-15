@@ -176,7 +176,7 @@ export const MapModal: React.FC<MapModalProps> = ({ open, onClose, onConfirm }) 
               onClick={handleMapClick} // Handle clicks on the map
             >
               {/* Render markers or shapes based on path type */}
-              {mode === 'point' && startPoint && <Marker position={startPoint} />} // Point marker
+              {mode === 'point' && startPoint && <Marker position={startPoint} />} {/* Point marker*/}
 
               {mode === 'segment' && startPoint && (
                 <Marker position={startPoint} label="A" /> // Start point marker

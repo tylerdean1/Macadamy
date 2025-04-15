@@ -142,7 +142,7 @@ const ContractInfoForm: React.FC<ContractInfoFormProps> = ({ data, onChange }) =
         placeholder="mm/dd/yyyy" // Placeholder for date input
         InputProps={{
           endAdornment: (
-            <InputAdornment position="end"> // Icon Button to open date picker
+            <InputAdornment position="end"> {/* Icon Button to open date picker */}
               <IconButton onClick={() => openDatePicker('start_date')} edge="end">
                 <CalendarTodayIcon />
               </IconButton>
@@ -161,7 +161,7 @@ const ContractInfoForm: React.FC<ContractInfoFormProps> = ({ data, onChange }) =
         placeholder="mm/dd/yyyy" // Placeholder for date input
         InputProps={{
           endAdornment: (
-            <InputAdornment position="end"> // Icon Button to open date picker
+            <InputAdornment position="end"> {/* Icon Button to open date picker */}
               <IconButton onClick={() => openDatePicker('end_date')} edge="end">
                 <CalendarTodayIcon />
               </IconButton>

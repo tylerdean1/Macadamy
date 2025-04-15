@@ -3,24 +3,24 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Minus, Save } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../lib/store';
+import type { Database } from '../lib/database.types';
 
-// Define the structure of a variable for the calculator
+type CalculatorTemplateInsert = Database['public']['Tables']['line_item_templates']['Insert'];
+
 interface Variable {
-  name: string;        // Variable name used in expressions
-  label: string;       // Display label for the variable
-  type: string;        // Type of variable (e.g., number)
-  unit: string;        // Measurement unit (e.g., 'ft')
-  defaultValue: number; // Default value for the variable
+  name: string;
+  label: string;
+  type: string;
+  unit: string;
+  defaultValue: number;
 }
 
-// Define the structure of a formula
 interface Formula {
-  name: string;         // Name of the formula
-  expression: string;   // Mathematical expression
-  description: string;  // Description of the formula
+  name: string;
+  expression: string;
+  description: string;
 }
 
-// Available math operations
 const MATH_OPERATIONS = [
   { symbol: '+', description: 'Addition' },
   { symbol: '-', description: 'Subtraction' },
@@ -32,7 +32,6 @@ const MATH_OPERATIONS = [
   { symbol: ')', description: 'Close Parenthesis' },
 ];
 
-// Available math functions
 const MATH_FUNCTIONS = [
   { name: 'abs', description: 'Absolute value' },
   { name: 'ceil', description: 'Round up to nearest integer' },
@@ -55,132 +54,103 @@ const MATH_FUNCTIONS = [
 ];
 
 export function CalculatorCreation() {
-  const { id } = useParams(); // Get the contract ID from URL parameters
-  const navigate = useNavigate(); // Hook to navigate between routes
-  const [name, setName] = useState(''); // State for calculator template name
-  const [description, setDescription] = useState(''); // State for description
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user) as { id: string } | null;
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [variables, setVariables] = useState<Variable[]>([
     {
-      name: 'length',  // Default variable name
-      label: 'Length', // Default label
-      type: 'number',  // Type set as number
-      unit: 'ft',      // Default unit
-      defaultValue: 0, // Default value
+      name: 'length',
+      label: 'Length',
+      type: 'number',
+      unit: 'ft',
+      defaultValue: 0,
     },
   ]);
   const [formulas, setFormulas] = useState<Formula[]>([
     {
-      name: 'result',         // Default formula name
-      expression: 'length',   // Default expression referencing the variable
-      description: 'Basic calculation', // Default description
+      name: 'result',
+      expression: 'length',
+      description: 'Basic calculation',
     },
   ]);
-  const [error, setError] = useState<string | null>(null); // Error message state
+  const [error, setError] = useState<string | null>(null);
 
-  // Get current user from auth store
-  const user = useAuthStore((state) => state.user) as { id: string; email: string } | null;
-
-  // Add a new variable to the list
   const handleAddVariable = () => {
-    setVariables([
-      ...variables,
-      { name: '', label: '', type: 'number', unit: '', defaultValue: 0 },
-    ]);
+    setVariables([...variables, { name: '', label: '', type: 'number', unit: '', defaultValue: 0 }]);
   };
 
-  // Remove a variable by index
   const handleRemoveVariable = (index: number) => {
     setVariables(variables.filter((_, i) => i !== index));
   };
 
-  // Update a variable's field by index
-  const handleVariableChange = (
-    index: number,
-    field: keyof Variable,
-    value: string | number
-  ) => {
+  const handleVariableChange = (index: number, field: keyof Variable, value: string | number) => {
     const newVariables = [...variables];
     if (field === 'defaultValue') {
-      // Convert the value to a number
-      newVariables[index][field] =
-        typeof value === 'string' ? parseFloat(value) : value;
+      newVariables[index][field] = typeof value === 'string' ? parseFloat(value) : value;
     } else {
       newVariables[index][field] = value as string;
     }
     setVariables(newVariables);
   };
 
-  // Add a new formula to the list
   const handleAddFormula = () => {
     setFormulas([...formulas, { name: '', expression: '', description: '' }]);
   };
 
-  // Remove a formula by index
   const handleRemoveFormula = (index: number) => {
     setFormulas(formulas.filter((_, i) => i !== index));
   };
 
-  // Update a formula's field by index
-  const handleFormulaChange = (
-    index: number,
-    field: keyof Formula,
-    value: string
-  ) => {
+  const handleFormulaChange = (index: number, field: keyof Formula, value: string) => {
     const newFormulas = [...formulas];
     newFormulas[index][field] = value;
     setFormulas(newFormulas);
   };
 
-  // Insert text into a formula expression at the current cursor position
   const insertIntoFormula = (index: number, text: string) => {
     const formula = formulas[index];
     const activeElement = document.activeElement as HTMLInputElement | null;
     const cursorPosition = activeElement?.selectionStart || formula.expression.length;
-    const newExpression =
-      formula.expression.slice(0, cursorPosition) +
-      text +
-      formula.expression.slice(cursorPosition);
+    const newExpression = formula.expression.slice(0, cursorPosition) + text + formula.expression.slice(cursorPosition);
     handleFormulaChange(index, 'expression', newExpression);
   };
 
-  // Handle form submission to save the calculator template
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     try {
       setError(null);
-      // Validate that variable names are unique
+
       const variableNames = new Set();
       for (const variable of variables) {
-        if (variableNames.has(variable.name)) {
-          throw new Error('Variable names must be unique');
-        }
+        if (variableNames.has(variable.name)) throw new Error('Variable names must be unique');
         variableNames.add(variable.name);
       }
 
-      // Validate that formula names are unique
       const formulaNames = new Set();
       for (const formula of formulas) {
-        if (formulaNames.has(formula.name)) {
-          throw new Error('Formula names must be unique');
-        }
+        if (formulaNames.has(formula.name)) throw new Error('Formula names must be unique');
         formulaNames.add(formula.name);
       }
 
-      // Save the calculator template to the database
-      const { error: insertError } = await supabase
-        .from('calculator_templates')
-        .insert({
-          name,
-          description,
-          variables,
-          formulas,
-          created_by: user.id,
-        });
+      const newCalculator: CalculatorTemplateInsert = {
+        id: crypto.randomUUID(),
+        name,
+        description,
+        formula: JSON.parse(JSON.stringify({ variables, formulas })),
+        created_by: user.id,
+        created_at: new Date().toISOString(),
+        unit_type: 'Each (EA)',
+        output_unit: 'Each (EA)',
+      };
 
+      const { error: insertError } = await supabase.from('line_item_templates').insert(newCalculator);
       if (insertError) throw insertError;
-      navigate(`/contracts/${id}/calculators`);
+
+      navigate(`/contracts/${id}/line-items`);
     } catch (error: unknown) {
       console.error('Error creating calculator template:', error);
       if (error instanceof Error) {
@@ -194,10 +164,8 @@ export function CalculatorCreation() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header with navigation back button and title */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Icon-only button => add an aria-label or a readable text to pass accessibility checks */}
             <button
               onClick={() => navigate(`/contracts/${id}/calculators`)}
               className="p-2 text-gray-400 hover:text-white hover:bg-background-lighter rounded-lg transition-colors"

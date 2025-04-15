@@ -102,7 +102,7 @@ const WbsForm: React.FC<WbsFormProps> = ({ sections, onChange }) => {
                 onClick={() => deleteSection(index)} // Delete section on click
                 disabled={sections.length <= 1} // Disable if only one section remains
               >
-                <DeleteIcon /> // Delete icon
+                <DeleteIcon /> {/* Delete icon*/}
               </IconButton>
             </Grid>
           </Grid>

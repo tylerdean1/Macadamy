@@ -49,8 +49,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             focus:ring-2 
             focus:border-transparent 
             transition-colors
-            ${fullWidth ? 'w-full' : ''} // Apply full width if specified
-            ${className} // Include any additional classes
+            ${fullWidth ? 'w-full' : ''} 
+            ${className} 
           `}
           {...props} // Spread the props onto the select element
         >
@@ -60,13 +60,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               value={option.value} // Value for the option
               disabled={option.disabled} // Disable option if specified
             >
-              {option.label} // Display the label for the option
+              {option.label} {/* Display the label for the option */}
             </option>
           ))}
         </select>
         {(helperText || error) && ( // Show helper text or error message if provided
           <p className={`mt-1 text-sm ${error ? 'text-red-500' : 'text-gray-400'}`}>
-            {error || helperText} // Display error or helper text
+            {error || helperText} {/* Display error or helper text */}
           </p>
         )}
       </div>

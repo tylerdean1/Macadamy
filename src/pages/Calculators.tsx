@@ -26,16 +26,32 @@ export function Calculators() {
   const fetchTemplates = async () => {
     try {
       const { data, error } = await supabase
-        .from('calculator_templates') // Query the calculator_templates table
-        .select('*') // Select all fields
-        .order('created_at', { ascending: false }); // Order templates by creation date
-
-      if (error) throw error; // Handle errors
-      setTemplates(data || []); // Set templates to the fetched data or an empty array
+        .from('line_item_templates')
+        .select('*')
+        .order('created_at', { ascending: false });
+  
+      if (error) throw error;
+      
+      interface FormulaJson {
+        variables?: { name: string; value: string | number }[];
+      }
+      const parsedTemplates: CalculatorTemplate[] = (data || []).map((template) => {
+        const formulaData = template.formula as FormulaJson;
+  
+        return {
+          id: template.id,
+          name: template.name ?? 'Untitled',
+          description: template.description ?? '',
+          line_code: 'N/A', // replace if your schema includes it
+          variables: Array.isArray(formulaData?.variables) ? formulaData.variables : [],
+        };
+      });
+  
+      setTemplates(parsedTemplates);
     } catch (error) {
-      console.error('Error fetching calculator templates:', error); // Log any errors encountered
+      console.error('Error fetching line item templates:', error);
     } finally {
-      setLoading(false); // Stop loading once data fetch is complete
+      setLoading(false);
     }
   };
 

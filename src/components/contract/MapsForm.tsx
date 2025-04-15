@@ -83,7 +83,7 @@ export const MapsForm: React.FC<MapsFormProps> = ({ contractId, wbsId, onMapSave
         onChange={(e) => setLocationDescription(e.target.value)} // Update state on input change
       />
 
-      <Button variant="outline" onClick={() => setModalOpen(true)}> // Button to open location selection modal
+      <Button variant="outline" onClick={() => setModalOpen(true)}> {/* Button to open location selection modal */}
         Choose Location
       </Button>
 
@@ -119,7 +119,7 @@ export const MapsForm: React.FC<MapsFormProps> = ({ contractId, wbsId, onMapSave
 
       {/* Button to save the map */}
       <Button onClick={handleSave} disabled={submitting}> 
-        {submitting ? 'Saving...' : 'Save Map'} // Show loading text while submitting
+        {submitting ? 'Saving...' : 'Save Map'} {/* Show loading text while submitting */}
       </Button>
 
       {/* Modal for selecting map coordinates */}

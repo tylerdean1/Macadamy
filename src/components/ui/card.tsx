@@ -32,10 +32,10 @@ export function Card({
         <div className="p-4 border-b border-background-lighter">
           <div className="flex items-center justify-between">
             <div>
-              {title && <h3 className="text-lg font-medium text-white">{title}</h3>} // Render the title
-              {subtitle && <p className="text-sm text-gray-400">{subtitle}</p>} // Render the subtitle
+              {title && <h3 className="text-lg font-medium text-white">{title}</h3>} {/* Render the title*/}
+              {subtitle && <p className="text-sm text-gray-400">{subtitle}</p>} {/* Render the subtitle */}
             </div>
-            {icon && <div className="text-gray-400">{icon}</div>} // Render the icon if present
+            {icon && <div className="text-gray-400">{icon}</div>} {/* Render the icon if present */}
           </div>
         </div>
       )}

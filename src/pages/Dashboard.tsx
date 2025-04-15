@@ -20,28 +20,27 @@ import { FormField, FormSection } from '@/components/ui/form';
 import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 
-// Definition for the editable form structure when modifying user information
 interface EditForm {
-  avatar_id?: string; // Avatar ID of the user
-  organization_id?: string; // Organization affiliation
-  job_title_id?: string; // Job title ID
-  address?: string; // User's address
-  phone?: string; // User's phone number
-  email?: string; // User's email
-  custom_job_title?: string; // Custom job title if applicable
+  avatar_id?: string;
+  organization_id?: string;
+  job_title_id?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  custom_job_title?: string;
 }
 
 export function Dashboard() {
-  const navigate = useNavigate(); // Hook for navigation
-  const { user } = useAuthStore(); // Get the authenticated user information
-  const [contracts, setContracts] = useState<Database['public']['Tables']['contracts']['Row'][]>([]); // Contracts associated with the user
-  const [loading, setLoading] = useState(true); // Loading state for initial data fetching
-  const [searchQuery, setSearchQuery] = useState(''); // Search input for filtering contracts
-  const [profile, setProfile] = useState<Profile | null>(null); // User profile information
-  const [avatars, setAvatars] = useState<Avatar[]>([]); // Store available avatars
-  const [organizations, setOrganizations] = useState<Organization[]>([]); // Store organizations
-  const [jobTitles, setJobTitles] = useState<JobTitle[]>([]); // Store job titles
-  const [isModalOpen, setIsModalOpen] = useState(false); // Modal state for editing profile
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const [contracts, setContracts] = useState<Database['public']['Tables']['contracts']['Row'][]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [avatars, setAvatars] = useState<Avatar[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [job_titles, setJobTitles] = useState<JobTitle[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editForm, setEditForm] = useState<EditForm>({
     avatar_id: '',
     organization_id: '',
@@ -55,230 +54,68 @@ export function Dashboard() {
     activeContracts: 0,
     openIssues: 0,
     pendingInspections: 0
-  }); // Store metrics for dashboard overview
-  const [crop, setCrop] = useState({ x: 0, y: 0 }); // Crop coordinates for the avatar image
-  const [zoom, setZoom] = useState(1); // Zoom level for cropping avatar
-  const [selectedImage, setSelectedImage] = useState<string | null>(null); // Store selected image for cropping
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null); // Store cropped area dimensions
+  });
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
-  // Handle the crop and upload action for the user's avatar
-  const handleCropAndUpload = async () => {
-    if (!selectedImage || !croppedAreaPixels || !user) return;
-  
-    try {
-      const croppedBlob = await getCroppedImg(selectedImage, croppedAreaPixels); // Get the cropped image blob
-  
-      const fileName = `avatar`; // Define the file name for the image
-      const filePath = `${user.id}/${fileName}`; // File path
-        
-      const { error } = await supabase.storage
-        .from('avatar-private')
-        .upload(filePath, croppedBlob, {
-          upsert: true, // Allows overwriting the file
-          contentType: 'image/jpeg', // Set content type for the uploaded image
-        });
-
-      if (error) throw error;
-
-      // Get URL of the uploaded image
-      const { data: { publicUrl } } = supabase
-        .storage
-        .from('avatar-private')
-        .getPublicUrl(filePath);
-
-      await handleAvatarSelect(publicUrl); // Update avatar in user profile
-
-      toast.success('Avatar uploaded successfully!'); // Notify the user
-      setSelectedImage(null); // Reset the selected image
-    } catch (err) {
-      console.error(err);
-      toast.error('Upload failed'); // Notify of potential errors
-    }
-  };
-
-  // Fetch data for the dashboard when the component mounts
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-
-        if (!user) {
-          navigate('/'); // Redirect if the user is not authenticated
-          return;
-        }
-
-        // Fetch organizations
-        const { data: organizationsData } = await supabase.from('organizations').select('*');
-        setOrganizations(organizationsData || []);
-
-        // Fetch job titles
-        const { data: jobData } = await supabase.from('job_titles').select('*');
-        setJobTitles(jobData || []);
-
-        // Fetch profile data
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select(`
-            id,
-            role,
-            full_name,
-            email,
-            username,
-            phone,
-            location,
-            avatarUrl,
-            organization_id,
-            job_title_id,
-            organizations!profiles_organization_id_fkey (
-              name,
-              address,
-              phone,
-              website
-            ),
-            job_titles!profiles_job_title_id_fkey (
-              title,
-              is_custom
-            )
-          `)
-          .eq('id', user.id)
-          .single();
-
-        if (profileError) throw profileError; // Handle errors while fetching profile
-
-        const safeProfile = profileData as unknown as Profile; // Typecast the fetched profile data
-        setProfile(safeProfile);
-
-        // Determine if the job title is custom
-        const resolvedJobTitleId = profileData.job_title_id;
-        let customJobTitle = '';
-
-        // Check if job titles exist and get custom title if applicable
-        if (profileData.job_title_id && jobData && jobData.length > 0) {
-          const matchingTitle = jobData.find(j => j.id === profileData.job_title_id);
-          if (matchingTitle?.is_custom) {
-            customJobTitle = matchingTitle.title ?? '';
-          }
-        }
-
-        // Set edit form values
-        setEditForm({
-          avatar_id: profileData.avatarUrl ?? '',
-          organization_id: profileData.organization_id ?? '',
-          job_title_id: resolvedJobTitleId ?? '',
-          address: profileData.location ?? '',
-          phone: profileData.phone ?? '',
-          email: profileData.email ?? '',
-          custom_job_title: customJobTitle,
-        });
-
-        // Fetch user avatars
-        const { data: avatarData } = await supabase
-          .from('avatars')
-          .select('*')
-          .or(`is_preset.eq.true,profile_id.eq.${user.id}`)
-          .order('created_at');
-
-        setAvatars(avatarData || []);
-
-        // Fetch user contracts
-        const { data: userContracts, error: userContractsError } = await supabase
-          .from('user_contracts')
-          .select('contract_id')
-          .eq('user_id', user.id);
-
-        if (userContractsError) throw userContractsError;
-
-        const contractIds = userContracts?.map((uc) => uc.contract_id) || []; // Extract contract IDs
-
-        if (contractIds.length === 0) {
-          setContracts([]); // No contracts found
-          setMetrics({ activeContracts: 0, openIssues: 0, pendingInspections: 0 });
-          return;
-        }
-
-        // Fetch contracts data associated with the user
-        const { data: contractData, error: contractError } = await supabase
-          .from('contracts')
-          .select(`
-            id,
-            title,
-            description,
-            location,
-            status,
-            budget,
-            start_date,
-            end_date,
-            created_at,
-            updated_at,
-            created_by
-          `)
-          .in('id', contractIds)
-          .order('created_at', { ascending: false });
-
-        if (contractError) throw contractError;
-
-        setContracts(contractData || []); // Set the contracts data
-
-        // Fetch active contracts
-        const { data: activeContracts, error: activeError } = await supabase
-          .from('contracts')
-          .select('id')
-          .in('id', contractIds)
-          .eq('status', 'Active');
-
-        if (activeError) throw activeError;
-
-        // Fetch open issues count
-        const { count: issuesCount, error: issuesError } = await supabase
-          .from('issues')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'Open')
-          .in('contract_id', contractIds);
-
-        if (issuesError) throw issuesError;
-
-        setMetrics({
-          activeContracts: activeContracts?.length || 0,
-          openIssues: issuesCount || 0,
-          pendingInspections: 0 // Placeholder to track pending inspections
-        });
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setLoading(false); // Stop loading when data fetching is complete
-      }
-    }
-
-    fetchData(); // Call fetch data function
-  }, [user, navigate]);
-
-  // Handle avatar selection and update profile
   const handleAvatarSelect = async (url: string) => {
     if (!user) return;
     await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id);
     if (profile) {
-      setProfile({ ...profile, avatarUrl: url });
+      setProfile({ ...profile, avatar_url: url });
     }
     setIsModalOpen(false);
   };
 
-  // Handle changes in profile form inputs
+  const handleAvatarUpload = (file: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSelectedImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropAndUpload = async () => {
+    if (!selectedImage || !croppedAreaPixels || !user) return;
+    try {
+      const croppedBlob = await getCroppedImg(selectedImage, croppedAreaPixels);
+      const fileName = 'avatar';
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error } = await supabase.storage
+        .from('avatar-private')
+        .upload(filePath, croppedBlob, {
+          upsert: true,
+          contentType: 'image/jpeg',
+        });
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage.from('avatar-private').getPublicUrl(filePath);
+      await handleAvatarSelect(publicUrl);
+      toast.success('Avatar uploaded successfully!');
+      setSelectedImage(null);
+    } catch (err) {
+      console.error(err);
+      toast.error('Upload failed');
+    }
+  };
+
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name === 'organization_id' && value === 'create-new') {
-      navigate('/create-organization'); // Redirect to create new organization
+      navigate('/create-organization');
       return;
     }
-    setEditForm(prev => ({ ...prev, [name]: value })); // Update the edit form state
+    setEditForm(prev => ({ ...prev, [name]: value }));
   };
 
-  // Save profile information
   const handleSaveProfile = async () => {
     if (!user) return;
-
     let jobTitleId = editForm.job_title_id;
-    
-    // Insert custom job title if needed
     if (!jobTitleId && editForm.custom_job_title?.trim()) {
       const { data: newJobTitle, error } = await supabase
         .from('job_titles')
@@ -289,9 +126,8 @@ export function Dashboard() {
         toast.error('Failed to create job title.');
         return;
       }
-      jobTitleId = newJobTitle.id; // Retrieve the custom job title ID
+      jobTitleId = newJobTitle.id;
     }
-
     const { error: updateError } = await supabase.from('profiles').update({
       organization_id: editForm.organization_id,
       job_title_id: jobTitleId,
@@ -304,7 +140,6 @@ export function Dashboard() {
       toast.error('Failed to update profile.');
     } else {
       toast.success('Profile updated!');
-      // Re-fetch profile data
       const { data: updatedProfile } = await supabase
         .from('profiles')
         .select(`
@@ -324,25 +159,128 @@ export function Dashboard() {
         .eq('id', user.id)
         .single();
 
-      setProfile(updatedProfile as unknown as Profile); // Update profile state
-      setIsModalOpen(false); // Close the modal
+      setProfile(updatedProfile as unknown as Profile);
+      setIsModalOpen(false);
     }
-  };
-
-  const handleAvatarUpload = (file: File) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setSelectedImage(reader.result as string); // Set selected image for cropping
-    };
-    reader.readAsDataURL(file);
   };
 
   const filteredContracts = contracts.filter(contract =>
     contract.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (contract.description && contract.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    contract.location.toLowerCase().includes(searchQuery.toLowerCase()) // Filtering contracts based on the search query
+    contract.location.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const { data: organizationsData } = await supabase.from('organizations').select('*');
+        setOrganizations(organizationsData || []);
+        const { data: jobData } = await supabase.from('job_titles').select('*');
+        setJobTitles(jobData || []);
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select(`
+            id, role, full_name, email, username, phone, location, avatar_url,
+            organization_id, job_title_id,
+            organizations!profiles_organization_id_fkey (name, address, phone, website),
+            job_titles!profiles_job_title_id_fkey (title, is_custom)
+          `)
+          .eq('id', user.id)
+          .single();
+
+        if (profileError) throw profileError;
+        const safeProfile: Profile = {
+          id: profileData.id,
+          user_role: profileData.role,
+          full_name: profileData.full_name,
+          email: profileData.email,
+          username: profileData.username,
+          phone: profileData.phone,
+          location: profileData.location,
+          avatar_url: profileData.avatar_url,
+          organization_id: profileData.organization_id,
+          job_title_id: profileData.job_title_id,
+        };
+        setProfile(safeProfile);
+
+        let customJobTitle = '';
+        if (profileData.job_title_id && jobData) {
+          const match = jobData.find(j => j.id === profileData.job_title_id);
+          if (match?.is_custom) customJobTitle = match.title ?? '';
+        }
+
+        setEditForm({
+          avatar_id: profileData.avatar_url ?? '',
+          organization_id: profileData.organization_id ?? '',
+          job_title_id: profileData.job_title_id ?? '',
+          address: profileData.location ?? '',
+          phone: profileData.phone ?? '',
+          email: profileData.email ?? '',
+          custom_job_title: customJobTitle,
+        });
+
+        const { data: avatar_data } = await supabase
+          .from('avatars')
+          .select('*')
+          .or(`is_preset.eq.true,profile_id.eq.${user.id}`)
+          .order('created_at');
+          setAvatars((avatar_data || []) as Avatar[]);
+
+        const { data: userContracts, error: userContractsError } = await supabase
+          .from('user_contracts')
+          .select('contract_id')
+          .eq('user_id', user.id);
+        if (userContractsError) throw userContractsError;
+
+        const contractIds = userContracts?.map((uc) => uc.contract_id) || [];
+        if (contractIds.length === 0) {
+          setContracts([]);
+          setMetrics({ activeContracts: 0, openIssues: 0, pendingInspections: 0 });
+          return;
+        }
+
+        const { data: contractData } = await supabase
+          .from('contracts')
+          .select('*')
+          .in('id', contractIds)
+          .order('created_at', { ascending: false });
+        setContracts(contractData || []);
+
+        const { data: activeContracts } = await supabase
+          .from('contracts')
+          .select('id')
+          .in('id', contractIds)
+          .eq('status', 'Active');
+
+        const { count: issuesCount } = await supabase
+          .from('issues')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'Open')
+          .in('contract_id', contractIds);
+
+        setMetrics({
+          activeContracts: activeContracts?.length || 0,
+          openIssues: issuesCount || 0,
+          pendingInspections: 0,
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [user]);
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-gray-400">Loading user info...</div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -360,12 +298,12 @@ export function Dashboard() {
           <div className="flex flex-col md:flex-row justify-between items-start gap-6">
             <div className="flex-1">
               <div className="flex items-center gap-4 mb-4">
-                {profile?.avatarUrl && (
-                  <img src={profile.avatarUrl} alt="Avatar" className="w-14 h-14 rounded-full border border-background-lighter" />
+                {profile?.avatar_url && (
+                  <img src={profile.avatar_url} alt="Avatar" className="w-14 h-14 rounded-full border border-background-lighter" />
                 )}
                 <div>
                   <h1 className="text-3xl font-bold text-white">
-                    Welcome back, {profile?.fullName}
+                    Welcome back, {profile?.full_name}
                   </h1>
                   <Button
                     onClick={() => setIsModalOpen(true)}
@@ -378,7 +316,7 @@ export function Dashboard() {
                   </Button>
                 </div>
               </div>
-              {(profile?.organizations || profile?.jobTitles) && (
+              {(profile?.organizations || profile?.job_titles) && (
                 <div className="text-gray-400 space-y-1">
                   {profile?.organizations?.name && (
                     <p className="flex items-center">
@@ -386,10 +324,10 @@ export function Dashboard() {
                       {profile.organizations.name}
                     </p>
                   )}
-                  {profile?.jobTitles?.title && (
+                  {profile?.job_titles?.title && (
                     <p className="flex items-center">
                       <FileText className="w-4 h-4 mr-2" />
-                      {profile.jobTitles.title}
+                      {profile.job_titles.title}
                     </p>
                   )}
                   {profile?.organizations?.address && (
@@ -437,7 +375,7 @@ export function Dashboard() {
                   <button
                     key={avatar.id}
                     onClick={() => handleAvatarSelect(avatar.url)}
-                    className={`rounded-lg overflow-hidden border-2 ${profile?.avatarUrl === avatar.url ? 'border-primary' : 'border-background-lighter'}`}
+                    className={`rounded-lg overflow-hidden border-2 ${profile?.avatar_url === avatar.url ? 'border-primary' : 'border-background-lighter'}`}
                   >
                     <img src={avatar.url} alt={avatar.name} className="w-full h-24 object-cover" />
                   </button>
@@ -527,7 +465,7 @@ export function Dashboard() {
                 }}
                 options={[
                   { value: "", label: "-- Select Role --" },
-                  ...jobTitles.map(title => ({ value: title.id, label: title.title })),
+                  ...job_titles.map(title => ({ value: title.id, label: title.title })),
                   { value: "custom-role", label: "➕ Add Custom Role" }
                 ]}
               />
@@ -680,7 +618,7 @@ export function Dashboard() {
                         </div>
                         <div className="flex items-center">
                           <DollarSign className="w-4 h-4 mr-2" />
-                          ${contract.budget.toLocaleString()} {/* Display contract budget */}
+                          ${(contract.budget ?? 0).toLocaleString()} {/* Display contract budget */}
                         </div>
                       </div>
                     </div>

@@ -69,7 +69,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         </div>
         {(helperText || error) && ( // Display helper text or error message if present
           <p className={`mt-1 text-sm ${error ? 'text-red-500' : 'text-gray-400'}`}>
-            {error || helperText} // Show either error or helper text
+            {error || helperText} {/* Show either error or helper text */}
           </p>
         )}
       </div>

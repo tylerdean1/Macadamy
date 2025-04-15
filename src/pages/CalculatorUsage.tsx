@@ -61,7 +61,7 @@ export function CalculatorUsage() {
   const fetchTemplate = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from('calculator_templates')
+        .from('line_item_templates')
         .select('*')
         .eq('id', templateId)
         .single();

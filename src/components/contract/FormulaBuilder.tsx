@@ -89,14 +89,14 @@ export const FormulaBuilder: React.FC<FormulaBuilderProps> = ({
               </FormField>
               <div className="col-span-2" /> {/* Empty space for layout */}
               <div>
-                <Button variant="danger" size="sm" onClick={() => removeVariable(index)}> // Button to remove variable
+                <Button variant="danger" size="sm" onClick={() => removeVariable(index)}> {/* Button to remove variable */}
                   Remove
                 </Button>
               </div>
             </div>
           ))}
 
-          <Button variant="secondary" size="sm" onClick={addVariable}> // Button to add a new variable
+          <Button variant="secondary" size="sm" onClick={addVariable}> {/* Button to add a new variable */}
             Add Variable
           </Button>
 

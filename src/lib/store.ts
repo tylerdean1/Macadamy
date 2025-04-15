@@ -1,60 +1,58 @@
-import { create } from 'zustand'; // Zustand library for state management
-import { User as SupabaseUser } from '@supabase/supabase-js'; // Supabase user type import
+// store.ts
+import { create } from 'zustand';
+import { User as SupabaseUser } from '@supabase/supabase-js';
+import type { Database } from './database.types';
+import type { Profile } from './types';
 
-// Type for user roles in the application
-export type UserRole = 'Admin' | 'Contractor' | 'Engineer' | 'Project Manager' | 'Inspector';
+export type UserRole = Database['public']['Enums']['user_role'];
 
-// Interface defining the structure of a user profile
-interface Profile {
-  role: UserRole; // User's role
-  fullName: string; // User's full name
-  email: string; // User's email address
-  phone: string; // User's phone number
-  location: string; // User's address or location
-  company: string; // Company name
-  username: string; // Username of the user
-  jobTitleId?: string; // Optional job title ID
-  organizationId?: string; // Optional organization ID
-}
-
-// Interface defining the authentication state management
 interface AuthState {
-  user: SupabaseUser | null; // The current Supabase user, or null if not authenticated
-  profile: Profile | null; // The current user profile, or null if not set
-  setUser: (user: SupabaseUser | null) => void; // Function to set the user
-  setProfile: (profile: Profile | null) => void; // Function to set the profile
-  clearAuth: () => void; // Function to clear user and profile
-  bypassAuth: () => void; // Function to set default user and profile for development
+  user: SupabaseUser | null;
+  profile: Profile | null;
+  setUser: (user: SupabaseUser | null) => void;
+  setProfile: (profile: Profile | null) => void;
+  clearAuth: () => void;
+  bypassAuth: () => void;
 }
 
-// Default user data for bypassing authentication (used for demo purposes)
 const defaultUser: SupabaseUser = {
-  id: '00000000-0000-0000-0000-000000000000', // Example user ID
-  email: 'test@test.com', // Default email for the user
-  role: 'authenticated', // User role
-  aud: 'authenticated', // Audience for the authentication
-  created_at: new Date().toISOString(), // Created date for the user
-  app_metadata: {}, // Any app-specific metadata (empty for now)
-  user_metadata: {}, // Any user-specific metadata (empty for now)
+  id: '00000000-0000-0000-0000-000000000000',
+  email: 'test@test.com',
+  role: 'authenticated',
+  aud: 'authenticated',
+  created_at: new Date().toISOString(),
+  app_metadata: {},
+  user_metadata: {},
 };
 
-// Default profile data for bypassing authentication (used for demo purposes)
 const defaultProfile: Profile = {
-  role: 'Admin', // Default role for the demo
-  fullName: 'Test User', // Default full name for the demo
-  email: 'test@test.com', // Default email for the demo
-  phone: '', // Default phone number (empty for now)
-  location: '', // Default location (empty for now)
-  company: '', // Default company name (empty for now)
-  username: 'test', // Default username for the demo
+  id: '00000000-0000-0000-0000-000000000000',
+  user_role: 'Admin',
+  full_name: 'Test User',
+  email: 'test@test.com',
+  phone: '',
+  location: '',
+  username: 'test',
+  avatar_url: '',
+  organization_id: '',
+  job_title_id: '',
+  organizations: {
+    name: 'Demo Org',
+    address: '',
+    phone: '',
+    website: ''
+  },
+  job_titles: {
+    title: 'Engineer',
+    is_custom: false
+  }
 };
 
-// Create Zustand store for authentication state management
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null, // Initial user state
-  profile: null, // Initial profile state
-  setUser: (user) => set({ user }), // Setter function for user
-  setProfile: (profile) => set({ profile }), // Setter function for profile
-  clearAuth: () => set({ user: null, profile: null }), // Function to clear user authentication
-  bypassAuth: () => set({ user: defaultUser, profile: defaultProfile }), // Set default user for development
+  user: null,
+  profile: null,
+  setUser: (user) => set({ user }),
+  setProfile: (profile) => set({ profile }),
+  clearAuth: () => set({ user: null, profile: null }),
+  bypassAuth: () => set({ user: defaultUser, profile: defaultProfile }),
 }));

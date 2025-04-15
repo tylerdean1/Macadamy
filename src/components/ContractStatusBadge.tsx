@@ -39,7 +39,7 @@ export function ContractStatusBadge({ status, className = '' }: ContractStatusBa
       icon={icon} // Pass the associated icon
       className={className} // Additional styling if provided
     >
-      {status} // Display the status text
+      {status} {/* Display the status text */}
     </Badge>
   );
 }

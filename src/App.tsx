@@ -1,82 +1,83 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'; // Import routing components from React Router
-import { LandingPage } from './pages/LandingPage'; // Import landing page component
-import { Dashboard } from './pages/Dashboard'; // Import dashboard component
-import ContractCreation from './pages/ContractCreation'; // Import contract creation component
-import { ContractDashboard } from './pages/ContractDashboard'; // Import contract dashboard component
-import { ResetPassword } from './pages/ResetPassword'; // Import password reset component
-import { UserOnboarding } from './pages/UserOnboarding'; // Import user onboarding component
-import { ProtectedRoute } from './components/ProtectedRoute'; // Import protected route component
-import { Navbar } from './components/Navbar'; // Import navigation bar component
-import { Analytics } from '@vercel/analytics/react'; // Import analytics component
-import { useEffect, useState } from 'react'; // Import hooks from React
-import { supabase } from './lib/supabase'; // Import Supabase client
-import { v4 as uuidv4 } from 'uuid'; // Import UUID generator
-import { Toaster } from 'sonner'; // Import toaster component for notifications
-import { ContractSettings } from './pages/ContractSettings'; // Import contract settings component
-import { useAuthStore } from './lib/store'; // Import auth store for user state management
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { LandingPage } from './pages/LandingPage';
+import { Dashboard } from './pages/Dashboard';
+import ContractCreation from './pages/ContractCreation';
+import { ContractDashboard } from './pages/ContractDashboard';
+import { ResetPassword } from './pages/ResetPassword';
+import { UserOnboarding } from './pages/UserOnboarding';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { Navbar } from './components/Navbar';
+import { Analytics } from '@vercel/analytics/react';
+import { useEffect, useState } from 'react';
+import { supabase } from './lib/supabase';
+import { v4 as uuidv4 } from 'uuid';
+import { Toaster } from 'sonner';
+import { ContractSettings } from './pages/ContractSettings';
+import { useAuthStore } from './lib/store';
+import { useBootstrapAuth } from './hooks/useBootstrapAuth';
+import type { Database } from './lib/database.types';
 
-/**
- * DemoRedirect Component for setting up a demo user account.
- * 
- * This component handles the demo user authentication, setup of 
- * a demo environment including a profile clone, and redirects the 
- * user to the dashboard upon successful setup. It manages loading 
- * and error states during the setup process, providing user feedback 
- * via toast notifications.
- */
+// Custom type for profile query with nested fields
+type ProfileQueryResult = Database['public']['Tables']['profiles']['Row'] & {
+  user_role: Database['public']['Enums']['user_role']; // 👈 ADD THIS
+  organizations?: {
+    id: string;
+    name: string;
+    address: string | null;
+    phone: string | null;
+    website: string | null;
+  };
+  job_titles?: {
+    id: string;
+    title: string;
+    is_custom: boolean | null;
+  };
+};
+
 function DemoRedirect() {
-  const { setUser, setProfile } = useAuthStore(); // Retrieve user state management functions
-  const [error, setError] = useState<string | null>(null); // State variable for error messages
-  const [loading, setLoading] = useState(true); // State variable for loading indicator
+  const { setUser, setProfile } = useAuthStore();
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Function to set up demo user
     const setupDemoUser = async () => {
       try {
-        setLoading(true); // Set loading state to true
-
-        // Attempt to authenticate demo user
+        setLoading(true);
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: 'test@test.com', // Demo email
-          password: 'test123', // Demo password
+          email: 'test@test.com',
+          password: 'test123',
         });
 
         if (authError || !authData.user) {
-          throw new Error(authError?.message || 'Failed to authenticate demo user'); // Throw error if failed to auth
+          throw new Error(authError?.message || 'Failed to authenticate demo user');
         }
 
-        setUser(authData.user); // Set user state
+        setUser(authData.user);
 
-        const sessionId = uuidv4(); // Generate a new session identifier
-
-        // Run a stored procedure to create a clone of the demo user profile
+        const sessionId = uuidv4();
         const { error: cloneError } = await supabase.rpc('create_clone_for_test_user', {
-          session_id: sessionId // Pass session ID to procedure
+          session_id: sessionId
         });
 
-        if (cloneError) {
-          console.error('Clone error:', cloneError);
-          throw new Error('Failed to create demo environment'); // Handle error
-        }
+        if (cloneError) throw new Error('Failed to create demo environment');
+        localStorage.setItem('demo_session_id', sessionId);
 
-        localStorage.setItem('demo_session_id', sessionId); // Store session ID in local storage
-
-        // Fetch the user's profile with retries to handle potential delays
         let attempts = 0;
-        const maxAttempts = 3; // Set maximum attempts
-        let profileData = null;
+        const maxAttempts = 3;
+        let profileData: ProfileQueryResult | null = null;
 
         while (attempts < maxAttempts && !profileData) {
-          const { data: profile, error: profileError } = await supabase
+          const { data, error: profileError } = await supabase
             .from('profiles')
             .select(`
               id,
-              role,
+              user_role,
               full_name,
               email,
               username,
               phone,
               location,
+              avatar_url,
               organization_id,
               job_title_id,
               organizations (
@@ -88,52 +89,74 @@ function DemoRedirect() {
               ),
               job_titles (
                 id,
-                title
+                title,
+                is_custom
               )
             `)
-            .eq('id', authData.user.id) // Match profile ID
-            .maybeSingle();
+            .eq('id', authData.user.id)
+            .maybeSingle<ProfileQueryResult>();
 
-          if (!profileError && profile) {
-            profileData = profile; // Assign fetched profile data
-            break; // Exit loop
+          if (!profileError && data) {
+            profileData = data;
+            break;
           }
 
-          attempts++; // Increment attempt counter
+          attempts++;
           if (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempts)); // Delay before next attempt
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
           }
         }
 
         if (!profileData) {
-          throw new Error('Failed to fetch user profile'); // Handle error if fetching profile fails
+          throw new Error('Failed to fetch user profile');
         }
 
-        // Set user profile state with fetched data
         setProfile({
-          role: profileData.role || 'Admin', // Default to 'Admin' role if not available
-          fullName: profileData.full_name || 'Demo User', // Default full name if not available
-          email: profileData.email, // User email
-          phone: profileData.phone || '', // User phone, default to empty if not available
-          location: profileData.location || '', // User location, default to empty if not available
-          company: profileData.organizations?.[0]?.name || 'Demo Organization', // Default company name if not available
-          username: profileData.username || 'demo_user', // Default username if not available
-          jobTitleId: profileData.job_title_id, // Job title ID
-          organizationId: profileData.organization_id // Organization ID
+          id: profileData.id,
+          user_role: profileData.user_role ?? 'Admin',
+          full_name: profileData.full_name ?? 'Demo User',
+          email: profileData.email,
+          username: profileData.username ?? 'demo_user',
+          phone: profileData.phone ?? '',
+          location: profileData.location ?? '',
+          avatar_url: profileData.avatar_url ?? '',
+          organization_id: profileData.organization_id ?? '',
+          job_title_id: profileData.job_title_id ?? '',
+          organizations: profileData.organizations
+            ? {
+                name: profileData.organizations.name ?? 'Demo Organization',
+                address: profileData.organizations.address ?? '',
+                phone: profileData.organizations.phone ?? '',
+                website: profileData.organizations.website ?? '',
+              }
+            : {
+                name: 'Demo Organization',
+                address: '',
+                phone: '',
+                website: '',
+              },
+          job_titles: profileData.job_titles
+            ? {
+                title: profileData.job_titles.title ?? '',
+                is_custom: profileData.job_titles.is_custom ?? false,
+              }
+            : {
+                title: '',
+                is_custom: false,
+              },
         });
 
-        setLoading(false); // Reset loading state
+        setLoading(false);
       } catch (error) {
-        console.error('Demo setup error:', error); // Log error for debugging
-        setError(error instanceof Error ? error.message : 'Failed to setup demo environment'); // Set error state
-        setLoading(false); // Reset loading state
+        console.error('Demo setup error:', error);
+        setError(error instanceof Error ? error.message : 'Failed to setup demo environment');
+        setLoading(false);
       }
     };
 
-    setupDemoUser(); // Call setup function
-  }, [setUser, setProfile]); // Dependencies
+    setupDemoUser();
+  }, [setUser, setProfile]);
 
-  // If loading, show a spinner
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -145,7 +168,6 @@ function DemoRedirect() {
     );
   }
 
-  // If there's an error, show error message
   if (error) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -153,7 +175,7 @@ function DemoRedirect() {
           <h2 className="text-xl font-bold text-white mb-4">Demo Setup Failed</h2>
           <p className="text-gray-400 mb-6">{error}</p>
           <button
-            onClick={() => window.location.href = '/'} // Redirect to home
+            onClick={() => window.location.href = '/'}
             className="w-full bg-primary hover:bg-primary-hover text-white py-2 px-4 rounded transition-colors"
           >
             Return to Home
@@ -163,39 +185,40 @@ function DemoRedirect() {
     );
   }
 
-  // Redirect to dashboard if setup is successful
   return <Navigate to="/dashboard" replace />;
 }
 
 export default function App() {
+  useBootstrapAuth(); // Rehydrate user & profile from Supabase
+
   return (
     <>
-      <Toaster position="top-right" /> {/* Toast notifications */}
+      <Toaster position="top-right" />
       <BrowserRouter>
-        <Navbar /> {/* Navigation bar */}
+        <Navbar />
         <Routes>
-          <Route path="/" element={<LandingPage />} /> // Landing page route
-          <Route path="/reset-password" element={<ResetPassword />} /> // Password reset route
-          <Route path="/onboarding" element={<UserOnboarding />} /> // User onboarding route
-          <Route path="/demo" element={<DemoRedirect />} /> // Demo user setup route
-          <Route path="/demo/create" element={<ContractCreation />} /> // Contract creation demo route
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/onboarding" element={<UserOnboarding />} />
+          <Route path="/demo" element={<DemoRedirect />} />
+          <Route path="/demo/create" element={<ContractCreation />} />
           <Route path="/dashboard" element={
             <ProtectedRoute>
-              <Dashboard /> // Protected dashboard route
+              <Dashboard />
             </ProtectedRoute>
           } />
           <Route path="/contracts/:id" element={
             <ProtectedRoute>
-              <ContractDashboard /> // Protected contract dashboard route
+              <ContractDashboard />
             </ProtectedRoute>
           } />
           <Route path="/contracts/:id/contractsettings" element={
             <ProtectedRoute>
-              <ContractSettings /> // Protected contract settings route
+              <ContractSettings />
             </ProtectedRoute>
           } />
         </Routes>
-        <Analytics /> {/* Analytics tracking */}
+        <Analytics />
       </BrowserRouter>
     </>
   );
