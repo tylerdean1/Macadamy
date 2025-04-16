@@ -199,11 +199,11 @@ export interface Profile {
     address: string | null;
     phone: string | null;
     website: string | null;
-  };
+  } | null;
   job_titles?: {
     title: string;
     is_custom: boolean | null;
-  };
+  } | null;
 }
 
 // Matches the structure of parsed variable JSON

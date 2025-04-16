@@ -172,6 +172,7 @@ export function Dashboard() {
   );
 
   useEffect(() => {
+    console.log('User:', user);
     if (!user) return;
     const fetchData = async () => {
       try {
@@ -197,7 +198,8 @@ export function Dashboard() {
           .eq('id', user.id)
           .single();
 
-        console.log('Fetched profileData.role:', profileData?.role); // Log the role value for debugging
+        console.log('Fetched profileData:', profileData); // Log the role value for debugging
+
 
         if (profileError) throw profileError;
 
@@ -216,6 +218,8 @@ export function Dashboard() {
           avatar_url: profileData.avatar_url,
           organization_id: profileData.organization_id,
           job_title_id: profileData.job_title_id,
+          organizations: profileData.organizations ?? null,
+          job_titles: profileData.job_titles ?? null,
         };
         setProfile(safeProfile);
 
