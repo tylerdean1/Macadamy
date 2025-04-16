@@ -1,11 +1,19 @@
+// Libraries
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware'; // Import middleware for persistence
+import { persist } from 'zustand/middleware';
 import { User as SupabaseUser } from '@supabase/supabase-js';
-import type { Database } from './database.types';
-import type { Profile } from './types'; // Import the updated Profile interface
 
+// Utilities
+import { validateUserRole } from './utils/validate-user-role';
+
+// Types
+import type { Database } from './database.types';
+import type { Profile } from './types';
+
+// Exported Types
 export type UserRole = Database['public']['Enums']['user_role'];
 
+// AuthState Interface
 interface AuthState {
   user: SupabaseUser | null;
   profile: Profile | null;
@@ -15,6 +23,7 @@ interface AuthState {
   bypassAuth: () => void;
 }
 
+// Default User for bypassing authentication
 const defaultUser: SupabaseUser = {
   id: '00000000-0000-0000-0000-000000000000',
   email: 'test@test.com',
@@ -25,9 +34,10 @@ const defaultUser: SupabaseUser = {
   user_metadata: {},
 };
 
+// Default Profile for bypassing authentication
 const defaultProfile: Profile = {
   id: '00000000-0000-0000-0000-000000000000',
-  user_role: 'admin', // Ensure this matches a value in the UserRole enum
+  user_role: validateUserRole('Admin'),
   full_name: 'Test User',
   email: 'test@test.com',
   phone: '',
@@ -48,14 +58,40 @@ const defaultProfile: Profile = {
   },
 };
 
+/**
+ * Zustand store for handling authentication state.
+ */
 export const useAuthStore = create(
   persist<AuthState>(
     (set) => ({
+      /**
+       * The currently authenticated user.
+       */
       user: null,
+
+      /**
+       * The profile of the authenticated user.
+       */
       profile: null,
-      setUser: (user) => set({ user }),
-      setProfile: (profile) => set({ profile }),
+
+      /**
+       * Updates the authenticated user.
+       */
+      setUser: (user: SupabaseUser | null) => set({ user }),
+
+      /**
+       * Updates the profile of the authenticated user.
+       */
+      setProfile: (profile: Profile | null) => set({ profile }),
+
+      /**
+       * Clears authentication state (user and profile).
+       */
       clearAuth: () => set({ user: null, profile: null }),
+
+      /**
+       * Bypasses authentication by setting default user and profile.
+       */
       bypassAuth: () => set({ user: defaultUser, profile: defaultProfile }),
     }),
     {

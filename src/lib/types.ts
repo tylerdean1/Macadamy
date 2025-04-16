@@ -161,6 +161,22 @@ export type WBSUpdate = Database['public']['Tables']['wbs']['Update'];
 /**
  * Other Structured Types
  */
+// Interface for the organizations field
+export interface Organization {
+  id: string;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  website: string | null;
+}
+
+// Interface for the job_titles field
+export interface JobTitle {
+  id: string;
+  title: string;
+  is_custom: boolean | null;
+}
+
 export interface Formula {
   name: string;
   expression: string;

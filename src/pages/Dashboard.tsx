@@ -11,7 +11,7 @@ import { toast } from 'react-hot-toast';
 import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '../utils/cropImage';
 import type { Profile } from '@/lib/types';
-import type { Area, Avatar, Organization, JobTitle } from '@/lib/types';
+import type { Area, Avatars, Organization, JobTitle } from '@/lib/types';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { FormField, FormSection } from '@/components/ui/form';
 import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
+import { UserRole } from '@/lib/enums';
 
 interface EditForm {
   avatar_id?: string;
@@ -37,7 +38,7 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [avatars, setAvatars] = useState<Avatar[]>([]);
+  const [avatars, setAvatars] = useState<Avatars[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [job_titles, setJobTitles] = useState<JobTitle[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -175,10 +176,16 @@ export function Dashboard() {
     const fetchData = async () => {
       try {
         setLoading(true);
+
+        // Fetch organizations
         const { data: organizationsData } = await supabase.from('organizations').select('*');
         setOrganizations(organizationsData || []);
+
+        // Fetch job titles
         const { data: jobData } = await supabase.from('job_titles').select('*');
         setJobTitles(jobData || []);
+
+        // Fetch profile
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select(`
@@ -190,10 +197,17 @@ export function Dashboard() {
           .eq('id', user.id)
           .single();
 
+        console.log('Fetched profileData.role:', profileData?.role); // Log the role value for debugging
+
         if (profileError) throw profileError;
+
+        // Map profile data to safeProfile
+        const validRoles = Object.values(UserRole); // Get all valid enum values
         const safeProfile: Profile = {
           id: profileData.id,
-          user_role: profileData.role,
+          user_role: validRoles.includes(profileData.role as UserRole)
+            ? (profileData.role as UserRole)
+            : UserRole.Admin, // Default to "Admin" if role is missing or invalid
           full_name: profileData.full_name,
           email: profileData.email,
           username: profileData.username,
@@ -205,6 +219,7 @@ export function Dashboard() {
         };
         setProfile(safeProfile);
 
+        // Process custom job title
         let customJobTitle = '';
         if (profileData.job_title_id && jobData) {
           const match = jobData.find(j => j.id === profileData.job_title_id);
@@ -221,13 +236,15 @@ export function Dashboard() {
           custom_job_title: customJobTitle,
         });
 
+        // Fetch avatar data
         const { data: avatar_data } = await supabase
           .from('avatars')
           .select('*')
           .or(`is_preset.eq.true,profile_id.eq.${user.id}`)
           .order('created_at');
-          setAvatars((avatar_data || []) as Avatar[]);
+        setAvatars((avatar_data || []) as Avatars[]);
 
+        // Fetch user contracts
         const { data: userContracts, error: userContractsError } = await supabase
           .from('user_contracts')
           .select('contract_id')
@@ -241,6 +258,7 @@ export function Dashboard() {
           return;
         }
 
+        // Fetch contract data
         const { data: contractData } = await supabase
           .from('contracts')
           .select('*')
@@ -248,12 +266,14 @@ export function Dashboard() {
           .order('created_at', { ascending: false });
         setContracts(contractData || []);
 
+        // Fetch active contracts
         const { data: activeContracts } = await supabase
           .from('contracts')
           .select('id')
           .in('id', contractIds)
           .eq('status', 'Active');
 
+        // Fetch open issues
         const { count: issuesCount } = await supabase
           .from('issues')
           .select('*', { count: 'exact', head: true })
