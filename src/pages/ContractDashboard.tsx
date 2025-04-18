@@ -25,7 +25,7 @@ type Contract = Database['public']['Tables']['contracts']['Row'];
 
 // Define the LineItem structure for the contract
 interface LineItem {
-  id?: string;
+  id: string;
   line_code: string;
   description: string;
   unit_measure: string;
@@ -33,16 +33,15 @@ interface LineItem {
   unit_price: number;
   total_cost: number;
   reference_doc: string | null;
-  quantity_completed: number;
-  amount_paid: number;
-  map_id: string; // Maps to identify the corresponding map location
+  map_id: string;
+  line_item_entries?: { computed_output: number }; // Add computed_output from the joined table
 }
 
 // Define the structure for map locations associated with a WBS (Work Breakdown Structure)
 interface MapLocation {
   id: string;
   map_number: string; // The specific map number
-  location_description: string; // Description of the location
+  location_description: string | null; // Description of the location
   coordinates?: { lat: number; lng: number } | null; // Coordinates for the map location
   line_items: LineItem[]; // Associated line items with this map
   contractTotal: number; // Total for related line items
@@ -176,32 +175,48 @@ export function ContractDashboard() {
 
           const processedMaps = await Promise.all(
             (mapLocations || []).map(async (map) => {
+              // Fetch line items and join with line_item_entries to get computed_output
               const { data: lineItems, error: lineError } = await supabase
                 .from('line_items')
-                .select('*')
+                .select(`
+                  id,
+                  line_code,
+                  description,
+                  unit_measure,
+                  quantity,
+                  unit_price,
+                  reference_doc,
+                  map_id,
+                  line_item_entries (
+                    id,
+                    computed_output
+                  )
+                `)
                 .eq('map_id', map.id)
-                .order('line_code'); // Fetch line items for the map
+                .order('line_code'); // Order by line code
+          
               if (lineError) throw lineError; // Handle line fetching errors
-
+          
               // Process each line item
               const processedLineItems = (lineItems || []).map((item) => ({
                 ...item,
                 total_cost: (item.quantity ?? 0) * (item.unit_price ?? 0), // Calculate total cost
-                amount_paid: (item.quantity_completed ?? 0) * (item.unit_price ?? 0) // Calculate amount paid
-              }));
-
+                amount_paid: (item.line_item_entries?.computed_output ?? 0) * (item.unit_price ?? 0), // Use computed_output for amount_paid
+              }))
+          
+              // Calculate totals for the map
               const mapTotal = processedLineItems.reduce((sum, item) => sum + item.total_cost, 0); // Total cost for the map
               const mapPaid = processedLineItems.reduce((sum, item) => sum + item.amount_paid, 0); // Total paid for the map
-
+          
               return {
                 id: map.id,
-                map_number: map.map_number, // Map number from the fetched data
-                location_description: map.location_description,
+                map_number: map.map_number,
+                location_description: map.location_description ?? '', // Default to empty string if null
                 coordinates: map.coordinates,
                 line_items: processedLineItems,
                 contractTotal: mapTotal,
                 amountPaid: mapPaid,
-                progress: mapTotal > 0 ? Math.round((mapPaid / mapTotal) * 100) : 0 // Progress calculation
+                progress: mapTotal > 0 ? Math.round((mapPaid / mapTotal) * 100) : 0, // Progress calculation
               };
             })
           );
@@ -378,9 +393,9 @@ export function ContractDashboard() {
                 key={group.wbs}
                 className="border border-background-lighter rounded-lg overflow-hidden"
               >
-                <button
-                  onClick={() => toggleWBS(group.wbs)}
-                  className="w-full bg-background px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between hover:bg-background-light transition-colors gap-4"
+                <div
+                  onClick={() => toggleWBS(group.wbs)} // Toggle functionality for WBS
+                  className="w-full bg-background px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between hover:bg-background-light transition-colors gap-4 cursor-pointer"
                 >
                   <div className="flex items-center space-x-4">
                     {expandedWBS.includes(group.wbs) ? (
@@ -397,14 +412,14 @@ export function ContractDashboard() {
                     variant="outlined"
                     startIcon={<MapPinIcon />}
                     onClick={(e) => {
-                      e.stopPropagation();
-                      handleWbsLevelClick(group);
+                      e.stopPropagation(); // Prevent parent toggle from triggering
+                      handleWbsLevelClick(group); // Open Google Map modal
                     }}
                     size="small"
                   >
                     View WBS Map
                   </Button>
-                </button>
+                </div>
                 {expandedWBS.includes(group.wbs) && (
                   <div className="bg-background-light border-t border-background-lighter">
                     {group.maps.map((map) => (
