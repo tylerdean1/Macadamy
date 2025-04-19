@@ -159,6 +159,31 @@ export type WBSUpdate = Database['public']['Tables']['wbs']['Update'];
 
 
 /**
+ * Map Location Types
+ */
+
+// Define the type for different geometry data
+export type GeometryType = 'Point' | 'LineString' | 'Polygon';
+
+export interface GeometryData {
+  type: GeometryType; // Specifies the type: Point, LineString, or Polygon
+  coordinates: number[] | number[][] | number[][][]; // Adjusted to handle different geometry types
+}
+
+// Main interface for map locations
+export interface MapLocation {
+  id: string;
+  map_number: string;
+  location_description: string | null;
+  coordinates?: GeometryData | null; // Represents the geography data for the location
+  line_items: LineItems[]; // Assuming LineItems type exists
+  contractTotal: number;
+  amountPaid: number;
+  progress: number;
+}
+
+
+/**
  * Other Structured Types
  */
 // Interface for the organizations field

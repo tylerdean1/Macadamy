@@ -10,7 +10,6 @@
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
-    "noEmit": true,
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
     "jsx": "react-jsx",
@@ -25,7 +24,11 @@
     "baseUrl": ".",  // points to root
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+
+    /* Required for project references */
+    "composite": true,
+    "emitDeclarationOnly": true // Emit only declaration files
   },
   "include": ["src"]
 }

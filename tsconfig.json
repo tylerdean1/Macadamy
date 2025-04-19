@@ -3,11 +3,13 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
-  },
+    },
     "forceConsistentCasingInFileNames": true,
     "strict": true
   },
-  "files": [],
+  "files": [
+    "src/types/terraformer-wkt.d.ts" // Directly include the type declaration file
+  ],
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }

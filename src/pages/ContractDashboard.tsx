@@ -12,18 +12,37 @@ import {
   ChevronDown,
   ChevronRight
 } from 'lucide-react';
-import { supabase } from '../lib/supabase'; // Supabase client for database interaction
-import { useAuthStore } from '../lib/store'; // Hook for accessing auth store
-import type { Database } from '../lib/database.types'; // Type definitions for database schema
-import { ContractStatusSelect } from '@/components/ContractStatusSelect'; // Component for contract status selection
-import { Button } from '@mui/material'; // Material UI Button
-import MapPinIcon from '@mui/icons-material/PinDrop'; // Icon for map pin
-import MapModal from '@/components/MapModal'; // Component for displaying maps
+import { supabase } from '../lib/supabase';
+import type { Database } from '../lib/database.types';
+import { ContractStatusSelect } from '@/components/ContractStatusSelect';
+import { Button } from '@mui/material';
+import MapPinIcon from '@mui/icons-material/PinDrop';
+import MapModal from '@/components/MapModal';
+import { parse as parseWKT } from '@terraformer/wkt';
+import type { GeometryData, GeometryType } from '../lib/types';
 
-// Define a type for Contract retrieved from the database
+function parseCoordinates(wkt: unknown): GeometryData | null {
+  try {
+    if (typeof wkt !== 'string') return null;
+    const geoJSON = parseWKT(wkt) as GeoJSON.Geometry;
+    if (
+      (geoJSON.type === 'Point' || geoJSON.type === 'LineString' || geoJSON.type === 'Polygon') &&
+      geoJSON.coordinates
+    ) {
+      return {
+        type: geoJSON.type as GeometryType,
+        coordinates: geoJSON.coordinates,
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error parsing WKT:', error);
+    return null;
+  }
+}
+
 type Contract = Database['public']['Tables']['contracts']['Row'];
 
-// Define the LineItem structure for the contract
 interface LineItem {
   id: string;
   line_code: string;
@@ -34,104 +53,95 @@ interface LineItem {
   total_cost: number;
   reference_doc: string | null;
   map_id: string;
-  line_item_entries?: { computed_output: number }; // Add computed_output from the joined table
+  line_item_entries?: { computed_output?: number | null }[];
 }
 
-// Define the structure for map locations associated with a WBS (Work Breakdown Structure)
 interface MapLocation {
   id: string;
-  map_number: string; // The specific map number
-  location_description: string | null; // Description of the location
-  coordinates?: { lat: number; lng: number } | null; // Coordinates for the map location
-  line_items: LineItem[]; // Associated line items with this map
-  contractTotal: number; // Total for related line items
-  amountPaid: number; // Amount paid thus far
-  progress: number; // Calculated progress based on financials
+  map_number: string;
+  location_description: string | null;
+  coordinates?: GeometryData | null;
+  line_items: LineItem[];
+  contractTotal: number;
+  amountPaid: number;
+  progress: number;
 }
 
-// Define the structure for WBS groups
 interface WBSGroup {
-  wbs: string; // WBS identifier
-  description: string; // Description of the WBS
-  maps: MapLocation[]; // List of maps linked to this WBS
-  contractTotal: number; // Overall contract total from this group
-  amountPaid: number; // Amount paid for this group
-  progress: number; // Calculated progress for this WBS
+  wbs: string;
+  description: string;
+  maps: MapLocation[];
+  contractTotal: number;
+  amountPaid: number;
+  progress: number;
 }
 
-// Define the structure for button tools which will appear on the dashboard
 interface ToolButton {
-  icon: React.ReactNode; // Icon to display
-  label: string; // Text label for the button
-  onClick: () => void; // Function to call on click
-  color: string; // Tailwind CSS color classes for styling
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  color: string;
 }
 
-// The ContractDashboard component orchestrates the display of contract details and actions.
 export function ContractDashboard() {
-  const { id } = useParams(); // Fetch contract ID from URL parameters
-  const navigate = useNavigate(); // Setting up navigation
-  const [contract, setContract] = useState<Contract | null>(null); // Track loaded contract
-  const [loading, setLoading] = useState(true); // Track loading state
-  const [error, setError] = useState<string | null>(null); // Handle any errors
-  const [expandedWBS, setExpandedWBS] = useState<string[]>([]); // Track expanded WBS sections
-  const [expandedMaps, setExpandedMaps] = useState<string[]>([]); // Track expanded map sections
-  const [wbsGroups, setWbsGroups] = useState<WBSGroup[]>([]); // Store processed WBS groups
-  const user = useAuthStore((state) => state.user); // Fetch the user from auth store
-  console.log(user); // Log the user (remove if not needed)
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [contract, setContract] = useState<Contract | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [wbsGroups, setWbsGroups] = useState<WBSGroup[]>([]);
+  const [openMapModal, setOpenMapModal] = useState(false);
+  const [modalPins, setModalPins] = useState<{ lat: number; lng: number; label?: string }[]>([]);
+  const [expandedWBS, setExpandedWBS] = useState<string[]>([]);
+  const [expandedMaps, setExpandedMaps] = useState<string[]>([]);
 
-  // State for controlling Map Modal
-  const [openMapModal, setOpenMapModal] = useState(false); // Modal visibility state
-  const [modalPins, setModalPins] = useState<{ lat: number; lng: number; label?: string }[]>([]); // Map pins relevant to the modal
-
-  // Tool buttons for actions on the dashboard
   const toolButtons: ToolButton[] = [
     {
       icon: <Clipboard className="w-5 h-5" />,
       label: "Daily Reports",
-      onClick: () => navigate(`/contracts/${id}/daily-reports`), // Navigate to daily reports
+      onClick: () => navigate(`/contracts/${id}/daily-reports`),
       color: "bg-blue-500/30 text-blue-500 hover:bg-blue-500/40"
     },
     {
       icon: <Truck className="w-5 h-5" />,
       label: "Equipment Log",
-      onClick: () => navigate(`/contracts/${id}/equipment`), // Navigate to equipment log
+      onClick: () => navigate(`/contracts/${id}/equipment`),
       color: "bg-green-500/30 text-green-500 hover:bg-green-500/40"
     },
     {
       icon: <Users className="w-5 h-5" />,
       label: "Labor Records",
-      onClick: () => navigate(`/contracts/${id}/labor`), // Navigate to labor records
+      onClick: () => navigate(`/contracts/${id}/labor`),
       color: "bg-purple-500/30 text-purple-500 hover:bg-purple-500/40"
     },
     {
       icon: <AlertTriangle className="w-5 h-5" />,
       label: "Issues",
-      onClick: () => navigate(`/contracts/${id}/issues`), // Navigate to issues section
+      onClick: () => navigate(`/contracts/${id}/issues`),
       color: "bg-amber-500/30 text-amber-500 hover:bg-amber-500/40"
     },
     {
       icon: <FileWarning className="w-5 h-5" />,
       label: "Change Orders",
-      onClick: () => navigate(`/contracts/${id}/change-orders`), // Navigate to change orders
+      onClick: () => navigate(`/contracts/${id}/change-orders`),
       color: "bg-red-500/30 text-red-500 hover:bg-red-500/40"
     },
     {
       icon: <ClipboardList className="w-5 h-5" />,
       label: "Inspections",
-      onClick: () => navigate(`/contracts/${id}/inspections`), // Navigate to inspections
+      onClick: () => navigate(`/contracts/${id}/inspections`),
       color: "bg-cyan-500/30 text-cyan-500 hover:bg-cyan-500/40"
     },
     {
       icon: <Calculator className="w-5 h-5" />,
       label: "Calculators",
-      onClick: () => navigate(`/contracts/${id}/calculators`), // Navigate to calculators
+      onClick: () => navigate(`/contracts/${id}/calculators`),
       color: "bg-indigo-500/30 text-indigo-500 hover:bg-indigo-500/40"
     },
     {
       icon: <Settings className="w-5 h-5" />,
       label: "Settings",
-      onClick: () => navigate(`/contracts/${id}/contractsettings`), // Navigate to settings
+      onClick: () => navigate(`/contracts/${id}/contractsettings`),
       color: "bg-gray-500/30 text-gray-500 hover:bg-gray-500/40"
     }
   ];
@@ -140,42 +150,44 @@ export function ContractDashboard() {
   const fetchContract = useCallback(async () => {
     try {
       if (!id) {
-        setError('Contract ID is required'); // Error handling if ID not found
+        setError('Contract ID is required');
         return;
       }
+
       const { data: contractData, error: contractError } = await supabase
         .from('contracts')
         .select('*')
         .eq('id', id)
-        .single(); // Fetch the contract by ID
-      if (contractError) throw contractError; // Handle errors
+        .single();
+
+      if (contractError) throw contractError;
       if (!contractData) {
         setError('Contract not found');
-        return; // Display error if contract is not found
+        return;
       }
-      setContract(contractData); // Set the fetched contract data
 
-      // Fetch WBS sections associated with the contract
+      setContract(contractData);
+
       const { data: wbsData, error: wbsError } = await supabase
         .from('wbs')
-        .select(`id, wbs_number, description`)
+        .select('id, wbs_number, description')
         .eq('contract_id', id)
-        .order('wbs_number'); // Fetch WBS data
-      if (wbsError) throw wbsError; // Handle fetching errors
+        .order('wbs_number');
 
-      // Process WBS -> Maps -> Line Items
+      if (wbsError) throw wbsError;
+
       const processedGroups = await Promise.all(
         (wbsData || []).map(async (wbs) => {
           const { data: mapLocations, error: mapError } = await supabase
             .from('maps')
             .select('*')
             .eq('wbs_id', wbs.id)
-            .order('map_number'); // Fetch maps associated with WBS
-          if (mapError) throw mapError; // Handle fetching errors
+            .order('map_number');
+
+          if (mapError) throw mapError;
 
           const processedMaps = await Promise.all(
             (mapLocations || []).map(async (map) => {
-              // Fetch line items and join with line_item_entries to get computed_output
               const { data: lineItems, error: lineError } = await supabase
                 .from('line_items')
                 .select(`
@@ -193,36 +205,53 @@ export function ContractDashboard() {
                   )
                 `)
                 .eq('map_id', map.id)
-                .order('line_code'); // Order by line code
-          
-              if (lineError) throw lineError; // Handle line fetching errors
-          
-              // Process each line item
-              const processedLineItems = (lineItems || []).map((item) => ({
-                ...item,
-                total_cost: (item.quantity ?? 0) * (item.unit_price ?? 0), // Calculate total cost
-                amount_paid: (item.line_item_entries?.computed_output ?? 0) * (item.unit_price ?? 0), // Use computed_output for amount_paid
-              }))
-          
-              // Calculate totals for the map
-              const mapTotal = processedLineItems.reduce((sum, item) => sum + item.total_cost, 0); // Total cost for the map
-              const mapPaid = processedLineItems.reduce((sum, item) => sum + item.amount_paid, 0); // Total paid for the map
-          
+                .order('line_code');
+
+              if (lineError) throw lineError;
+
+              const processedLineItems = (lineItems || []).map((item) => {
+                if (!item.map_id) {
+                  throw new Error(`Missing map_id for line_item ${item.id}`);
+                }
+              
+                const totalComputedOutput = (item.line_item_entries || []).reduce(
+                  (sum, entry) => sum + (entry.computed_output ?? 0),
+                  0
+                );
+              
+                return {
+                  ...item,
+                  map_id: item.map_id, // safe to use now
+                  total_cost: (item.quantity ?? 0) * (item.unit_price ?? 0),
+                  amount_paid: totalComputedOutput * (item.unit_price ?? 0),
+                };
+              });
+
+              const mapTotal = processedLineItems.reduce(
+                (sum, item) => sum + item.total_cost,
+                0
+              );
+
+              const mapPaid = processedLineItems.reduce(
+                (sum, item) => sum + item.amount_paid,
+                0
+              );
+
               return {
                 id: map.id,
                 map_number: map.map_number,
-                location_description: map.location_description ?? '', // Default to empty string if null
-                coordinates: map.coordinates,
+                location_description: map.location_description || null,
+                coordinates: parseCoordinates(map.coordinates) || null,
                 line_items: processedLineItems,
                 contractTotal: mapTotal,
                 amountPaid: mapPaid,
-                progress: mapTotal > 0 ? Math.round((mapPaid / mapTotal) * 100) : 0, // Progress calculation
+                progress: mapTotal > 0 ? Math.round((mapPaid / mapTotal) * 100) : 0,
               };
             })
           );
 
-          const wbsTotal = processedMaps.reduce((sum, m) => sum + m.contractTotal, 0); // Total cost for the WBS group
-          const wbsPaid = processedMaps.reduce((sum, m) => sum + m.amountPaid, 0); // Total amount paid for the WBS group
+          const wbsTotal = processedMaps.reduce((sum, m) => sum + m.contractTotal, 0);
+          const wbsPaid = processedMaps.reduce((sum, m) => sum + m.amountPaid, 0);
 
           return {
             wbs: wbs.wbs_number,
@@ -230,102 +259,158 @@ export function ContractDashboard() {
             maps: processedMaps,
             contractTotal: wbsTotal,
             amountPaid: wbsPaid,
-            progress: wbsTotal > 0 ? Math.round((wbsPaid / wbsTotal) * 100) : 0 // Overall progress for the WBS
+            progress: wbsTotal > 0 ? Math.round((wbsPaid / wbsTotal) * 100) : 0,
           };
         })
       );
 
-      setWbsGroups(processedGroups); // Store processed WBS groups in state
+      setWbsGroups(processedGroups);
     } catch (err) {
-      console.error('Error fetching contract:', err); // Log error
-      setError('Error loading contract details'); // Set error message
+      console.error('Error fetching contract:', err);
+      setError('Error loading contract details');
     } finally {
-      setLoading(false); // Set loading state to false
+      setLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
-    fetchContract(); // Fetch contract data when component mounts
+    fetchContract();
   }, [fetchContract]);
 
-  const toggleWBS = (wbs: string) => {
-    setExpandedWBS((prev) =>
-      prev.includes(wbs) ? prev.filter((item) => item !== wbs) : [...prev, wbs] // Toggles expanded WBS groups
-    );
-  };
-
-  const toggleMap = (mapId: string) => {
-    setExpandedMaps((prev) =>
-      prev.includes(mapId) ? prev.filter((id) => id !== mapId) : [...prev, mapId] // Toggles expanded map sections
-    );
-  };
-
-  // Handles map clicks for displaying modal pins
   const handleMapLevelClick = (map: MapLocation) => {
-    if (map.coordinates?.lat !== undefined && map.coordinates?.lng !== undefined) {
-      setModalPins([
-        { lat: map.coordinates.lat, lng: map.coordinates.lng, label: map.location_description }
-      ]);
-      setOpenMapModal(true); // Open the map modal
-    } else {
-      alert('No coordinates for this map location.'); // Alert if no coordinates are found
+    const parsed = map.coordinates;
+    if (!parsed) {
+      alert('No valid coordinates for this map location.');
+      return;
     }
+  
+    if (parsed.type === 'Point' && Array.isArray(parsed.coordinates)) {
+      const coords = parsed.coordinates as [number, number];
+      setModalPins([
+        {
+          lat: coords[1],
+          lng: coords[0],
+          label: map.location_description || undefined,
+        },
+      ]);
+    } else if (parsed.type === 'LineString' && Array.isArray(parsed.coordinates)) {
+      const coords = parsed.coordinates as [number, number][];
+      setModalPins(
+        coords.map(([lng, lat]) => ({
+          lat,
+          lng,
+          label: map.location_description || undefined,
+        }))
+      );
+    } else if (parsed.type === 'Polygon' && Array.isArray(parsed.coordinates)) {
+      const coords = parsed.coordinates as [number, number][][];
+      setModalPins(
+        coords[0].map(([lng, lat]) => ({
+          lat,
+          lng,
+          label: map.location_description || undefined,
+        }))
+      );
+    } else {
+      alert('Unsupported or malformed geometry type.');
+      return;
+    }
+  
+    setOpenMapModal(true);
   };
 
-  // Handles WBS group clicks for displaying relevant map pins
   const handleWbsLevelClick = (group: WBSGroup) => {
-    const pins = group.maps
-      .filter((map) => map.coordinates?.lat !== undefined && map.coordinates?.lng !== undefined)
-      .map((map) => ({
-        lat: map.coordinates!.lat,
-        lng: map.coordinates!.lng,
-        label: map.location_description // Prepare pins for map modal
-      }));
+    const pins = group.maps.flatMap((map) => {
+      const parsed = map.coordinates;
+      if (!parsed) return [];
+  
+      if (parsed.type === 'Point' && Array.isArray(parsed.coordinates)) {
+        const coords = parsed.coordinates as [number, number];
+        return [
+          {
+            lat: coords[1],
+            lng: coords[0],
+            label: map.location_description || undefined,
+          },
+        ];
+      }
+  
+      if (parsed.type === 'LineString' && Array.isArray(parsed.coordinates)) {
+        const coords = parsed.coordinates as [number, number][];
+        return coords.map(([lng, lat]) => ({
+          lat,
+          lng,
+          label: map.location_description || undefined,
+        }));
+      }
+  
+      if (parsed.type === 'Polygon' && Array.isArray(parsed.coordinates)) {
+        const coords = parsed.coordinates as [number, number][][];
+        return coords[0].map(([lng, lat]) => ({
+          lat,
+          lng,
+          label: map.location_description || undefined,
+        }));
+      }
+  
+      return [];
+    });
+  
     if (pins.length > 0) {
       setModalPins(pins);
-      setOpenMapModal(true); // Open the map modal
+      setOpenMapModal(true);
     } else {
-      alert('No coordinates found in this WBS group.'); // Alert if no coordinates found
+      alert('No valid coordinates found in this WBS group.');
     }
   };
+
 
   // Calculate overall contract totals
   const totals = React.useMemo(() => {
     return wbsGroups.reduce(
       (acc, group) => ({
-        contractTotal: acc.contractTotal + group.contractTotal, // Sum total contract values
-        amountPaid: acc.amountPaid + group.amountPaid, // Sum total amount paid
-        progress: 0 // Placeholder for overall progress calculation
+        contractTotal: acc.contractTotal + group.contractTotal,
+        amountPaid: acc.amountPaid + group.amountPaid,
+        progress: 0,
       }),
-      { contractTotal: 0, amountPaid: 0, progress: 0 } // Initialize totals
+      { contractTotal: 0, amountPaid: 0, progress: 0 }
     );
   }, [wbsGroups]);
 
-  // Compute overall progress for the entire contract
   const overallProgress = totals.contractTotal
-    ? Math.round((totals.amountPaid / totals.contractTotal) * 100) // Calculate progress percentage
+    ? Math.round((totals.amountPaid / totals.contractTotal) * 100)
     : 0;
 
-  // Loading state display
+  const toggleWBS = (wbs: string) => {
+    setExpandedWBS((prev) =>
+      prev.includes(wbs) ? prev.filter((item) => item !== wbs) : [...prev, wbs]
+    );
+  };
+
+  const toggleMap = (mapId: string) => {
+    setExpandedMaps((prev) =>
+      prev.includes(mapId) ? prev.filter((id) => id !== mapId) : [...prev, mapId]
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-gray-400 mt-4">Loading contract details...</p> // Loading message
+          <p className="text-gray-400 mt-4">Loading contract details...</p>
         </div>
       </div>
     );
   }
 
-  // Error handling if no contract is present
   if (error || !contract) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <p className="text-xl text-gray-400">{error || 'Contract not found'}</p> // Error message
+          <p className="text-xl text-gray-400">{error || 'Contract not found'}</p>
           <button
-            onClick={() => navigate('/dashboard')} // Navigate back if error is encountered
+            onClick={() => navigate('/dashboard')}
             className="mt-4 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-md transition-colors"
           >
             Return to Dashboard
@@ -373,7 +458,7 @@ export function ContractDashboard() {
               </div>
             </div>
           </div>
-  
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {toolButtons.map((btn, index) => (
               <button
@@ -386,7 +471,7 @@ export function ContractDashboard() {
               </button>
             ))}
           </div>
-  
+
           <div className="space-y-4">
             {wbsGroups.map((group) => (
               <div
@@ -394,7 +479,7 @@ export function ContractDashboard() {
                 className="border border-background-lighter rounded-lg overflow-hidden"
               >
                 <div
-                  onClick={() => toggleWBS(group.wbs)} // Toggle functionality for WBS
+                  onClick={() => toggleWBS(group.wbs)}
                   className="w-full bg-background px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between hover:bg-background-light transition-colors gap-4 cursor-pointer"
                 >
                   <div className="flex items-center space-x-4">
@@ -412,8 +497,8 @@ export function ContractDashboard() {
                     variant="outlined"
                     startIcon={<MapPinIcon />}
                     onClick={(e) => {
-                      e.stopPropagation(); // Prevent parent toggle from triggering
-                      handleWbsLevelClick(group); // Open Google Map modal
+                      e.stopPropagation();
+                      handleWbsLevelClick(group);
                     }}
                     size="small"
                   >
@@ -456,7 +541,7 @@ export function ContractDashboard() {
                         </button>
                         {expandedMaps.includes(map.id) && (
                           <div className="overflow-x-auto">
-                            {/* Table or line item details */}
+                            {/* Optional: Add line item or detail view here */}
                           </div>
                         )}
                       </div>
@@ -466,7 +551,7 @@ export function ContractDashboard() {
               </div>
             ))}
           </div>
-  
+
           <div className="bg-background-light p-4 sm:p-6 rounded-lg mt-6 border border-background-lighter">
             <h3 className="text-xl font-semibold text-white mb-4">Contract Totals</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8">
@@ -498,7 +583,7 @@ export function ContractDashboard() {
               </div>
             </div>
           </div>
-  
+
           <MapModal
             isOpen={openMapModal}
             onClose={() => setOpenMapModal(false)}
