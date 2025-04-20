@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "pull-db": "supabase db pull",
+    "gen-db-types": "supabase gen types typescript --project-id koaxmrtrzhilnzjbiybr --schema public > src/lib/database.types.ts",
+    "update-db-types": "npm run pull-db && npm run gen-db-types"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

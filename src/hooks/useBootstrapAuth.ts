@@ -1,27 +1,47 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
 import { validateUserRole } from '@/lib/utils/validate-user-role';
 import type { Profile } from '@/lib/types';
 
 export function useBootstrapAuth() {
-  const { setUser, setProfile } = useAuthStore();
+  const { setUser, setProfile, clearAuth } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // Get the current user
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError) throw new Error(`Error fetching user: ${userError.message}`);
-        if (!user) return;
+        // ✅ Use getSession instead of getUser to avoid "auth session missing" errors
+        const {
+          data: { session },
+          error: sessionError
+        } = await supabase.auth.getSession();
 
+        if (sessionError) throw new Error(`Error fetching session: ${sessionError.message}`);
+        if (!session?.user) {
+          setIsLoading(false);
+          return;
+        }
+
+        const user = session.user;
         setUser(user);
 
-        // Fetch the profile from the database
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select(`
-            *,
+            id,
+            role,
+            full_name,
+            email,
+            username,
+            phone,
+            location,
+            avatar_id,
+            job_title_id,
+            organization_id,
+            avatars:avatar_id (
+              url
+            ),
             organizations:organizations!profiles_organization_id_fkey (
               name, address, phone, website
             ),
@@ -30,21 +50,27 @@ export function useBootstrapAuth() {
             )
           `)
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
         if (profileError) throw new Error(`Error fetching profile: ${profileError.message}`);
-        if (!profile) return;
+        if (!profile) {
+          console.warn('No profile found. Clearing session.');
+          await supabase.auth.signOut();
+          clearAuth();
+          setIsLoading(false);
+          return;
+        }
 
-        // Map profile data to the Profile type
         const mappedProfile: Profile = {
           id: profile.id,
-          user_role: validateUserRole(profile.role), // Use the validateUserRole function here
+          user_role: validateUserRole(profile.role),
           full_name: profile.full_name,
           email: profile.email,
           username: profile.username ?? '',
           phone: profile.phone ?? '',
           location: profile.location ?? '',
-          avatar_url: profile.avatar_url ?? '',
+          avatar_id: profile.avatar_id ?? null,
+          avatar_url: profile.avatars?.url ?? null,
           organization_id: profile.organization_id ?? '',
           job_title_id: profile.job_title_id ?? '',
           organizations: profile.organizations ?? {
@@ -61,10 +87,17 @@ export function useBootstrapAuth() {
 
         setProfile(mappedProfile);
       } catch (error) {
-        console.error('Failed to initialize authentication:', error);
+          if (!(error instanceof Error && error.message.includes('Auth session missing'))) {
+            console.error('Failed to initialize authentication:', error);
+          }
+        
+      } finally {
+        setIsLoading(false);
       }
     };
 
     initAuth();
-  }, [setUser, setProfile]);
+  }, [setUser, setProfile, clearAuth]);
+
+  return isLoading;
 }

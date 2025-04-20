@@ -1,5 +1,10 @@
-import { BadgeProps } from '../../lib/types'; // Import BadgeProps type for prop management
-
+type BadgeProps = {
+  children: React.ReactNode;
+  variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
+  size?: 'sm' | 'md' | 'lg';
+  icon?: React.ReactNode;
+  className?: string;
+};
 // Badge component for displaying status or category labels
 export function Badge({ 
   children, // Child elements/content of the badge

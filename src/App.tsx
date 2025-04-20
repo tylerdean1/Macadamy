@@ -1,5 +1,5 @@
 // React and React Libraries
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 
 // Pages
@@ -14,6 +14,7 @@ import { ContractSettings } from './pages/ContractSettings';
 // Components
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Navbar } from './components/Navbar';
+import { Badge } from '@/components/ui/badge';
 
 // Utilities and Libraries
 import { Analytics } from '@vercel/analytics/react';
@@ -30,20 +31,19 @@ import type { Database } from './lib/database.types';
 import { validateUserRole } from './lib/utils/validate-user-role';
 import { Organization, JobTitle } from './lib/types';
 
-// Custom type for profile query with nested fields
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 type ProfileQueryResult = ProfileRow & {
   user_role: Database['public']['Enums']['user_role'];
   organizations?: Organization;
   job_titles?: JobTitle;
+  is_demo_user?: boolean;
 };
-
-
 
 function DemoRedirect() {
   const { setUser, setProfile } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const profile = useAuthStore((state) => state.profile);
 
   useEffect(() => {
     const setupDemoUser = async () => {
@@ -62,7 +62,7 @@ function DemoRedirect() {
 
         const sessionId = uuidv4();
         const { error: cloneError } = await supabase.rpc('create_clone_for_test_user', {
-          session_id: sessionId
+          session_id: sessionId,
         });
 
         if (cloneError) throw new Error('Failed to create demo environment');
@@ -84,8 +84,10 @@ function DemoRedirect() {
               phone,
               location,
               avatar_url,
+              avatar_id,
               organization_id,
               job_title_id,
+              is_demo_user,
               organizations (
                 id,
                 name,
@@ -109,7 +111,7 @@ function DemoRedirect() {
 
           attempts++;
           if (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+            await new Promise((resolve) => setTimeout(resolve, 1000 * attempts));
           }
         }
 
@@ -125,9 +127,11 @@ function DemoRedirect() {
           username: profileData.username ?? 'demo_user',
           phone: profileData.phone ?? '',
           location: profileData.location ?? '',
+          avatar_id: profileData.avatar_id ?? '',
           avatar_url: profileData.avatar_url ?? '',
           organization_id: profileData.organization_id ?? '',
           job_title_id: profileData.job_title_id ?? '',
+          is_demo_user: profileData.is_demo_user ?? false,
           organizations: profileData.organizations
             ? {
                 name: profileData.organizations.name ?? 'Demo Organization',
@@ -191,41 +195,65 @@ function DemoRedirect() {
     );
   }
 
-  return <Navigate to="/dashboard" replace />;
+  return (
+    <>
+      {profile?.is_demo_user && (
+        <div className="w-full text-center bg-yellow-400/90 text-black py-2 text-sm">
+          <Badge className="bg-black/80 text-yellow-300 border border-black/40 px-2 py-0.5 rounded-full text-xs font-semibold tracking-wide">
+            DEMO USER
+          </Badge>{' '}
+          — You are in a sandbox environment. Changes will be wiped after 24 hours.
+        </div>
+      )}
+      <Navigate to="/dashboard" replace />
+    </>
+  );
 }
 
 export default function App() {
-  useBootstrapAuth(); // Rehydrate user & profile from Supabase
+  const isLoading = useBootstrapAuth();
+  const location = useLocation();
+  const hideNavbarRoutes = ['/', '/reset-password', '/onboarding'];
+  const shouldShowNavbar = !hideNavbarRoutes.includes(location.pathname);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+          <p className="text-gray-400 mt-4">Loading Macadamy...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
       <Toaster position="top-right" />
-      <BrowserRouter>
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/onboarding" element={<UserOnboarding />} />
-          <Route path="/demo" element={<DemoRedirect />} />
-          <Route path="/demo/create" element={<ContractCreation />} />
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/contracts/:id" element={
-            <ProtectedRoute>
-              <ContractDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/contracts/:id/contractsettings" element={
-            <ProtectedRoute>
-              <ContractSettings />
-            </ProtectedRoute>
-          } />
-        </Routes>
-        <Analytics />
-      </BrowserRouter>
+      {shouldShowNavbar && <Navbar />}
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/onboarding" element={<UserOnboarding />} />
+        <Route path="/demo" element={<DemoRedirect />} />
+        <Route path="/demo/create" element={<ContractCreation />} />
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/contracts/:id" element={
+          <ProtectedRoute>
+            <ContractDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/contracts/:id/contractsettings" element={
+          <ProtectedRoute>
+            <ContractSettings />
+          </ProtectedRoute>
+        } />
+      </Routes>
+      <Analytics />
     </>
   );
 }

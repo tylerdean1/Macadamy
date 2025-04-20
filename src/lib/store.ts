@@ -1,6 +1,6 @@
 // Libraries
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, StorageValue } from 'zustand/middleware';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 
 // Utilities
@@ -43,6 +43,7 @@ const defaultProfile: Profile = {
   phone: '',
   location: '',
   username: 'test',
+  avatar_id: '', // ✅ added to fix type error
   avatar_url: '',
   organization_id: '',
   job_title_id: '',
@@ -58,45 +59,36 @@ const defaultProfile: Profile = {
   },
 };
 
+// Custom storage adapter (type-safe)
+const localStorageAdapter = {
+  getItem: (name: string): StorageValue<AuthState> | null => {
+    const str = localStorage.getItem(name);
+    return str ? JSON.parse(str) : null;
+  },
+  setItem: (name: string, value: StorageValue<AuthState>) => {
+    localStorage.setItem(name, JSON.stringify(value));
+  },
+  removeItem: (name: string) => {
+    localStorage.removeItem(name);
+  },
+};
+
 /**
  * Zustand store for handling authentication state.
  */
 export const useAuthStore = create(
   persist<AuthState>(
     (set) => ({
-      /**
-       * The currently authenticated user.
-       */
       user: null,
-
-      /**
-       * The profile of the authenticated user.
-       */
       profile: null,
-
-      /**
-       * Updates the authenticated user.
-       */
-      setUser: (user: SupabaseUser | null) => set({ user }),
-
-      /**
-       * Updates the profile of the authenticated user.
-       */
-      setProfile: (profile: Profile | null) => set({ profile }),
-
-      /**
-       * Clears authentication state (user and profile).
-       */
+      setUser: (user) => set({ user }),
+      setProfile: (profile) => set({ profile }),
       clearAuth: () => set({ user: null, profile: null }),
-
-      /**
-       * Bypasses authentication by setting default user and profile.
-       */
       bypassAuth: () => set({ user: defaultUser, profile: defaultProfile }),
     }),
     {
-      name: 'auth-storage', // Name of the storage key
-      getStorage: () => localStorage, // Use localStorage for persistence
+      name: 'auth-storage',
+      storage: localStorageAdapter,
     }
   )
 );

@@ -240,6 +240,7 @@ export type Database = {
           end_date: string
           id: string
           location: string
+          session_id: string | null
           start_date: string
           status: Database["public"]["Enums"]["contract_status"]
           title: string
@@ -253,6 +254,7 @@ export type Database = {
           end_date: string
           id?: string
           location: string
+          session_id?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["contract_status"]
           title: string
@@ -266,6 +268,7 @@ export type Database = {
           end_date?: string
           id?: string
           location?: string
+          session_id?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["contract_status"]
           title?: string
@@ -1845,7 +1848,7 @@ export type Database = {
         Returns: boolean
       }
       create_clone_for_test_user: {
-        Args: { session_id: string } | { session_id: string; user_id: string }
+        Args: { session_id: string }
         Returns: undefined
       }
       disablelongtransactions: {

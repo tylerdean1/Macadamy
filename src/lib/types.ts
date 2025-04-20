@@ -210,12 +210,13 @@ export interface Formula {
 
 export interface Profile {
   id: string;
-  user_role: UserRole
+  user_role: UserRole;
   full_name: string;
   email: string;
   username: string | null;
   phone: string | null;
   location: string | null;
+  avatar_id: string | null;  
   avatar_url: string | null;
   organization_id: string | null;
   job_title_id: string | null;
@@ -229,6 +230,11 @@ export interface Profile {
     title: string;
     is_custom: boolean | null;
   } | null;
+  avatars?: {
+    url: string;
+    is_preset: boolean;
+  } | null;
+  is_demo_user?: boolean;
 }
 
 // Matches the structure of parsed variable JSON
@@ -254,7 +260,7 @@ export interface CalculatorTemplate {
  * Specific Interfaces for Components
  */
 export interface EditForm {
-  avatar_id: string;
+  avatar_id: string | null;
   organization_id: string;
   job_title_id: string;
   address: string;

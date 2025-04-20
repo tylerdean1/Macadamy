@@ -1,21 +1,13 @@
-import { StrictMode } from 'react'; // Import React's StrictMode for highlighting potential problems in an application
-import { createRoot } from 'react-dom/client'; // Import createRoot for rendering React components
-import App from './App.tsx'; // Import the main App component
-import './index.css'; // Import global CSS styles
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom'; // ✅ Correct import for current v6 setup
+import App from './App.tsx';
+import './index.css';
 
-/** 
- * Main entry point for the application.
- * 
- * This file sets up the React application by rendering
- * the main App component into the DOM. It uses StrictMode 
- * to enable additional checks and warnings for potential 
- * issues in components. The global styles are applied 
- * to ensure a consistent look throughout the application.
- */
-
-// Create a root element for rendering
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App /> {/* Render the main App component */}
+    <BrowserRouter> {/* ✅ Wrap App in BrowserRouter */}
+      <App />
+    </BrowserRouter>
   </StrictMode>
 );

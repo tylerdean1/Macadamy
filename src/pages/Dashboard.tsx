@@ -20,6 +20,7 @@ import { FormField, FormSection } from '@/components/ui/form';
 import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { UserRole } from '@/lib/enums';
+import { useRequireProfile } from '@/hooks/useRequireProfile';
 
 interface EditForm {
   avatar_id?: string;
@@ -32,6 +33,7 @@ interface EditForm {
 }
 
 export function Dashboard() {
+  useRequireProfile();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [contracts, setContracts] = useState<Database['public']['Tables']['contracts']['Row'][]>([]);
@@ -202,11 +204,11 @@ export function Dashboard() {
 
         // Map profile data to safeProfile
         const validRoles = Object.values(UserRole); // Get all valid enum values
-        const safeProfile: Profile = {
+        const safeProfile = {
           id: profileData.id,
           user_role: validRoles.includes(profileData.role as UserRole)
             ? (profileData.role as UserRole)
-            : UserRole.Admin, // Default to "Admin" if role is missing or invalid
+            : UserRole.Admin,
           full_name: profileData.full_name,
           email: profileData.email,
           username: profileData.username,
@@ -217,7 +219,7 @@ export function Dashboard() {
           job_title_id: profileData.job_title_id,
           organizations: profileData.organizations,
           job_titles: profileData.job_titles,
-        };
+        } as Profile;
         setProfile(safeProfile);
 
         // Process custom job title

@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, ShieldCheck, Clock, Users, ClipboardList, PenTool as Tool, FileText, TrendingUp, Truck, Settings, ChevronRight } from 'lucide-react';
+import {
+  Building2, ShieldCheck, Clock, Users, ClipboardList,
+  PenTool as Tool, FileText, TrendingUp, Truck, Settings, ChevronRight
+} from 'lucide-react';
 import { AuthForm } from '../components/AuthForm';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../lib/store';
 import { v4 as uuidv4 } from 'uuid';
+import { validateUserRole } from '../lib/utils/validate-user-role';
 
 function Logo() {
   return (
@@ -41,15 +45,13 @@ function Logo() {
   );
 }
 
-// Define the props for each feature section
 type FeatureSectionProps = {
   title: string;
   description: string;
-  icon: React.ReactNode; // Icon for the section
-  features: string[]; // List of features for this section
+  icon: React.ReactNode;
+  features: string[];
 };
 
-// Component to display individual feature sections
 function FeatureSection({ title, description, icon, features }: FeatureSectionProps) {
   return (
     <div className="bg-background-light p-6 rounded-lg border border-background-lighter hover:border-primary transition-colors">
@@ -69,21 +71,20 @@ function FeatureSection({ title, description, icon, features }: FeatureSectionPr
 }
 
 export function LandingPage() {
-  const [isLogin, setIsLogin] = useState(true); // State for tracking login/signup mode
-  const [error, setError] = useState<string | null>(null); // State for error messages
-  const [success, setSuccess] = useState<string | null>(null); // State for success messages
-  const navigate = useNavigate(); // Hook for navigation
-  const { setUser, clearAuth, setProfile } = useAuthStore(); // Get auth store methods
+  const [isLogin, setIsLogin] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { setUser, clearAuth } = useAuthStore();
 
-  // Handle authentication for logging in or signing up
   const handleAuth = async (identifier: string, password: string) => {
     try {
-      setError(null); // Reset error state
-      setSuccess(null); // Reset success state
+      setError(null);
+      setSuccess(null);
 
       if (isLogin) {
-        const isEmail = identifier.includes('@'); // Check if the identifier is an email
-        let email = identifier;
+        const isEmail = identifier.includes('@');
+        let email = identifier.trim();
 
         if (!isEmail) {
           const { data: profileData, error: profileError } = await supabase
@@ -104,47 +105,80 @@ export function LandingPage() {
           password,
         });
 
-        if (signInError) throw signInError; // Handle sign-in errors
+        if (signInError) throw signInError;
 
         if (signInData.user) {
-          // If logged in with a test account, create a test session
-          if (signInData.user.email === 'test@test.com') {
-            const sessionId = uuidv4();
-            const { error: cloneError } = await supabase.rpc('create_clone_for_test_user', {
-              session_id: sessionId,
-            });
+          const sessionId = uuidv4();
+          console.log('Generated Session ID:', sessionId);
+        
+          console.log('Trying to fetch profile for user ID:', signInData.user.id);
 
-            if (cloneError) {
-              console.error('❌ Failed to clone contract for test user:', cloneError.message);
-            } else {
-              console.log('✅ Cloned contract for test session:', sessionId);
-              localStorage.setItem('test_session_id', sessionId);
-            }
-          }
-
-          const { data: profileData } = await supabase
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('*')
+            .select(`
+              id,
+              role,
+              full_name,
+              email,
+              username,
+              phone,
+              location,
+              avatar_id,
+              job_title_id,
+              organization_id,
+              avatars:avatar_id (
+                url,
+                is_preset
+              ),
+              organizations:organization_id (
+                name,
+                address,
+                phone,
+                website
+              ),
+              job_titles:job_title_id (
+                title,
+                is_custom
+              )
+            `)
             .eq('id', signInData.user.id)
             .single();
-
-          if (profileData) {
-            setUser(signInData.user); // Set user in auth store
-            setProfile({
-              role: profileData.role,
-              fullName: profileData.full_name,
-              email: profileData.email,
-              phone: profileData.phone || '',
-              location: profileData.location || '',
-              company: profileData.company || '',
-              username: profileData.username || '',
-              jobTitleId: profileData.job_title_id,
-              organizationId: profileData.organization_id
-            });
-            navigate('/dashboard'); // Redirect to dashboard
-          } else {
-            navigate('/onboarding'); // Redirect to onboarding if no profile found
+        
+          if (profileError || !profileData) {
+            console.error('Failed to fetch profile data:', profileError?.message || 'No data found');
+            return;
           }
+        
+          const { setUser, setProfile } = useAuthStore.getState();
+          setUser(signInData.user);
+          setProfile({
+            id: profileData.id,
+            user_role: validateUserRole(profileData.role),
+            full_name: profileData.full_name,
+            email: profileData.email,
+            phone: profileData.phone || '',
+            location: profileData.location || '',
+            organization_id: profileData.organization_id || '',
+            username: profileData.username || '',
+            job_title_id: profileData.job_title_id,
+            avatar_id: profileData.avatar_id || null,
+            avatar_url: profileData.avatars?.url || null,
+            avatars: profileData.avatars
+              ? {
+                  url: profileData.avatars.url,
+                  is_preset: profileData.avatars.is_preset,
+                }
+              : null,
+            organizations: profileData.organizations || null,
+            job_titles: profileData.job_titles
+              ? {
+                  title: profileData.job_titles.title,
+                  is_custom: profileData.job_titles.is_custom,
+                }
+              : null,
+          });
+        
+          navigate('/dashboard');
         }
       } else {
         if (!identifier.includes('@')) {
@@ -161,145 +195,52 @@ export function LandingPage() {
           throw new Error('An account with this email already exists');
         }
 
-        // Sign up a new user
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: identifier,
           password,
         });
 
-        if (signUpError) throw signUpError; // Handle sign-up errors
+        if (signUpError) throw signUpError;
 
         if (signUpData.user) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-              id: signUpData.user.id,
-              email: identifier,
-              role: 'Contractor', // Default role
-              full_name: ''
-            });
-
-          if (profileError) {
-            console.error('Profile creation error:', profileError);
-            throw new Error('Error creating user profile');
-          }
-
-          setUser(signUpData.user); // Set user in auth store
-          navigate('/onboarding'); // Redirect to onboarding
+          const { error: profileError } = await supabase.from('profiles').insert({
+            id: signUpData.user.id,
+            email: identifier,
+            role: 'Contractor',
+            full_name: '',
+            created_at: new Date().toISOString(), // ✅ add this line
+          });
+        
+          if (profileError) throw new Error('Error creating user profile');
+        
+          setUser(signUpData.user);
+          navigate('/onboarding');
         }
       }
     } catch (error: unknown) {
       const err = error as Error;
       console.error('Authentication error:', err);
       setError(err.message);
-      clearAuth(); // Clear auth on error
-    }    
+      clearAuth();
+    }
   };
 
   const handleForgotPassword = async (email: string) => {
     try {
-      setError(null); // Reset error state
-      setSuccess(null); // Reset success state
+      setError(null);
+      setSuccess(null);
 
-      // Send password reset instructions to the user
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      if (error) throw error; // Handle errors during reset
+      if (error) throw error;
 
-      setSuccess('Password reset instructions have been sent to your email'); // Notify the user
+      setSuccess('Password reset instructions have been sent to your email');
     } catch (error: unknown) {
       const err = error as Error;
       console.error('Reset password error:', err);
-      setError('Error sending reset instructions. Please try again.'); // Alert of any failures
-    }
-  };
-
-  const handleDevLogin = async () => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: 'test@test.com',
-        password: 'test123',
-      });
-
-      if (error) {
-        console.error('Demo login failed:', error.message);
-        return;
-      }
-
-      const sessionId = uuidv4(); // Create a session ID for the test user
-      const { error: cloneError } = await supabase.rpc('create_clone_for_test_user', {
-        session_id: sessionId
-      });
-
-      if (cloneError) {
-        console.error('Clone failed:', cloneError.message);
-        return;
-      }
-
-      localStorage.setItem('test_session_id', sessionId); // Store the session ID
-
-      // Fetch profile with retries
-      let profileData = null;
-      let attempts = 0;
-      const maxAttempts = 3;
-
-      while (attempts < maxAttempts && !profileData) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select(`
-            id,
-            role,
-            full_name,
-            email,
-            username,
-            phone,
-            location,
-            organization_id,
-            job_title_id,
-            organizations (
-              name,
-              address,
-              phone,
-              website
-            )
-          `)
-          .eq('id', data.user.id)
-          .maybeSingle();
-
-        if (!profileError && profile) {
-          profileData = profile;
-          break;
-        }
-
-        attempts++;
-        if (attempts < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempts)); // Wait before retrying
-        }
-      }
-
-      if (!profileData) {
-        console.error('Failed to fetch profile data');
-        return;
-      }
-
-      useAuthStore.getState().setUser(data.user); // Set user in the auth store
-      useAuthStore.getState().setProfile({
-        role: profileData.role,
-        fullName: profileData.full_name,
-        email: profileData.email,
-        phone: profileData.phone || '',
-        location: profileData.location || '',
-        company: profileData.organizations?.[0]?.name || '',
-        username: profileData.username || '',
-        jobTitleId: profileData.job_title_id,
-        organizationId: profileData.organization_id
-      });
-
-      navigate('/dashboard'); // Redirect to the dashboard
-    } catch (error) {
-      console.error('Demo setup failed:', error);
+      setError('Error sending reset instructions. Please try again.');
     }
   };
 
@@ -320,26 +261,143 @@ export function LandingPage() {
                 Streamline your construction projects with our comprehensive management system.
                 Track materials, labor, equipment, and more in one unified platform.
               </p>
-              <div className="space-x-4">
+              <div className="flex justify-center mt-2">
                 <button
-                  onClick={handleDevLogin}
-                  className="bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-lg font-semibold transition-colors"
+                  onClick={async () => {
+                    try {
+                      const sessionId = uuidv4();
+                      const uuid = uuidv4();
+                      const email = `demo-${uuid}@macadamy.io`;
+                      const password = crypto.randomUUID().slice(0, 20);
+                  
+                      // 1. Sign up temporary user
+                      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                        email,
+                        password,
+                      });
+                  
+                      if (signUpError || !signUpData?.user) {
+                        console.error('Demo signup failed:', signUpError?.message);
+                        return;
+                      }
+                  
+                      const { id: userId } = signUpData.user;
+                  
+                      // 2. Call edge function to fully clone demo environment
+                      const { error: cloneError } = await supabase.functions.invoke('clone_demo_environment', {
+                        body: {
+                          session_id: sessionId,
+                          user_id: userId,
+                          base_contract_id: '8e782d5e-ec84-40bc-8e51-679a424dac95',
+                          base_organization_id: '14344b69-c36b-4e2a-880a-7b24effe1779', 
+                        },
+                      });
+                  
+                      if (cloneError) {
+                        console.error('Edge function clone failed:', cloneError.message);
+                        return;
+                      }
+                  
+                      // 3. Wait for session propagation
+                      await supabase.auth.getSession();
+                      await new Promise((r) => setTimeout(r, 250));
+                  
+                      // 4. Fetch full profile with joins
+                      const { data: userData, error: userError } = await supabase.auth.getUser();
+                      if (!userData?.user || userError) {
+                        console.error('No user found after clone:', userError?.message);
+                        return;
+                      }
+                  
+                      const { data: profileData, error: fetchError } = await supabase
+                        .from('profiles')
+                        .select(`
+                          id,
+                          role,
+                          full_name,
+                          email,
+                          username,
+                          phone,
+                          location,
+                          avatar_id,
+                          job_title_id,
+                          organization_id,
+                          avatars:avatar_id (
+                            url,
+                            is_preset
+                          ),
+                          organizations:organization_id (
+                            name,
+                            address,
+                            phone,
+                            website
+                          ),
+                          job_titles:job_title_id (
+                            title,
+                            is_custom
+                          )
+                        `)
+                        .eq('id', userData.user.id)
+                        .single();
+                  
+                      if (fetchError) {
+                        console.error(`Failed to fetch profile for cloned user ${userData.user.id}:`, fetchError.message);
+                        return;
+                      }
+                  
+                      // 5. Set auth state and redirect
+                      const { setUser, setProfile } = useAuthStore.getState();
+                      setUser(userData.user);
+                      setProfile({
+                        id: profileData.id,
+                        user_role: validateUserRole(profileData.role),
+                        full_name: profileData.full_name,
+                        email: profileData.email,
+                        phone: profileData.phone || '',
+                        location: profileData.location || '',
+                        organization_id: profileData.organization_id || '',
+                        username: profileData.username || '',
+                        job_title_id: profileData.job_title_id,
+                        avatar_id: profileData.avatar_id || null,
+                        avatar_url: profileData.avatars?.url || null,
+                        avatars: profileData.avatars
+                          ? {
+                              url: profileData.avatars.url,
+                              is_preset: profileData.avatars.is_preset,
+                            }
+                          : null,
+                        organizations: profileData.organizations || null,
+                        job_titles: profileData.job_titles
+                          ? {
+                              title: profileData.job_titles.title,
+                              is_custom: profileData.job_titles.is_custom,
+                            }
+                          : null,
+                      });
+                  
+                      localStorage.setItem('test_session_id', sessionId);
+                      navigate('/dashboard');
+                    } catch (err) {
+                      console.error('Try demo setup failed:', err);
+                    }
+                  }}
+                  className="bg-yellow-400/10 text-yellow-300 border border-yellow-300 hover:bg-yellow-400 hover:text-black font-semibold text-sm px-6 py-2 rounded-md transition-colors"
                 >
                   Try Demo Project
                 </button>
-                {import.meta.env.DEV && (
-                  <button
-                    onClick={handleDevLogin}
-                    className="bg-secondary hover:bg-secondary-hover text-white px-8 py-3 rounded-lg font-semibold transition-colors"
-                  >
-                    Dev Login
-                  </button>
-                )}
               </div>
             </div>
             <div className="lg:w-1/2 w-full max-w-md">
-              {error && <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm">{error}</div>}
-              {success && <div className="mb-4 p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-green-500 text-sm">{success}</div>}
+              {error && (
+                <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm">
+                  {error}
+                </div>
+              )}
+              {success && (
+                <div className="mb-4 p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-green-500 text-sm">
+                  {success}
+                </div>
+              )}
               <AuthForm
                 isLogin={isLogin}
                 onSubmit={handleAuth}
@@ -358,37 +416,67 @@ export function LandingPage() {
             icon={<ClipboardList className="w-8 h-8" />}
             title="Contract Management"
             description="Efficiently manage contracts and work breakdown structures"
-            features={['Detailed contract tracking', 'WBS organization', 'Line item management', 'Change order tracking']}
+            features={[
+              'Detailed contract tracking',
+              'WBS organization',
+              'Line item management',
+              'Change order tracking',
+            ]}
           />
           <FeatureSection
             icon={<Truck className="w-8 h-8" />}
             title="Resource Tracking"
             description="Monitor all project resources in real-time"
-            features={['Material inventory', 'Equipment usage logs', 'Labor tracking', 'Supplier management']}
+            features={[
+              'Material inventory',
+              'Equipment usage logs',
+              'Labor tracking',
+              'Supplier management',
+            ]}
           />
           <FeatureSection
             icon={<Tool className="w-8 h-8" />}
             title="Field Operations"
             description="Manage day-to-day field activities"
-            features={['Daily work logs', 'Field measurements', 'Equipment scheduling', 'Safety incident tracking']}
+            features={[
+              'Daily work logs',
+              'Field measurements',
+              'Equipment scheduling',
+              'Safety incident tracking',
+            ]}
           />
           <FeatureSection
             icon={<FileText className="w-8 h-8" />}
             title="Quality Control"
             description="Maintain high standards with comprehensive QC tools"
-            features={['Inspection reports', 'Quality checklists', 'Issue tracking', 'Photo documentation']}
+            features={[
+              'Inspection reports',
+              'Quality checklists',
+              'Issue tracking',
+              'Photo documentation',
+            ]}
           />
           <FeatureSection
             icon={<TrendingUp className="w-8 h-8" />}
             title="Progress Monitoring"
             description="Track project progress and performance"
-            features={['Progress tracking', 'Cost monitoring', 'Schedule updates', 'Performance metrics']}
+            features={[
+              'Progress tracking',
+              'Cost monitoring',
+              'Schedule updates',
+              'Performance metrics',
+            ]}
           />
           <FeatureSection
             icon={<Settings className="w-8 h-8" />}
             title="Project Tools"
             description="Specialized tools for construction management"
-            features={['Quantity calculators', 'Cost estimators', 'Schedule planners', 'Document templates']}
+            features={[
+              'Quantity calculators',
+              'Cost estimators',
+              'Schedule planners',
+              'Document templates',
+            ]}
           />
         </div>
       </div>
@@ -402,28 +490,36 @@ export function LandingPage() {
                 <Building2 className="w-12 h-12" />
               </div>
               <h3 className="text-xl font-semibold mb-2 text-white">All-in-One Solution</h3>
-              <p className="text-gray-400">Everything you need to manage construction projects in one place</p>
+              <p className="text-gray-400">
+                Everything you need to manage construction projects in one place
+              </p>
             </div>
             <div className="text-center">
               <div className="text-primary mb-4 flex justify-center">
                 <ShieldCheck className="w-12 h-12" />
               </div>
               <h3 className="text-xl font-semibold mb-2 text-white">Secure & Reliable</h3>
-              <p className="text-gray-400">Enterprise-grade security and data protection</p>
+              <p className="text-gray-400">
+                Enterprise-grade security and data protection
+              </p>
             </div>
             <div className="text-center">
               <div className="text-primary mb-4 flex justify-center">
                 <Clock className="w-12 h-12" />
               </div>
               <h3 className="text-xl font-semibold mb-2 text-white">Real-time Updates</h3>
-              <p className="text-gray-400">Instant access to project data and updates</p>
+              <p className="text-gray-400">
+                Instant access to project data and updates
+              </p>
             </div>
             <div className="text-center">
               <div className="text-primary mb-4 flex justify-center">
                 <Users className="w-12 h-12" />
               </div>
               <h3 className="text-xl font-semibold mb-2 text-white">Team Collaboration</h3>
-              <p className="text-gray-400">Seamless communication between all project stakeholders</p>
+              <p className="text-gray-400">
+                Seamless communication between all project stakeholders
+              </p>
             </div>
           </div>
         </div>

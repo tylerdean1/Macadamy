@@ -18,13 +18,14 @@ import { ContractStatusSelect } from '@/components/ContractStatusSelect';
 import { Button } from '@mui/material';
 import MapPinIcon from '@mui/icons-material/PinDrop';
 import MapModal from '@/components/MapModal';
-import { parse as parseWKT } from '@terraformer/wkt';
 import type { GeometryData, GeometryType } from '../lib/types';
+import * as wkt from '@terraformer/wkt';
 
-function parseCoordinates(wkt: unknown): GeometryData | null {
+function parseCoordinates(wktString: unknown): GeometryData | null {
   try {
-    if (typeof wkt !== 'string') return null;
-    const geoJSON = parseWKT(wkt) as GeoJSON.Geometry;
+    if (typeof wktString !== 'string') return null;
+    const geoJSON = wkt.parse(wktString) as GeoJSON.Geometry;
+
     if (
       (geoJSON.type === 'Point' || geoJSON.type === 'LineString' || geoJSON.type === 'Polygon') &&
       geoJSON.coordinates
@@ -34,6 +35,7 @@ function parseCoordinates(wkt: unknown): GeometryData | null {
         coordinates: geoJSON.coordinates,
       };
     }
+
     return null;
   } catch (error) {
     console.error('Error parsing WKT:', error);
