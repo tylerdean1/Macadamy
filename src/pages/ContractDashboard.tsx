@@ -19,12 +19,12 @@ import { Button } from '@mui/material';
 import MapPinIcon from '@mui/icons-material/PinDrop';
 import MapModal from '@/components/MapModal';
 import type { GeometryData, GeometryType } from '../lib/types';
-import * as wkt from '@terraformer/wkt';
+import WKT from '@terraformer/wkt';
 
 function parseCoordinates(wktString: unknown): GeometryData | null {
   try {
     if (typeof wktString !== 'string') return null;
-    const geoJSON = wkt.parse(wktString) as GeoJSON.Geometry;
+    const geoJSON = WKT.parse(wktString) as GeoJSON.Geometry;
 
     if (
       (geoJSON.type === 'Point' || geoJSON.type === 'LineString' || geoJSON.type === 'Polygon') &&
