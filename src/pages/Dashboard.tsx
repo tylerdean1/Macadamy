@@ -609,7 +609,7 @@ export function Dashboard() {
           </div>
 
           <div className="space-y-4">
-            {filteredContracts.length === 0 ? ( // Check if there are no contracts matching the search
+            {filteredContracts.length === 0 ? (
               <div className="text-center py-8">
                 <FileText className="w-12 h-12 text-gray-500 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-white mb-2">No Contracts Found</h3>
@@ -620,52 +620,56 @@ export function Dashboard() {
                 </p>
               </div>
             ) : (
-              filteredContracts.map((contract) => ( // Map over filtered contracts to display them
-                console.log('Navigating to contract ID:;', contract.id), // Log the contract ID for debugging
-                <div
-                  key={contract.id}
-                  className="p-4 bg-card rounded-lg border border-border hover:border-primary transition-colors cursor-pointer"
-                  onClick={() => navigate(`/contracts/${contract.id}`)} // Navigate to contract details
-                >
-                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                    <div>
-                    <h3 className="text-lg font-medium text-white mb-2">
-                    {contract.title?.replace(/\s*\(CLONE\)/i, '')?.trim() || 'N/A'}
-                    {contract.title?.includes('(CLONE)') && (
-                      <span className="ml-2 text-xs text-yellow-400 font-semibold">Demo</span>
-                    )}
-                    </h3>
-                      <p className="text-gray-400 mb-4">{contract.description}</p>
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
-                        <div className="flex items-center">
-                          <MapPin className="w-4 h-4 mr-2" />
-                          {contract.location}
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-2" />
-                          {new Date(contract.start_date).toLocaleDateString()} - {new Date(contract.end_date).toLocaleDateString()}
-                        </div>
-                        <div className="flex items-center">
-                          <DollarSign className="w-4 h-4 mr-2" />
-                          ${(contract.budget ?? 0).toLocaleString()} {/* Display contract budget */}
+              <>
+                {filteredContracts.map((contract) => (
+                  <div
+                    key={contract.id}
+                    className="p-4 bg-card rounded-lg border border-border hover:border-primary transition-colors cursor-pointer"
+                    onClick={() => navigate(`/contracts/${contract.id}`)}
+                  >
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                      <div>
+                        <h3 className="text-lg font-medium text-white mb-2">
+                          {contract.title?.replace(/\s*\(CLONE\)/i, '')?.trim() || 'N/A'}
+                          {contract.title?.includes('(CLONE)') && (
+                            <span className="ml-2 text-xs text-yellow-400 font-semibold">Demo</span>
+                          )}
+                        </h3>
+                        <p className="text-gray-400 mb-4">{contract.description}</p>
+                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
+                          <div className="flex items-center">
+                            <MapPin className="w-4 h-4 mr-2" />
+                            {contract.location}
+                          </div>
+                          <div className="flex items-center">
+                            <Calendar className="w-4 h-4 mr-2" />
+                            {new Date(contract.start_date).toLocaleDateString()} - {new Date(contract.end_date).toLocaleDateString()}
+                          </div>
+                          <div className="flex items-center">
+                            <DollarSign className="w-4 h-4 mr-2" />
+                            ${(contract.budget ?? 0).toLocaleString()}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant={
-                          contract.status === 'Active' ? 'success' :
-                          contract.status === 'Final Review' ? 'info' :
-                          contract.status === 'Closed' ? 'danger' :
-                          'warning'
-                        }
-                      >
-                        {contract.status} {/* Display the contract status with appropriate coloring */}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={
+                            contract.status === 'Active'
+                              ? 'success'
+                              : contract.status === 'Final Review'
+                              ? 'info'
+                              : contract.status === 'Closed'
+                              ? 'danger'
+                              : 'warning'
+                          }
+                        >
+                          {contract.status}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                ))}
+              </>
             )}
           </div>
         </div>
