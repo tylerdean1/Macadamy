@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "pull-db": "supabase db pull",
     "gen-db-types": "supabase gen types typescript --project-id koaxmrtrzhilnzjbiybr --schema public > src/lib/database.types.ts",
-    "update-db-types": "npm run pull-db && npm run gen-db-types"
+    "update-db-types": "npm run pull-db && npm run gen-db-types",
+    "deploy-functions": "for /D %f in (supabase/functions/*) do supabase functions deploy %~nxf",
+    "sync-backend": "npm run update-db-types && npm run deploy-functions"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

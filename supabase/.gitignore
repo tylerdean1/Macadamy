@@ -1,8 +1,15 @@
-# Supabase
-.branches
-.temp
-
-# dotenvx
-.env.keys
+# Environment Variables
+.env
 .env.local
 .env.*.local
+.env.keys
+
+# Supabase CLI junk (if ever reinstalled)
+.branches
+.temp
+supabase/config.toml
+supabase/migrations/
+supabase/.temp/
+
+# Deno cache (if using Deno for Edge Functions)
+deno.lock
