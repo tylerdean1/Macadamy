@@ -630,8 +630,8 @@ export function Dashboard() {
                   <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                     <div>
                     <h3 className="text-lg font-medium text-white mb-2">
-                    {contract.title.replace(/\s+\(CLONE\)/, '')}
-                    {contract.title.includes('(CLONE)') && (
+                    {contract.title?.replace(/\s*\(CLONE\)/i, '')?.trim() || 'N/A'}
+                    {contract.title?.includes('(CLONE)') && (
                       <span className="ml-2 text-xs text-yellow-400 font-semibold">Demo</span>
                     )}
                     </h3>

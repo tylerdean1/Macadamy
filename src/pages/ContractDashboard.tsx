@@ -19,20 +19,20 @@ import { Button } from '@mui/material';
 import MapPinIcon from '@mui/icons-material/PinDrop';
 import MapModal from '@/components/MapModal';
 import type { GeometryData, GeometryType } from '../lib/types';
-import WKT from '@terraformer/wkt';
+import { parse } from '@terraformer/wkt';
 
 function parseCoordinates(wktString: unknown): GeometryData | null {
   try {
     if (typeof wktString !== 'string') return null;
-    const geoJSON = WKT.parse(wktString) as GeoJSON.Geometry;
+    const parsed = parse(wktString) as GeoJSON.Geometry;
 
     if (
-      (geoJSON.type === 'Point' || geoJSON.type === 'LineString' || geoJSON.type === 'Polygon') &&
-      geoJSON.coordinates
+      (parsed.type === 'Point' || parsed.type === 'LineString' || parsed.type === 'Polygon') &&
+      parsed.coordinates
     ) {
       return {
-        type: geoJSON.type as GeometryType,
-        coordinates: geoJSON.coordinates,
+        type: parsed.type as GeometryType,
+        coordinates: parsed.coordinates,
       };
     }
 
@@ -430,9 +430,16 @@ export function ContractDashboard() {
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
               <div className="flex-1">
                 <div className="flex items-center gap-4">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 break-words">
-                    {contract.title || 'N/A'}
+                <div className="flex items-center gap-2 mb-2">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-white break-words">
+                  {contract.title?.replace(/\s*\(CLONE\)/i, '')?.trim() || 'N/A'}
                   </h1>
+                  {contract.title?.includes('(CLONE)') && (
+                    <span className="px-2 py-0.5 text-xs rounded-md bg-yellow-500/20 text-yellow-300 font-medium border border-yellow-500">
+                      Demo
+                    </span>
+                  )}
+                </div>
                   <ContractStatusSelect
                     value={contract.status as Contract['status']}
                     onChange={async (newStatus) => {
