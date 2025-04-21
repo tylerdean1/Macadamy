@@ -344,7 +344,7 @@ export function Dashboard() {
                   {profile?.organizations?.name && (
                     <p className="flex items-center">
                       <Building2 className="w-4 h-4 mr-2" />
-                      {profile.organizations.name}
+                      {profile.organizations.name.replace(/\s+\(DEMO:.*?\)/, '')}
                     </p>
                   )}
                   {profile?.job_titles?.title && (
@@ -629,7 +629,12 @@ export function Dashboard() {
                 >
                   <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                     <div>
-                      <h3 className="text-lg font-medium text-white mb-2">{contract.title}</h3>
+                    <h3 className="text-lg font-medium text-white mb-2">
+                    {contract.title.replace(/\s+\(CLONE\)/, '')}
+                    {contract.title.includes('(CLONE)') && (
+                      <span className="ml-2 text-xs text-yellow-400 font-semibold">Demo</span>
+                    )}
+                    </h3>
                       <p className="text-gray-400 mb-4">{contract.description}</p>
                       <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
                         <div className="flex items-center">
