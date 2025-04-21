@@ -19,16 +19,19 @@ import { Button } from '@mui/material';
 import MapPinIcon from '@mui/icons-material/PinDrop';
 import MapModal from '@/components/MapModal';
 import type { GeometryData, GeometryType } from '../lib/types';
-import { parse } from '@terraformer/wkt';
 
-function parseCoordinates(wktString: unknown): GeometryData | null {
+async function parseCoordinates(wktString: unknown): Promise<GeometryData | null> {
   try {
     if (typeof wktString !== 'string') return null;
-    const parsed = parse(wktString) as GeoJSON.Geometry;
+
+    const { default: WKT } = await import('@terraformer/wkt');
+    const parsed = WKT.parse(wktString as string) as GeoJSON.Geometry;
 
     if (
-      (parsed.type === 'Point' || parsed.type === 'LineString' || parsed.type === 'Polygon') &&
-      parsed.coordinates
+      (parsed.type === 'Point' ||
+        parsed.type === 'LineString' ||
+        parsed.type === 'Polygon') &&
+      'coordinates' in parsed
     ) {
       return {
         type: parsed.type as GeometryType,
@@ -185,9 +188,9 @@ export function ContractDashboard() {
             .select('*')
             .eq('wbs_id', wbs.id)
             .order('map_number');
-
+      
           if (mapError) throw mapError;
-
+      
           const processedMaps = await Promise.all(
             (mapLocations || []).map(async (map) => {
               const { data: lineItems, error: lineError } = await supabase
@@ -208,42 +211,44 @@ export function ContractDashboard() {
                 `)
                 .eq('map_id', map.id)
                 .order('line_code');
-
+      
               if (lineError) throw lineError;
-
+      
               const processedLineItems = (lineItems || []).map((item) => {
                 if (!item.map_id) {
                   throw new Error(`Missing map_id for line_item ${item.id}`);
                 }
-              
+      
                 const totalComputedOutput = (item.line_item_entries || []).reduce(
                   (sum, entry) => sum + (entry.computed_output ?? 0),
                   0
                 );
-              
+      
                 return {
                   ...item,
-                  map_id: item.map_id, // safe to use now
+                  map_id: item.map_id,
                   total_cost: (item.quantity ?? 0) * (item.unit_price ?? 0),
                   amount_paid: totalComputedOutput * (item.unit_price ?? 0),
                 };
               });
-
+      
               const mapTotal = processedLineItems.reduce(
                 (sum, item) => sum + item.total_cost,
                 0
               );
-
+      
               const mapPaid = processedLineItems.reduce(
                 (sum, item) => sum + item.amount_paid,
                 0
               );
-
+      
+              const coordinates = await parseCoordinates(map.coordinates);
+      
               return {
                 id: map.id,
                 map_number: map.map_number,
                 location_description: map.location_description || null,
-                coordinates: parseCoordinates(map.coordinates) || null,
+                coordinates,
                 line_items: processedLineItems,
                 contractTotal: mapTotal,
                 amountPaid: mapPaid,
@@ -251,10 +256,10 @@ export function ContractDashboard() {
               };
             })
           );
-
+      
           const wbsTotal = processedMaps.reduce((sum, m) => sum + m.contractTotal, 0);
           const wbsPaid = processedMaps.reduce((sum, m) => sum + m.amountPaid, 0);
-
+      
           return {
             wbs: wbs.wbs_number,
             description: wbs.description ?? '',
@@ -265,8 +270,9 @@ export function ContractDashboard() {
           };
         })
       );
-
+      
       setWbsGroups(processedGroups);
+      
     } catch (err) {
       console.error('Error fetching contract:', err);
       setError('Error loading contract details');
