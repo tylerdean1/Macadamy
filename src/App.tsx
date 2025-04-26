@@ -49,16 +49,20 @@ function DemoRedirect() {
     const setupDemoUser = async () => {
       try {
         setLoading(true);
+
+        console.log('[Demo] Signing in demo user...');
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
           email: 'test@test.com',
           password: 'test123',
         });
+        console.log('[Demo] Sign in result:', { authData, authError });
 
         if (authError || !authData.user) {
           throw new Error(authError?.message || 'Failed to authenticate demo user');
         }
 
         setUser(authData.user);
+        console.log('[Demo] Set Zustand user:', authData.user);
 
         const sessionId = uuidv4();
         const { error: cloneError } = await supabase.rpc('create_clone_for_test_user', {
@@ -66,6 +70,7 @@ function DemoRedirect() {
         });
 
         if (cloneError) throw new Error('Failed to create demo environment');
+        console.log('[Demo] Created demo session:', sessionId);
         localStorage.setItem('demo_session_id', sessionId);
 
         let attempts = 0;
@@ -73,6 +78,7 @@ function DemoRedirect() {
         let profileData: ProfileQueryResult | null = null;
 
         while (attempts < maxAttempts && !profileData) {
+          console.log(`[Demo] Attempting profile fetch (try ${attempts + 1})`);
           const { data, error: profileError } = await supabase
             .from('profiles')
             .select(`
@@ -106,9 +112,11 @@ function DemoRedirect() {
 
           if (!profileError && data) {
             profileData = data;
+            console.log('[Demo] Profile fetched:', profileData);
             break;
           }
 
+          console.warn('[Demo] Profile fetch error:', profileError);
           attempts++;
           if (attempts < maxAttempts) {
             await new Promise((resolve) => setTimeout(resolve, 1000 * attempts));
@@ -156,6 +164,7 @@ function DemoRedirect() {
               },
         });
 
+        console.log('[Demo] Set Zustand profile');
         setLoading(false);
       } catch (error) {
         console.error('Demo setup error:', error);
@@ -211,11 +220,22 @@ function DemoRedirect() {
 }
 
 export default function App() {
-  const isLoading = useBootstrapAuth();
+  const isLoading = useBootstrapAuth(); // 👈 you missed USING this part properly earlier
   const location = useLocation();
   const hideNavbarRoutes = ['/', '/reset-password', '/onboarding'];
   const shouldShowNavbar = !hideNavbarRoutes.includes(location.pathname);
 
+  useEffect(() => {
+    const debugSession = async () => {
+      const session = await supabase.auth.getSession();
+      const user = await supabase.auth.getUser();
+      console.log('[App Debug] Session:', session);
+      console.log('[App Debug] User:', user);
+    };
+    debugSession();
+  }, []);
+
+  // 🧠 THIS is the missing piece you needed
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -237,21 +257,9 @@ export default function App() {
         <Route path="/onboarding" element={<UserOnboarding />} />
         <Route path="/demo" element={<DemoRedirect />} />
         <Route path="/demo/create" element={<ContractCreation />} />
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/contracts/:id" element={
-          <ProtectedRoute>
-            <ContractDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/contracts/:id/contractsettings" element={
-          <ProtectedRoute>
-            <ContractSettings />
-          </ProtectedRoute>
-        } />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/contracts/:id" element={<ProtectedRoute><ContractDashboard /></ProtectedRoute>} />
+        <Route path="/contracts/:id/contractsettings" element={<ProtectedRoute><ContractSettings /></ProtectedRoute>} />
       </Routes>
       <Analytics />
     </>
