@@ -17,6 +17,7 @@ const supabase =
     auth: {
       persistSession: true,
       autoRefreshToken: true,
+      detectSessionInUrl: false,
       storageKey: 'macadamy.auth.token', // ✅ custom key to avoid overlap
     },
     db: {

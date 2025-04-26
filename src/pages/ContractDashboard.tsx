@@ -446,20 +446,22 @@ export function ContractDashboard() {
                     </span>
                   )}
                 </div>
-                  <ContractStatusSelect
-                    value={contract.status as Contract['status']}
-                    onChange={async (newStatus) => {
-                      const { error } = await supabase
-                        .from('contracts')
-                        .update({ status: newStatus })
-                        .eq('id', contract.id);
-                      if (!error) {
-                        setContract((prev) =>
-                          prev ? { ...prev, status: newStatus } : null
-                        );
-                      }
-                    }}
-                  />
+                  {contract.status && (
+                    <ContractStatusSelect
+                      value={contract.status as Contract['status']}
+                      onChange={async (newStatus) => {
+                        const { error } = await supabase
+                          .from('contracts')
+                          .update({ status: newStatus })
+                          .eq('id', contract.id);
+                        if (!error) {
+                          setContract((prev) =>
+                            prev ? { ...prev, status: newStatus } : null
+                          );
+                        }
+                      }}
+                    />
+                  )}
                 </div>
                 <h2 className="text-lg sm:text-xl text-gray-400">{contract.description}</h2>
               </div>

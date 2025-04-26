@@ -2,7 +2,7 @@ import React, { useState } from 'react'; // Import React and useState hook
 import { Input } from '@/components/ui/input'; // Import custom Input component
 import { Button } from '@/components/ui/button'; // Import custom Button component
 import { MapModal } from '@/components/contract/MapModal'; // Import MapModal component for location selection
-import { supabase } from '@/supabase'; // Import supabase client
+import { supabase } from '@/lib/supabase'; // Import supabase client
 import { GoogleMap, Marker, Polyline, Polygon, useJsApiLoader } from '@react-google-maps/api'; // Import Google Maps components
 import type { TablesInsert } from '@/types/supabase'; // Import type for Supabase insert
 import { toast } from 'sonner'; // Import toast for notifications

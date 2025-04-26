@@ -4,7 +4,6 @@ import {
   Building2, Mail, MapPin, Phone, Plus, Search, FileText, Calendar,
   DollarSign, AlertTriangle, ClipboardList, Pencil
 } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/lib/database.types';
 import { toast } from 'react-hot-toast';
@@ -21,6 +20,9 @@ import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { UserRole } from '@/lib/enums';
 import { useRequireProfile } from '@/hooks/useRequireProfile';
+import { useAuthStore } from '@/lib/store';
+
+
 
 interface EditForm {
   avatar_id?: string;
@@ -188,6 +190,10 @@ export function Dashboard() {
         setJobTitles(jobData || []);
 
         // Fetch profile
+        if (!user?.id) {
+          console.error('User is undefined! Cannot fetch profile.');
+          return;
+        }
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select(`
@@ -630,25 +636,31 @@ export function Dashboard() {
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                       <div>
                         <h3 className="text-lg font-medium text-white mb-2">
-                          {contract.title?.replace(/\s*\(CLONE\)/i, '')?.trim() || 'N/A'}
-                          {contract.title?.includes('(CLONE)') && (
+                          {contract.title?.replace(/\s*\(Demo:.*?\)/i, '')?.trim() || 'N/A'}
+                          {contract.title?.includes('(Demo:') && (
                             <span className="ml-2 text-xs text-yellow-400 font-semibold">Demo</span>
                           )}
                         </h3>
                         <p className="text-gray-400 mb-4">{contract.description}</p>
                         <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
-                          <div className="flex items-center">
-                            <MapPin className="w-4 h-4 mr-2" />
-                            {contract.location}
-                          </div>
-                          <div className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-2" />
-                            {new Date(contract.start_date).toLocaleDateString()} - {new Date(contract.end_date).toLocaleDateString()}
-                          </div>
-                          <div className="flex items-center">
-                            <DollarSign className="w-4 h-4 mr-2" />
-                            ${(contract.budget ?? 0).toLocaleString()}
-                          </div>
+                          {contract.location && (
+                            <div className="flex items-center">
+                              <MapPin className="w-4 h-4 mr-2" />
+                              {contract.location}
+                            </div>
+                          )}
+                          {contract.start_date && contract.end_date && (
+                            <div className="flex items-center">
+                              <Calendar className="w-4 h-4 mr-2" />
+                              {new Date(contract.start_date).toLocaleDateString()} - {new Date(contract.end_date).toLocaleDateString()}
+                            </div>
+                          )}
+                          {typeof contract.budget === 'number' && (
+                            <div className="flex items-center">
+                              <DollarSign className="w-4 h-4 mr-2" />
+                              ${contract.budget.toLocaleString()}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
