@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../lib/store';
 import { v4 as uuidv4 } from 'uuid';
 import { validateUserRole } from '../lib/utils/validate-user-role';
+import { toast } from 'react-hot-toast';
 
 function Logo() {
   return (
@@ -278,6 +279,7 @@ export function LandingPage() {
                   
                       if (signUpError || !signUpData?.user) {
                         console.error('Demo signup failed:', signUpError?.message);
+                        toast.error("Demo signup failed. Please try again.");
                         return;
                       }
                   
@@ -288,23 +290,24 @@ export function LandingPage() {
                         body: {
                           session_id: sessionId,
                           user_id: userId,
-                          base_contract_id: '8e782d5e-ec84-40bc-8e51-679a424dac95',
-                          base_organization_id: '14344b69-c36b-4e2a-880a-7b24effe1779', 
                         },
                       });
                   
                       if (cloneError) {
                         console.error('Edge function clone failed:', cloneError.message);
+                        toast.error("Demo environment setup failed. Please try again.");
                         return;
                       }
                   
-                      // 3. Wait for session propagation
-                      await supabase.auth.getSession();
-                      await new Promise((r) => setTimeout(r, 250));
+                      toast.success("Demo environment ready! Redirecting...");
+
+                      // 3. Wait for session propagationconsole.error('Demo signup failed:',
+                      await new Promise((r) => setTimeout(r, 500));
                   
                       // 4. Fetch full profile with joins
                       const { data: userData, error: userError } = await supabase.auth.getUser();
-                      if (!userData?.user || userError) {
+                      if (userError || !userData?.user?.id) {
+                        toast.error("Failed to fetch user after setup.");
                         console.error('No user found after clone:', userError?.message);
                         return;
                       }
