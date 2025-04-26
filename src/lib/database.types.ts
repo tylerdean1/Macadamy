@@ -7,6 +7,31 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          operationName?: string
+          query?: string
+          variables?: Json
+          extensions?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       asphalt_types: {
@@ -117,6 +142,7 @@ export type Database = {
           line_item_id: string | null
           new_quantity: number
           new_unit_price: number | null
+          session_id: string | null
           status: Database["public"]["Enums"]["change_order_status"]
           submitted_date: string
           title: string
@@ -135,6 +161,7 @@ export type Database = {
           line_item_id?: string | null
           new_quantity: number
           new_unit_price?: number | null
+          session_id?: string | null
           status?: Database["public"]["Enums"]["change_order_status"]
           submitted_date?: string
           title: string
@@ -153,6 +180,7 @@ export type Database = {
           line_item_id?: string | null
           new_quantity?: number
           new_unit_price?: number | null
+          session_id?: string | null
           status?: Database["public"]["Enums"]["change_order_status"]
           submitted_date?: string
           title?: string
@@ -185,6 +213,7 @@ export type Database = {
           notes: string | null
           organization_id: string
           role: Database["public"]["Enums"]["organization_role"] | null
+          session_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -195,6 +224,7 @@ export type Database = {
           notes?: string | null
           organization_id: string
           role?: Database["public"]["Enums"]["organization_role"] | null
+          session_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -205,6 +235,7 @@ export type Database = {
           notes?: string | null
           organization_id?: string
           role?: Database["public"]["Enums"]["organization_role"] | null
+          session_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -295,6 +326,7 @@ export type Database = {
           map_location_id: string | null
           profile_id: string
           role: string | null
+          session_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -307,6 +339,7 @@ export type Database = {
           map_location_id?: string | null
           profile_id: string
           role?: string | null
+          session_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -319,6 +352,7 @@ export type Database = {
           map_location_id?: string | null
           profile_id?: string
           role?: string | null
+          session_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -361,6 +395,7 @@ export type Database = {
           id: string
           name: string
           organization_id: string
+          session_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -371,6 +406,7 @@ export type Database = {
           id?: string
           name: string
           organization_id: string
+          session_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -381,6 +417,7 @@ export type Database = {
           id?: string
           name?: string
           organization_id?: string
+          session_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -416,6 +453,7 @@ export type Database = {
           id: string
           log_date: string
           safety_incidents: string | null
+          session_id: string | null
           temperature: number | null
           updated_at: string | null
           updated_by: string | null
@@ -431,6 +469,7 @@ export type Database = {
           id?: string
           log_date?: string
           safety_incidents?: string | null
+          session_id?: string | null
           temperature?: number | null
           updated_at?: string | null
           updated_by?: string | null
@@ -446,6 +485,7 @@ export type Database = {
           id?: string
           log_date?: string
           safety_incidents?: string | null
+          session_id?: string | null
           temperature?: number | null
           updated_at?: string | null
           updated_by?: string | null
@@ -493,6 +533,7 @@ export type Database = {
           id: string
           notes: string | null
           payload_capacity_tons: number
+          session_id: string | null
           truck_identifier: string
           weight_capacity_tons: number | null
         }
@@ -511,6 +552,7 @@ export type Database = {
           id?: string
           notes?: string | null
           payload_capacity_tons: number
+          session_id?: string | null
           truck_identifier: string
           weight_capacity_tons?: number | null
         }
@@ -529,6 +571,7 @@ export type Database = {
           id?: string
           notes?: string | null
           payload_capacity_tons?: number
+          session_id?: string | null
           truck_identifier?: string
           weight_capacity_tons?: number | null
         }
@@ -550,6 +593,7 @@ export type Database = {
           id: string
           name: string
           operator_id: string | null
+          session_id: string | null
           user_defined_id: string
         }
         Insert: {
@@ -559,6 +603,7 @@ export type Database = {
           id?: string
           name: string
           operator_id?: string | null
+          session_id?: string | null
           user_defined_id: string
         }
         Update: {
@@ -568,6 +613,7 @@ export type Database = {
           id?: string
           name?: string
           operator_id?: string | null
+          session_id?: string | null
           user_defined_id?: string
         }
         Relationships: [
@@ -597,6 +643,7 @@ export type Database = {
           id: string
           notes: string | null
           operator_id: string | null
+          session_id: string | null
           start_date: string
           status: string | null
           updated_at: string | null
@@ -610,6 +657,7 @@ export type Database = {
           id?: string
           notes?: string | null
           operator_id?: string | null
+          session_id?: string | null
           start_date: string
           status?: string | null
           updated_at?: string | null
@@ -623,6 +671,7 @@ export type Database = {
           id?: string
           notes?: string | null
           operator_id?: string | null
+          session_id?: string | null
           start_date?: string
           status?: string | null
           updated_at?: string | null
@@ -653,6 +702,7 @@ export type Database = {
       }
       equipment_usage: {
         Row: {
+          contract_id: string | null
           created_at: string | null
           created_by: string | null
           equipment_id: string | null
@@ -663,11 +713,13 @@ export type Database = {
           notes: string | null
           operator_id: string | null
           operator_name: string | null
+          session_id: string | null
           updated_at: string | null
           updated_by: string | null
           usage_date: string
         }
         Insert: {
+          contract_id?: string | null
           created_at?: string | null
           created_by?: string | null
           equipment_id?: string | null
@@ -678,11 +730,13 @@ export type Database = {
           notes?: string | null
           operator_id?: string | null
           operator_name?: string | null
+          session_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
           usage_date?: string
         }
         Update: {
+          contract_id?: string | null
           created_at?: string | null
           created_by?: string | null
           equipment_id?: string | null
@@ -693,11 +747,19 @@ export type Database = {
           notes?: string | null
           operator_id?: string | null
           operator_name?: string | null
+          session_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
           usage_date?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "equipment_usage_contract_fk"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "equipment_usage_created_by_fkey"
             columns: ["created_by"]
@@ -747,6 +809,7 @@ export type Database = {
           name: string
           pdf_url: string | null
           photo_urls: string[] | null
+          session_id: string | null
           updated_at: string | null
           updated_by: string | null
           wbs_id: string | null
@@ -762,6 +825,7 @@ export type Database = {
           name: string
           pdf_url?: string | null
           photo_urls?: string[] | null
+          session_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
           wbs_id?: string | null
@@ -777,6 +841,7 @@ export type Database = {
           name?: string
           pdf_url?: string | null
           photo_urls?: string[] | null
+          session_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
           wbs_id?: string | null
@@ -841,6 +906,7 @@ export type Database = {
           photo_urls: string[] | null
           priority: string
           resolution: string | null
+          session_id: string | null
           status: string
           title: string
           updated_at: string | null
@@ -861,6 +927,7 @@ export type Database = {
           photo_urls?: string[] | null
           priority: string
           resolution?: string | null
+          session_id?: string | null
           status: string
           title: string
           updated_at?: string | null
@@ -881,6 +948,7 @@ export type Database = {
           photo_urls?: string[] | null
           priority?: string
           resolution?: string | null
+          session_id?: string | null
           status?: string
           title?: string
           updated_at?: string | null
@@ -990,6 +1058,7 @@ export type Database = {
           id: string
           line_item_id: string
           notes: string | null
+          session_id: string | null
           start_date: string
           status: string | null
           updated_at: string | null
@@ -1002,6 +1071,7 @@ export type Database = {
           id?: string
           line_item_id: string
           notes?: string | null
+          session_id?: string | null
           start_date: string
           status?: string | null
           updated_at?: string | null
@@ -1014,6 +1084,7 @@ export type Database = {
           id?: string
           line_item_id?: string
           notes?: string | null
+          session_id?: string | null
           start_date?: string
           status?: string | null
           updated_at?: string | null
@@ -1053,6 +1124,7 @@ export type Database = {
           line_item_id: string
           map_id: string
           notes: string | null
+          session_id: string | null
           wbs_id: string
         }
         Insert: {
@@ -1065,6 +1137,7 @@ export type Database = {
           line_item_id: string
           map_id: string
           notes?: string | null
+          session_id?: string | null
           wbs_id: string
         }
         Update: {
@@ -1077,6 +1150,7 @@ export type Database = {
           line_item_id?: string
           map_id?: string
           notes?: string | null
+          session_id?: string | null
           wbs_id?: string
         }
         Relationships: [
@@ -1120,6 +1194,7 @@ export type Database = {
           line_item_id: string
           notes: string | null
           operator_id: string | null
+          session_id: string | null
           start_date: string
           status: string | null
           updated_at: string | null
@@ -1133,6 +1208,7 @@ export type Database = {
           line_item_id: string
           notes?: string | null
           operator_id?: string | null
+          session_id?: string | null
           start_date: string
           status?: string | null
           updated_at?: string | null
@@ -1146,6 +1222,7 @@ export type Database = {
           line_item_id?: string
           notes?: string | null
           operator_id?: string | null
+          session_id?: string | null
           start_date?: string
           status?: string | null
           updated_at?: string | null
@@ -1248,6 +1325,7 @@ export type Database = {
           map_id: string | null
           quantity: number
           reference_doc: string | null
+          session_id: string | null
           template_id: string | null
           unit_measure: Database["public"]["Enums"]["unit_measure_type"]
           unit_price: number
@@ -1263,6 +1341,7 @@ export type Database = {
           map_id?: string | null
           quantity: number
           reference_doc?: string | null
+          session_id?: string | null
           template_id?: string | null
           unit_measure: Database["public"]["Enums"]["unit_measure_type"]
           unit_price: number
@@ -1278,6 +1357,7 @@ export type Database = {
           map_id?: string | null
           quantity?: number
           reference_doc?: string | null
+          session_id?: string | null
           template_id?: string | null
           unit_measure?: Database["public"]["Enums"]["unit_measure_type"]
           unit_price?: number
@@ -1317,6 +1397,7 @@ export type Database = {
           id: string
           location_description: string | null
           map_number: string
+          session_id: string | null
           updated_at: string | null
           wbs_id: string
         }
@@ -1328,6 +1409,7 @@ export type Database = {
           id?: string
           location_description?: string | null
           map_number: string
+          session_id?: string | null
           updated_at?: string | null
           wbs_id: string
         }
@@ -1339,6 +1421,7 @@ export type Database = {
           id?: string
           location_description?: string | null
           map_number?: string
+          session_id?: string | null
           updated_at?: string | null
           wbs_id?: string
         }
@@ -1405,9 +1488,10 @@ export type Database = {
           avatar_id: string | null
           avatar_url: string | null
           created_at: string | null
-          email: string
+          email: string | null
           full_name: string
           id: string
+          is_demo_user: boolean | null
           job_title_id: string | null
           location: string | null
           organization_id: string | null
@@ -1420,9 +1504,10 @@ export type Database = {
           avatar_id?: string | null
           avatar_url?: string | null
           created_at?: string | null
-          email: string
+          email?: string | null
           full_name: string
           id: string
+          is_demo_user?: boolean | null
           job_title_id?: string | null
           location?: string | null
           organization_id?: string | null
@@ -1435,9 +1520,10 @@ export type Database = {
           avatar_id?: string | null
           avatar_url?: string | null
           created_at?: string | null
-          email?: string
+          email?: string | null
           full_name?: string
           id?: string
+          is_demo_user?: boolean | null
           job_title_id?: string | null
           location?: string | null
           organization_id?: string | null
@@ -1522,16 +1608,19 @@ export type Database = {
         Row: {
           contract_id: string
           role: Database["public"]["Enums"]["user_role"] | null
+          session_id: string | null
           user_id: string
         }
         Insert: {
           contract_id: string
           role?: Database["public"]["Enums"]["user_role"] | null
+          session_id?: string | null
           user_id: string
         }
         Update: {
           contract_id?: string
           role?: Database["public"]["Enums"]["user_role"] | null
+          session_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1559,6 +1648,7 @@ export type Database = {
           description: string | null
           id: string
           scope: string | null
+          session_id: string | null
           updated_at: string | null
           wbs_number: string
         }
@@ -1569,6 +1659,7 @@ export type Database = {
           description?: string | null
           id?: string
           scope?: string | null
+          session_id?: string | null
           updated_at?: string | null
           wbs_number: string
         }
@@ -1579,6 +1670,7 @@ export type Database = {
           description?: string | null
           id?: string
           scope?: string | null
+          session_id?: string | null
           updated_at?: string | null
           wbs_number?: string
         }
@@ -1847,8 +1939,8 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
-      create_clone_for_test_user: {
-        Args: { session_id: string }
+      create_full_clone_for_test_user: {
+        Args: { session_id: string; user_id: string }
         Returns: undefined
       }
       disablelongtransactions: {
@@ -3601,6 +3693,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       asphalt_type: [

@@ -56,7 +56,7 @@ const getStatusColor = (status: string) =>
     : 'text-green-500';
 
 // Issues component for managing and displaying issues
-export default function Issues() {
+export function Issues() {
   const { id: contract_id } = useRouteParamsAndNavigation().params; // Get contract ID from route parameters
   const user = useAuthStore((state) => state.user); // Get current user from auth store
   const canEdit = ['admin', 'engineer', 'inspector'].includes(user?.role || ''); // Determine if the user can edit issues
@@ -85,13 +85,19 @@ export default function Issues() {
   // Fetch issues from Supabase
   const fetchIssues = useCallback(async () => {
     const { data } = await supabase
-      .from('issues') // Get issues from 'issues' table
-      .select('*, profiles:profiles!assigned_to(full_name,email)') // Join to get assignee profiles
-      .eq('contract_id', contract_id) // Filter by contract ID
-      .order('created_at', { ascending: false }); // Order by creation date
-
-    setIssues(data || []); // Set issues state
-    setFilteredIssues(data || []); // Set filtered issues state
+    .from('issues')
+    .select('*, profiles:profiles!assigned_to(full_name,email)')
+    .eq('contract_id', contract_id ?? '')
+    .order('created_at', { ascending: false })
+    .returns<Issue[]>();
+  
+    if (Array.isArray(data)) {
+      setIssues(data);
+      setFilteredIssues(data);
+    } else {
+      setIssues([]);
+      setFilteredIssues([]);
+    }
   }, [contract_id]); // Dependencies
 
   // Fetch issues and assignees on component mount
@@ -120,33 +126,69 @@ export default function Issues() {
 
   // Fetch assignees from Supabase
   const fetchAssignees = async () => {
-    const { data } = await supabase.from('profiles').select('id, full_name').order('full_name'); // Get profiles
-    setAssignees((data || []).map(({ id, full_name }) => ({ id, name: full_name }))); // Set state
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .order('full_name');
+  
+    setAssignees((data || []).map((profile) => ({
+      id: profile.id,
+      name: profile.full_name, // <-- Mapped full_name to name
+    })));
   };
 
-  // Fetch WBS from Supabase
-  const fetchWBS = async (contractId: string) => {
-    const { data } = await supabase.from('wbs').select('id, name').eq('contract_id', contractId); // Fetch WBS
-    setWbsList(data || []); // Update WBS list
-  };
+// Fetch WBS from Supabase
+const fetchWBS = async (contractId: string) => {
+  const { data } = await supabase
+    .from('wbs')
+    .select('id, wbs_number') // maybe wbs_number or name depending what you want
+    .eq('contract_id', contractId);
 
-  // Fetch maps from Supabase
-  const fetchMaps = async (wbsId: string) => {
-    const { data } = await supabase.from('maps').select('id, name').eq('wbs_id', wbsId); // Fetch maps
-    setMapList(data || []); // Update map list
-  };
+  setWbsList((data || []).map((wbs) => ({
+    id: wbs.id,
+    name: wbs.wbs_number, // <-- map wbs_number as name
+  })));
+};
 
-  // Fetch line items from Supabase
-  const fetchLineItems = async (mapId: string) => {
-    const { data } = await supabase.from('line_items').select('id, description').eq('map_id', mapId); // Fetch line items
-    setLineItems((data || []).map(li => ({ id: li.id, name: li.description }))); // Update line item list
-  };
+// Fetch Maps from Supabase
+const fetchMaps = async (wbsId: string) => {
+  const { data } = await supabase
+    .from('maps')
+    .select('id, map_number')
+    .eq('wbs_id', wbsId);
 
-  // Fetch equipment from Supabase
-  const fetchEquipment = async (contractId: string) => {
-    const { data } = await supabase.from('equipment').select('id, name').eq('contract_id', contractId); // Fetch equipment
-    setEquipmentList(data || []); // Update equipment list
-  };
+  setMapList((data || []).map((map) => ({
+    id: map.id,
+    name: map.map_number, // <-- map map_number to name
+  })));
+};
+
+// Fetch Line Items from Supabase
+const fetchLineItems = async (mapId: string) => {
+  const { data } = await supabase
+    .from('line_items')
+    .select('id, description')
+    .eq('map_id', mapId);
+
+  setLineItems((data || []).map((li) => ({
+    id: li.id,
+    name: li.description, // <-- map description to name
+  })));
+};
+
+
+// Fetch Equipment from Supabase
+const fetchEquipment = async (contractId: string) => {
+  const { data } = await supabase
+    .from('equipment')
+    .select('id, name')
+    .eq('contract_id', contractId);
+
+  setEquipmentList((data || []).map((eq) => ({
+    id: eq.id,
+    name: eq.name, // Already good
+  })));
+};
 
   // Upload files to Supabase storage and return their public URLs
   const uploadFiles = async (files: FileList | null): Promise<string[]> => {
@@ -172,10 +214,20 @@ export default function Issues() {
 
     const uploaded = await uploadFiles(photoFiles); // Upload any photos
     const updated = {
-      ...form, // Current form data
-      updated_by: user.id, // Set updater
-      updated_at: new Date().toISOString(), // Set update timestamp
-      photo_urls: [...(form.photo_urls || []), ...uploaded] // Append uploaded URLs
+      assigned_to: form.assigned_to ?? '',
+      contract_id: form.contract_id ?? '',
+      title: form.title ?? '',
+      description: form.description ?? '',
+      priority: form.priority ?? 'Medium',
+      status: form.status ?? 'Open',
+      due_date: form.due_date ?? new Date().toISOString(),
+      wbs_id: form.wbs_id ?? '',
+      map_id: form.map_id ?? '',
+      line_item_id: form.line_item_id ?? '',
+      equipment_id: form.equipment_id ?? '',
+      photo_urls: [...(form.photo_urls || []), ...uploaded],
+      updated_by: user.id,
+      updated_at: new Date().toISOString(),
     };
 
     // Insert or update issue in database

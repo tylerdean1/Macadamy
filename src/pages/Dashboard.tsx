@@ -631,7 +631,13 @@ export function Dashboard() {
                   <div
                     key={contract.id}
                     className="p-4 bg-card rounded-lg border border-border hover:border-primary transition-colors cursor-pointer"
-                    onClick={() => navigate(`/contracts/${contract.id}`)}
+                    onClick={() => {
+                      if (!contract.id) {
+                        console.error('Contract ID is missing');
+                        return;
+                      }
+                      navigate(`/contracts/${contract.id}`);
+                    }}
                   >
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                       <div>

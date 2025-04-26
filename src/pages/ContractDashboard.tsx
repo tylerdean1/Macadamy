@@ -153,21 +153,26 @@ export function ContractDashboard() {
 
   // Use useCallback to optimize fetching contract data
   const fetchContract = useCallback(async () => {
+    if (!id) {
+      setError('Contract ID is missing');
+      setLoading(false); // Ensure loading state is updated
+      return;
+    }
+  
     try {
-      if (!id) {
-        setError('Contract ID is required');
-        return;
-      }
-
       const { data: contractData, error: contractError } = await supabase
         .from('contracts')
         .select('*')
         .eq('id', id)
         .single();
-
-      if (contractError) throw contractError;
+  
+      if (contractError) {
+        throw new Error(`Error fetching contract: ${contractError.message}`);
+      }
+  
       if (!contractData) {
         setError('Contract not found');
+        setLoading(false); // Ensure loading state is updated
         return;
       }
 
@@ -179,7 +184,9 @@ export function ContractDashboard() {
         .eq('contract_id', id)
         .order('wbs_number');
 
-      if (wbsError) throw wbsError;
+      if (wbsError) {
+        throw new Error(`Error fetching WBS data: ${wbsError.message}`);
+      }
 
       const processedGroups = await Promise.all(
         (wbsData || []).map(async (wbs) => {
@@ -189,7 +196,9 @@ export function ContractDashboard() {
             .eq('wbs_id', wbs.id)
             .order('map_number');
       
-          if (mapError) throw mapError;
+          if (mapError) {
+            throw new Error(`Error fetching maps for WBS ${wbs.id}: ${mapError.message}`);
+          }
       
           const processedMaps = await Promise.all(
             (mapLocations || []).map(async (map) => {
@@ -212,7 +221,9 @@ export function ContractDashboard() {
                 .eq('map_id', map.id)
                 .order('line_code');
       
-              if (lineError) throw lineError;
+              if (lineError) {
+                throw new Error(`Error fetching line items for map ${map.id}: ${lineError.message}`);
+              }
       
               const processedLineItems = (lineItems || []).map((item) => {
                 if (!item.map_id) {
@@ -275,7 +286,7 @@ export function ContractDashboard() {
       
     } catch (err) {
       console.error('Error fetching contract:', err);
-      setError('Error loading contract details');
+      setError(err instanceof Error ? err.message : 'Error loading contract details');
     } finally {
       setLoading(false);
     }
