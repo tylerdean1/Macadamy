@@ -344,7 +344,11 @@ export function Dashboard() {
             <div className="flex-1">
               <div className="flex items-center gap-4 mb-4">
                 {profile?.avatar_url && (
-                  <img src={profile.avatar_url} alt="Avatar" className="w-14 h-14 rounded-full border border-background-lighter" />
+                  <img
+                    src={profile.avatar_url}
+                    alt="Avatar"
+                    className="w-14 h-14 rounded-full border border-background-lighter"
+                  />
                 )}
                 <div>
                   <h1 className="text-3xl font-bold text-white">
@@ -361,7 +365,8 @@ export function Dashboard() {
                   </Button>
                 </div>
               </div>
-              {(profile?.organizations || profile?.job_titles) && (
+  
+              {(!!profile?.organizations?.name || !!profile?.job_titles?.title || !!profile?.organizations?.address || !!profile?.organizations?.phone || !!profile?.organizations?.website) && (
                 <div className="text-gray-400 space-y-1">
                   {profile?.organizations?.name && (
                     <p className="flex items-center">
