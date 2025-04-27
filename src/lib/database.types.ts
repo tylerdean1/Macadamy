@@ -3769,3 +3769,57 @@ export const Constants = {
     },
   },
 } as const
+
+// Utility function for runtime validation
+export function validateDatabaseRow<T extends object>(
+  row: T,
+  schema: keyof Database['public']['Tables']
+): void {
+  console.log(`[DEBUG] Validating row for table "${schema}":`, row);
+
+  // Fetch the table schema
+  const tableSchema = getTableSchema(schema);
+
+  if (!tableSchema) {
+    console.error(`[ERROR] Table schema not found for "${schema}"`);
+    return;
+  }
+
+  Object.keys(row).forEach((key) => {
+    if (!(key in tableSchema.Row)) {
+      console.warn(`[WARNING] Unexpected key "${key}" in row for table "${schema}"`);
+    }
+  });
+
+  console.log(`[DEBUG] Validation complete for table "${schema}".`);
+}
+
+// Mock function to simulate fetching a table schema at runtime
+function getTableSchema<K extends keyof Database['public']['Tables']>(
+  schema: K
+): Database['public']['Tables'][K] | null {
+  // Replace this mock object with actual runtime schema validation logic
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mockSchemas: Partial<Record<keyof Database['public']['Tables'], any>> = {
+    contracts: {
+      Row: {
+        id: 'string',
+        name: 'string',
+        created_at: 'string',
+        updated_at: 'string',
+        user_id: 'string',
+      },
+    },
+    profiles: {
+      Row: {
+        id: 'string',
+        full_name: 'string',
+        email: 'string',
+        phone: 'string',
+        avatar_url: 'string',
+      },
+    },
+  };
+
+  return mockSchemas[schema] ?? null;
+}

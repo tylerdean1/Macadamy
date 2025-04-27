@@ -59,17 +59,38 @@ const defaultProfile: Profile = {
   },
 };
 
+// Log initial default user and profile
+console.log('[DEBUG] Default User:', defaultUser);
+console.log('[DEBUG] Default Profile:', defaultProfile);
+
 // Custom storage adapter (type-safe)
 const localStorageAdapter = {
   getItem: (name: string): StorageValue<AuthState> | null => {
-    const str = localStorage.getItem(name);
-    return str ? JSON.parse(str) : null;
+    console.log('[DEBUG] Retrieving item from localStorage with name:', name);
+    try {
+      const str = localStorage.getItem(name);
+      console.log('[DEBUG] Retrieved item:', str);
+      return str ? JSON.parse(str) : null;
+    } catch (error) {
+      console.error('[ERROR] Failed to retrieve item from localStorage:', error);
+      return null;
+    }
   },
   setItem: (name: string, value: StorageValue<AuthState>) => {
-    localStorage.setItem(name, JSON.stringify(value));
+    console.log('[DEBUG] Setting item in localStorage with name:', name, 'and value:', value);
+    try {
+      localStorage.setItem(name, JSON.stringify(value));
+    } catch (error) {
+      console.error('[ERROR] Failed to set item in localStorage:', error);
+    }
   },
   removeItem: (name: string) => {
-    localStorage.removeItem(name);
+    console.log('[DEBUG] Removing item from localStorage with name:', name);
+    try {
+      localStorage.removeItem(name);
+    } catch (error) {
+      console.error('[ERROR] Failed to remove item from localStorage:', error);
+    }
   },
 };
 
@@ -81,10 +102,30 @@ export const useAuthStore = create(
     (set) => ({
       user: null,
       profile: null,
-      setUser: (user) => set({ user }),
-      setProfile: (profile) => set({ profile }),
-      clearAuth: () => set({ user: null, profile: null }),
-      bypassAuth: () => set({ user: defaultUser, profile: defaultProfile }),
+      setUser: (user) => {
+        console.log('[DEBUG] setUser called with:', user);
+        if (!user || typeof user !== 'object') {
+          console.error('[ERROR] Invalid user passed to setUser:', user);
+          return;
+        }
+        set({ user });
+      },
+      setProfile: (profile) => {
+        console.log('[DEBUG] setProfile called with:', profile);
+        if (!profile || typeof profile !== 'object') {
+          console.error('[ERROR] Invalid profile passed to setProfile:', profile);
+          return;
+        }
+        set({ profile });
+      },
+      clearAuth: () => {
+        console.log('[DEBUG] clearAuth called');
+        set({ user: null, profile: null });
+      },
+      bypassAuth: () => {
+        console.log('[DEBUG] bypassAuth called. Setting default user and profile.');
+        set({ user: defaultUser, profile: defaultProfile });
+      },
     }),
     {
       name: 'auth-storage',
@@ -92,3 +133,6 @@ export const useAuthStore = create(
     }
   )
 );
+
+// Log Zustand store initialization
+console.log('[DEBUG] useAuthStore initialized.');
