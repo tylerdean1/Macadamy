@@ -21,6 +21,7 @@ import { Modal } from '@/components/ui/modal';
 import { UserRole } from '@/lib/enums';
 import { useRequireProfile } from '@/hooks/useRequireProfile';
 import { useAuthStore } from '@/lib/store';
+import { logError } from '@/utils/errorLogger';
 
 
 
@@ -103,8 +104,8 @@ export function Dashboard() {
       await handleAvatarSelect(publicUrl);
       toast.success('Avatar uploaded successfully!');
       setSelectedImage(null);
-    } catch (err) {
-      console.error(err);
+    } catch (error: unknown) {
+      logError('Dashboard handleAvatarUpload', error);
       toast.error('Upload failed');
     }
   };
@@ -145,7 +146,7 @@ export function Dashboard() {
       toast.error('Failed to update profile.');
     } else {
       toast.success('Profile updated!');
-      const { data: updatedProfile } = await supabase
+      const { data: updatedProfile, error: updatedProfileError } = await supabase
         .from('profiles')
         .select(`
           id,
@@ -164,6 +165,12 @@ export function Dashboard() {
         .eq('id', user.id)
         .single();
 
+      if (updatedProfileError || !updatedProfile) {
+        console.error('Failed to refetch updated profile:', updatedProfileError?.message || 'No profile data found.');
+        toast.error('Failed to reload profile after saving.');
+        return;
+      }
+      
       setProfile(updatedProfile as unknown as Profile);
       setIsModalOpen(false);
     }
@@ -206,7 +213,10 @@ export function Dashboard() {
           .single();
 
 
-        if (profileError) throw profileError;
+          if (profileError || !profileData) {
+            console.error('Failed to fetch profile:', profileError?.message || 'No profile data found.');
+            return;
+          }
 
         // Map profile data to safeProfile
         const validRoles = Object.values(UserRole); // Get all valid enum values
@@ -294,8 +304,9 @@ export function Dashboard() {
           openIssues: issuesCount || 0,
           pendingInspections: 0,
         });
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+      } catch (error: unknown) {
+        logError('ContractDashboard parseCoordinates', error);
+        return null;
       } finally {
         setLoading(false);
       }

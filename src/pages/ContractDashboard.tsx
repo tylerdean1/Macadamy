@@ -18,6 +18,7 @@ import { ContractStatusSelect } from '@/components/ContractStatusSelect';
 import { Button } from '@mui/material';
 import MapPinIcon from '@mui/icons-material/PinDrop';
 import MapModal from '@/components/MapModal';
+import { logError } from '@/utils/errorLogger';
 import type { GeometryData, GeometryType } from '../lib/types';
 
 async function parseCoordinates(wktString: unknown): Promise<GeometryData | null> {
@@ -40,8 +41,8 @@ async function parseCoordinates(wktString: unknown): Promise<GeometryData | null
     }
 
     return null;
-  } catch (error) {
-    console.error('Error parsing WKT:', error);
+  } catch (error: unknown) {
+    logError(`ContractDashboard parseCoordinates for WKT string: ${wktString}`, error);
     return null;
   }
 }
@@ -284,9 +285,9 @@ export function ContractDashboard() {
       
       setWbsGroups(processedGroups);
       
-    } catch (err) {
-      console.error('Error fetching contract:', err);
-      setError(err instanceof Error ? err.message : 'Error loading contract details');
+    } catch (error: unknown) {
+      logError('ContractDashboard fetchContract', error);
+      setError((error as Error).message || 'Error loading contract details');
     } finally {
       setLoading(false);
     }
