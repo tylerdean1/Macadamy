@@ -184,128 +184,122 @@ export function Dashboard() {
   );
 
   useEffect(() => {
-  const fetchData = async () => {
-    if (!user) return; // Move the user check inside here!
-
-    try {
+    const fetchData = async () => {
+      if (!user?.id) {
+        console.error('User not available yet.');
+        return;
+      }
+    
       setLoading(true);
+      try {
+        // Fetch profile and supporting tables in parallel
+        const [organizationsData, jobData, profileResponse] = await Promise.all([
+          supabase.from('organizations').select('*'),
+          supabase.from('job_titles').select('*'),
+          supabase
+            .from('profiles')
+            .select(`
+              id, role, full_name, email, username, phone, location, avatar_url,
+              organization_id, job_title_id,
+              organizations!profiles_organization_id_fkey (name, address, phone, website),
+              job_titles!profiles_job_title_id_fkey (title, is_custom)
+            `)
+            .eq('id', user.id)
+            .single()
+        ]);
+        console.log('✅ Organizations loaded:', organizationsData.data);
 
-      // Fetch organizations
-      const { data: organizationsData } = await supabase.from('organizations').select('*');
-      setOrganizations(organizationsData || []);
-
-      // Fetch job titles
-      const { data: jobData } = await supabase.from('job_titles').select('*');
-      setJobTitles(jobData || []);
-
-      // Fetch profile
-      if (!user.id) {
-        console.error('User is undefined! Cannot fetch profile.');
-        return;
-      }
-
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select(`
-          id, role, full_name, email, username, phone, location, avatar_url,
-          organization_id, job_title_id,
-          organizations!profiles_organization_id_fkey (name, address, phone, website),
-          job_titles!profiles_job_title_id_fkey (title, is_custom)
-        `)
-        .eq('id', user.id)
-        .single();
-
-      if (profileError || !profileData) {
-        console.error('Failed to fetch profile:', profileError?.message || 'No profile data found.');
-        return;
-      }
-
-        // Map profile data to safeProfile
-        const validRoles = Object.values(UserRole); // Get all valid enum values
+        if (!profileResponse.data || profileResponse.error) {
+          console.error('Failed to fetch profile:', profileResponse.error?.message);
+          return;
+        }
+        
+        console.log('✅ Profile loaded:', profileResponse.data);
+    
+        const validRoles = Object.values(UserRole);
         const safeProfile = {
-          id: profileData.id,
-          user_role: validRoles.includes(profileData.role as UserRole)
-            ? (profileData.role as UserRole)
+          id: profileResponse.data.id,
+          user_role: validRoles.includes(profileResponse.data.role as UserRole)
+            ? (profileResponse.data.role as UserRole)
             : UserRole.Admin,
-          full_name: profileData.full_name,
-          email: profileData.email,
-          username: profileData.username,
-          phone: profileData.phone,
-          location: profileData.location,
-          avatar_url: profileData.avatar_url,
-          organization_id: profileData.organization_id,
-          job_title_id: profileData.job_title_id,
-          organizations: profileData.organizations,
-          job_titles: profileData.job_titles,
+          full_name: profileResponse.data.full_name,
+          email: profileResponse.data.email,
+          username: profileResponse.data.username,
+          phone: profileResponse.data.phone,
+          location: profileResponse.data.location,
+          avatar_url: profileResponse.data.avatar_url,
+          organization_id: profileResponse.data.organization_id,
+          job_title_id: profileResponse.data.job_title_id,
+          organizations: profileResponse.data.organizations,
+          job_titles: profileResponse.data.job_titles,
         } as Profile;
+    
+        console.log('✅ Safe profile created:', safeProfile);
         setProfile(safeProfile);
-
-        // Process custom job title
+        setOrganizations(organizationsData.data || []);
+        setJobTitles(jobData.data || []);
+    
         let customJobTitle = '';
-        if (profileData.job_title_id && jobData) {
-          const match = jobData.find(j => j.id === profileData.job_title_id);
+        if (safeProfile.job_title_id && jobData.data) {
+          const match = jobData.data.find(j => j.id === safeProfile.job_title_id);
           if (match?.is_custom) customJobTitle = match.title ?? '';
         }
-
         setEditForm({
-          avatar_id: profileData.avatar_url ?? '',
-          organization_id: profileData.organization_id ?? '',
-          job_title_id: profileData.job_title_id ?? '',
-          address: profileData.location ?? '',
-          phone: profileData.phone ?? '',
-          email: profileData.email ?? '',
+          avatar_id: safeProfile.avatar_url ?? '',
+          organization_id: safeProfile.organization_id ?? '',
+          job_title_id: safeProfile.job_title_id ?? '',
+          address: safeProfile.location ?? '',
+          phone: safeProfile.phone ?? '',
+          email: safeProfile.email ?? '',
           custom_job_title: customJobTitle,
         });
-
-        // Fetch avatar data
-        const { data: avatar_data } = await supabase
+        
+        console.log('✅ Edit form set:', editForm);
+    
+        // Fetch avatars separately
+        const { data: avatarData } = await supabase
           .from('avatars')
           .select('*')
           .or(`is_preset.eq.true,profile_id.eq.${user.id}`)
           .order('created_at');
-        setAvatars((avatar_data || []) as Avatars[]);
+        setAvatars((avatarData || []) as Avatars[]);
+        console.log('✅ Avatars loaded:', avatarData);
 
         // Fetch user contracts
         const { data: userContracts, error: userContractsError } = await supabase
           .from('user_contracts')
           .select('contract_id')
           .eq('user_id', user.id);
-        if (userContractsError) throw userContractsError;
-
-        const contractIds = userContracts?.map((uc) => uc.contract_id) || [];
+    
+        if (userContractsError || !userContracts) {
+          console.error('Failed to fetch user contracts', userContractsError?.message);
+          setContracts([]);
+          return;
+        }
+    
+        const contractIds = userContracts.map(uc => uc.contract_id);
         if (contractIds.length === 0) {
           setContracts([]);
           setMetrics({ activeContracts: 0, openIssues: 0, pendingInspections: 0 });
           return;
         }
+        console.log('✅ User contracts loaded:', userContracts);
 
-        // Fetch contract data
-        const { data: contractData } = await supabase
-          .from('contracts')
-          .select('*')
-          .in('id', contractIds)
-          .order('created_at', { ascending: false });
+        // Fetch contracts
+        const [{ data: contractData }, { data: activeContracts }, { count: issuesCount }] = await Promise.all([
+          supabase.from('contracts').select('*').in('id', contractIds).order('created_at', { ascending: false }),
+          supabase.from('contracts').select('id').in('id', contractIds).eq('status', 'Active'),
+          supabase.from('issues').select('*', { count: 'exact', head: true }).eq('status', 'Open').in('contract_id', contractIds),
+        ]);
+        console.log('✅ Contracts loaded:', contractData);
+    
         setContracts(contractData || []);
-
-        // Fetch active contracts
-        const { data: activeContracts } = await supabase
-          .from('contracts')
-          .select('id')
-          .in('id', contractIds)
-          .eq('status', 'Active');
-
-        // Fetch open issues
-        const { count: issuesCount } = await supabase
-          .from('issues')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'Open')
-          .in('contract_id', contractIds);
-
         setMetrics({
           activeContracts: activeContracts?.length || 0,
           openIssues: issuesCount || 0,
           pendingInspections: 0,
         });
+        console.log('✅ Metrics set:', metrics);
       } catch (error: unknown) {
         logError('Dashboard fetchData', error);
       } finally {
@@ -314,6 +308,7 @@ export function Dashboard() {
     };
   
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   if (!user || typeof user !== 'object') {
@@ -323,11 +318,19 @@ export function Dashboard() {
       </div>
     );
   }
-
+  
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-gray-400">Loading profile information...</div>
       </div>
     );
   }
