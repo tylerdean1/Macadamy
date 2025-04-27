@@ -155,8 +155,8 @@ export function ContractDashboard() {
   // Use useCallback to optimize fetching contract data
   const fetchContract = useCallback(async () => {
     if (!id) {
-      setError('Contract ID is missing');
-      setLoading(false); // Ensure loading state is updated
+      setError('No Contract ID provided.');
+      setLoading(false);
       return;
     }
   

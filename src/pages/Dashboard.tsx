@@ -645,8 +645,9 @@ export function Dashboard() {
                     key={contract.id}
                     className="p-4 bg-card rounded-lg border border-border hover:border-primary transition-colors cursor-pointer"
                     onClick={() => {
-                      if (!contract.id) {
-                        console.error('Contract ID is missing');
+                      if (!contract?.id) {
+                        toast.error('Contract ID is missing, cannot open contract.');
+                        console.error('Contract ID missing for selected contract:', contract);
                         return;
                       }
                       navigate(`/contracts/${contract.id}`);
