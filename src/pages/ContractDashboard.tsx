@@ -554,118 +554,126 @@ export function ContractDashboard() {
           </div>
 
           <div className="space-y-4">
-            {wbsGroups.map((group) => (
-              <div
-                key={group.wbs}
-                className="border border-background-lighter rounded-lg overflow-hidden"
-              >
+            {wbsGroups.length > 0 ? (
+              wbsGroups.map((group) => (
                 <div
-                  onClick={() => toggleWBS(group.wbs)}
-                  className="w-full bg-background px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between hover:bg-background-light transition-colors gap-4 cursor-pointer"
+                  key={group.wbs}
+                  className="border border-background-lighter rounded-lg overflow-hidden"
                 >
-                  <div className="flex items-center space-x-4">
-                    {expandedWBS.includes(group.wbs) ? (
-                      <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                    ) : (
-                      <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                    )}
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">WBS {group.wbs}</h3>
-                      <p className="text-sm text-gray-400">{group.description}</p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outlined"
-                    startIcon={<MapPinIcon />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleWbsLevelClick(group);
-                    }}
-                    size="small"
+                  <div
+                    onClick={() => toggleWBS(group.wbs)}
+                    className="w-full bg-background px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between hover:bg-background-light transition-colors gap-4 cursor-pointer"
                   >
-                    View WBS Map
-                  </Button>
-                </div>
-                {expandedWBS.includes(group.wbs) && (
-                  <div className="bg-background-light border-t border-background-lighter">
-                    {group.maps.map((map) => (
-                      <div
-                        key={map.id}
-                        className="border-b border-background-lighter last:border-b-0"
-                      >
-                        <button
-                          onClick={() => toggleMap(map.id)}
-                          className="w-full px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between hover:bg-background transition-colors gap-4"
-                        >
-                          <div className="flex items-center space-x-4">
-                            {expandedMaps.includes(map.id) ? (
-                              <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                            ) : (
-                              <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                            )}
-                            <div>
-                              <h4 className="text-md font-medium text-white">Map {map.map_number}</h4>
-                              <p className="text-sm text-gray-400">{map.location_description}</p>
-                            </div>
-                          </div>
-                          <Button
-                            variant="text"
-                            size="small"
-                            startIcon={<MapPinIcon />}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMapLevelClick(map);
-                            }}
-                          >
-                            View
-                          </Button>
-                        </button>
-                        {expandedMaps.includes(map.id) && (
-                          <div className="overflow-x-auto">
-                            {map.line_items.length > 0 ? (
-                              <table className="min-w-full text-sm text-white">
-                                <thead>
-                                  <tr className="border-b border-background-lighter">
-                                    <th className="text-left p-2">Line Code</th>
-                                    <th className="text-left p-2">Description</th>
-                                    <th className="text-right p-2">Quantity</th>
-                                    <th className="text-right p-2">Unit</th>
-                                    <th className="text-right p-2">Unit Price</th>
-                                    <th className="text-right p-2">Total Cost</th>
-                                    <th className="text-right p-2">Amount Paid</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {map.line_items.map((item) => (
-                                    <tr key={item.id} className="border-b border-background-lighter">
-                                      <td className="p-2">{item.line_code}</td>
-                                      <td className="p-2">{item.description}</td>
-                                      <td className="p-2 text-right">{item.quantity}</td>
-                                      <td className="p-2 text-right">{item.unit_measure}</td>
-                                      <td className="p-2 text-right">
-                                        ${item.unit_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                      </td>
-                                      <td className="p-2 text-right">
-                                        ${item.total_cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                      </td>
-                                      <td className="p-2 text-right">
-                                        ${item.amount_paid.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            ) : (
-                              <p className="text-gray-400 p-4">No line items available for this map.</p>
-                            )}
-                          </div>
-                        )}
+                    <div className="flex items-center space-x-4">
+                      {expandedWBS.includes(group.wbs) ? (
+                        <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                      )}
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">WBS {group.wbs}</h3>
+                        <p className="text-sm text-gray-400">{group.description}</p>
                       </div>
-                    ))}
+                    </div>
+                    <Button
+                      variant="outlined"
+                      startIcon={<MapPinIcon />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleWbsLevelClick(group);
+                      }}
+                      size="small"
+                    >
+                      View WBS Map
+                    </Button>
                   </div>
-                )}
+
+                  {expandedWBS.includes(group.wbs) && (
+                    <div className="bg-background-light border-t border-background-lighter">
+                      {group.maps.map((map) => (
+                        <div
+                          key={map.id}
+                          className="border-b border-background-lighter last:border-b-0"
+                        >
+                          <button
+                            onClick={() => toggleMap(map.id)}
+                            className="w-full px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between hover:bg-background transition-colors gap-4"
+                          >
+                            <div className="flex items-center space-x-4">
+                              {expandedMaps.includes(map.id) ? (
+                                <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                              ) : (
+                                <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                              )}
+                              <div>
+                                <h4 className="text-md font-medium text-white">Map {map.map_number}</h4>
+                                <p className="text-sm text-gray-400">{map.location_description}</p>
+                              </div>
+                            </div>
+                            <Button
+                              variant="text"
+                              size="small"
+                              startIcon={<MapPinIcon />}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMapLevelClick(map);
+                              }}
+                            >
+                              View
+                            </Button>
+                          </button>
+
+                          {expandedMaps.includes(map.id) && (
+                            <div className="overflow-x-auto">
+                              {map.line_items.length > 0 ? (
+                                <table className="min-w-full text-sm text-white">
+                                  <thead>
+                                    <tr className="border-b border-background-lighter">
+                                      <th className="text-left p-2">Line Code</th>
+                                      <th className="text-left p-2">Description</th>
+                                      <th className="text-right p-2">Quantity</th>
+                                      <th className="text-right p-2">Unit</th>
+                                      <th className="text-right p-2">Unit Price</th>
+                                      <th className="text-right p-2">Total Cost</th>
+                                      <th className="text-right p-2">Amount Paid</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {map.line_items.map((item) => (
+                                      <tr key={item.id} className="border-b border-background-lighter">
+                                        <td className="p-2">{item.line_code}</td>
+                                        <td className="p-2">{item.description}</td>
+                                        <td className="p-2 text-right">{item.quantity}</td>
+                                        <td className="p-2 text-right">{item.unit_measure}</td>
+                                        <td className="p-2 text-right">
+                                          ${item.unit_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </td>
+                                        <td className="p-2 text-right">
+                                          ${item.total_cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </td>
+                                        <td className="p-2 text-right">
+                                          ${item.amount_paid.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              ) : (
+                                <p className="text-gray-400 p-4">No line items available for this map.</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="text-center text-gray-400 py-12">
+                No WBS Sections Available
               </div>
-            ))}
+            )}
           </div>
 
           <div className="bg-background-light p-4 sm:p-6 rounded-lg mt-6 border border-background-lighter">
