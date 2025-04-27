@@ -22,10 +22,10 @@ import type { GeometryData, GeometryType } from '../lib/types';
 
 async function parseCoordinates(wktString: unknown): Promise<GeometryData | null> {
   try {
-    if (typeof wktString !== 'string') return null;
+    if (!wktString || typeof wktString !== 'string') return null;
 
     const { default: WKT } = await import('@terraformer/wkt');
-    const parsed = WKT.parse(wktString as string) as GeoJSON.Geometry;
+    const parsed = WKT.parse(wktString);
 
     if (
       (parsed.type === 'Point' ||
@@ -414,10 +414,30 @@ export function ContractDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-gray-400 mt-4">Loading contract details...</p>
+      <div className="min-h-screen bg-background">
+        <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+          {/* Fake header */}
+          <div className="h-10 bg-background-lighter rounded-md animate-pulse w-1/2"></div>
+  
+          {/* Fake toolbar buttons */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="h-20 bg-background-lighter rounded-md animate-pulse"
+              ></div>
+            ))}
+          </div>
+  
+          {/* Fake WBS cards */}
+          <div className="space-y-4">
+            {Array.from({ length: 2 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="h-24 bg-background-lighter rounded-md animate-pulse"
+              ></div>
+            ))}
+          </div>
         </div>
       </div>
     );

@@ -1,7 +1,7 @@
 // App.tsx
 
 // React and Libraries
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigation } from 'react-router-dom';
 import { useEffect } from 'react';
 
 // Pages
@@ -39,6 +39,7 @@ import { useBootstrapAuth } from './hooks/useBootstrapAuth';
 export default function App() {
   const isLoading = useBootstrapAuth();
   const location = useLocation();
+  const navigation = useNavigation();
   const hideNavbarRoutes = ['/', '/reset-password', '/onboarding'];
   const shouldShowNavbar = !hideNavbarRoutes.includes(location.pathname);
 
@@ -67,6 +68,9 @@ export default function App() {
     <>
       <Toaster position="top-right" />
       <ScrollToTop />
+      {navigation.state === 'loading' && (
+        <div className="fixed top-0 left-0 right-0 h-1 bg-primary animate-pulse z-50" />
+      )}
       {shouldShowNavbar && <Navbar />}
       <Routes>
         {/* Public Routes */}
