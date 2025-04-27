@@ -299,6 +299,8 @@ export function ContractDashboard() {
 
   const handleMapLevelClick = (map: MapLocation) => {
     const parsed = map.coordinates;
+    console.log('Trying to open map:', parsed);
+  
     if (!parsed) {
       alert('No valid coordinates for this map location.');
       return;
@@ -342,7 +344,7 @@ export function ContractDashboard() {
   const handleWbsLevelClick = (group: WBSGroup) => {
     const pins = group.maps.flatMap((map) => {
       const parsed = map.coordinates;
-      if (!parsed) return [];
+      if (!parsed) return []; // No coordinates, skip this map
   
       if (parsed.type === 'Point' && Array.isArray(parsed.coordinates)) {
         const coords = parsed.coordinates as [number, number];
@@ -373,13 +375,14 @@ export function ContractDashboard() {
         }));
       }
   
-      return [];
+      return []; // Unsupported/malformed type
     });
   
     if (pins.length > 0) {
       setModalPins(pins);
       setOpenMapModal(true);
     } else {
+      setModalPins([]); // <- add this, clean it out
       alert('No valid coordinates found in this WBS group.');
     }
   };

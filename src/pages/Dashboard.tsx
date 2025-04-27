@@ -56,6 +56,7 @@ export function Dashboard() {
     email: '',
     custom_job_title: ''
   });
+  
   const [metrics, setMetrics] = useState({
     activeContracts: 0,
     openIssues: 0,
@@ -183,40 +184,41 @@ export function Dashboard() {
   );
 
   useEffect(() => {
-    if (!user) return;
-    const fetchData = async () => {
-      try {
-        setLoading(true);
+  const fetchData = async () => {
+    if (!user) return; // Move the user check inside here!
 
-        // Fetch organizations
-        const { data: organizationsData } = await supabase.from('organizations').select('*');
-        setOrganizations(organizationsData || []);
+    try {
+      setLoading(true);
 
-        // Fetch job titles
-        const { data: jobData } = await supabase.from('job_titles').select('*');
-        setJobTitles(jobData || []);
+      // Fetch organizations
+      const { data: organizationsData } = await supabase.from('organizations').select('*');
+      setOrganizations(organizationsData || []);
 
-        // Fetch profile
-        if (!user?.id) {
-          console.error('User is undefined! Cannot fetch profile.');
-          return;
-        }
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select(`
-            id, role, full_name, email, username, phone, location, avatar_url,
-            organization_id, job_title_id,
-            organizations!profiles_organization_id_fkey (name, address, phone, website),
-            job_titles!profiles_job_title_id_fkey (title, is_custom)
-          `)
-          .eq('id', user.id)
-          .single();
+      // Fetch job titles
+      const { data: jobData } = await supabase.from('job_titles').select('*');
+      setJobTitles(jobData || []);
 
+      // Fetch profile
+      if (!user.id) {
+        console.error('User is undefined! Cannot fetch profile.');
+        return;
+      }
 
-          if (profileError || !profileData) {
-            console.error('Failed to fetch profile:', profileError?.message || 'No profile data found.');
-            return;
-          }
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select(`
+          id, role, full_name, email, username, phone, location, avatar_url,
+          organization_id, job_title_id,
+          organizations!profiles_organization_id_fkey (name, address, phone, website),
+          job_titles!profiles_job_title_id_fkey (title, is_custom)
+        `)
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profileData) {
+        console.error('Failed to fetch profile:', profileError?.message || 'No profile data found.');
+        return;
+      }
 
         // Map profile data to safeProfile
         const validRoles = Object.values(UserRole); // Get all valid enum values
@@ -305,26 +307,26 @@ export function Dashboard() {
           pendingInspections: 0,
         });
       } catch (error: unknown) {
-        logError('ContractDashboard parseCoordinates', error);
-        return null;
+        logError('Dashboard fetchData', error);
       } finally {
         setLoading(false);
       }
     };
+  
     fetchData();
   }, [user]);
 
-  if (!user) {
+  if (!user || typeof user !== 'object') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-gray-400">Loading user info...</div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-gray-400">Loading user information...</div>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
