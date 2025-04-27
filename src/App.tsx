@@ -1,8 +1,6 @@
-// App.tsx
-
 // React and Libraries
-import { Routes, Route, useLocation, useNavigation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 
 // Pages
 import { LandingPage } from './pages/LandingPage';
@@ -39,7 +37,8 @@ import { useBootstrapAuth } from './hooks/useBootstrapAuth';
 export default function App() {
   const isLoading = useBootstrapAuth();
   const location = useLocation();
-  const navigation = useNavigation();
+  const [pageLoading, setPageLoading] = useState(false);
+
   const hideNavbarRoutes = ['/', '/reset-password', '/onboarding'];
   const shouldShowNavbar = !hideNavbarRoutes.includes(location.pathname);
 
@@ -52,6 +51,14 @@ export default function App() {
     };
     debugSession();
   }, []);
+
+  useEffect(() => {
+    setPageLoading(true);
+    const timeout = setTimeout(() => {
+      setPageLoading(false);
+    }, 500); // 0.5s fake delay for smoother loading feel
+    return () => clearTimeout(timeout);
+  }, [location.pathname]);
 
   if (isLoading) {
     return (
@@ -68,7 +75,7 @@ export default function App() {
     <>
       <Toaster position="top-right" />
       <ScrollToTop />
-      {navigation.state === 'loading' && (
+      {pageLoading && (
         <div className="fixed top-0 left-0 right-0 h-1 bg-primary animate-pulse z-50" />
       )}
       {shouldShowNavbar && <Navbar />}
