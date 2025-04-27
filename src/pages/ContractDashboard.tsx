@@ -58,7 +58,7 @@ interface LineItem {
   unit_price: number;
   total_cost: number;
   reference_doc: string | null;
-  map_id: string;
+  map_id: string | null;
   line_item_entries?: { computed_output?: number | null }[];
 }
 
@@ -76,7 +76,29 @@ interface MapLocation {
 interface WBSGroup {
   wbs: string;
   description: string;
-  maps: MapLocation[];
+  maps: ProcessedMap[];
+  contractTotal: number;
+  amountPaid: number;
+  progress: number;
+}
+
+interface ProcessedMap {
+  id: string;
+  map_number: string;
+  location_description: string | null;
+  coordinates: GeometryData | null;
+  line_items: {
+    id: string;
+    line_code: string;
+    description: string;
+    unit_measure: string;
+    quantity: number;
+    unit_price: number;
+    reference_doc: string | null;
+    map_id: string | null;
+    total_cost: number;
+    amount_paid: number;
+  }[];
   contractTotal: number;
   amountPaid: number;
   progress: number;
@@ -173,22 +195,25 @@ export function ContractDashboard() {
   
       if (!contractData) {
         setError('Contract not found');
-        setLoading(false); // Ensure loading state is updated
+        setLoading(false);
         return;
       }
-
+  
+      console.log('✅ Contract fetched:', contractData);
       setContract(contractData);
-
+  
       const { data: wbsData, error: wbsError } = await supabase
         .from('wbs')
         .select('id, wbs_number, description')
         .eq('contract_id', id)
         .order('wbs_number');
-
+  
       if (wbsError) {
         throw new Error(`Error fetching WBS data: ${wbsError.message}`);
       }
-
+  
+      console.log('✅ WBS records fetched:', wbsData);
+  
       const processedGroups = await Promise.all(
         (wbsData || []).map(async (wbs) => {
           const { data: mapLocations, error: mapError } = await supabase
@@ -196,11 +221,13 @@ export function ContractDashboard() {
             .select('*')
             .eq('wbs_id', wbs.id)
             .order('map_number');
-      
+  
           if (mapError) {
             throw new Error(`Error fetching maps for WBS ${wbs.id}: ${mapError.message}`);
           }
-      
+  
+          console.log(`✅ Maps fetched for WBS ${wbs.id}:`, mapLocations);
+  
           const processedMaps = await Promise.all(
             (mapLocations || []).map(async (map) => {
               const { data: lineItems, error: lineError } = await supabase
@@ -221,21 +248,19 @@ export function ContractDashboard() {
                 `)
                 .eq('map_id', map.id)
                 .order('line_code');
-      
+  
               if (lineError) {
                 throw new Error(`Error fetching line items for map ${map.id}: ${lineError.message}`);
               }
-      
+  
+              console.log(`✅ Line items fetched for map ${map.id}:`, lineItems);
+  
               const processedLineItems = (lineItems || []).map((item) => {
-                if (!item.map_id) {
-                  throw new Error(`Missing map_id for line_item ${item.id}`);
-                }
-      
                 const totalComputedOutput = (item.line_item_entries || []).reduce(
                   (sum, entry) => sum + (entry.computed_output ?? 0),
                   0
                 );
-      
+  
                 return {
                   ...item,
                   map_id: item.map_id,
@@ -243,19 +268,21 @@ export function ContractDashboard() {
                   amount_paid: totalComputedOutput * (item.unit_price ?? 0),
                 };
               });
-      
+  
               const mapTotal = processedLineItems.reduce(
                 (sum, item) => sum + item.total_cost,
                 0
               );
-      
+  
               const mapPaid = processedLineItems.reduce(
                 (sum, item) => sum + item.amount_paid,
                 0
               );
-      
+  
               const coordinates = await parseCoordinates(map.coordinates);
-      
+  
+              console.log(`✅ Parsed coordinates for map ${map.id}:`, coordinates);
+  
               return {
                 id: map.id,
                 map_number: map.map_number,
@@ -268,10 +295,10 @@ export function ContractDashboard() {
               };
             })
           );
-      
+  
           const wbsTotal = processedMaps.reduce((sum, m) => sum + m.contractTotal, 0);
           const wbsPaid = processedMaps.reduce((sum, m) => sum + m.amountPaid, 0);
-      
+  
           return {
             wbs: wbs.wbs_number,
             description: wbs.description ?? '',
@@ -282,10 +309,12 @@ export function ContractDashboard() {
           };
         })
       );
-      
+  
+      console.log('✅ Processed WBS groups:', processedGroups);
+  
       setWbsGroups(processedGroups);
-      
     } catch (error: unknown) {
+      console.error('❌ Error caught during fetchContract:', error);
       logError('ContractDashboard fetchContract', error);
       setError((error as Error).message || 'Error loading contract details');
     } finally {
@@ -473,9 +502,9 @@ export function ContractDashboard() {
                 <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 mb-2">
                   <h1 className="text-2xl sm:text-3xl font-bold text-white break-words">
-                  {contract.title?.replace(/\s*\(CLONE\)/i, '')?.trim() || 'N/A'}
+                  {contract?.title?.replace(/\s*\(CLONE\)/i, '')?.trim() || 'N/A'}
                   </h1>
-                  {contract.title?.includes('(CLONE)') && (
+                  {contract?.title?.includes('(CLONE)') && (
                     <span className="px-2 py-0.5 text-xs rounded-md bg-yellow-500/20 text-yellow-300 font-medium border border-yellow-500">
                       Demo
                     </span>
@@ -503,9 +532,9 @@ export function ContractDashboard() {
               <div className="w-full sm:w-auto text-left sm:text-right">
                 <p className="text-sm text-gray-500">Contract Period</p>
                 <p className="text-gray-300">
-                  {contract.start_date && contract.end_date
-                    ? `${new Date(contract.start_date).toLocaleDateString()} - ${new Date(contract.end_date).toLocaleDateString()}`
-                    : 'N/A'}
+                {contract?.start_date && contract?.end_date
+                  ? `${new Date(contract.start_date).toLocaleDateString()} - ${new Date(contract.end_date).toLocaleDateString()}`
+                  : 'N/A'}
                 </p>
               </div>
             </div>
@@ -593,7 +622,42 @@ export function ContractDashboard() {
                         </button>
                         {expandedMaps.includes(map.id) && (
                           <div className="overflow-x-auto">
-                            {/* Optional: Add line item or detail view here */}
+                            {map.line_items.length > 0 ? (
+                              <table className="min-w-full text-sm text-white">
+                                <thead>
+                                  <tr className="border-b border-background-lighter">
+                                    <th className="text-left p-2">Line Code</th>
+                                    <th className="text-left p-2">Description</th>
+                                    <th className="text-right p-2">Quantity</th>
+                                    <th className="text-right p-2">Unit</th>
+                                    <th className="text-right p-2">Unit Price</th>
+                                    <th className="text-right p-2">Total Cost</th>
+                                    <th className="text-right p-2">Amount Paid</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {map.line_items.map((item) => (
+                                    <tr key={item.id} className="border-b border-background-lighter">
+                                      <td className="p-2">{item.line_code}</td>
+                                      <td className="p-2">{item.description}</td>
+                                      <td className="p-2 text-right">{item.quantity}</td>
+                                      <td className="p-2 text-right">{item.unit_measure}</td>
+                                      <td className="p-2 text-right">
+                                        ${item.unit_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                      </td>
+                                      <td className="p-2 text-right">
+                                        ${item.total_cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                      </td>
+                                      <td className="p-2 text-right">
+                                        ${item.amount_paid.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            ) : (
+                              <p className="text-gray-400 p-4">No line items available for this map.</p>
+                            )}
                           </div>
                         )}
                       </div>
