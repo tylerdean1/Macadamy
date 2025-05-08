@@ -38,21 +38,15 @@ const defaultUser: SupabaseUser = {
 const defaultProfile: Profile = {
   id: '00000000-0000-0000-0000-000000000000',
   user_role: validateUserRole('Admin'),
-  full_name: 'Test User',
+  full_name: 'Bypassed Test User',
   email: 'test@test.com',
-  phone: '',
-  location: '',
-  username: 'test',
-  avatar_id: '', // ✅ added to fix type error
-  avatar_url: '',
-  organization_id: '',
-  job_title_id: '',
-  organizations: {
-    name: 'Demo Org',
-    address: '',
-    phone: '',
-    website: '',
-  },
+  phone: '123-456-7891',
+  location: '123 Main Street St. Augustine, FL 32080',
+  username: 'BYPASSED.TEST.PROFILE',
+  avatar_id: '407180e5-203d-49e2-894a-0fee4fee372b', // ✅ added to fix type error
+  avatar_url: 'https://koaxmrtrzhilnzjbiybr.supabase.co/storage/v1/object/public/avatars-presets//Contract%20Plans.png',
+  organization_id: '14344b69-c36b-4e2a-880a-7b24effe1779',
+  job_title_id: '411b844e-7f87-4a43-a784-e535336576f1',
   job_titles: {
     title: 'Engineer',
     is_custom: false,

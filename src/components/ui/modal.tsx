@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'; // Import React and necessary hooks
 import { Button } from './button'; // Import custom Button component
-import '../../styles/components.css'; // Import custom CSS for modal styling
+import '@/styles/components.css'; // Import custom CSS for modal styling
 
 // Define the props for the Modal component
 interface ModalProps {

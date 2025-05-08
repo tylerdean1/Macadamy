@@ -1,284 +1,588 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Trash2, PlusCircle, ChevronRight, ChevronDown } from 'lucide-react';
-import { supabase } from '../lib/supabase';
-import type { Database } from '../lib/database.types';
+import {
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Box,
+  Typography,
+  Divider,
+  IconButton,
+} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import RoomIcon from '@mui/icons-material/Room';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
 import WbsForm from '@/components/contract/WbsForm';
 import { MapsForm } from '@/components/contract/MapsForm';
-import { LineItemModal } from '@/components/contract/LineItemModal';
-import { toast } from 'sonner';
+import { LineItemsForm } from '@/components/contract/LineItemsForm';
+import { MapModal } from '@/components/contract/MapModal';
+import { UNIT_MEASURE_OPTIONS, OrganizationRole } from '@/lib/enums';
+import { useEnumOptions } from '@/hooks/useEnumOptions';
+import {
+  GoogleMap,
+  Marker,
+  Polyline,
+  Polygon,
+  useJsApiLoader,
+} from '@react-google-maps/api';
+import type { EditableMap } from '@/components/contract/MapsForm';
+import type { EditableWbsSection } from '@/components/contract/WbsForm';
+import type {
+  WBS,
+  Maps,
+  LineItems,
+  LineItemTemplates,
+  Contracts,
+} from '@/lib/types';
+import type { Database } from '@/lib/database.types';
 
-// Available contract statuses for selection
-const STATUS_OPTIONS = ['Draft', 'Active', 'On Hold', 'Final Review', 'Closed'];
+type ContractStatusValue = Database['public']['Enums']['contract_status'];
+type ContractOrganization = Database['public']['Tables']['contract_organizations']['Row'];
+type Organization = Database['public']['Tables']['organizations']['Row'];
+type Role = Database['public']['Enums']['organization_role'];
 
-export function ContractSettings() {
-  const { id } = useParams(); // Retrieve the contract ID from the URL parameters
-  const navigate = useNavigate(); // Navigate between routes
-  const [contract, setContract] = useState<Database['public']['Tables']['contracts']['Row'] | null>(null); // State for contract data
-  const [loading, setLoading] = useState(true); // Loading state for data fetching
-  const [saving, setSaving] = useState(false); // Saving state for contract updates
 
-  // States for WBS sections, maps, line items, and templates
-  const [wbsSections, setWbsSections] = useState<{ wbs_number: string; description: string }[]>([]);
-  const [maps, setMaps] = useState<{ id: string; map_number: string; location_description: string }[]>([]);
-  const [mapRefresh, setMapRefresh] = useState(false); // Trigger refresh of maps
+function GoogleMapPreview({ coordinates }: { coordinates: string | null }) {
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY!,
+  });
 
-  const [lineItems, setLineItems] = useState<{ id: string; line_code: string; description: string; quantity: number; unit_measure: string; unit_price: number }[]>([]);
-  const [showLineItemModal, setShowLineItemModal] = useState(false); // Modal state for line item addition
-  const [templates, setTemplates] = useState<{ id: string; name: string; description: string }[]>([]); // Templates for line items
-  const unitOptions = ['kg', 'm', 'pcs', 'liters']; // Unit options for line items
+  if (!coordinates || !isLoaded) return null;
 
-  const [openSection, setOpenSection] = useState<string>('info'); // State to manage which section is currently open
-
-  // Fetch the contract information
-  const fetchContract = useCallback(async () => {
-    if (!id) return;
-    const { data, error } = await supabase.from('contracts').select('*').eq('id', id).maybeSingle();
-    if (error || !data) return toast.error('Contract not found');
-    setContract(data);
-    setLoading(false);
-  }, [id]);
-
-  // Fetch the WBS sections associated with the contract
-  const fetchWbsSections = useCallback(async () => {
-    if (!id) return;
-    const { data } = await supabase.from('wbs').select('wbs_number, description').eq('contract_id', id).order('wbs_number');
-    if (data) setWbsSections(data);
-  }, [id]);
-
-  // Fetch the maps associated with the contract
-  const fetchMaps = useCallback(async () => {
-    if (!id) return;
-    const { data } = await supabase.from('maps').select('*').eq('contract_id', id);
-    if (data) setMaps(data);
-  }, [id]);
-
-  // Fetch line items linked to the contract
-  const fetchLineItems = useCallback(async () => {
-    if (!id) return;
-    const { data } = await supabase.from('line_items').select('*').eq('contract_id', id);
-    if (data) setLineItems(data);
-  }, [id]);
-
-  // Fetch line item templates for selection when adding new line items
-  const fetchTemplates = useCallback(async () => {
-    const { data } = await supabase.from('line_item_templates').select('*');
-    if (data) setTemplates(data);
-  }, []);
-
-  // Fetch all necessary data when the component mounts or when dependencies change
-  useEffect(() => {
-    fetchContract();
-    fetchWbsSections();
-    fetchMaps();
-    fetchLineItems();
-    fetchTemplates();
-  }, [fetchContract, fetchWbsSections, fetchMaps, fetchLineItems, fetchTemplates, id, mapRefresh]);
-
-  // Handle saving contract updates
-  const handleSave = async () => {
-    if (!contract) return;
-    setSaving(true);
-    const { error } = await supabase.from('contracts').update({
-      title: contract.title,
-      description: contract.description,
-      location: contract.location,
-      start_date: contract.start_date,
-      end_date: contract.end_date,
-      status: contract.status,
-    }).eq('id', contract.id);
-    if (error) toast.error('Error saving contract');
-    else toast.success('Contract updated!');
-    setSaving(false);
-  };
-
-  // Save WBS sections to the database
-  const saveWbsSections = async () => {
-    if (!id) return;
-    await supabase.from('wbs').delete().eq('contract_id', id); // Delete existing WBS entries for the contract
-    const inserts = wbsSections.map(s => ({ ...s, contract_id: id }));
-    const { error } = await supabase.from('wbs').insert(inserts);
-    if (error) toast.error('Failed to save WBS');
-    else toast.success('WBS saved!');
-  };
-
-  // Delete a specific map by ID
-  const deleteMap = async (mapId: string) => {
-    const { error } = await supabase.from('maps').delete().eq('id', mapId);
-    if (!error) {
-      toast.success('Map deleted');
-      setMapRefresh(!mapRefresh); // Trigger refresh to update map list
+  const parseWKT = (wkt: string): { type: string; points: google.maps.LatLngLiteral[] } => {
+    if (wkt.startsWith('POINT')) {
+      const [lng, lat] = wkt.replace('POINT(', '').replace(')', '').split(' ').map(Number);
+      return { type: 'point', points: [{ lat, lng }] };
     }
-  };
-
-  // Delete a specific line item by ID
-  const deleteLineItem = async (itemId: string) => {
-    const { error } = await supabase.from('line_items').delete().eq('id', itemId);
-    if (!error) {
-      toast.success('Line item deleted');
-      fetchLineItems(); // Refresh line items after deletion
+    if (wkt.startsWith('LINESTRING')) {
+      const coords = wkt.replace('LINESTRING(', '').replace(')', '').split(',').map(pair => {
+        const [lng, lat] = pair.trim().split(' ').map(Number);
+        return { lat, lng };
+      });
+      return { type: 'line', points: coords };
     }
-  };
-
-  // Handle saving a new line item
-  const handleLineItemSave = async (data: { line_code: string; description: string; quantity: number; unit_measure: string; unit_price: number }) => {
-    const { error } = await supabase.from('line_items').insert([{ ...data, contract_id: id }]);
-    if (!error) {
-      toast.success('Line item added!');
-      fetchLineItems(); // Refresh line items after adding a new one
-      setShowLineItemModal(false); // Close the modal
+    if (wkt.startsWith('POLYGON')) {
+      const cleaned = wkt.replace('POLYGON((', '').replace('))', '');
+      const coords = cleaned.split(',').map(pair => {
+        const [lng, lat] = pair.trim().split(' ').map(Number);
+        return { lat, lng };
+      });
+      return { type: 'polygon', points: coords };
     }
+    return { type: 'unknown', points: [] };
   };
 
-  // Calculate total budget from line items
-  const totalBudget = lineItems.reduce((acc, item) => acc + (item.unit_price * item.quantity), 0);
+  const { type, points } = parseWKT(coordinates);
+  if (!points.length) return null;
 
-  // Renderable Section Toggle Component
-  const SectionToggle = ({ id, title }: { id: string; title: string }) => (
-    <button
-      type="button"
-      className="w-full flex justify-between items-center bg-background-light px-4 py-2 text-left border-b border-background-lighter hover:bg-background"
-      onClick={() => setOpenSection(prev => (prev === id ? '' : id))} // Toggle open/close section
-    >
-      <span className="text-lg font-semibold">{title}</span>
-      {openSection === id ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-    </button>
-  );
-
-  // Display a loading indication while contract data is being fetched
-  if (loading) return <div className="text-white p-8">Loading...</div>;
+  const center = points[Math.floor(points.length / 2)];
 
   return (
-    <div className="p-6 text-white">
-      <div className="flex justify-between items-center mb-6">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white">
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
-        <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-primary text-white rounded">
-          <Save className="w-4 h-4 inline mr-1" /> {saving ? 'Saving...' : 'Save Contract'} {/* Conditional saving state */}
-        </button>
-      </div>
-
-      <div className="rounded overflow-hidden border border-background-lighter">
-        {/* Contract Info Section */}
-        <SectionToggle id="info" title="Contract Info" />
-        {openSection === 'info' && contract && (
-          <div className="p-4 space-y-4">
-            <div className="text-green-400 font-semibold">Total Budget: ${totalBudget.toLocaleString()}</div>
-            <input
-              placeholder="Contract Title"
-              value={contract.title || ''}
-              onChange={e => setContract(c => c ? { ...c, title: e.target.value } : c)}
-              className="w-full p-2 bg-background border rounded"
-            />
-            <textarea
-              placeholder="Contract Description"
-              value={contract.description || ''}
-              onChange={e => setContract(c => c ? { ...c, description: e.target.value } : c)}
-              className="w-full p-2 bg-background border rounded"
-            />
-            <input
-              placeholder="Location"
-              value={contract.location || ''}
-              onChange={e => setContract(c => c ? { ...c, location: e.target.value } : c)}
-              className="w-full p-2 bg-background border rounded"
-            />
-            <div className="flex gap-4">
-              <input
-                type="date"
-                aria-label="Start Date"
-                title="Start Date"
-                value={contract.start_date || ''}
-                onChange={e => setContract(c => c ? { ...c, start_date: e.target.value } : c)}
-                className="w-full p-2 bg-background border rounded"
-              />
-              <input
-                type="date"
-                aria-label="End Date"
-                title="End Date"
-                value={contract.end_date || ''}
-                onChange={e => setContract(c => c ? { ...c, end_date: e.target.value } : c)}
-                className="w-full p-2 bg-background border rounded"
-              />
-            </div>
-            <select
-              aria-label="Contract Status"
-              value={contract.status || ''}
-              onChange={e => setContract(c => c ? { ...c, status: e.target.value as Database['public']['Tables']['contracts']['Row']['status'] } : c)}
-              className="w-full p-2 bg-background border rounded"
-            >
-              {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-        )}
-
-        {/* WBS Sections Toggle */}
-        <SectionToggle id="wbs" title="WBS Sections" />
-        {openSection === 'wbs' && (
-          <div className="p-4">
-            <div className="flex justify-between mb-2">
-              <span className="text-green-400">Total: {wbsSections.length} sections</span>
-              <button onClick={saveWbsSections} className="text-sm bg-primary px-3 py-1 rounded">Save WBS</button>
-            </div>
-            <WbsForm sections={wbsSections} onChange={setWbsSections} />
-          </div>
-        )}
-
-        {/* Maps Toggle */}
-        <SectionToggle id="maps" title="Maps" />
-        {openSection === 'maps' && (
-          <div className="p-4 space-y-3">
-            <div className="text-green-400">Total: {maps.length} map(s)</div>
-            {maps.map(map => (
-              <div key={map.id} className="flex justify-between items-center border-b border-gray-700 py-2">
-                <span>{map.map_number} – {map.location_description}</span>
-                <button onClick={() => deleteMap(map.id)} className="text-red-500 hover:text-white" title="Delete Map">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-            <MapsForm contractId={id!} wbsId={wbsSections[0]?.wbs_number} onMapSaved={() => setMapRefresh(!mapRefresh)} />
-          </div>
-        )}
-
-        {/* Line Items Toggle */}
-        <SectionToggle id="lineitems" title="Line Items" />
-        {openSection === 'lineitems' && (
-          <div className="p-4 space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-green-400">Total: {lineItems.length} items</span>
-              <button onClick={() => setShowLineItemModal(true)} className="text-sm bg-primary px-3 py-1 rounded flex items-center gap-1">
-                <PlusCircle className="w-4 h-4" /> Add Line Item
-              </button>
-            </div>
-            {lineItems.map(item => (
-              <div key={item.id} className="flex justify-between items-center border-b border-gray-700 py-2">
-                <span>{item.line_code} – {item.description} – {item.quantity} {item.unit_measure}</span>
-                <button onClick={() => deleteLineItem(item.id)} className="text-red-500 hover:text-white" title="Delete Line Item">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Modal for adding line items */}
-        {showLineItemModal && (
-          <LineItemModal
-            open={showLineItemModal}
-            onClose={() => setShowLineItemModal(false)}
-            templates={templates.map(template => ({
-              ...template,
-              title: template.name,
-              unit_measure: '',
-              formula: '',
-              variables: []
-            }))}
-            unitOptions={unitOptions.map(option => ({ label: option, value: option }))}
-            onSave={handleLineItemSave} // Function to call when saving the line item
+    <Box sx={{ my: 2, width: '100%', height: 300 }}>
+      <GoogleMap
+        mapContainerStyle={{ width: '100%', height: '100%' }}
+        center={center}
+        zoom={16}
+      >
+        {type === 'point' && <Marker position={points[0]} />}
+        {type === 'line' && <Polyline path={points} options={{ strokeColor: '#00bfff', strokeWeight: 4 }} />}
+        {type === 'polygon' && (
+          <Polygon
+            path={points}
+            options={{ strokeColor: '#00FF00', fillColor: '#00FF0080', strokeWeight: 2 }}
           />
         )}
-      </div>
-    </div>
+      </GoogleMap>
+    </Box>
   );
 }
+
+function OrgRoleManager({ contractId }: { contractId: string }) {
+  const [entries, setEntries] = useState<
+    (ContractOrganization & { organization: Organization | null })[]
+  >([]);
+  const [allOrgs, setAllOrgs] = useState<Organization[]>([]);
+  const [newOrgId, setNewOrgId] = useState<string>('');
+  const [newRole, setNewRole] = useState<Role>('Prime Contractor');
+  const [roleOptions, setRoleOptions] = useState<Role[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data: roles, error } = await supabase.rpc('get_enum_values', {
+        enum_type: 'organization_role',
+      });
+      if (error) console.error('Failed to fetch organization roles', error);
+      else setRoleOptions((roles ?? []).map((r) => r.value as Role));
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const { data: orgs } = await supabase.from('organizations').select('*');
+      const { data: rels } = await supabase
+        .from('contract_organizations')
+        .select('*, organization:organization_id(*)')
+        .eq('contract_id', contractId); 
+      setAllOrgs(orgs ?? []);
+      setEntries(rels ?? []);
+    })();
+  }, [contractId]);
+
+  const handleAdd = async () => {
+    if (!newOrgId) return;
+    const user = supabase.auth.getUser();
+      await supabase.from('contract_organizations').insert({
+        contract_id: contractId,
+        organization_id: newOrgId,
+        role: newRole,
+        created_by: (await user).data?.user?.id ?? ''
+      });
+    setNewOrgId('');
+    setNewRole('Prime Contractor');
+    const { data: rels = [] } = await supabase
+      .from('contract_organizations')
+      .select('*, organization:organization_id(*)')
+      .eq('contract_id', contractId);
+      setEntries(rels ?? []);
+  };
+
+  const handleRoleChange = async (entryId: string, role: Role) => {
+    await supabase.from('contract_organizations').update({ role }).eq('id', entryId);
+    setEntries(prev =>
+      prev.map(e => (e.id === entryId ? { ...e, role } : e))
+    );
+  };
+
+  const handleDelete = async (id: string) => {
+    await supabase.from('contract_organizations').delete().eq('id', id);
+    setEntries(prev => prev.filter(e => e.id !== id));
+  };
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {entries.map(entry => (
+        <Box key={entry.id} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography>{entry.organization?.name || 'Unknown Org'}</Typography>
+          <select
+            title="Organization Role"
+            aria-label="Organization Role"
+            value={entry.role ?? ''}
+            onChange={(e) => handleRoleChange(entry.id, e.target.value as Role)}
+            className="bg-zinc-900 border border-zinc-700 text-white px-2 py-1 rounded"
+          >
+            <option value="" disabled>Select role</option>
+            {roleOptions.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+          <button
+            className="text-red-400 hover:underline"
+            onClick={() => handleDelete(entry.id)}
+          >
+            Remove
+          </button>
+        </Box>
+      ))}
+      <Divider />
+      <Box display="flex" gap={2}>
+        <select
+          aria-label="Select Organization"
+          value={newOrgId}
+          onChange={(e) => setNewOrgId(e.target.value)}
+          className="bg-zinc-900 border border-zinc-700 text-white px-2 py-1 rounded"
+        >
+          <option value="">Select Organization</option>
+          {allOrgs
+            .filter(org => !entries.find(e => e.organization_id === org.id))
+            .map(org => (
+              <option key={org.id} value={org.id}>
+                {org.name}
+              </option>
+            ))}
+        </select>
+        <select
+          aria-label="Select Role"
+          value={newRole}
+          onChange={(e) => setNewRole(e.target.value as Role)}
+          className="bg-zinc-900 border border-zinc-700 text-white px-2 py-1 rounded"
+        >
+          {Object.values(OrganizationRole).map(r => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
+        <button
+          className="bg-primary text-white px-3 py-1 rounded"
+          onClick={handleAdd}
+        >
+          + Add Organization
+        </button>
+      </Box>
+    </Box>
+  );
+}
+
+export function ContractSettings() {
+  const { id: contractId } = useParams<{ id: string }>();
+  const [contract, setContract] = useState<Contracts | null>(null);
+  const [wbsSections, setWbsSections] = useState<WBS[]>([]);
+  const [mapsByWbs, setMapsByWbs] = useState<Record<string, Maps[]>>({});
+  const [lineItemsByMap, setLineItemsByMap] = useState<Record<string, LineItems[]>>({});
+  const [templates, setTemplates] = useState<LineItemTemplates[]>([]);
+  const [modalTarget, setModalTarget] = useState<{ id: string; level: 'contract' | 'wbs' | 'map' | 'line' } | null>(null);
+  const statusOptions = useEnumOptions('contract_status');
+
+  useEffect(() => {
+    if (!contractId) return;
+    const id = contractId as string;
+    async function load() {
+      const { data: contract } = await supabase
+        .from('contracts')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      const { data: wbs = [] } = await supabase
+        .from('wbs')
+        .select('*')
+        .eq('contract_id', id);
+
+      const wbsIds = (wbs ?? []).map(w => w.id);
+      const { data: maps = [] } = await supabase
+        .from('maps')
+        .select('*')
+        .in('wbs_id', wbsIds);
+
+      const mapIds = (maps ?? []).map(m => m.id);
+      const { data: lineItems = [] } = await supabase
+        .from('line_items')
+        .select('*')
+        .in('map_id', mapIds);
+
+      const { data: templates = [] } = await supabase
+        .from('line_item_templates')
+        .select('*');
+
+      setContract(contract);
+      setWbsSections(wbs ?? []);
+      setTemplates(templates ?? []);
+
+      const groupedMaps = (maps ?? []).reduce((acc, map) => {
+        acc[map.wbs_id] = [...(acc[map.wbs_id] || []), map];
+        return acc;
+      }, {} as Record<string, Maps[]>);
+      setMapsByWbs(groupedMaps);
+
+      const groupedItems = (lineItems ?? []).reduce((acc, li) => {
+        if (li.map_id) {
+          acc[li.map_id] = [...(acc[li.map_id] || []), li];
+        }
+        return acc;
+      }, {} as Record<string, LineItems[]>);
+      setLineItemsByMap(groupedItems);
+    }
+    load();
+  }, [contractId]);
+
+  return (
+    <Box p={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h5">Contract Settings</Typography>
+      </Box>
+  
+      {contract && (
+        <Box mb={4} sx={{ gap: 2, display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+          <input
+            value={contract.title ?? ''}
+            onChange={(e) => setContract((c) => c && { ...c, title: e.target.value })}
+            className="bg-zinc-900 border border-zinc-700 px-2 py-1 rounded text-white"
+            placeholder="Contract Title"
+          />
+          <input
+            value={contract.location ?? ''}
+            onChange={(e) => setContract((c) => c && { ...c, location: e.target.value })}
+            className="bg-zinc-900 border border-zinc-700 px-2 py-1 rounded text-white"
+            placeholder="Contract Location"
+          />
+          <textarea
+            value={contract.description ?? ''}
+            onChange={(e) => setContract((c) => c && { ...c, description: e.target.value })}
+            className="col-span-2 bg-zinc-900 border border-zinc-700 px-2 py-1 rounded text-white"
+            placeholder="Description"
+          />
+          <select
+            value={contract.status ?? ''}
+            onChange={(e) =>
+              setContract((c) => c && { ...c, status: e.target.value as ContractStatusValue })}
+            className="bg-zinc-900 border border-zinc-700 px-2 py-1 rounded text-white"
+            aria-label="Status"
+          > 
+            <option value="" disabled>Select status</option>
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+          <input
+            type="date"
+            value={contract.start_date ?? ''}
+            onChange={(e) => setContract((c) => c && { ...c, start_date: e.target.value })}
+            className="bg-zinc-900 border border-zinc-700 px-2 py-1 rounded text-white"
+            placeholder="Start Date"
+          />
+          <input
+            type="date"
+            value={contract.end_date ?? ''}
+            onChange={(e) => setContract((c) => c && { ...c, end_date: e.target.value })}
+            className="bg-zinc-900 border border-zinc-700 px-2 py-1 rounded text-white"
+            placeholder="End Date"
+          />
+          <Box display="flex" alignItems="center">
+            <GoogleMapPreview coordinates={typeof contract.coordinates === 'string' ? contract.coordinates : null} />
+            <IconButton
+              onClick={() => setModalTarget({ id: contract.id, level: 'contract' })}
+              sx={{ color: 'red' }}
+            >
+              <RoomIcon />
+            </IconButton>
+          </Box>
+        </Box>
+      )}
+  
+  <OrgRoleManager contractId={contractId!} />
+
+<Divider sx={{ my: 3 }} />
+
+{wbsSections.map((wbs) => (
+  <Accordion key={wbs.id} defaultExpanded>
+    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+      <Typography variant="h6">WBS {wbs.wbs_number}</Typography>
+    </AccordionSummary>
+    <AccordionDetails>
+      <Typography variant="body2">{wbs.description}</Typography>
+      <Box display="flex" alignItems="center">
+        <GoogleMapPreview
+          coordinates={typeof wbs.coordinates === 'string' ? wbs.coordinates : null}
+        />
+        <IconButton
+          onClick={() => setModalTarget({ id: wbs.id, level: 'wbs' })}
+          sx={{ color: 'red' }}
+        >
+          <RoomIcon />
+        </IconButton>
+      </Box>
+
+      <MapsForm
+        wbsId={wbs.id}
+        maps={(mapsByWbs[wbs.id] || []).map(map => ({
+          ...map,
+          location_description: map.location_description ?? '',
+        })) as EditableMap[]}
+        onChange={(newMaps: EditableMap[]) =>
+          setMapsByWbs((prev) => ({ ...prev, [wbs.id]: newMaps as Maps[] }))
+        }
+      />
+
+      {(mapsByWbs[wbs.id] || []).map((map) => (
+        <Box key={map.id} sx={{ pl: 2, mt: 2, borderLeft: '2px solid #444' }}>
+          <Typography variant="subtitle1" gutterBottom>
+            Map {map.map_number}
+          </Typography>
+          <Typography variant="body2">{map.location_description}</Typography>
+          <Box display="flex" alignItems="center" mb={2}>
+            <GoogleMapPreview
+              coordinates={typeof map.coordinates === 'string' ? map.coordinates : null}
+            />
+            <IconButton
+              onClick={() => setModalTarget({ id: map.id, level: 'map' })}
+              sx={{ color: 'red' }}
+            >
+              <RoomIcon />
+            </IconButton>
+          </Box>
+
+          <MapsForm
+            wbsId={wbs.id}
+            maps={[(map as EditableMap)]}
+            onChange={(newMaps: EditableMap[]) =>
+              setMapsByWbs((prev) => ({
+                ...prev,
+                [wbs.id]: prev[wbs.id].map((m) =>
+                  m.id === map.id ? { ...m, ...newMaps[0] } : m
+                ),
+              }))
+            }
+          />
+
+          {(lineItemsByMap[map.id] || []).map((li) => (
+            <Box key={li.id} sx={{ pl: 2, mt: 2, borderLeft: '2px dashed #666' }}>
+              <Typography variant="body2" gutterBottom>
+                Line Item: {li.line_code}
+              </Typography>
+              <Typography variant="body2">{li.description}</Typography>
+              <Box display="flex" alignItems="center" mb={1}>
+                <GoogleMapPreview
+                  coordinates={typeof li.coordinates === 'string' ? li.coordinates : null}
+                />
+                <IconButton
+                  onClick={() => setModalTarget({ id: li.id, level: 'line' })}
+                  sx={{ color: 'red' }}
+                >
+                  <RoomIcon />
+                </IconButton>
+              </Box>
+
+              <LineItemsForm
+                mapId={map.id}
+                lineItems={[li]}
+                templates={templates}
+                unitOptions={UNIT_MEASURE_OPTIONS.map((u) => ({ label: u, value: u }))}
+                onChange={(newItems) =>
+                  setLineItemsByMap((prev) => ({
+                    ...prev,
+                    [map.id]: prev[map.id].map((item) =>
+                      item.id === li.id ? newItems[0] : item
+                    ),
+                  }))
+                }
+              />
+            </Box>
+          ))}
+        </Box>
+      ))}
+    </AccordionDetails>
+  </Accordion>
+))}
+
+<WbsForm
+  sections={wbsSections.map((wbs) => ({
+    ...wbs,
+    description: wbs.description ?? '',
+  })) as EditableWbsSection[]}
+  onChange={(updatedSections: EditableWbsSection[]) => {
+    setWbsSections(updatedSections as WBS[]); // if needed
+  }}
+/>
+
+{modalTarget && (
+  <MapModal
+  open={!!modalTarget}
+  targetId={modalTarget.id}
+  level={modalTarget.level}
+  onClose={() => setModalTarget(null)}
+  onConfirm={(wkt) => {
+    const { id, level } = modalTarget;
+    if (!id || !level) return;
+
+    // Update local coordinates in state
+    if (level === 'contract') {
+      setContract((prev) => prev && { ...prev, coordinates: wkt });
+    } else if (level === 'wbs') {
+      setWbsSections((prev) =>
+        prev.map((wbs) => (wbs.id === id ? { ...wbs, coordinates: wkt } : wbs))
+      );
+    } else if (level === 'map') {
+      setMapsByWbs((prev) => {
+        const group = Object.entries(prev).map(([wbsId, maps]) => [
+          wbsId,
+          maps.map((m) => (m.id === id ? { ...m, coordinates: wkt } : m)),
+        ]);
+        return Object.fromEntries(group);
+      });
+    } else if (level === 'line') {
+      setLineItemsByMap((prev) => {
+        const group = Object.entries(prev).map(([mapId, items]) => [
+          mapId,
+          items.map((li) => (li.id === id ? { ...li, coordinates: wkt } : li)),
+        ]);
+        return Object.fromEntries(group);
+      });
+    }
+
+    setModalTarget(null);
+  }}
+  
+/>
+)}
+<Box display="flex" justifyContent="flex-end" mt={4}>
+  <button
+    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+    onClick={async () => {
+      if (!contract) return;
+
+      // Save contract
+      const { error: contractError } = await supabase
+        .from('contracts')
+        .update({
+          title: contract.title,
+          description: contract.description,
+          location: contract.location,
+          status: contract.status,
+          start_date: contract.start_date,
+          end_date: contract.end_date,
+          coordinates: contract.coordinates,
+        })
+        .eq('id', contract.id);
+      if (contractError) console.error('Failed to save contract', contractError);
+
+      // Save WBS
+      for (const wbs of wbsSections) {
+        const { error: wbsError } = await supabase
+          .from('wbs')
+          .update({
+            wbs_number: wbs.wbs_number,
+            description: wbs.description,
+            coordinates: wbs.coordinates,
+          })
+          .eq('id', wbs.id);
+        if (wbsError) console.error(`Failed to save WBS ${wbs.id}`, wbsError);
+      }
+
+      // Save Maps
+      for (const maps of Object.values(mapsByWbs)) {
+        for (const map of maps) {
+          const { error: mapError } = await supabase
+            .from('maps')
+            .update({
+              map_number: map.map_number,
+              location_description: map.location_description,
+              coordinates: map.coordinates,
+            })
+            .eq('id', map.id);
+          if (mapError) console.error(`Failed to save Map ${map.id}`, mapError);
+        }
+      }
+
+      // Save Line Items
+      for (const lineItems of Object.values(lineItemsByMap)) {
+        for (const li of lineItems) {
+          const { error: liError } = await supabase
+            .from('line_items')
+            .update({
+              line_code: li.line_code,
+              description: li.description,
+              quantity: li.quantity,
+              unit_price: li.unit_price,
+              unit_measure: li.unit_measure,
+              reference_doc: li.reference_doc,
+              coordinates: li.coordinates,
+              template_id: li.template_id,
+            })
+            .eq('id', li.id);
+          if (liError) console.error(`Failed to save Line Item ${li.id}`, liError);
+        }
+      }
+
+      alert('All changes saved!');
+    }}
+  >
+    💾 Save All Changes
+  </button>
+</Box>
+</Box>
+  );
+}  

@@ -1,99 +1,118 @@
-import React, { useState } from 'react'; // Import React and useState hook
-import { Button } from '@/components/ui/button'; // Import custom Button component
-import { Card } from '@/components/ui/card'; // Import custom Card component
-import { LineItemModal } from './LineItemModal'; // Import LineItemModal for editing and adding items
-import type { LineItem, Template } from '@/types'; // Import types for LineItem and Template
+import {
+  Paper,
+  Stack,
+  Typography,
+  IconButton,
+  Box,
+  Button,
+} from '@mui/material';
+import { Plus, Pencil, Trash } from 'lucide-react';
+import { useState } from 'react';
 
-/** 
- * LineItemsForm component for managing multiple line items in a contract.
- * 
- * This component allows users to view, add, edit, and remove line items,
- * providing a modal interface for detailed input. It maintains an array of 
- * line items in its state and reflects any changes back to the parent 
- * component using the onChange callback. The user can click the "Add Line 
- * Item" button to open a modal form, which can be used to input or edit
- * the details of each line item.
- */
+import { LineItemModal } from '@/components/contract/LineItemModal';
+import type { LineItems, LineItemTemplates } from '@/lib/types';
+import type { UnitMeasureTypeValue } from '@/lib/enums';
+
 interface LineItemsFormProps {
-  items: LineItem[]; // Existing line items
-  templates: Template[]; // Array of templates for line items
-  unitOptions: { label: string; value: string }[]; // Options for unit selection
-  onChange: (updatedItems: LineItem[]) => void; // Callback to update line items
+  mapId: string;
+  lineItems: LineItems[];
+  onChange: (items: LineItems[]) => void;
+  templates: LineItemTemplates[];
+  unitOptions: { label: string; value: UnitMeasureTypeValue }[];
 }
 
-// LineItemsForm component for managing line items in a contract
-export const LineItemsForm: React.FC<LineItemsFormProps> = ({
-  items,
+export function LineItemsForm({
+  mapId,
+  lineItems,
+  onChange,
   templates,
   unitOptions,
-  onChange,
-}) => {
-  const [modalOpen, setModalOpen] = useState(false); // State for modal visibility
-  const [editIndex, setEditIndex] = useState<number | null>(null); // Index of the item being edited
+}: LineItemsFormProps) {
+  const [showModal, setShowModal] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-  // Handle adding a new line item
-  const handleAdd = (item: LineItem) => {
-    onChange([...items, item]); // Update line items
+  const handleSave = (item: Partial<LineItems>) => {
+    const newItem = {
+      ...item,
+      id: item.id || crypto.randomUUID(),
+      map_id: mapId,
+    } as LineItems;
+
+    const updated = [...lineItems];
+    if (editingIndex !== null) {
+      updated[editingIndex] = newItem;
+    } else {
+      updated.push(newItem);
+    }
+
+    onChange(updated);
+    setShowModal(false);
+    setEditingIndex(null);
   };
 
-  // Handle editing an existing line item
-  const handleEdit = (updated: LineItem) => {
-    if (editIndex === null) return; // Ensure an item is selected for editing
-    const updatedItems = [...items]; // Copy existing items
-    updatedItems[editIndex] = updated; // Replace edited item
-    onChange(updatedItems); // Update line items with edited item
-    setEditIndex(null); // Reset edit index
-  };
-
-  // Handle removing a line item by its index
-  const handleRemove = (index: number) => {
-    const updated = [...items]; // Copy existing items
-    updated.splice(index, 1); // Remove the item at the specified index
-    onChange(updated); // Update line items
+  const handleDelete = (index: number) => {
+    const updated = [...lineItems];
+    updated.splice(index, 1);
+    onChange(updated);
   };
 
   return (
-    <div className="space-y-4">
-      {/* Render each line item in a card */}
-      {items.map((item, index) => (
-        <Card key={index} className="p-4"> 
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="text-white font-semibold">{item.lineCode || `Line Item ${index + 1}`}</h3> {/* Display line code or fallback */}
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => { setEditIndex(index); setModalOpen(true); }}>
-                Edit {/* Button to edit item */}
-              </Button>
-              <Button size="sm" variant="danger" onClick={() => handleRemove(index)}>
-                Remove {/* Button to remove item */}
-              </Button>
-            </div>
-          </div>
-          <p className="text-sm text-gray-300">{item.description}</p> {/* Display line item description */}
-        </Card>
-      ))}
+    <>
+      <Stack spacing={2}>
+        {lineItems.map((item, index) => (
+          <Paper
+            key={item.id}
+            sx={{ p: 2, backgroundColor: 'background.default' }}
+          >
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Box>
+                <Typography variant="subtitle2">{item.line_code}</Typography>
+                <Typography variant="body2">{item.description}</Typography>
+                <Typography variant="caption">
+                  Qty: {item.quantity} × ${item.unit_price?.toFixed(2)} ({item.unit_measure})
+                </Typography>
+              </Box>
+              <Box>
+                <IconButton
+                  onClick={() => {
+                    setEditingIndex(index);
+                    setShowModal(true);
+                  }}
+                >
+                  <Pencil size={16} />
+                </IconButton>
+                <IconButton onClick={() => handleDelete(index)}>
+                  <Trash size={16} />
+                </IconButton>
+              </Box>
+            </Stack>
+          </Paper>
+        ))}
 
-      {/* Button to open modal for adding a new line item */}
-      <div className="text-right">
-        <Button onClick={() => { setEditIndex(null); setModalOpen(true); }}>
+        <Button
+          variant="outlined"
+          startIcon={<Plus />}
+          onClick={() => {
+            setEditingIndex(null);
+            setShowModal(true);
+          }}
+        >
           Add Line Item
         </Button>
-      </div>
+      </Stack>
 
-      {/* Modal for adding or editing line items */}
-      <LineItemModal
-        open={modalOpen} // Modal visibility state
-        onClose={() => { setModalOpen(false); setEditIndex(null); }} // Close modal and reset edit index
-        templates={templates} // Pass templates to the modal
-        unitOptions={unitOptions} // Pass unit options to the modal
-        onSave={(item) => {
-          if (editIndex === null) {
-            handleAdd(item); // Add new item to list
-          } else {
-            handleEdit(item); // Edit existing item
-          }
-          setModalOpen(false); // Close modal after saving
-        }}
-      />
-    </div>
+      {showModal && (
+        <LineItemModal
+          open={showModal}
+          onClose={() => {
+            setShowModal(false);
+            setEditingIndex(null);
+          }}
+          onSave={handleSave}
+          templates={templates}
+          unitOptions={unitOptions}
+        />
+      )}
+    </>
   );
-};
+}

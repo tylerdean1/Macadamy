@@ -17,7 +17,7 @@ import type { Database } from '../lib/database.types';
 import { ContractStatusSelect } from '@/components/ContractStatusSelect';
 import { Button } from '@mui/material';
 import MapPinIcon from '@mui/icons-material/PinDrop';
-import MapModal from '@/components/MapModal';
+import { MapModal } from '@/components/contract/MapModal';
 import { logError } from '@/utils/errorLogger';
 import type { GeometryData, GeometryType } from '../lib/types';
 
@@ -29,10 +29,10 @@ async function parseCoordinates(wktString: unknown): Promise<GeometryData | null
     const parsed = WKT.parse(wktString);
 
     if (
-      (parsed.type === 'Point' ||
-        parsed.type === 'LineString' ||
-        parsed.type === 'Polygon') &&
-      'coordinates' in parsed
+      parsed &&
+      typeof parsed === 'object' &&
+      (parsed.type === 'Point' || parsed.type === 'LineString' || parsed.type === 'Polygon') &&
+      Object.prototype.hasOwnProperty.call(parsed, 'coordinates')
     ) {
       return {
         type: parsed.type as GeometryType,
@@ -709,9 +709,10 @@ export function ContractDashboard() {
           </div>
 
           <MapModal
-            isOpen={openMapModal}
+            open={openMapModal}
             onClose={() => setOpenMapModal(false)}
             mapLocations={modalPins}
+            onConfirm={() => {}}
           />
         </div>
       </div>

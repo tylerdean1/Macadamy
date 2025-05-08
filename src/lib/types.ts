@@ -202,12 +202,6 @@ export interface JobTitle {
   is_custom: boolean | null;
 }
 
-export interface Formula {
-  name: string;
-  expression: string;
-  description: string;
-}
-
 export interface Profile {
   id: string;
   user_role: UserRole;
@@ -235,25 +229,6 @@ export interface Profile {
     is_preset: boolean;
   } | null;
   is_demo_user?: boolean;
-}
-
-// Matches the structure of parsed variable JSON
-export interface Variable {
-  name: string;
-  label: string;
-  type: string;
-  unit: string;
-  defaultValue: number;
-}
-
-// Parsed version of a calculator template
-export interface CalculatorTemplate {
-  id: string;
-  name: string;
-  description: string;
-  line_code: string; // You can default this as "N/A" if not stored
-  variables: Variable[];
-  formulas: Formula[];
 }
 
 /**

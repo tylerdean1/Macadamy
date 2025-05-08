@@ -1,40 +1,35 @@
-import React, { forwardRef } from 'react'; // Import React and forwardRef for ref forwarding
-import { SelectOption } from '../../types'; // Import types for select options
-
-// Define the props for the Select component
+import React, { forwardRef } from 'react';
+import { SelectOption } from '@/lib/ui.types';
 export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
-  label?: string; // Optional label for the select input
-  helperText?: string; // Optional helper text to display below the select input
-  error?: string; // Optional error message to show if there's an error
-  options: SelectOption[]; // Array of options to be populated in the select dropdown
-  fullWidth?: boolean; // Whether the select input should take full width
+  label?: string;
+  helperText?: string;
+  error?: string;
+  options: SelectOption[];
+  fullWidth?: boolean;
 }
-
-// Create the Select component using forwardRef for ref handling
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({
-    className = '', // Default className is an empty string
+    className = '',
     label,
     helperText,
     error,
     options,
     id,
-    fullWidth = false, // Defaults to false
-    ...props // Spread the remaining props
+    fullWidth = false,
+    ...props
   }, ref) => {
-    // Generate a unique ID if one is not provided
     const selectId = id || `select-${Math.random().toString(36).substring(2, 9)}`; 
     
     return (
-      <div className={`${fullWidth ? 'w-full' : ''}`}> {/* Apply full width if specified */}
+      <div className={`${fullWidth ? 'w-full' : ''}`}>
         {label && (
           <label htmlFor={selectId} className="block text-sm font-medium text-gray-300 mb-1">
-            {label} {/* Display the label if provided */}
+            {label}
           </label>
         )}
         <select
-          id={selectId} // Set the ID for the select element
-          ref={ref} // Forward the ref to the select element
+          id={selectId}
+          ref={ref}
           className={`
             block
             bg-background
@@ -52,21 +47,21 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             ${fullWidth ? 'w-full' : ''} 
             ${className} 
           `}
-          {...props} // Spread the props onto the select element
+          {...props}
         >
-          {options.map((option) => ( // Map over the options to create option elements
+          {options.map((option) => (
             <option 
-              key={option.value} // Unique key for each option
-              value={option.value} // Value for the option
-              disabled={option.disabled} // Disable option if specified
+              key={option.value}
+              value={option.value}
+              disabled={option.disabled}
             >
-              {option.label} {/* Display the label for the option */}
+              {option.label}
             </option>
           ))}
         </select>
-        {(helperText || error) && ( // Show helper text or error message if provided
+        {(helperText || error) && (
           <p className={`mt-1 text-sm ${error ? 'text-red-500' : 'text-gray-400'}`}>
-            {error || helperText} {/* Display error or helper text */}
+            {error || helperText}
           </p>
         )}
       </div>
@@ -74,5 +69,4 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   }
 );
 
-// Set display name for the component for better debugging
 Select.displayName = 'Select';

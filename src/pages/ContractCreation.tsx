@@ -1,91 +1,93 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import { v4 as uuidv4 } from 'uuid';
+
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import ContractInfoForm from '@/components/contract/ContractInfoForm';
-import { LineItemsForm } from '@/components/contract/LineItemsForm';
+import { ContractInfoForm } from '@/components/contract/ContractInfoForm';
 import WbsForm from '@/components/contract/WbsForm';
-import type { LineItem, Template } from '@/types';
+import { LineItemsForm } from '@/components/contract/LineItemsForm';
+
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
 
-// The ContractCreation component is responsible for creating new contract entries.
-const ContractCreation = () => {
-  const navigate = useNavigate(); // Hook for navigation
-  const { user } = useAuthStore(); // Retrieve the current user from the auth store
+import type { LineItems, Template, WBS, ContractsInsert } from '@/lib/types';
 
-  const [contractData, setContractData] = useState({ // State for capturing contract data
+const ContractCreation = () => {
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+
+  const [contractData, setContractData] = useState<ContractsInsert>({
+    id: uuidv4(),
     title: '',
     location: '',
     start_date: '',
     end_date: '',
-    status: 'draft', // Initial status is draft
+    status: 'Draft',
     budget: 0,
     description: '',
-    created_by: user?.id || '' // Record the user creating the contract
+    created_by: user?.id || '',
+    created_at: new Date().toISOString(),
   });
 
-  const [wbsSections, setWbsSections] = useState([]); // State for WBS sections
-  const [lineItems, setLineItems] = useState<LineItem[]>([]); // State for line items list
-  const [templates, setTemplates] = useState<Template[]>([]); // State for calculator templates
-  const [unitOptions, setUnitOptions] = useState<{ label: string; value: string }[]>([]); // State for unit options
+  const [wbsSections, setWbsSections] = useState<WBS[]>([]);
+  const [lineItems, setLineItems] = useState<LineItems[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [unitOptions, setUnitOptions] = useState<{ label: string; value: string }[]>([]);
 
   useEffect(() => {
     const fetchTemplates = async () => {
-      const { data, error } = await supabase.from('calculator_templates').select('*'); // Fetch calculator templates
-      if (!error && data) {
-        setTemplates(data); // Set fetched templates to state
-      }
+      const { data, error } = await supabase.from('calculator_templates').select('*');
+      if (!error && data) setTemplates(data);
     };
 
     const fetchUnits = async () => {
-      const { data, error } = await supabase.from('unit_types').select('*'); // Fetch available unit types
+      const { data, error } = await supabase.from('unit_types').select('*');
       if (!error && data) {
-        const formatted = data.map((u: { name: string }) => ({ // Format units for easy use
+        setUnitOptions(data.map((u: { name: string }) => ({
           label: u.name,
           value: u.name
-        }));
-        setUnitOptions(formatted); // Set formatted unit options
+        })));
       }
     };
 
-    fetchTemplates(); // Fetch templates on component mount
-    fetchUnits(); // Fetch units on component mount
-  }, []); // Empty dependency array to run only once
+    fetchTemplates();
+    fetchUnits();
+  }, []);
 
-  // Handle save action for the contract
   const handleSave = async () => {
     try {
-      const { data: contract, error } = await supabase // Insert the new contract
+      const { data: contract, error } = await supabase
         .from('contracts')
         .insert([contractData])
         .select()
         .single();
 
-      if (error || !contract) throw error; // Handle insertion error
+      if (error || !contract) throw error;
 
-      const contractId = contract.id; // Retrieve the ID of the newly created contract
+      const contractId = contract.id;
 
-      // Prepare WBS data for insertion
       const wbsInsert = wbsSections.map((wbs) => ({
-        ...(typeof wbs === 'object' && wbs !== null ? wbs : {}),
-        contract_id: contractId // Link WBS sections to the created contract
+        id: uuidv4(),
+        ...wbs,
+        contract_id: contractId
       }));
 
       const lineItemsInsert = lineItems.map((item) => ({
+        id: uuidv4(),
         ...item,
-        contract_id: contractId // Link line items to the created contract
+        contract_id: contractId
       }));
 
-      if (wbsInsert.length) await supabase.from('wbs_sections').insert(wbsInsert); // Insert WBS sections if any
-      if (lineItemsInsert.length) await supabase.from('line_items').insert(lineItemsInsert); // Insert line items if any
+      if (wbsInsert.length) await supabase.from('wbs').insert(wbsInsert);
+      if (lineItemsInsert.length) await supabase.from('line_items').insert(lineItemsInsert);
 
-      toast.success('Contract saved as draft.'); // Notify user of success
-      navigate('/dashboard'); // Redirect to dashboard
+      toast.success('Contract saved as draft.');
+      navigate('/dashboard');
     } catch (err) {
-      console.error(err); // Log error
-      toast.error('Failed to save contract.'); // Notify user of failure
+      console.error(err);
+      toast.error('Failed to save contract.');
     }
   };
 
@@ -94,27 +96,24 @@ const ContractCreation = () => {
       <h1 className="text-2xl font-bold text-white mb-6">Create New Contract</h1>
 
       <Card className="mb-6 p-4">
-        {/* Contract Info Form to capture contract details */}
         <ContractInfoForm
           data={contractData}
           onChange={(updatedData) =>
-            setContractData((prevData) => ({ ...prevData, ...updatedData })) // Update contract data on change
+            setContractData((prev) => ({ ...prev, ...updatedData }))
           }
         />
       </Card>
 
       <Card className="mb-6 p-4">
-        {/* WBS Form to capture WBS data */}
         <WbsForm sections={wbsSections} onChange={setWbsSections} />
       </Card>
 
       <Card className="mb-6 p-4">
-        {/* Line Items Form to capture line items for the contract */}
         <LineItemsForm
-          items={lineItems}
-          templates={templates} // Include available templates
-          unitOptions={unitOptions} // Pass unit options to line items form
-          onChange={setLineItems} // Update line items on change
+          lineItems={lineItems}
+          templates={templates}
+          unitOptions={unitOptions}
+          onChange={setLineItems}
         />
       </Card>
 

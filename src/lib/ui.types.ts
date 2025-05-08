@@ -31,3 +31,38 @@ export interface FormFieldProps {
   className?: string; // Updated the naming convention
   description?: string;
 }
+
+export interface FormSectionProps {
+  title?: string;
+  description?: string;
+  children?: React.ReactNode;
+  className?: string;
+}
+
+export interface SelectOption {
+  label: string;
+  value: string | number;
+  disabled?: boolean;
+  icon?: React.ReactNode; // Optional: for custom rendering
+}
+
+export type BadgeVariant =
+  | 'default'
+  | 'primary'
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'info';
+
+  export type Variant =
+  | 'default'
+  | 'primary'
+  | 'secondary'
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'info'
+  | 'outline'
+  | 'ghost';
+
+export type Size = 'sm' | 'md' | 'lg';
