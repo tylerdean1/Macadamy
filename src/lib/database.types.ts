@@ -2199,6 +2199,16 @@ export type Database = {
           value: string
         }[]
       }
+      get_maps_with_geojson: {
+        Args: { contract_id: string }
+        Returns: {
+          id: string
+          map_number: string
+          location_description: string
+          geojson: string
+          wbs_id: string
+        }[]
+      }
       get_proj4_from_srid: {
         Args: { "": number }
         Returns: string

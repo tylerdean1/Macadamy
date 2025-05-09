@@ -3,36 +3,36 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 
 // Pages
-import { LandingPage } from './pages/LandingPage';
-import { ResetPassword } from './pages/ResetPassword';
-import { UserOnboarding } from './pages/UserOnboarding';
-import { Dashboard } from './pages/Dashboard';
-import { ContractDashboard } from './pages/ContractDashboard';
-import { ContractSettings } from './pages/ContractSettings';
-import { CalculatorCreation } from './pages/CalculatorCreation';
-import { Calculators } from './pages/Calculators';
-import { CalculatorUsage } from './pages/CalculatorUsage';
-import { ChangeOrders } from './pages/ChangeOrders';
-import { EquipmentLog } from './pages/EquipmentLog';
-import { Inspections } from './pages/Inspections';
-import { Issues } from './pages/Issues';
-import { LaborRecords } from './pages/LaborRecords';
-import { DailyReports } from './pages/DailyReports';
-import { DemoRedirect } from './pages/DemoRedirect';
-import { NotFoundPage } from './pages/NotFoundPage';
+import { LandingPage } from '@/pages/StandardPages/LandingPage';
+import { ResetPassword } from '@/pages/StandardPages/ResetPassword';
+import { UserOnboarding } from '@/pages/StandardPages/UserOnboarding';
+import { Dashboard } from '@/pages/StandardPages/Dashboard';
+import { ContractDashboard } from '@/pages/Contract/ContractDashboard';
+import ContractSettings from '@/pages/Contract/ContractSettings';
+import { CalculatorCreation } from '@/pages/Contract/CalculatorCreation';
+import { Calculators } from '@/pages/Contract/Calculators';
+import { CalculatorUsage } from '@/pages/Contract/CalculatorUsage';
+import { ChangeOrders } from '@/pages/Contract/ChangeOrders';
+import { EquipmentLog } from '@/pages/Contract/EquipmentLog';
+import { Inspections } from '@/pages/Contract/Inspections';
+import { Issues } from '@/pages/Contract/Issues';
+import { LaborRecords } from '@/pages/Contract/LaborRecords';
+import { DailyReports } from '@/pages/Contract/DailyReports';
+import { DemoRedirect } from '@/pages/StandardPages/DemoRedirect';
+import { NotFoundPage } from '@/pages/StandardPages/NotFoundPage';
 
 // Components
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { Navbar } from './components/Navbar';
-import { ScrollToTop } from './components/ScrollToTop';
+import { ProtectedRoute } from '@/pages/StandardPages/StandardPageComponents/ProtectedRoute';
+import { Navbar } from '@/pages/StandardPages/StandardPageComponents/Navbar';
+import { ScrollToTop } from '@/pages/StandardPages/StandardPageComponents/ScrollToTop';
 import { Toaster } from 'sonner';
 
 // Utilities and Libraries
 import { Analytics } from '@vercel/analytics/react';
-import { supabase } from './lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 // Store and Hooks
-import { useBootstrapAuth } from './hooks/useBootstrapAuth';
+import { useBootstrapAuth } from '@/hooks/useBootstrapAuth';
 
 export default function App() {
   const isLoading = useBootstrapAuth();

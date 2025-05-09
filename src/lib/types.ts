@@ -182,6 +182,36 @@ export interface MapLocation {
   progress: number;
 }
 
+export interface ProcessedMap {
+  id: string;
+  map_number: string;
+  location_description: string | null;
+  coordinates: GeometryData | null;
+  line_items: {
+    id: string;
+    line_code: string;
+    description: string;
+    unit_measure: string;
+    quantity: number;
+    unit_price: number;
+    reference_doc: string | null;
+    map_id: string | null;
+    total_cost: number;
+    amount_paid: number;
+  }[];
+  contractTotal: number;
+  amountPaid: number;
+  progress: number;
+}
+
+export interface WBSGroup {
+  wbs: string;
+  description: string;
+  maps: ProcessedMap[];
+  contractTotal: number;
+  amountPaid: number;
+  progress: number;
+}
 
 /**
  * Other Structured Types
@@ -244,6 +274,13 @@ export interface EditForm {
   custom_job_title: string;
 }
 
+export interface EditableWbsSection {
+  id: string;
+  wbs_number: string;
+  description: string;
+  coordinates?: string;
+}
+
 // Interface for cropping coordinates
 export interface Area {
   x: number;
@@ -251,3 +288,17 @@ export interface Area {
   width: number;
   height: number;
 }
+export type WbsClean = Omit<WBS, 'wbs_number' | 'description'> & {
+  wbs_number: string;
+  description: string;
+};
+
+export type MapsClean = Omit<Maps, 'map_number' | 'location_description'> & {
+  map_number: string;
+  location_description: string;
+};
+
+export type LineItemsClean = Omit<LineItems, 'line_code' | 'description'> & {
+  line_code: string;
+  description: string;
+};

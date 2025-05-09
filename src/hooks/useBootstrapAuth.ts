@@ -65,7 +65,7 @@ export function useBootstrapAuth() {
           id: profile.id,
           user_role: validateUserRole(profile.role),
           full_name: profile.full_name,
-          email: profile.email,
+          email: profile.email ?? '',
           username: profile.username ?? '',
           phone: profile.phone ?? '',
           location: profile.location ?? '',
