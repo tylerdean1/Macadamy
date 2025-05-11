@@ -1,20 +1,33 @@
 import React from 'react';
 import { ContractStatusSelect } from '@/pages/Contract/SharedComponents/ContractStatusSelect';
+import { GeometryButton } from '@/pages/Contract/SharedComponents/GoogleMaps/GeometryButton';
+import type { GeometryData } from '@/lib/types';
 import type { Database } from '@/lib/database.types';
 
-type Contract = Database['public']['Tables']['contracts']['Row'];
+type Contract = Database['public']['Tables']['contracts']['Row'] & {
+  coordinates?: GeometryData | null;
+  coordinates_wkt?: string | null;
+};
 
 interface ContractHeaderProps {
   contract: Contract;
   onStatusChange: (newStatus: Contract['status']) => Promise<void>;
+  refresh?: () => void;
 }
 
-export const ContractHeader: React.FC<ContractHeaderProps> = ({ contract, onStatusChange }) => {
+export const ContractHeader: React.FC<ContractHeaderProps> = ({
+  contract,
+  onStatusChange,
+  refresh,
+}) => {
   const title = contract?.title?.replace(/\s*\(CLONE\)/i, '')?.trim() || 'N/A';
   const isClone = contract?.title?.includes('(CLONE)');
-  const dateRange = contract?.start_date && contract?.end_date
-    ? `${new Date(contract.start_date).toLocaleDateString()} - ${new Date(contract.end_date).toLocaleDateString()}`
-    : 'N/A';
+  const dateRange =
+    contract?.start_date && contract?.end_date
+      ? `${new Date(contract.start_date).toLocaleDateString()} - ${new Date(
+          contract.end_date
+        ).toLocaleDateString()}`
+      : 'N/A';
 
   return (
     <div className="border-b border-background-lighter pb-6 mb-6">
@@ -30,14 +43,34 @@ export const ContractHeader: React.FC<ContractHeaderProps> = ({ contract, onStat
               )}
             </div>
             {contract.status && (
-              <ContractStatusSelect
-                value={contract.status}
-                onChange={onStatusChange}
-              />
+              <ContractStatusSelect value={contract.status} onChange={onStatusChange} />
             )}
           </div>
-          <h2 className="text-lg sm:text-xl text-gray-400">{contract.description}</h2>
+
+          {contract.location && (
+            <p className="text-sm text-gray-400 mt-1">
+              <strong>Location:</strong> {contract.location}
+            </p>
+          )}
+
+          {contract.description && (
+            <p className="text-sm text-gray-300 mt-1 italic">{contract.description}</p>
+          )}
+
+          {contract.coordinates && (
+            <div className="mt-2">
+              <GeometryButton
+                geometry={contract.coordinates}
+                wkt={null}
+                table="contracts"
+                targetId={contract.id}
+                label="View Contract Map"
+                onSaveSuccess={refresh}
+              />
+            </div>
+          )}
         </div>
+
         <div className="w-full sm:w-auto text-left sm:text-right">
           <p className="text-sm text-gray-500">Contract Period</p>
           <p className="text-gray-300">{dateRange}</p>

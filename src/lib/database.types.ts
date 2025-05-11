@@ -1385,6 +1385,7 @@ export type Database = {
           id: string
           location_description: string | null
           map_number: string
+          scope: string | null
           session_id: string | null
           updated_at: string | null
           wbs_id: string
@@ -1397,6 +1398,7 @@ export type Database = {
           id?: string
           location_description?: string | null
           map_number: string
+          scope?: string | null
           session_id?: string | null
           updated_at?: string | null
           wbs_id: string
@@ -1409,6 +1411,7 @@ export type Database = {
           id?: string
           location_description?: string | null
           map_number?: string
+          scope?: string | null
           session_id?: string | null
           updated_at?: string | null
           wbs_id?: string
@@ -1634,8 +1637,8 @@ export type Database = {
           contract_id: string
           coordinates: unknown | null
           created_at: string | null
-          description: string | null
           id: string
+          location: string | null
           scope: string | null
           session_id: string | null
           updated_at: string | null
@@ -1646,8 +1649,8 @@ export type Database = {
           contract_id: string
           coordinates?: unknown | null
           created_at?: string | null
-          description?: string | null
           id?: string
+          location?: string | null
           scope?: string | null
           session_id?: string | null
           updated_at?: string | null
@@ -1658,8 +1661,8 @@ export type Database = {
           contract_id?: string
           coordinates?: unknown | null
           created_at?: string | null
-          description?: string | null
           id?: string
+          location?: string | null
           scope?: string | null
           session_id?: string | null
           updated_at?: string | null
@@ -2193,10 +2196,44 @@ export type Database = {
         Args: { "": string }
         Returns: unknown
       }
+      get_contract_with_wkt: {
+        Args: { contract_id: string }
+        Returns: {
+          id: string
+          title: string
+          description: string
+          status: Database["public"]["Enums"]["contract_status"]
+          budget: number
+          start_date: string
+          end_date: string
+          location: string
+          created_at: string
+          created_by: string
+          updated_at: string
+          session_id: string
+          coordinates_wkt: string
+        }[]
+      }
       get_enum_values: {
         Args: { enum_type: string }
         Returns: {
           value: string
+        }[]
+      }
+      get_line_items_with_wkt: {
+        Args: { _contract_id: string }
+        Returns: {
+          id: string
+          map_id: string
+          wbs_id: string
+          contract_id: string
+          line_code: string
+          description: string
+          unit_measure: string
+          quantity: number
+          unit_price: number
+          reference_doc: string
+          coordinates_wkt: string
         }[]
       }
       get_maps_with_geojson: {
@@ -2209,9 +2246,33 @@ export type Database = {
           wbs_id: string
         }[]
       }
+      get_maps_with_wkt: {
+        Args: { _contract_id: string }
+        Returns: {
+          id: string
+          wbs_id: string
+          contract_id: string
+          map_number: string
+          location_description: string
+          coordinates_wkt: string
+          scope: string
+          budget: number
+        }[]
+      }
       get_proj4_from_srid: {
         Args: { "": number }
         Returns: string
+      }
+      get_wbs_with_wkt: {
+        Args: { _contract_id: string }
+        Returns: {
+          id: string
+          wbs_number: string
+          scope: string
+          location: string
+          coordinates_wkt: string
+          budget: number
+        }[]
       }
       gettransactionid: {
         Args: Record<PropertyKey, never>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom'; // Import Navigate for redirection
-import { useAuthStore } from '../lib/store'; // Import auth store to manage user state
+import { useAuthStore } from '@/lib/store'; // Import auth store to manage user state
 
 // ProtectedRoute component that guards access to certain routes
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {

@@ -1,55 +1,48 @@
-import React from 'react';
+import type { LineItem } from '@/hooks/useContractData';
+import { GeometryButton } from '@/pages/Contract/SharedComponents/GoogleMaps/GeometryButton';
 
-interface LineItem {
-  id: string;
-  line_code: string;
-  description: string;
-  unit_measure: string;
-  quantity: number;
-  unit_price: number;
-  total_cost: number;
-  amount_paid: number;
-}
-
-interface LineItemsTableProps {
+interface Props {
   items: LineItem[];
-  onDeleteLine?: (lineId: string) => void;
+  onLineItemClick?: (item: LineItem) => void;
 }
 
-export const LineItemsTable: React.FC<LineItemsTableProps> = ({ items }) => {
-  if (items.length === 0) {
-    return <p className="text-gray-400 p-4">No line items available for this map.</p>;
-  }
-
+export function LineItemsTable({ items, onLineItemClick }: Props) {
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full text-sm text-white">
+    <div className="overflow-x-auto relative">
+      <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-background-lighter">
-            <th className="text-left p-2">Line Code</th>
-            <th className="text-left p-2">Description</th>
-            <th className="text-right p-2">Quantity</th>
-            <th className="text-right p-2">Unit</th>
-            <th className="text-right p-2">Unit Price</th>
-            <th className="text-right p-2">Total Cost</th>
-            <th className="text-right p-2">Amount Paid</th>
+          <tr className="bg-gray-50 text-gray-600">
+            <th className="text-left px-3 py-2">Line Code</th>
+            <th className="text-left px-3 py-2">Description</th>
+            <th className="text-left px-3 py-2">Unit</th>
+            <th className="text-right px-3 py-2">Qty</th>
+            <th className="text-right px-3 py-2">Unit Price</th>
+            <th className="text-right px-3 py-2">Total</th>
+            <th className="text-right px-3 py-2">Paid</th>
+            <th className="text-center px-3 py-2">Map</th>
           </tr>
         </thead>
         <tbody>
           {items.map((item) => (
-            <tr key={item.id} className="border-b border-background-lighter">
-              <td className="p-2">{item.line_code}</td>
-              <td className="p-2">{item.description}</td>
-              <td className="p-2 text-right">{item.quantity}</td>
-              <td className="p-2 text-right">{item.unit_measure}</td>
-              <td className="p-2 text-right">
-                ${item.unit_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </td>
-              <td className="p-2 text-right">
-                ${item.total_cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </td>
-              <td className="p-2 text-right">
-                ${item.amount_paid.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            <tr key={item.id} className="border-t relative">
+              <td className="px-3 py-2">{item.line_code}</td>
+              <td className="px-3 py-2">{item.description}</td>
+              <td className="px-3 py-2">{item.unit_measure}</td>
+              <td className="px-3 py-2 text-right">{item.quantity}</td>
+              <td className="px-3 py-2 text-right">${item.unit_price.toFixed(2)}</td>
+              <td className="px-3 py-2 text-right">${item.total_cost.toFixed(2)}</td>
+              <td className="px-3 py-2 text-right">${item.amount_paid.toFixed(2)}</td>
+              <td className="px-3 py-2 text-center">
+                {item.coordinates && (
+                  <GeometryButton
+                    geometry={item.coordinates}
+                    wkt={null}
+                    table="line_items"
+                    targetId={item.id}
+                    label="View Map"
+                    onSaveSuccess={() => onLineItemClick?.(item)}
+                  />
+                )}
               </td>
             </tr>
           ))}
@@ -57,4 +50,4 @@ export const LineItemsTable: React.FC<LineItemsTableProps> = ({ items }) => {
       </table>
     </div>
   );
-};
+}

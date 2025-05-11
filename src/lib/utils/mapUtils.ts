@@ -1,42 +1,115 @@
 import type { GeometryData } from '@/lib/types';
 
-export interface MapPin {
-  lat: number;
-  lng: number;
-  label?: string;
+/* ------------------------------------------------------------------ */
+/*  getGeometryCenter                                                 */
+/* ------------------------------------------------------------------ */
+export function getGeometryCenter(
+  geometry: GeometryData | null | undefined,
+): google.maps.LatLngLiteral | undefined {
+  if (!geometry) return undefined;
+
+  switch (geometry.type) {
+    case 'Point': {
+      const [lng, lat] = geometry.coordinates as [number, number];
+      return { lat, lng };
+    }
+
+    case 'LineString': {
+      const coords = geometry.coordinates as [number, number][];
+      if (!coords.length) return undefined;
+      const mid = coords[Math.floor(coords.length / 2)];
+      return { lat: mid[1], lng: mid[0] };
+    }
+
+    case 'Polygon': {
+      const rings = geometry.coordinates as [number, number][][];
+      if (!rings.length || !rings[0].length) return undefined;
+
+      const outer = rings[0];
+      const sum = outer.reduce(
+        (acc, [lng, lat]) => ({ lat: acc.lat + lat, lng: acc.lng + lng }),
+        { lat: 0, lng: 0 },
+      );
+      return {
+        lat: sum.lat / outer.length,
+        lng: sum.lng / outer.length,
+      };
+    }
+
+    default:
+      return undefined;
+  }
 }
 
-/**
- * Converts any valid GeometryData into an array of lat/lng pins.
- */
-export function parseGeometryToPins(geometry: GeometryData | null, label?: string): MapPin[] {
-  if (!geometry || !geometry.type || !geometry.coordinates) return [];
+/* ------------------------------------------------------------------ */
+/*  geometryToPath – for drawing polylines / polygons                 */
+/* ------------------------------------------------------------------ */
+export function geometryToPath(
+  geometry: GeometryData | null | undefined,
+): google.maps.LatLngLiteral[] {
+  if (!geometry) return [];
 
-  if (geometry.type === 'Point' && Array.isArray(geometry.coordinates)) {
-    const coords = geometry.coordinates as [number, number];
-    return [{ lat: coords[1], lng: coords[0], label }];
+  switch (geometry.type) {
+    case 'LineString':
+      return (geometry.coordinates as [number, number][]).map(([lng, lat]) => ({
+        lat,
+        lng,
+      }));
+
+    case 'Polygon': {
+      const rings = geometry.coordinates as [number, number][][];
+      const outer = rings[0] ?? [];
+      return outer.map(([lng, lat]) => ({ lat, lng }));
+    }
+
+    case 'Point': {
+      const [lng, lat] = geometry.coordinates as [number, number];
+      return [{ lat, lng }];
+    }
+
+    default:
+      return [];
   }
-
-  if (geometry.type === 'LineString' && Array.isArray(geometry.coordinates)) {
-    const coords = geometry.coordinates as [number, number][];
-    return coords.map(([lng, lat]) => ({ lat, lng, label }));
-  }
-
-  if (geometry.type === 'Polygon' && Array.isArray(geometry.coordinates)) {
-    const coords = geometry.coordinates as [number, number][][];
-    return coords[0].map(([lng, lat]) => ({ lat, lng, label }));
-  }
-
-  return [];
 }
 
+/* ------------------------------------------------------------------ */
+/*  parseGeometryToPins – NEW                                          */
+/* ------------------------------------------------------------------ */
 /**
- * Basic validity check for GeometryData before parsing.
+ * Convert a GeometryData object into one or more “pin” positions.
+ * - Point      → the point itself
+ * - LineString → first & last vertices
+ * - Polygon    → centroid of outer ring
+ * - null/other → []
  */
-export function isValidGeometry(geometry: GeometryData | null): boolean {
-  if (!geometry || !geometry.type || !geometry.coordinates) return false;
-  if (geometry.type === 'Point' && Array.isArray(geometry.coordinates)) return true;
-  if (geometry.type === 'LineString' && Array.isArray(geometry.coordinates)) return true;
-  if (geometry.type === 'Polygon' && Array.isArray(geometry.coordinates)) return true;
-  return false;
+export function parseGeometryToPins(
+  geometry: GeometryData | null | undefined,
+): google.maps.LatLngLiteral[] {
+  if (!geometry) return [];
+
+  switch (geometry.type) {
+    case 'Point': {
+      const [lng, lat] = geometry.coordinates as [number, number];
+      return [{ lat, lng }];
+    }
+
+    case 'LineString': {
+      const coords = geometry.coordinates as [number, number][];
+      if (coords.length === 0) return [];
+      const [firstLng, firstLat] = coords[0];
+      const [lastLng, lastLat] = coords[coords.length - 1];
+      return [
+        { lat: firstLat, lng: firstLng },
+        { lat: lastLat, lng: lastLng },
+      ];
+    }
+
+    case 'Polygon': {
+      const center = getGeometryCenter(geometry);
+      return center ? [center] : [];
+    }
+
+    default:
+      return [];
+  }
 }

@@ -1,241 +1,149 @@
-import React, { useState } from 'react';
-import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
-import { Modal } from '@/pages/StandardPages/StandardPageComponents/modal';
-import {
-  GoogleMap,
-  Marker,
-  Polyline,
-  Polygon,
-  useJsApiLoader,
-} from '@react-google-maps/api';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import { Dialog, Transition } from '@headlessui/react';
+import { X, RefreshCcw, Save, Trash2, Layers3 } from 'lucide-react';
+import { parseWKT } from '@/lib/utils/parseWKT';
+import { geometryToWKT } from '@/lib/utils/wktUtils';
 import { supabase } from '@/lib/supabase';
+import type { GeometryData } from '@/lib/types';
+import { useContractData } from '@/hooks/useContractData';
+import { GoogleMapFull, GoogleMapFullRef } from './GoogleMapFull';
 
-type Mode = 'point' | 'segment' | 'polygon';
-type Level = 'contract' | 'wbs' | 'map' | 'line';
-type TableName = 'contracts' | 'wbs' | 'maps' | 'line_items';
-
-const containerStyle = {
-  width: '100%',
-  height: '400px',
-};
-
-const defaultCenter = {
-  lat: 27.9944,
-  lng: -81.7603,
-};
-
-export interface MapModalProps {
+interface MapModalProps {
   open: boolean;
   onClose: () => void;
+  table: 'maps' | 'wbs' | 'line_items' | 'contracts';
   targetId: string;
-  level: Level;
-  onConfirm: (wkt: string) => void;
-  mapLocations?: { lat: number; lng: number; label?: string }[]; // ✅ added
+  existingWKT: string | null;
+  onSaveSuccess?: () => void;
 }
 
-export const MapModal: React.FC<MapModalProps> = ({
+export function MapModal({
   open,
   onClose,
+  table,
   targetId,
-  level,
-  onConfirm,
-  mapLocations, // ✅ added
-}) => {
-  const [mode, setMode] = useState<Mode>('point');
-  const [startPoint, setStartPoint] = useState<{ lat: number; lng: number } | null>(null);
-  const [endPoint, setEndPoint] = useState<{ lat: number; lng: number } | null>(null);
-  const [routePath, setRoutePath] = useState<google.maps.LatLngLiteral[]>([]);
-  const [polygonPoints, setPolygonPoints] = useState<google.maps.LatLngLiteral[]>([]);
-  const [segmentDistance, setSegmentDistance] = useState<number | null>(null);
+  existingWKT,
+  onSaveSuccess,
+}: MapModalProps) {
+  const [geometry, setGeometry] = useState<GeometryData | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [showPanel, setShowPanel] = useState(true);
 
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY!,
-  });
+  const mapRef = useRef<GoogleMapFullRef | null>(null);
+  const { refresh: refreshContractData, contract } = useContractData(
+    table === 'contracts' ? targetId : undefined,
+  );
 
-  const levelToTable: Record<Level, TableName> = {
-    contract: 'contracts',
-    wbs: 'wbs',
-    map: 'maps',
-    line: 'line_items',
-  };
-
-  const handleMapClick = async (e: google.maps.MapMouseEvent) => {
-    if (!e.latLng) return;
-    const lat = e.latLng.lat();
-    const lng = e.latLng.lng();
-
-    if (mode === 'point') {
-      setStartPoint({ lat, lng });
+  /* hydrate geometry when modal opens */
+  useEffect(() => {
+    if (open && existingWKT) {
+      setGeometry(parseWKT(existingWKT));
     }
-
-    if (mode === 'segment') {
-      if (!startPoint) {
-        setStartPoint({ lat, lng });
-        setEndPoint(null);
-        setRoutePath([]);
-        setSegmentDistance(null);
-      } else if (!endPoint) {
-        setEndPoint({ lat, lng });
-        await fetchDirections(startPoint, { lat, lng });
-      }
+    if (!open) {
+      setGeometry(null);
+      setErrorMsg('');
     }
+  }, [open, existingWKT]);
 
-    if (mode === 'polygon') {
-      setPolygonPoints(prev => [...prev, { lat, lng }]);
-    }
-  };
+  const handleSave = async () => {
+    if (!geometry) return;
+    setSaving(true);
 
-  const fetchDirections = async (
-    origin: google.maps.LatLngLiteral,
-    destination: google.maps.LatLngLiteral
-  ) => {
-    const directionsService = new google.maps.DirectionsService();
-    const result = await directionsService.route({
-      origin,
-      destination,
-      travelMode: google.maps.TravelMode.DRIVING,
-    });
+    const { error } = await supabase
+      .from(table)
+      .update({ coordinates: geometryToWKT(geometry) })
+      .eq('id', targetId);
 
-    if (result.routes.length > 0) {
-      const points = result.routes[0].overview_path.map(p => ({
-        lat: p.lat(),
-        lng: p.lng(),
-      }));
-      setRoutePath(points);
-      const meters = result.routes[0].legs?.[0]?.distance?.value || 0;
-      setSegmentDistance(meters);
-    }
-  };
+    setSaving(false);
 
-  const handleConfirm = async () => {
-    let wkt = '';
-
-    if (mode === 'point' && startPoint) {
-      wkt = `POINT(${startPoint.lng} ${startPoint.lat})`;
-    } else if (mode === 'segment' && routePath.length > 1) {
-      const linestring = routePath.map(p => `${p.lng} ${p.lat}`).join(', ');
-      wkt = `LINESTRING(${linestring})`;
-    } else if (mode === 'polygon' && polygonPoints.length >= 3) {
-      const closed = [...polygonPoints, polygonPoints[0]];
-      const polygonWKT = closed.map(p => `${p.lng} ${p.lat}`).join(', ');
-      wkt = `POLYGON((${polygonWKT}))`;
-    }
-
-    if (wkt) {
-      const table = levelToTable[level];
-      await supabase.from(table).update({ coordinates: wkt }).eq('id', targetId);
-      onConfirm(wkt);
+    if (error) {
+      setErrorMsg('Failed to save geometry. Please try again.');
+      return;
     }
 
     onClose();
-  };
-
-  const handleModeChange = (value: Mode) => {
-    setMode(value);
-    setStartPoint(null);
-    setEndPoint(null);
-    setRoutePath([]);
-    setPolygonPoints([]);
-    setSegmentDistance(null);
-  };
-
-  const isConfirmDisabled = () => {
-    if (mode === 'point') return !startPoint;
-    if (mode === 'segment') return routePath.length < 2;
-    if (mode === 'polygon') return polygonPoints.length < 3;
-    return true;
+    refreshContractData();
+    onSaveSuccess?.();
   };
 
   return (
-    <Modal isOpen={open} onClose={onClose} title="Select Map Location">
-      <div className="mb-4">
-        <label htmlFor="selection-mode" className="block text-sm text-gray-400 mb-1">
-          Selection Mode
-        </label>
-        <select
-          id="selection-mode"
-          value={mode}
-          onChange={(e) => handleModeChange(e.target.value as Mode)}
-          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded"
-        >
-          <option value="point">Point</option>
-          <option value="segment">Street Segment</option>
-          <option value="polygon">Zone (Polygon)</option>
-        </select>
-      </div>
+    <Transition show={open} as={Fragment}>
+      <Dialog onClose={onClose} className="relative z-50">
+        <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="bg-white rounded-lg shadow-lg max-w-5xl w-full p-6 relative">
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="absolute top-4 right-4 text-gray-500 hover:text-black"
+            >
+              <X size={20} />
+            </button>
 
-      {!isLoaded ? (
-        <div className="text-white text-center">Loading map...</div>
-      ) : (
-        <GoogleMap
-          mapContainerStyle={containerStyle}
-          center={startPoint || polygonPoints[0] || defaultCenter}
-          zoom={startPoint || polygonPoints.length ? 16 : 10}
-          onClick={handleMapClick}
-        >
-          {/* Existing selection markers */}
-          {mode === 'point' && startPoint && <Marker position={startPoint} />}
-          {mode === 'segment' && startPoint && <Marker position={startPoint} label="A" />}
-          {mode === 'segment' && endPoint && <Marker position={endPoint} label="B" />}
-          {mode === 'segment' && routePath.length > 0 && (
-            <Polyline path={routePath} options={{ strokeColor: '#00bfff', strokeWeight: 4 }} />
-          )}
-          {mode === 'polygon' && polygonPoints.length > 1 && (
-            <Polygon
-              path={[...polygonPoints, polygonPoints[0]]}
-              options={{ strokeColor: '#00FF00', fillColor: '#00FF0080', strokeWeight: 2 }}
-            />
-          )}
-          {mode === 'polygon' &&
-            polygonPoints.map((point, i) => (
-              <Marker key={`poly-pt-${i}`} position={point} label={(i + 1).toString()} />
-            ))}
+            <Dialog.Title className="text-lg font-semibold mb-4">
+              Edit Location Geometry
+            </Dialog.Title>
 
-          {/* ✅ Additional reference pins */}
-          {mapLocations?.map((loc, idx) => (
-            <Marker
-              key={`ref-${idx}`}
-              position={{ lat: loc.lat, lng: loc.lng }}
-              label={loc.label}
-              icon={{
-                url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-              }}
-            />
-          ))}
-        </GoogleMap>
-      )}
+            {/* Toolbar */}
+            <div className="flex flex-wrap gap-2 items-center mb-4">
+              <button
+                onClick={handleSave}
+                disabled={!geometry || saving}
+                className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              >
+                <Save size={18} />
+                Save
+              </button>
+              <button
+                onClick={refreshContractData}
+                className="flex items-center gap-1 px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+              >
+                <RefreshCcw size={18} />
+                Refresh
+              </button>
+              <button
+                onClick={() => mapRef.current?.clearVisibleOverlays()}
+                className="flex items-center gap-1 px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200"
+              >
+                <Trash2 size={18} />
+                Clear
+              </button>
+              <button
+                onClick={() => setShowPanel(p => !p)}
+                className="flex items-center gap-1 px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+              >
+                <Layers3 size={18} />
+                {showPanel ? 'Hide Layers' : 'Show Layers'}
+              </button>
+              {errorMsg && (
+                <span className="text-red-600 text-sm ml-2" aria-live="assertive">
+                  {errorMsg}
+                </span>
+              )}
+            </div>
 
-      {mode === 'segment' && segmentDistance !== null && (
-        <div className="mt-2 text-sm text-white">
-          <strong>Segment Length:</strong>{' '}
-          {(segmentDistance * 3.28084).toFixed(0)} ft (
-          {(segmentDistance / 1609.344).toFixed(2)} mi)
+            {/* Map */}
+            {table === 'contracts' || contract ? (
+              <GoogleMapFull
+                ref={mapRef}
+                contractId={
+                  table === 'contracts' ? targetId : contract!.id
+                }
+                mode="edit"
+                height={500}
+                onSave={setGeometry}
+                showPanel={showPanel}
+                focusGeometry={geometry}
+              />
+            ) : (
+              <div className="h-[500px] flex items-center justify-center text-gray-500">
+                Loading map…
+              </div>
+            )}
+          </Dialog.Panel>
         </div>
-      )}
-
-      <div className="mt-6 flex justify-end gap-2">
-        <Button
-          variant="outline"
-          onClick={() => {
-            if (mode === 'point') setStartPoint(null);
-            if (mode === 'segment') {
-              setStartPoint(null);
-              setEndPoint(null);
-              setRoutePath([]);
-              setSegmentDistance(null);
-            }
-            if (mode === 'polygon') setPolygonPoints([]);
-          }}
-        >
-          Reset
-        </Button>
-        <Button variant="secondary" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button variant="primary" onClick={handleConfirm} disabled={isConfirmDisabled()}>
-          Confirm Location
-        </Button>
-      </div>
-    </Modal>
+      </Dialog>
+    </Transition>
   );
-};
+}

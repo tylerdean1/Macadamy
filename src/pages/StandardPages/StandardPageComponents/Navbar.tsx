@@ -1,7 +1,7 @@
 import { useNavigate, Link } from 'react-router-dom'; // Hooks for routing
 import { LogOut, Home } from 'lucide-react'; // Icons for logout and home
-import { useAuthStore } from '../lib/store'; // Auth store for user management
-import { supabase } from '../lib/supabase'; // Supabase client for authentication
+import { useAuthStore } from '@/lib/store'; // Auth store for user management
+import { supabase } from '@/lib/supabase'; // Supabase client for authentication
 
 // Navigation bar component
 export function Navbar() {

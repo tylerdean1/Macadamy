@@ -1,37 +1,24 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { ContractHeader } from '@/components/contract/ContractDasboard/ContractHeader';
-import { MapModal } from '@/components/contract/MapModal';
-import { Page } from '@/components/ui/Page';
-import { PageContainer } from '@/components/ui/PageContainer';
-import { CardSection } from '@/components/ui/CardSection';
-import { ContractToolbar } from '@/components/contract/ContractDasboard/ContractToolBar';
-import { WbsSection } from '@/components/contract/WbsSection';
-import { ContractTotalsPanel } from '@/components/contract/ContractDasboard/ContractTotalsPanel';
-import { parseGeometryToPins } from '@/lib/utils/mapUtils';
-import { useContractData } from '@/hooks/useContractData';
+import { geometryToWKT } from '@/lib/utils/wktUtils';
 import type { GeometryData } from '@/lib/types';
+import {
+  useContractData,
+  type ProcessedMap,
+  type WBSGroup,
+  type LineItem,
+} from '@/hooks/useContractData';
+import type { ContractStatusValue } from '@/lib/enums';
 
-interface MapLocation {
-  id: string;
-  map_number: string;
-  location_description: string | null;
-  coordinates?: GeometryData | null;
-  line_items: { id: string; description: string; quantity: number; unitPrice: number }[];
-  contractTotal: number;
-  amountPaid: number;
-  progress: number;
-}
-
-interface WBSGroup {
-  wbs: string;
-  description: string;
-  maps: MapLocation[];
-  contractTotal: number;
-  amountPaid: number;
-  progress: number;
-}
+import { ContractHeader } from '@/pages/Contract/ContractDasboardComponents/ContractHeader';
+import { ContractToolbar } from '@/pages/Contract/ContractDasboardComponents/ContractToolBar';
+import { ContractTotalsPanel } from '@/pages/Contract/ContractDasboardComponents/ContractTotalsPanel';
+import { WbsSection } from '@/pages/Contract/ContractDasboardComponents/WbsSection';
+import { Page } from '@/pages/StandardPages/StandardPageComponents/Page';
+import { PageContainer } from '@/pages/StandardPages/StandardPageComponents/PageContainer';
+import { CardSection } from '@/pages/StandardPages/StandardPageComponents/CardSection';
+import { MapModal } from '@/pages/Contract/SharedComponents/GoogleMaps/MapModal';
 
 export function ContractDashboard() {
   const { id } = useParams();
@@ -39,27 +26,36 @@ export function ContractDashboard() {
   const { contract, wbsGroups, loading, error, refresh } = useContractData(id);
 
   const [openMapModal, setOpenMapModal] = useState(false);
-  const [modalPins, setModalPins] = useState<{ lat: number; lng: number; label?: string }[]>([]);
+  const [mapTargetId, setMapTargetId] = useState<string | null>(null);
+  const [tableTarget, setTableTarget] = useState<'contracts' | 'wbs' | 'maps' | 'line_items'>('contracts');
+  const [existingWKT, setExistingWKT] = useState<string | null>(null);
   const [expandedWBS, setExpandedWBS] = useState<string[]>([]);
   const [expandedMaps, setExpandedMaps] = useState<string[]>([]);
 
-  const handleMapLevelClick = (map: MapLocation) => {
-    const parsed = map.coordinates ?? null;
-    setModalPins(parseGeometryToPins(parsed, map.location_description || undefined));
+  const handleMapLevelClick = (map: ProcessedMap) => {
+    setMapTargetId(map.id);
+    setExistingWKT(geometryToWKT(map.coordinates ?? null));
+    setTableTarget('maps');
     setOpenMapModal(true);
   };
 
-  const handleWbsLevelClick = (group: WBSGroup) => {
-    const pins = group.maps.flatMap((map) =>
-      parseGeometryToPins(map.coordinates ?? null, map.location_description || undefined)
-    );
-    setModalPins(pins);
+  const handleWbsClick = (wbsId: string, coordinates: GeometryData | null) => {
+    setMapTargetId(wbsId);
+    setExistingWKT(geometryToWKT(coordinates ?? null));
+    setTableTarget('wbs');
+    setOpenMapModal(true);
+  };
+
+  const handleLineItemClick = (item: LineItem) => {
+    setMapTargetId(item.id);
+    setExistingWKT(geometryToWKT(item.coordinates ?? null));
+    setTableTarget('line_items');
     setOpenMapModal(true);
   };
 
   const toggleWBS = (wbs: string) => {
     setExpandedWBS((prev) =>
-      prev.includes(wbs) ? prev.filter((item) => item !== wbs) : [...prev, wbs]
+      prev.includes(wbs) ? prev.filter((w) => w !== wbs) : [...prev, wbs]
     );
   };
 
@@ -71,7 +67,7 @@ export function ContractDashboard() {
 
   const totals = useMemo(() => {
     return wbsGroups.reduce(
-      (acc, group) => ({
+      (acc, group: WBSGroup) => ({
         contractTotal: acc.contractTotal + group.contractTotal,
         amountPaid: acc.amountPaid + group.amountPaid,
         progress: 0,
@@ -84,39 +80,41 @@ export function ContractDashboard() {
     ? Math.round((totals.amountPaid / totals.contractTotal) * 100)
     : 0;
 
+  const handleStatusChange = async (newStatus: ContractStatusValue) => {
+    if (!contract?.id) return;
+
+    if (newStatus === 'Cancelled') {
+      const { error } = await supabase.from('contracts').delete().eq('id', contract.id);
+      if (!error) {
+        navigate('/pages/StandardPages/Dashboard');
+        return;
+      }
+    }
+
+    const { error } = await supabase
+      .from('contracts')
+      .update({ status: newStatus })
+      .eq('id', contract.id);
+
+    if (!error) refresh();
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
-          <div className="h-10 bg-background-lighter rounded-md animate-pulse w-1/2"></div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, idx) => (
-              <div key={idx} className="h-20 bg-background-lighter rounded-md animate-pulse" />
-            ))}
-          </div>
-          <div className="space-y-4">
-            {Array.from({ length: 2 }).map((_, idx) => (
-              <div key={idx} className="h-24 bg-background-lighter rounded-md animate-pulse" />
-            ))}
-          </div>
-        </div>
-      </div>
+      <Page>
+        <div className="p-4 text-center text-gray-500 text-sm">Loading...</div>
+      </Page>
     );
   }
 
   if (error || !contract) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-xl text-gray-400">{error || 'Contract not found'}</p>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="mt-4 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-md transition-colors"
-          >
-            Return to Dashboard
-          </button>
+      <Page>
+        <div className="p-4 text-center text-red-600">
+          <h2 className="text-lg font-semibold">Contract Not Found</h2>
+          <p>{error ?? 'Could not load contract.'}</p>
         </div>
-      </div>
+      </Page>
     );
   }
 
@@ -124,52 +122,20 @@ export function ContractDashboard() {
     <Page>
       <PageContainer>
         <CardSection>
-          <ContractHeader
-            contract={contract}
-            onStatusChange={async (newStatus) => {
-              const { error } = await supabase
-                .from('contracts')
-                .update({ status: newStatus })
-                .eq('id', contract.id);
-              if (!error) refresh();
-            }}
-          />
-
+          <ContractHeader contract={contract} onStatusChange={handleStatusChange} />
           <ContractToolbar contractId={contract.id} />
 
           <div className="space-y-4">
             {wbsGroups.length > 0 ? (
-              wbsGroups.map((group) => (
+              wbsGroups.map((group: WBSGroup) => (
                 <WbsSection
                   key={group.wbs}
                   group={group}
                   isExpanded={expandedWBS.includes(group.wbs)}
                   onToggle={toggleWBS}
-                  onMapClick={(map) =>
-                    handleMapLevelClick({
-                      ...map,
-                      line_items: map.line_items.map((item) => ({
-                        id: item.id,
-                        description: item.description,
-                        quantity: item.quantity,
-                        unitPrice: item.unit_price,
-                      })),
-                    })
-                  }
-                  onViewWbsMap={() =>
-                    handleWbsLevelClick({
-                      ...group,
-                      maps: group.maps.map((map) => ({
-                        ...map,
-                        line_items: map.line_items.map((item) => ({
-                          id: item.id,
-                          description: item.description,
-                          quantity: item.quantity,
-                          unitPrice: item.unit_price,
-                        })),
-                      })),
-                    })
-                  }
+                  onMapClick={handleMapLevelClick}
+                  onWbsClick={handleWbsClick}
+                  onLineItemClick={handleLineItemClick}
                   expandedMaps={expandedMaps}
                   onToggleMap={toggleMap}
                 />
@@ -188,10 +154,10 @@ export function ContractDashboard() {
           <MapModal
             open={openMapModal}
             onClose={() => setOpenMapModal(false)}
-            mapLocations={modalPins}
-            onConfirm={() => {}}
-            targetId={contract.id}
-            level="contract"
+            existingWKT={existingWKT}
+            table={tableTarget}
+            targetId={mapTargetId || ''}
+            onSaveSuccess={refresh}
           />
         </CardSection>
       </PageContainer>
