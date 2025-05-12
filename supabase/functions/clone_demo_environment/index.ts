@@ -1,9 +1,10 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// supabase/functions/clone_demo_environment/index.ts
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 serve(async (req) => {
   const { method } = req;
 
-  // 1) CORS preflight
+  // Handle CORS preflight
   if (method === "OPTIONS") {
     return new Response(null, {
       status: 204,
@@ -16,21 +17,15 @@ serve(async (req) => {
   }
 
   try {
-    // 2) Extract the session_id from the request
-    const { session_id } = await req.json();
-    if (!session_id) {
-      return new Response("Missing session_id", {
-        status: 400,
-        headers: { "Access-Control-Allow-Origin": "*" }
-      });
-    }
+    // 1) Generate a random branch name
+    const randomId = crypto.randomUUID().slice(0, 8);
+    const branchName = `demo_${randomId}`;
 
-    // 3) Env-vars from Dashboard → Project Settings & Functions → Settings
+    // 2) Read project ref and API key from Edge Function env vars
     const projectRef = Deno.env.get("SUPABASE_PROJECT_REF")!;
     const apiKey     = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const branchName = `demo_${session_id.slice(0, 8)}`;
 
-    // 4) Call Supabase Management API to create the preview branch
+    // 3) Call Supabase Management API to create the preview branch
     const res = await fetch(
       `https://api.supabase.com/v1/projects/${projectRef}/branches`,
       {
@@ -49,10 +44,12 @@ serve(async (req) => {
     if (!res.ok) {
       const errorText = await res.text();
       console.error("Branch creation failed:", errorText);
-      return new Response("Failed to create preview branch", { status: 500 });
+      return new Response("Failed to create preview branch", {
+        status: 500
+      });
     }
 
-    // 5) Return the new branch name
+    // 4) Return the new branch name
     return new Response(JSON.stringify({ branch: branchName }), {
       status: 200,
       headers: {
@@ -65,7 +62,9 @@ serve(async (req) => {
     console.error("Unexpected error:", err);
     return new Response("Unexpected server error", {
       status: 500,
-      headers: { "Access-Control-Allow-Origin": "*" }
+      headers: {
+        "Access-Control-Allow-Origin": "*"
+      }
     });
   }
 });

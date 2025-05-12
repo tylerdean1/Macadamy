@@ -2,16 +2,10 @@ import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
-import { v4 as uuidv4 } from 'uuid';
 import { Badge } from '@/pages/StandardPages/StandardPageComponents/badge';
 import type { Database } from '@/lib/database.types';
 import { validateUserRole } from '@/lib/utils/validate-user-role';
 import type { Organization, JobTitle } from '@/lib/types';
-import {
-  getDemoSession,
-  saveDemoSession,
-  type DemoSession,
-} from '@/utils/demoBranch';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 type ProfileWithRelations = ProfileRow & {
@@ -29,7 +23,7 @@ export function DemoRedirect() {
       try {
         setLoading(true);
 
-        // 1) Sign in as your demo account
+        // 1) Sign in as demo user
         const { data: authData, error: authErr } =
           await supabase.auth.signInWithPassword({
             email:    'test@test.com',
@@ -39,25 +33,11 @@ export function DemoRedirect() {
           throw new Error(authErr?.message || 'Failed to authenticate demo user');
         setUser(authData.user);
 
-        // 2) Reuse or spin up a new demo session
-        let session: DemoSession | null = getDemoSession();
-        if (!session) {
-          session = {
-            sessionId: uuidv4(),
-            userId:    authData.user.id,
-            email:     'test@test.com',
-            password:  'test123',
-            createdAt: Date.now(),
-          };
-          const { error: fnErr } = await supabase.functions.invoke(
-            'clone_demo_environment',
-            { body: { session_id: session.sessionId, user_id: session.userId } }
-          );
-          if (fnErr) throw new Error(fnErr.message);
-          saveDemoSession(session);
-        }
+        // 2) Call the Edge Function to clone demo branch
+        const { error: fnErr } = await supabase.functions.invoke('clone_demo_environment');
+        if (fnErr) throw new Error(fnErr.message);
 
-        // 3) Load the profile (with its FK relations)
+        // 3) Load profile
         const profileRes = await supabase
           .from('profiles')
           .select(
@@ -72,28 +52,27 @@ export function DemoRedirect() {
         if (profileRes.error) throw profileRes.error;
         if (!profileRes.data) throw new Error('Demo profile not found');
 
-        // 4) Cast safely, pull out the first related org & job title
         const pd = profileRes.data as unknown as ProfileWithRelations;
         const org = pd.organizations?.[0] ?? {
           id: '', name: '', address: '', phone: '', website: ''
         };
-        const jt  = pd.job_titles?.[0]    ?? {
+        const jt = pd.job_titles?.[0] ?? {
           id: '', title: '', is_custom: false
         };
 
-        // 5) Map and stash into your global store
+        // 4) Update profile in store
         setProfile({
           id:             pd.id,
           user_role:      validateUserRole(pd.role),
           full_name:      pd.full_name,
-          email:          pd.email      ?? '',
-          username:       pd.username   ?? '',
-          phone:          pd.phone      ?? '',
-          location:       pd.location   ?? '',
-          avatar_id:      pd.avatar_id  ?? null,
+          email:          pd.email ?? '',
+          username:       pd.username ?? '',
+          phone:          pd.phone ?? '',
+          location:       pd.location ?? '',
+          avatar_id:      pd.avatar_id ?? null,
           avatar_url:     pd.avatar_url ?? null,
           organization_id:pd.organization_id ?? null,
-          job_title_id:   pd.job_title_id    ?? null,
+          job_title_id:   pd.job_title_id ?? null,
           organizations:  org,
           job_titles:     jt,
         });
