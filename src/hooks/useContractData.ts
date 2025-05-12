@@ -5,7 +5,7 @@ import { parseWKT } from '@/lib/utils/parseWKT';
 import type { GeometryData } from '@/lib/types';
 import type { Database } from '@/lib/database.types';
 
-type Contract = Database['public']['Tables']['contracts']['Row'];
+type ContractRow = Database['public']['Tables']['contracts']['Row'];
 type UnitMeasure = Database['public']['Enums']['unit_measure_type'];
 
 export interface LineItem {
@@ -50,7 +50,7 @@ export interface WBSGroup {
 }
 
 export function useContractData(contractId?: string) {
-  const [contract, setContract] = useState<(Contract & { coordinates: GeometryData | null }) | null>(null);
+  const [contract, setContract] = useState<(ContractRow & { coordinates: GeometryData | null }) | null>(null);
   const [wbsGroups, setWbsGroups] = useState<WBSGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,80 +63,111 @@ export function useContractData(contractId?: string) {
     }
 
     try {
-      const { data: contractData, error: contractError } = await supabase
-        .rpc('get_contract_with_wkt', { contract_id: contractId });
+      // 1) Fetch contract directly (GeoJSON in `coordinates`)
+      const { data: raw, error: cErr } = await supabase
+        .from('contracts')
+        .select(`
+          id,
+          title,
+          description,
+          status,
+          budget,
+          start_date,
+          end_date,
+          location,
+          created_at,
+          created_by,
+          updated_at,
+          coordinates
+        `)
+        .eq('id', contractId)
+        .single();
+      if (cErr) throw new Error(cErr.message);
+      if (!raw) throw new Error('Contract not found');
 
-      if (contractError) throw new Error(contractError.message);
-      const contractRow = contractData?.[0];
-      if (!contractRow) throw new Error('Contract not found');
+      // Detect GeoJSON vs WKT string
+      const coordsField = raw.coordinates;
+      const parsedContractCoords: GeometryData | null =
+        typeof coordsField === 'string'
+          ? parseWKT(coordsField)
+          : (coordsField as GeometryData | null);
 
       setContract({
-        ...contractRow,
-        coordinates: parseWKT(contractRow.coordinates_wkt ?? null),
+        ...raw,
+        coordinates: parsedContractCoords,
       });
 
-      const { data: wbsData, error: wbsError } = await supabase
+      // 2) Fetch WBS via RPC
+      const { data: wbsData, error: wbsErr } = await supabase
         .rpc('get_wbs_with_wkt', { _contract_id: contractId });
+      if (wbsErr) throw new Error(wbsErr.message);
 
-      if (wbsError) throw new Error(wbsError.message);
-
-      const { data: mapData, error: mapError } = await supabase
+      // 3) Fetch maps via RPC
+      const { data: mapData, error: mapErr } = await supabase
         .rpc('get_maps_with_wkt', { _contract_id: contractId });
+      if (mapErr) throw new Error(mapErr.message);
 
-      if (mapError) throw new Error(mapError.message);
-
-      const { data: lineItemsData, error: lineItemError } = await supabase
+      // 4) Fetch line-items via RPC
+      const { data: lineItemsData, error: liErr } = await supabase
         .rpc('get_line_items_with_wkt', { _contract_id: contractId });
+      if (liErr) throw new Error(liErr.message);
 
-      if (lineItemError) throw new Error(lineItemError.message);
-
-      const lineItemsByMap: Record<string, LineItem[]> = {};
+      // 5) Group line-items by map
+      const itemsByMap: Record<string, LineItem[]> = {};
       for (const item of lineItemsData || []) {
-        const parsedItem: LineItem = {
+        const parsed: LineItem = {
           ...item,
           unit_measure: item.unit_measure as UnitMeasure,
           total_cost: item.quantity * item.unit_price,
           amount_paid: item.quantity * item.unit_price,
-          coordinates: parseWKT(item.coordinates_wkt ?? null),
+          coordinates: item.coordinates_wkt
+            ? parseWKT(item.coordinates_wkt)
+            : null,
         };
-        if (!lineItemsByMap[item.map_id]) lineItemsByMap[item.map_id] = [];
-        lineItemsByMap[item.map_id].push(parsedItem);
+        const key = item.map_id ?? '';
+        if (!itemsByMap[key]) itemsByMap[key] = [];
+        itemsByMap[key].push(parsed);
       }
 
+      // 6) Build processed maps under each WBS
       const mapsByWbs: Record<string, ProcessedMap[]> = {};
-      for (const map of mapData || []) {
-        const mapLineItems = lineItemsByMap[map.id] || [];
-        const mapTotal = mapLineItems.reduce((sum, li) => sum + li.total_cost, 0);
-        const mapPaid = mapLineItems.reduce((sum, li) => sum + li.amount_paid, 0);
+      for (const m of mapData || []) {
+        const list = itemsByMap[m.id] || [];
+        const total = list.reduce((sum, li) => sum + li.total_cost, 0);
+        const paid = list.reduce((sum, li) => sum + li.amount_paid, 0);
 
-        const processedMap: ProcessedMap = {
-          id: map.id,
-          map_number: map.map_number,
-          location_description: map.location_description,
-          scope: map.scope,
-          coordinates: parseWKT(map.coordinates_wkt ?? null),
-          line_items: mapLineItems,
-          contractTotal: mapTotal,
-          amountPaid: mapPaid,
-          progress: mapTotal > 0 ? Math.round((mapPaid / mapTotal) * 100) : 0,
+        const processed: ProcessedMap = {
+          id: m.id,
+          map_number: m.map_number,
+          location_description: m.location_description,
+          scope: m.scope,
+          coordinates: m.coordinates_wkt
+            ? parseWKT(m.coordinates_wkt)
+            : null,
+          line_items: list,
+          contractTotal: total,
+          amountPaid: paid,
+          progress: total > 0 ? Math.round((paid / total) * 100) : 0,
         };
 
-        if (!mapsByWbs[map.wbs_id]) mapsByWbs[map.wbs_id] = [];
-        mapsByWbs[map.wbs_id].push(processedMap);
+        mapsByWbs[m.wbs_id] = mapsByWbs[m.wbs_id] || [];
+        mapsByWbs[m.wbs_id].push(processed);
       }
 
-      const processedGroups: WBSGroup[] = (wbsData || []).map((wbs) => {
-        const maps = mapsByWbs[wbs.id] || [];
-        const wbsTotal = maps.reduce((sum, m) => sum + m.contractTotal, 0);
-        const wbsPaid = maps.reduce((sum, m) => sum + m.amountPaid, 0);
-
+      // 7) Assemble WBS groups
+      const groups: WBSGroup[] = (wbsData || []).map(w => {
+        const maps = mapsByWbs[w.id] || [];
+        const wbsTotal = maps.reduce((sum, mp) => sum + mp.contractTotal, 0);
+        const wbsPaid = maps.reduce((sum, mp) => sum + mp.amountPaid, 0);
         return {
-          id: wbs.id,
-          wbs: wbs.wbs_number,
-          scope: wbs.scope ?? null,
-          location: wbs.location ?? null,
-          coordinates: parseWKT(wbs.coordinates_wkt ?? null),
-          budget: wbs.budget ?? null,
+          id: w.id,
+          wbs: w.wbs_number,
+          scope: w.scope ?? null,
+          location: w.location ?? null,
+          coordinates: w.coordinates_wkt
+            ? parseWKT(w.coordinates_wkt)
+            : null,
+          budget: w.budget ?? null,
           maps,
           contractTotal: wbsTotal,
           amountPaid: wbsPaid,
@@ -144,11 +175,10 @@ export function useContractData(contractId?: string) {
         };
       });
 
-      setWbsGroups(processedGroups);
+      setWbsGroups(groups);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
       logError('useContractData', err);
-      setError(message);
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -158,11 +188,5 @@ export function useContractData(contractId?: string) {
     fetchData();
   }, [fetchData]);
 
-  return {
-    contract,
-    wbsGroups,
-    loading,
-    error,
-    refresh: fetchData,
-  };
+  return { contract, wbsGroups, loading, error, refresh: fetchData };
 }
