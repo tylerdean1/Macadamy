@@ -44,9 +44,11 @@ export function DemoRedirect() {
         console.log('[Demo] Set Zustand user:', authData.user);
 
         const sessionId = uuidv4();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: cloneError } = await supabase.rpc<any, any>('create_clone_for_test_user', {
+        const { error: cloneError } = await supabase.functions.invoke('clone_demo_environment', {
+          body: {
             session_id: sessionId,
+            user_id: authData.user.id,
+          },
         });
 
         if (cloneError) throw new Error('Failed to create demo environment');
