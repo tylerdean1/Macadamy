@@ -27,11 +27,6 @@ export type Avatars = Database['public']['Tables']['avatars']['Row'];
 export type AvatarsInsert = Database['public']['Tables']['avatars']['Insert'];
 export type AvatarsUpdate = Database['public']['Tables']['avatars']['Update'];
 
-// Calculator Functions Table
-export type CalculatorFunctions = Database['public']['Tables']['calculator_functions']['Row'];
-export type CalculatorFunctionsInsert = Database['public']['Tables']['calculator_functions']['Insert'];
-export type CalculatorFunctionsUpdate = Database['public']['Tables']['calculator_functions']['Update'];
-
 // Change Orders Table
 export type ChangeOrders = Database['public']['Tables']['change_orders']['Row'];
 export type ChangeOrdersInsert = Database['public']['Tables']['change_orders']['Insert'];
@@ -258,7 +253,6 @@ export interface Profile {
     url: string;
     is_preset: boolean;
   } | null;
-  is_demo_user?: boolean;
 }
 
 /**
