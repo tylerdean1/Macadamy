@@ -19,6 +19,7 @@ export type Database = {
           lift_depth_inches: number | null
           name: string
           notes: string | null
+          session_id: string | null
           target_spread_rate_lbs_per_sy: number | null
         }
         Insert: {
@@ -30,6 +31,7 @@ export type Database = {
           lift_depth_inches?: number | null
           name: string
           notes?: string | null
+          session_id?: string | null
           target_spread_rate_lbs_per_sy?: number | null
         }
         Update: {
@@ -41,6 +43,7 @@ export type Database = {
           lift_depth_inches?: number | null
           name?: string
           notes?: string | null
+          session_id?: string | null
           target_spread_rate_lbs_per_sy?: number | null
         }
         Relationships: []
@@ -52,6 +55,7 @@ export type Database = {
           is_preset: boolean
           name: string
           profile_id: string | null
+          session_id: string | null
           url: string
         }
         Insert: {
@@ -60,6 +64,7 @@ export type Database = {
           is_preset?: boolean
           name: string
           profile_id?: string | null
+          session_id?: string | null
           url: string
         }
         Update: {
@@ -68,6 +73,7 @@ export type Database = {
           is_preset?: boolean
           name?: string
           profile_id?: string | null
+          session_id?: string | null
           url?: string
         }
         Relationships: [
@@ -87,6 +93,7 @@ export type Database = {
           function_name: string
           id: string
           name: string
+          session_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -94,6 +101,7 @@ export type Database = {
           function_name: string
           id?: string
           name: string
+          session_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -101,6 +109,7 @@ export type Database = {
           function_name?: string
           id?: string
           name?: string
+          session_id?: string | null
         }
         Relationships: []
       }
@@ -998,6 +1007,7 @@ export type Database = {
           created_by: string | null
           id: string
           is_custom: boolean | null
+          session_id: string | null
           title: string
           updated_at: string | null
         }
@@ -1006,6 +1016,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_custom?: boolean | null
+          session_id?: string | null
           title: string
           updated_at?: string | null
         }
@@ -1014,6 +1025,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_custom?: boolean | null
+          session_id?: string | null
           title?: string
           updated_at?: string | null
         }
@@ -1241,6 +1253,7 @@ export type Database = {
           name: string | null
           organization_id: string | null
           output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
+          session_id: string | null
           unit_type: Database["public"]["Enums"]["unit_measure_type"] | null
         }
         Insert: {
@@ -1254,6 +1267,7 @@ export type Database = {
           name?: string | null
           organization_id?: string | null
           output_unit?: Database["public"]["Enums"]["unit_measure_type"] | null
+          session_id?: string | null
           unit_type?: Database["public"]["Enums"]["unit_measure_type"] | null
         }
         Update: {
@@ -1267,6 +1281,7 @@ export type Database = {
           name?: string | null
           organization_id?: string | null
           output_unit?: Database["public"]["Enums"]["unit_measure_type"] | null
+          session_id?: string | null
           unit_type?: Database["public"]["Enums"]["unit_measure_type"] | null
         }
         Relationships: [
@@ -1441,6 +1456,7 @@ export type Database = {
           id: string
           name: string
           phone: string | null
+          session_id: string | null
           updated_at: string | null
           website: string | null
         }
@@ -1451,6 +1467,7 @@ export type Database = {
           id?: string
           name: string
           phone?: string | null
+          session_id?: string | null
           updated_at?: string | null
           website?: string | null
         }
@@ -1461,6 +1478,7 @@ export type Database = {
           id?: string
           name?: string
           phone?: string | null
+          session_id?: string | null
           updated_at?: string | null
           website?: string | null
         }
@@ -1488,6 +1506,7 @@ export type Database = {
           organization_id: string | null
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
+          session_id: string | null
           updated_at: string | null
           username: string | null
         }
@@ -1504,6 +1523,7 @@ export type Database = {
           organization_id?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          session_id?: string | null
           updated_at?: string | null
           username?: string | null
         }
@@ -1520,6 +1540,7 @@ export type Database = {
           organization_id?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          session_id?: string | null
           updated_at?: string | null
           username?: string | null
         }
@@ -1577,6 +1598,7 @@ export type Database = {
           created_at: string | null
           id: string
           notes: string | null
+          session_id: string | null
           surface_type: string
         }
         Insert: {
@@ -1584,6 +1606,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           notes?: string | null
+          session_id?: string | null
           surface_type: string
         }
         Update: {
@@ -1591,6 +1614,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           notes?: string | null
+          session_id?: string | null
           surface_type?: string
         }
         Relationships: []
