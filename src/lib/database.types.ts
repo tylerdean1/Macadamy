@@ -1958,7 +1958,7 @@ export type Database = {
         Returns: boolean
       }
       create_full_clone_for_test_user: {
-        Args: { session_id: string; user_id: string }
+        Args: { p_session_id: string; p_user_id: string }
         Returns: undefined
       }
       disablelongtransactions: {
