@@ -15,40 +15,61 @@ type ProfileWithRelations = ProfileRow & {
 
 export function DemoRedirect() {
   const { setUser, setProfile } = useAuthStore();
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
 
-        // 1) Sign in as demo user
-        const { data: authData, error: authErr } =
-          await supabase.auth.signInWithPassword({
-            email:    'test@test.com',
-            password: 'test123',
-          });
+        // 1) Sign in as your demo account
+        const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
+          email: 'test@test.com',
+          password: 'test123',
+        });
         if (authErr || !authData.user)
           throw new Error(authErr?.message || 'Failed to authenticate demo user');
         setUser(authData.user);
 
-        // 2) Call the Edge Function to clone demo branch
-        const { error: fnErr } = await supabase.functions.invoke('clone_demo_environment');
+        // 2) Trigger Edge Function to create the demo branch
+        const { error: fnErr } = await supabase.functions.invoke('clone_demo_branches', {
+          method: 'POST',
+          body: {}
+        });
         if (fnErr) throw new Error(fnErr.message);
 
-        // 3) Load profile
+        // 3) Load the demo profile
         const profileRes = await supabase
           .from('profiles')
-          .select(
-            `id, role, full_name, email, username,
-             phone, location, avatar_id, avatar_url,
-             organization_id, job_title_id,
-             organizations(id, name, address, phone, website),
-             job_titles(id, title, is_custom)`
-          )
+          .select(`
+            id,
+            role,
+            full_name,
+            email,
+            username,
+            phone,
+            location,
+            avatar_id,
+            avatar_url,
+            organization_id,
+            job_title_id,
+            organizations:organization_id (
+              id,
+              name,
+              address,
+              phone,
+              website
+            ),
+            job_titles:job_title_id (
+              id,
+              title,
+              is_custom
+            )
+          `)
           .eq('id', authData.user.id)
           .single();
+
         if (profileRes.error) throw profileRes.error;
         if (!profileRes.data) throw new Error('Demo profile not found');
 
@@ -60,21 +81,20 @@ export function DemoRedirect() {
           id: '', title: '', is_custom: false
         };
 
-        // 4) Update profile in store
         setProfile({
-          id:             pd.id,
-          user_role:      validateUserRole(pd.role),
-          full_name:      pd.full_name,
-          email:          pd.email ?? '',
-          username:       pd.username ?? '',
-          phone:          pd.phone ?? '',
-          location:       pd.location ?? '',
-          avatar_id:      pd.avatar_id ?? null,
-          avatar_url:     pd.avatar_url ?? null,
-          organization_id:pd.organization_id ?? null,
-          job_title_id:   pd.job_title_id ?? null,
-          organizations:  org,
-          job_titles:     jt,
+          id: pd.id,
+          user_role: validateUserRole(pd.role),
+          full_name: pd.full_name,
+          email: pd.email ?? '',
+          username: pd.username ?? '',
+          phone: pd.phone ?? '',
+          location: pd.location ?? '',
+          avatar_id: pd.avatar_id ?? null,
+          avatar_url: pd.avatar_url ?? null,
+          organization_id: pd.organization_id ?? null,
+          job_title_id: pd.job_title_id ?? null,
+          organizations: org,
+          job_titles: jt,
         });
 
         setLoading(false);
@@ -116,7 +136,7 @@ export function DemoRedirect() {
         <Badge className="bg-black/80 text-yellow-300 px-2 py-0.5 rounded-full">
           DEMO USER
         </Badge>{' '}
-        — You’re in a sandbox. Changes expire after 12 hrs.
+        — You're in a sandbox. Changes expire after 12 hrs.
       </div>
       <Navigate to="/dashboard" replace />
     </>
