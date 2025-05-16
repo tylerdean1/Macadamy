@@ -2,13 +2,11 @@ import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { geometryToWKT } from '@/lib/utils/wktUtils';
-import type { GeometryData } from '@/lib/types';
+import type { GeometryData, ProcessedMap, WBSGroup } from '@/lib/types';
 import {
   useContractData,
-  type ProcessedMap,
-  type WBSGroup,
   type LineItem,
-} from '@/hooks/useContractData';
+} from '@/hooks/contractHooks';
 import type { ContractStatusValue } from '@/lib/enums';
 
 import { ContractHeader } from '@/pages/Contract/ContractDasboardComponents/ContractHeader';
@@ -67,9 +65,9 @@ export function ContractDashboard() {
 
   const totals = useMemo(() => {
     return wbsGroups.reduce(
-      (acc, group: WBSGroup) => ({
-        contractTotal: acc.contractTotal + group.contractTotal,
-        amountPaid: acc.amountPaid + group.amountPaid,
+      (acc, group) => ({
+        contractTotal: acc.contractTotal + (group.contractTotal || 0),
+        amountPaid: acc.amountPaid + (group.amountPaid || 0),
         progress: 0,
       }),
       { contractTotal: 0, amountPaid: 0, progress: 0 }
@@ -129,9 +127,9 @@ export function ContractDashboard() {
             {wbsGroups.length > 0 ? (
               wbsGroups.map((group: WBSGroup) => (
                 <WbsSection
-                  key={group.wbs}
+                  key={group.wbs_number}
                   group={group}
-                  isExpanded={expandedWBS.includes(group.wbs)}
+                  isExpanded={expandedWBS.includes(group.wbs_number)}
                   onToggle={toggleWBS}
                   onMapClick={handleMapLevelClick}
                   onWbsClick={handleWbsClick}

@@ -2,30 +2,36 @@ import React, { useState } from 'react';
 import { Lock, Mail, Eye, EyeOff, User } from 'lucide-react';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
+import { useLogin } from '@/hooks/useLogin';
+import { useSignup } from '@/hooks/useSignup';
+import { useResetPassword } from '@/hooks/useResetPassword';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthFormProps {
   isLogin: boolean;
-  isLoading: boolean;
-  error?: string | null;
-  success?: string | null;
-  onSubmit: (identifier: string, password: string) => Promise<void>;
   onToggle: () => void;
-  onForgotPassword: (email: string) => Promise<void>;
 }
 
-export function AuthForm({
-  isLogin,
-  isLoading,
-  error,
-  success,
-  onSubmit,
-  onToggle,
-  onForgotPassword,
-}: AuthFormProps) {
+export function AuthForm({ isLogin, onToggle }: AuthFormProps) {
   const [identifier, setIdentifier] = useState('');
-  const [password,   setPassword]   = useState('');
-  const [showPwd,    setShowPwd]    = useState(false);
-  const [forgot,     setForgot]     = useState(false);
+  const [password, setPassword] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
+  const [forgot, setForgot] = useState(false);
+
+  const navigate = useNavigate();
+
+  const { login, loading: loginLoading, error: loginError } = useLogin();
+  const { signup, loading: signupLoading, error: signupError } = useSignup();
+  const {
+    resetPassword,
+    loading: resetLoading,
+    error: resetError,
+    success: resetSuccess,
+  } = useResetPassword();
+
+  const isLoading = loginLoading || signupLoading || resetLoading;
+  const error = loginError || signupError || resetError;
+  const success = resetSuccess ? 'Password reset email sent.' : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,10 +40,15 @@ export function AuthForm({
         alert('Enter a valid email');
         return;
       }
-      await onForgotPassword(identifier);
-      setForgot(false);
+      await resetPassword(identifier);
+      return;
+    }
+    if (isLogin) {
+      const success = await login(identifier, password);
+      if (success) navigate('/dashboard');
     } else {
-      await onSubmit(identifier, password);
+      const success = await signup(identifier, password);
+      if (success) navigate('/onboarding');
     }
   };
 
@@ -65,14 +76,10 @@ export function AuthForm({
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label htmlFor="id" className="block text-sm text-gray-300 mb-2">
-            {forgot
-              ? 'Email Address'
-              : isLogin
-              ? 'Email or Username'
-              : 'Email Address'}
+            {forgot || !isLogin ? 'Email Address' : 'Email or Username'}
           </label>
           <div className="relative">
-            {(isLogin && !forgot) ? (
+            {isLogin && !forgot ? (
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             ) : (
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -84,13 +91,7 @@ export function AuthForm({
               onChange={(e) => setIdentifier(e.target.value)}
               disabled={isLoading}
               autoComplete={forgot || !isLogin ? 'email' : 'username'}
-              placeholder={
-                forgot
-                  ? 'you@example.com'
-                  : isLogin
-                  ? 'email@example.com or username'
-                  : 'you@example.com'
-              }
+              placeholder={forgot ? 'you@example.com' : 'email@example.com or username'}
               className="w-full bg-background border border-background-lighter text-gray-100 pl-10 pr-4 py-2.5 rounded-md focus:ring-2 focus:ring-primary disabled:opacity-50"
               required
             />
@@ -167,9 +168,7 @@ export function AuthForm({
               disabled={isLoading}
               className="block w-full text-sm text-primary disabled:opacity-50"
             >
-              {isLogin
-                ? "Don't have an account? Sign up"
-                : 'Already have an account? Sign in'}
+              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
             </button>
           </>
         )}

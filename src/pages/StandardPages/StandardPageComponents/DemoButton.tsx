@@ -1,15 +1,17 @@
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button'; 
+import { useAuth } from '@/hooks/useAuth';
 
 export function DemoButton() {
-  const navigate = useNavigate();
+  const { loginAsDemoUser, loading } = useAuth();
+  
   return (
     <Button 
       variant="primary" 
       size="lg" 
-      onClick={() => navigate('/demo')}
+      onClick={loginAsDemoUser}
+      disabled={loading}
     >
-      Try the Demo
+      {loading ? 'Loading Demo...' : 'Try the Demo'}
     </Button>
   );
 }

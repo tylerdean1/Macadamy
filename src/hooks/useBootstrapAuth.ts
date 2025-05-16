@@ -1,32 +1,39 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
 import { validateUserRole } from '@/lib/utils/validate-user-role';
+import { getDemoSession, DemoSession } from '@/lib/utils/cloneDemoData';
 import type { Profile } from '@/lib/types';
 
-export function useBootstrapAuth() {
+export function useBootstrapAuth(): boolean {
   const { setUser, setProfile, clearAuth } = useAuthStore();
-  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const initAuth = async () => {
+    (async () => {
       try {
-        // ✅ Use getSession instead of getUser to avoid "auth session missing" errors
+        console.log('[DEBUG] Bootstrapping auth...');
         const {
-          data: { session },
-          error: sessionError
+          data: sessionData,
+          error: sessionError,
         } = await supabase.auth.getSession();
 
-        if (sessionError) throw new Error(`Error fetching session: ${sessionError.message}`);
-        if (!session?.user) {
+        // No logged-in user?
+        if (sessionError || !sessionData.session?.user) {
+          console.log('[DEBUG] No active session found');
+          clearAuth();
           setIsLoading(false);
           return;
         }
 
-        const user = session.user;
+        const user = sessionData.session.user;
+        console.log('[DEBUG] Found user session:', user.id);
         setUser(user);
 
-        const { data: profile, error: profileError } = await supabase
+        // Fetch the profile row
+        const { data, error } = await supabase
           .from('profiles')
           .select(`
             id,
@@ -37,67 +44,52 @@ export function useBootstrapAuth() {
             phone,
             location,
             avatar_id,
-            job_title_id,
             organization_id,
-            avatars:avatar_id (
-              url
-            ),
-            organizations:organizations!profiles_organization_id_fkey (
-              name, address, phone, website
-            ),
-            job_titles:job_titles!profiles_job_title_id_fkey (
-              title, is_custom
-            )
+            job_title_id,
+            session_id,
+            avatars (url)
           `)
           .eq('id', user.id)
-          .maybeSingle();
+          .single();
 
-        if (profileError) throw new Error(`Error fetching profile: ${profileError.message}`);
-        if (!profile) {
-          console.warn('No profile found. Clearing session.');
-          await supabase.auth.signOut();
+        if (error || !data) {
+          console.error('[ERROR] Failed to load profile during bootstrap:', error);
           clearAuth();
           setIsLoading(false);
           return;
         }
 
-        const mappedProfile: Profile = {
-          id: profile.id,
-          user_role: validateUserRole(profile.role),
-          full_name: profile.full_name,
-          email: profile.email ?? '',
-          username: profile.username ?? '',
-          phone: profile.phone ?? '',
-          location: profile.location ?? '',
-          avatar_id: profile.avatar_id ?? null,
-          avatar_url: profile.avatars?.url ?? null,
-          organization_id: profile.organization_id ?? '',
-          job_title_id: profile.job_title_id ?? '',
-          organizations: profile.organizations ?? {
-            name: '',
-            address: '',
-            phone: '',
-            website: ''
-          },
-          job_titles: profile.job_titles ?? {
-            title: '',
-            is_custom: null
-          }
+        // Check for a demo session
+        const demoSession: DemoSession | null = getDemoSession();
+        const isDemo = demoSession?.userId === user.id;
+
+        // Build our Profile object
+        const profile: Profile = {
+          id: data.id,
+          user_role: validateUserRole(data.role),
+          full_name: data.full_name,
+          email: data.email ?? '',
+          username: data.username ?? null,
+          phone: data.phone ?? null,
+          location: data.location ?? null,
+          avatar_id: data.avatar_id ?? null,
+          avatar_url: data.avatars?.url ?? null, // ✅ loaded through join
+          organization_id: data.organization_id ?? null,
+          job_title_id: data.job_title_id ?? null,
+          is_demo_user: isDemo,
+          session_id: isDemo ? demoSession!.sessionId : data.session_id ?? undefined,
         };
 
-        setProfile(mappedProfile);
-      } catch (error) {
-          if (!(error instanceof Error && error.message.includes('Auth session missing'))) {
-            console.error('Failed to initialize authentication:', error);
-          }
-        
+        console.log('[DEBUG] Setting profile in bootstrap:', profile);
+        setProfile(profile);
+      } catch (err) {
+        console.error('[ERROR] Bootstrap auth error:', err);
+        clearAuth();
       } finally {
         setIsLoading(false);
       }
-    };
-
-    initAuth();
-  }, [setUser, setProfile, clearAuth]);
+    })();
+  }, [setUser, setProfile, clearAuth, navigate]);
 
   return isLoading;
 }

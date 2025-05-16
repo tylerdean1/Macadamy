@@ -3,15 +3,8 @@ import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
 import { Badge } from '@/pages/StandardPages/StandardPageComponents/badge';
-import type { Database } from '@/lib/database.types';
 import { validateUserRole } from '@/lib/utils/validate-user-role';
-import type { Organization, JobTitle } from '@/lib/types';
-
-type ProfileRow = Database['public']['Tables']['profiles']['Row'];
-type ProfileWithRelations = ProfileRow & {
-  organizations?: Organization[];
-  job_titles?: JobTitle[];
-};
+import type { Profile } from '@/lib/types';
 
 export function DemoRedirect() {
   const { setUser, setProfile } = useAuthStore();
@@ -23,80 +16,60 @@ export function DemoRedirect() {
       try {
         setLoading(true);
 
-        // 1) Sign in as your demo account
         const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
           email: 'test@test.com',
           password: 'test123',
         });
-        if (authErr || !authData.user)
-          throw new Error(authErr?.message || 'Failed to authenticate demo user');
+        if (authErr || !authData.user) throw new Error(authErr?.message || 'Failed to authenticate demo user');
+
         setUser(authData.user);
 
-        // 2) Trigger Edge Function to create the demo branch
-        const { error: fnErr } = await supabase.functions.invoke('clone_demo_branches', {
-          method: 'POST',
-          body: {}
+        const { data: demoSessionId, error: demoErr } = await supabase.rpc('create_demo_environment', {
+          uid: authData.user.id,
         });
-        if (fnErr) throw new Error(fnErr.message);
 
-        // 3) Load the demo profile
+        if (demoErr || !demoSessionId) throw new Error(demoErr?.message || 'Failed creating demo environment');
+
+        const { error: cloneErr } = await supabase.rpc('execute_full_demo_clone', {
+          session_id: demoSessionId,
+        });
+
+        if (cloneErr) throw new Error(cloneErr?.message || 'Failed cloning demo data');
+
         const profileRes = await supabase
           .from('profiles')
           .select(`
-            id,
-            role,
-            full_name,
-            email,
-            username,
-            phone,
-            location,
-            avatar_id,
-            avatar_url,
-            organization_id,
-            job_title_id,
-            organizations:organization_id (
-              id,
-              name,
-              address,
-              phone,
-              website
-            ),
-            job_titles:job_title_id (
-              id,
-              title,
-              is_custom
-            )
+            id, role, full_name, email, username, phone, location, avatar_id, organization_id, job_title_id, session_id,
+            organizations (id, name, address, phone, website),
+            job_titles (id, title, is_custom),
+            avatars (url, is_preset)
           `)
           .eq('id', authData.user.id)
           .single();
 
         if (profileRes.error) throw profileRes.error;
-        if (!profileRes.data) throw new Error('Demo profile not found');
 
-        const pd = profileRes.data as unknown as ProfileWithRelations;
-        const org = pd.organizations?.[0] ?? {
-          id: '', name: '', address: '', phone: '', website: ''
-        };
-        const jt = pd.job_titles?.[0] ?? {
-          id: '', title: '', is_custom: false
-        };
+        const pd = profileRes.data;
 
-        setProfile({
+        const profile: Profile = {
           id: pd.id,
           user_role: validateUserRole(pd.role),
           full_name: pd.full_name,
           email: pd.email ?? '',
-          username: pd.username ?? '',
-          phone: pd.phone ?? '',
-          location: pd.location ?? '',
-          avatar_id: pd.avatar_id ?? null,
-          avatar_url: pd.avatar_url ?? null,
-          organization_id: pd.organization_id ?? null,
-          job_title_id: pd.job_title_id ?? null,
-          organizations: org,
-          job_titles: jt,
-        });
+          username: pd.username,
+          phone: pd.phone,
+          location: pd.location,
+          avatar_id: pd.avatar_id,
+          avatar_url: pd.avatars?.url ?? null,
+          organization_id: pd.organization_id,
+          job_title_id: pd.job_title_id,
+          organizations: pd.organizations || null,
+          job_titles: pd.job_titles || null,
+          is_demo_user: true,
+          session_id: demoSessionId,
+        };
 
+        setProfile(profile);
         setLoading(false);
       } catch (err) {
         setError((err as Error).message);

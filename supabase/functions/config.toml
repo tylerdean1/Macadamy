@@ -1,2 +1,0 @@
-[functions."delete_demo_branches"]
-schedule = "0 * * * *"  # runs at minute 0 of every hour

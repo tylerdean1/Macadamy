@@ -1,5 +1,5 @@
 {
-  "name": "dot-contractor-system",
+  "name": "macadamy",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -8,11 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "pull-db": "supabase db pull",
-    "gen-db-types": "supabase gen types typescript --project-id koaxmrtrzhilnzjbiybr --schema public > src/lib/database.types.ts",
-    "update-db-types": "npm run pull-db && npm run gen-db-types",
-    "deploy-functions": "for /D %f in (supabase/functions/*) do supabase functions deploy %~nxf",
-    "sync-backend": "npm run update-db-types && npm run deploy-functions"
+    "typegen": "npx supabase gen types typescript --project-id koaxmrtrzhilnzjbiybr --schema public > src/lib/database.types.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -20,10 +16,14 @@
     "@headlessui/react": "^2.2.2",
     "@mui/icons-material": "^7.0.1",
     "@mui/material": "^7.0.1",
+    "@radix-ui/react-dialog": "^1.1.13",
+    "@radix-ui/react-slot": "^1.2.2",
     "@react-google-maps/api": "^2.20.6",
     "@supabase/supabase-js": "^2.49.4",
     "@terraformer/wkt": "^2.2.1",
     "@vercel/analytics": "^1.2.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.6.3",
     "jspdf": "^3.0.1",
@@ -37,6 +37,7 @@
     "react-icons": "^5.5.0",
     "react-router-dom": "^6.30.0",
     "sonner": "^2.0.3",
+    "tailwind-merge": "^3.3.0",
     "uuid": "^9.0.1",
     "wellknown": "^0.5.0",
     "zustand": "^4.5.6"

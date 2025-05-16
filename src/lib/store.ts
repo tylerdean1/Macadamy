@@ -1,17 +1,13 @@
 // Libraries
 import { create } from 'zustand';
-import { persist, StorageValue } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 
 // Utilities
 import { validateUserRole } from './utils/validate-user-role';
 
 // Types
-import type { Database } from './database.types';
 import type { Profile } from './types';
-
-// Exported Types
-export type UserRole = Database['public']['Enums']['user_role'];
 
 // AuthState Interface
 interface AuthState {
@@ -23,107 +19,65 @@ interface AuthState {
   bypassAuth: () => void;
 }
 
-// Default User for bypassing authentication
-const defaultUser: SupabaseUser = {
-  id: '00000000-0000-0000-0000-000000000000',
-  email: 'test@test.com',
-  role: 'authenticated',
-  aud: 'authenticated',
-  created_at: new Date().toISOString(),
-  app_metadata: {},
-  user_metadata: {},
-};
-
-// Default Profile for bypassing authentication
-const defaultProfile: Profile = {
-  id: '00000000-0000-0000-0000-000000000000',
-  user_role: validateUserRole('Admin'),
-  full_name: 'Bypassed Test User',
-  email: 'test@test.com',
-  phone: '123-456-7891',
-  location: '123 Main Street St. Augustine, FL 32080',
-  username: 'BYPASSED.TEST.PROFILE',
-  avatar_id: '407180e5-203d-49e2-894a-0fee4fee372b', // ✅ added to fix type error
-  avatar_url: 'https://koaxmrtrzhilnzjbiybr.supabase.co/storage/v1/object/public/avatars-presets//Contract%20Plans.png',
-  organization_id: '14344b69-c36b-4e2a-880a-7b24effe1779',
-  job_title_id: '411b844e-7f87-4a43-a784-e535336576f1',
-  job_titles: {
-    title: 'Engineer',
-    is_custom: false,
+// Auth Store (memory only for sensitive user info)
+export const useAuthStore = create<AuthState>()((set) => ({
+  user: null,
+  profile: null,
+  setUser: (user) => {
+    console.log('[DEBUG] setUser called with:', user);
+    set({ user });
   },
-};
-
-// Log initial default user and profile
-console.log('[DEBUG] Default User:', defaultUser);
-console.log('[DEBUG] Default Profile:', defaultProfile);
-
-// Custom storage adapter (type-safe)
-const localStorageAdapter = {
-  getItem: (name: string): StorageValue<AuthState> | null => {
-    console.log('[DEBUG] Retrieving item from localStorage with name:', name);
-    try {
-      const str = localStorage.getItem(name);
-      console.log('[DEBUG] Retrieved item:', str);
-      return str ? JSON.parse(str) : null;
-    } catch (error) {
-      console.error('[ERROR] Failed to retrieve item from localStorage:', error);
-      return null;
-    }
+  setProfile: (profile) => {
+    console.log('[DEBUG] setProfile called with:', profile);
+    set({ profile });
   },
-  setItem: (name: string, value: StorageValue<AuthState>) => {
-    console.log('[DEBUG] Setting item in localStorage with name:', name, 'and value:', value);
-    try {
-      localStorage.setItem(name, JSON.stringify(value));
-    } catch (error) {
-      console.error('[ERROR] Failed to set item in localStorage:', error);
-    }
+  clearAuth: () => {
+    console.log('[DEBUG] clearAuth called');
+    set({ user: null, profile: null });
   },
-  removeItem: (name: string) => {
-    console.log('[DEBUG] Removing item from localStorage with name:', name);
-    try {
-      localStorage.removeItem(name);
-    } catch (error) {
-      console.error('[ERROR] Failed to remove item from localStorage:', error);
-    }
+  bypassAuth: () => {
+    console.log('[DEBUG] bypassAuth called. Setting default user and profile.');
+    set({
+      user: {
+        id: '00000000-0000-0000-0000-000000000000',
+        email: 'test@test.com',
+        role: 'authenticated',
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
+        app_metadata: {},
+        user_metadata: {},
+      },
+      profile: {
+        id: '00000000-0000-0000-0000-000000000000',
+        user_role: validateUserRole('Admin'),
+        full_name: 'Bypassed Test User',
+        email: 'test@test.com',
+        phone: '123-456-7891',
+        location: '123 Main Street St. Augustine, FL 32080',
+        username: 'BYPASSED.TEST.PROFILE',
+        avatar_id: '407180e5-203d-49e2-894a-0fee4fee372b',
+        avatar_url:
+          'https://koaxmrtrzhilnzjbiybr.supabase.co/storage/v1/object/public/avatars-presets//Contract%20Plans.png',
+        organization_id: '14344b69-c36b-4e2a-880a-7b24effe1779',
+        job_title_id: '411b844e-7f87-4a43-a784-e535336576f1',
+        job_titles: {
+          title: 'Engineer',
+          is_custom: false,
+        },
+      },
+    });
   },
-};
+}));
 
-/**
- * Zustand store for handling authentication state.
- */
-export const useAuthStore = create(
-  persist<AuthState>(
+// Persisted Profile Store (non-sensitive)
+export const usePersistedProfileStore = create(
+  persist<{ profile: Profile | null; setProfile: (p: Profile | null) => void }>(
     (set) => ({
-      user: null,
       profile: null,
-      setUser: (user) => {
-        console.log('[DEBUG] setUser called with:', user);
-        if (!user || typeof user !== 'object') {
-          console.error('[ERROR] Invalid user passed to setUser:', user);
-          return;
-        }
-        set({ user });
-      },
-      setProfile: (profile) => {
-        console.log('[DEBUG] setProfile called with:', profile);
-        if (!profile || typeof profile !== 'object') {
-          console.error('[ERROR] Invalid profile passed to setProfile:', profile);
-          return;
-        }
-        set({ profile });
-      },
-      clearAuth: () => {
-        console.log('[DEBUG] clearAuth called');
-        set({ user: null, profile: null });
-      },
-      bypassAuth: () => {
-        console.log('[DEBUG] bypassAuth called. Setting default user and profile.');
-        set({ user: defaultUser, profile: defaultProfile });
-      },
+      setProfile: (profile) => set({ profile }),
     }),
     {
-      name: 'auth-storage',
-      storage: localStorageAdapter,
+      name: 'auth-profile-storage',
     }
   )
 );

@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -52,6 +52,7 @@ export type Database = {
           is_preset: boolean
           name: string
           profile_id: string | null
+          session_id: string | null
           url: string
         }
         Insert: {
@@ -60,6 +61,7 @@ export type Database = {
           is_preset?: boolean
           name: string
           profile_id?: string | null
+          session_id?: string | null
           url: string
         }
         Update: {
@@ -68,6 +70,7 @@ export type Database = {
           is_preset?: boolean
           name?: string
           profile_id?: string | null
+          session_id?: string | null
           url?: string
         }
         Relationships: [
@@ -77,6 +80,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_avatars_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
           },
         ]
       }
@@ -93,6 +103,7 @@ export type Database = {
           line_item_id: string | null
           new_quantity: number
           new_unit_price: number | null
+          session_id: string | null
           status: Database["public"]["Enums"]["change_order_status"]
           submitted_date: string
           title: string
@@ -111,6 +122,7 @@ export type Database = {
           line_item_id?: string | null
           new_quantity: number
           new_unit_price?: number | null
+          session_id?: string | null
           status?: Database["public"]["Enums"]["change_order_status"]
           submitted_date?: string
           title: string
@@ -129,6 +141,7 @@ export type Database = {
           line_item_id?: string | null
           new_quantity?: number
           new_unit_price?: number | null
+          session_id?: string | null
           status?: Database["public"]["Enums"]["change_order_status"]
           submitted_date?: string
           title?: string
@@ -150,6 +163,13 @@ export type Database = {
             referencedRelation: "line_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_change_orders_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
         ]
       }
       contract_organizations: {
@@ -161,6 +181,7 @@ export type Database = {
           notes: string | null
           organization_id: string
           role: Database["public"]["Enums"]["organization_role"] | null
+          session_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -171,6 +192,7 @@ export type Database = {
           notes?: string | null
           organization_id: string
           role?: Database["public"]["Enums"]["organization_role"] | null
+          session_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -181,6 +203,7 @@ export type Database = {
           notes?: string | null
           organization_id?: string
           role?: Database["public"]["Enums"]["organization_role"] | null
+          session_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -205,6 +228,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_contract_organizations_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
         ]
       }
       contracts: {
@@ -212,11 +242,12 @@ export type Database = {
           budget: number | null
           coordinates: unknown | null
           created_at: string | null
-          created_by: string
+          created_by: string | null
           description: string | null
           end_date: string
           id: string
           location: string
+          session_id: string | null
           start_date: string
           status: Database["public"]["Enums"]["contract_status"]
           title: string
@@ -226,11 +257,12 @@ export type Database = {
           budget?: number | null
           coordinates?: unknown | null
           created_at?: string | null
-          created_by: string
+          created_by?: string | null
           description?: string | null
           end_date: string
           id?: string
           location: string
+          session_id?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["contract_status"]
           title: string
@@ -240,11 +272,12 @@ export type Database = {
           budget?: number | null
           coordinates?: unknown | null
           created_at?: string | null
-          created_by?: string
+          created_by?: string | null
           description?: string | null
           end_date?: string
           id?: string
           location?: string
+          session_id?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["contract_status"]
           title?: string
@@ -257,6 +290,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_contracts_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
           },
         ]
       }
@@ -271,6 +311,7 @@ export type Database = {
           map_location_id: string | null
           profile_id: string
           role: string | null
+          session_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -283,6 +324,7 @@ export type Database = {
           map_location_id?: string | null
           profile_id: string
           role?: string | null
+          session_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -295,6 +337,7 @@ export type Database = {
           map_location_id?: string | null
           profile_id?: string
           role?: string | null
+          session_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -326,6 +369,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_crew_members_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
         ]
       }
       crews: {
@@ -337,6 +387,7 @@ export type Database = {
           id: string
           name: string
           organization_id: string
+          session_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -347,6 +398,7 @@ export type Database = {
           id?: string
           name: string
           organization_id: string
+          session_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -357,6 +409,7 @@ export type Database = {
           id?: string
           name?: string
           organization_id?: string
+          session_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -381,6 +434,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_crews_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
         ]
       }
       daily_logs: {
@@ -392,6 +452,7 @@ export type Database = {
           id: string
           log_date: string
           safety_incidents: string | null
+          session_id: string | null
           temperature: number | null
           updated_at: string | null
           updated_by: string | null
@@ -407,6 +468,7 @@ export type Database = {
           id?: string
           log_date?: string
           safety_incidents?: string | null
+          session_id?: string | null
           temperature?: number | null
           updated_at?: string | null
           updated_by?: string | null
@@ -422,6 +484,7 @@ export type Database = {
           id?: string
           log_date?: string
           safety_incidents?: string | null
+          session_id?: string | null
           temperature?: number | null
           updated_at?: string | null
           updated_by?: string | null
@@ -451,7 +514,143 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_daily_logs_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
         ]
+      }
+      demo_mappings: {
+        Row: {
+          created_at: string | null
+          new_change_order_ids: string[] | null
+          new_contract_ids: string[] | null
+          new_contract_org_ids: string[] | null
+          new_crew_ids: string[] | null
+          new_crew_member_ids: string[] | null
+          new_daily_log_ids: string[] | null
+          new_entry_ids: string[] | null
+          new_equipment_assignment_ids: string[] | null
+          new_equipment_ids: string[] | null
+          new_inspection_ids: string[] | null
+          new_issue_ids: string[] | null
+          new_li_crew_ids: string[] | null
+          new_li_equipment_ids: string[] | null
+          new_line_item_ids: string[] | null
+          new_map_ids: string[] | null
+          new_organization_ids: string[] | null
+          new_profile_id: string | null
+          new_template_ids: string[] | null
+          new_wbs_ids: string[] | null
+          old_change_order_ids: string[] | null
+          old_contract_ids: string[] | null
+          old_contract_org_ids: string[] | null
+          old_crew_ids: string[] | null
+          old_crew_member_ids: string[] | null
+          old_daily_log_ids: string[] | null
+          old_entry_ids: string[] | null
+          old_equipment_assignment_ids: string[] | null
+          old_equipment_ids: string[] | null
+          old_inspection_ids: string[] | null
+          old_issue_ids: string[] | null
+          old_li_crew_ids: string[] | null
+          old_li_equipment_ids: string[] | null
+          old_line_item_ids: string[] | null
+          old_map_ids: string[] | null
+          old_organization_ids: string[] | null
+          old_profile_id: string | null
+          old_template_ids: string[] | null
+          old_wbs_ids: string[] | null
+          session_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          new_change_order_ids?: string[] | null
+          new_contract_ids?: string[] | null
+          new_contract_org_ids?: string[] | null
+          new_crew_ids?: string[] | null
+          new_crew_member_ids?: string[] | null
+          new_daily_log_ids?: string[] | null
+          new_entry_ids?: string[] | null
+          new_equipment_assignment_ids?: string[] | null
+          new_equipment_ids?: string[] | null
+          new_inspection_ids?: string[] | null
+          new_issue_ids?: string[] | null
+          new_li_crew_ids?: string[] | null
+          new_li_equipment_ids?: string[] | null
+          new_line_item_ids?: string[] | null
+          new_map_ids?: string[] | null
+          new_organization_ids?: string[] | null
+          new_profile_id?: string | null
+          new_template_ids?: string[] | null
+          new_wbs_ids?: string[] | null
+          old_change_order_ids?: string[] | null
+          old_contract_ids?: string[] | null
+          old_contract_org_ids?: string[] | null
+          old_crew_ids?: string[] | null
+          old_crew_member_ids?: string[] | null
+          old_daily_log_ids?: string[] | null
+          old_entry_ids?: string[] | null
+          old_equipment_assignment_ids?: string[] | null
+          old_equipment_ids?: string[] | null
+          old_inspection_ids?: string[] | null
+          old_issue_ids?: string[] | null
+          old_li_crew_ids?: string[] | null
+          old_li_equipment_ids?: string[] | null
+          old_line_item_ids?: string[] | null
+          old_map_ids?: string[] | null
+          old_organization_ids?: string[] | null
+          old_profile_id?: string | null
+          old_template_ids?: string[] | null
+          old_wbs_ids?: string[] | null
+          session_id: string
+        }
+        Update: {
+          created_at?: string | null
+          new_change_order_ids?: string[] | null
+          new_contract_ids?: string[] | null
+          new_contract_org_ids?: string[] | null
+          new_crew_ids?: string[] | null
+          new_crew_member_ids?: string[] | null
+          new_daily_log_ids?: string[] | null
+          new_entry_ids?: string[] | null
+          new_equipment_assignment_ids?: string[] | null
+          new_equipment_ids?: string[] | null
+          new_inspection_ids?: string[] | null
+          new_issue_ids?: string[] | null
+          new_li_crew_ids?: string[] | null
+          new_li_equipment_ids?: string[] | null
+          new_line_item_ids?: string[] | null
+          new_map_ids?: string[] | null
+          new_organization_ids?: string[] | null
+          new_profile_id?: string | null
+          new_template_ids?: string[] | null
+          new_wbs_ids?: string[] | null
+          old_change_order_ids?: string[] | null
+          old_contract_ids?: string[] | null
+          old_contract_org_ids?: string[] | null
+          old_crew_ids?: string[] | null
+          old_crew_member_ids?: string[] | null
+          old_daily_log_ids?: string[] | null
+          old_entry_ids?: string[] | null
+          old_equipment_assignment_ids?: string[] | null
+          old_equipment_ids?: string[] | null
+          old_inspection_ids?: string[] | null
+          old_issue_ids?: string[] | null
+          old_li_crew_ids?: string[] | null
+          old_li_equipment_ids?: string[] | null
+          old_line_item_ids?: string[] | null
+          old_map_ids?: string[] | null
+          old_organization_ids?: string[] | null
+          old_profile_id?: string | null
+          old_template_ids?: string[] | null
+          old_wbs_ids?: string[] | null
+          session_id?: string
+        }
+        Relationships: []
       }
       dump_trucks: {
         Row: {
@@ -526,6 +725,7 @@ export type Database = {
           id: string
           name: string
           operator_id: string | null
+          session_id: string | null
           user_defined_id: string
         }
         Insert: {
@@ -535,6 +735,7 @@ export type Database = {
           id?: string
           name: string
           operator_id?: string | null
+          session_id?: string | null
           user_defined_id: string
         }
         Update: {
@@ -544,6 +745,7 @@ export type Database = {
           id?: string
           name?: string
           operator_id?: string | null
+          session_id?: string | null
           user_defined_id?: string
         }
         Relationships: [
@@ -561,6 +763,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_equipment_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
         ]
       }
       equipment_assignments: {
@@ -573,6 +782,7 @@ export type Database = {
           id: string
           notes: string | null
           operator_id: string | null
+          session_id: string | null
           start_date: string
           status: string | null
           updated_at: string | null
@@ -586,6 +796,7 @@ export type Database = {
           id?: string
           notes?: string | null
           operator_id?: string | null
+          session_id?: string | null
           start_date: string
           status?: string | null
           updated_at?: string | null
@@ -599,6 +810,7 @@ export type Database = {
           id?: string
           notes?: string | null
           operator_id?: string | null
+          session_id?: string | null
           start_date?: string
           status?: string | null
           updated_at?: string | null
@@ -625,6 +837,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_equipment_assignments_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
         ]
       }
       equipment_usage: {
@@ -640,6 +859,7 @@ export type Database = {
           notes: string | null
           operator_id: string | null
           operator_name: string | null
+          session_id: string | null
           updated_at: string | null
           updated_by: string | null
           usage_date: string
@@ -656,6 +876,7 @@ export type Database = {
           notes?: string | null
           operator_id?: string | null
           operator_name?: string | null
+          session_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
           usage_date?: string
@@ -672,6 +893,7 @@ export type Database = {
           notes?: string | null
           operator_id?: string | null
           operator_name?: string | null
+          session_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
           usage_date?: string
@@ -719,6 +941,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_equipment_usage_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
         ]
       }
       inspections: {
@@ -733,6 +962,7 @@ export type Database = {
           name: string
           pdf_url: string | null
           photo_urls: string[] | null
+          session_id: string | null
           updated_at: string | null
           updated_by: string | null
           wbs_id: string | null
@@ -748,6 +978,7 @@ export type Database = {
           name: string
           pdf_url?: string | null
           photo_urls?: string[] | null
+          session_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
           wbs_id?: string | null
@@ -763,11 +994,19 @@ export type Database = {
           name?: string
           pdf_url?: string | null
           photo_urls?: string[] | null
+          session_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
           wbs_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_inspections_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
           {
             foreignKeyName: "inspections_contract_id_fkey"
             columns: ["contract_id"]
@@ -827,6 +1066,7 @@ export type Database = {
           photo_urls: string[] | null
           priority: string
           resolution: string | null
+          session_id: string | null
           status: string
           title: string
           updated_at: string | null
@@ -847,6 +1087,7 @@ export type Database = {
           photo_urls?: string[] | null
           priority: string
           resolution?: string | null
+          session_id?: string | null
           status: string
           title: string
           updated_at?: string | null
@@ -867,6 +1108,7 @@ export type Database = {
           photo_urls?: string[] | null
           priority?: string
           resolution?: string | null
+          session_id?: string | null
           status?: string
           title?: string
           updated_at?: string | null
@@ -874,6 +1116,13 @@ export type Database = {
           wbs_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_issues_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
           {
             foreignKeyName: "issues_assigned_to_fkey"
             columns: ["assigned_to"]
@@ -938,6 +1187,7 @@ export type Database = {
           created_by: string | null
           id: string
           is_custom: boolean | null
+          session_id: string | null
           title: string
           updated_at: string | null
         }
@@ -946,6 +1196,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_custom?: boolean | null
+          session_id?: string | null
           title: string
           updated_at?: string | null
         }
@@ -954,10 +1205,18 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_custom?: boolean | null
+          session_id?: string | null
           title?: string
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_job_titles_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
           {
             foreignKeyName: "job_titles_created_by_fkey"
             columns: ["created_by"]
@@ -976,6 +1235,7 @@ export type Database = {
           id: string
           line_item_id: string
           notes: string | null
+          session_id: string | null
           start_date: string
           status: string | null
           updated_at: string | null
@@ -988,6 +1248,7 @@ export type Database = {
           id?: string
           line_item_id: string
           notes?: string | null
+          session_id?: string | null
           start_date: string
           status?: string | null
           updated_at?: string | null
@@ -1000,11 +1261,19 @@ export type Database = {
           id?: string
           line_item_id?: string
           notes?: string | null
+          session_id?: string | null
           start_date?: string
           status?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_line_item_crew_assignments_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
           {
             foreignKeyName: "line_item_crew_assignments_created_by_fkey"
             columns: ["created_by"]
@@ -1039,6 +1308,7 @@ export type Database = {
           line_item_id: string
           map_id: string
           notes: string | null
+          session_id: string | null
           wbs_id: string
         }
         Insert: {
@@ -1051,6 +1321,7 @@ export type Database = {
           line_item_id: string
           map_id: string
           notes?: string | null
+          session_id?: string | null
           wbs_id: string
         }
         Update: {
@@ -1063,9 +1334,17 @@ export type Database = {
           line_item_id?: string
           map_id?: string
           notes?: string | null
+          session_id?: string | null
           wbs_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_line_item_entries_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
           {
             foreignKeyName: "line_item_entries_contract_id_fkey"
             columns: ["contract_id"]
@@ -1106,6 +1385,7 @@ export type Database = {
           line_item_id: string
           notes: string | null
           operator_id: string | null
+          session_id: string | null
           start_date: string
           status: string | null
           updated_at: string | null
@@ -1119,6 +1399,7 @@ export type Database = {
           line_item_id: string
           notes?: string | null
           operator_id?: string | null
+          session_id?: string | null
           start_date: string
           status?: string | null
           updated_at?: string | null
@@ -1132,11 +1413,19 @@ export type Database = {
           line_item_id?: string
           notes?: string | null
           operator_id?: string | null
+          session_id?: string | null
           start_date?: string
           status?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_line_item_equipment_assignments_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
           {
             foreignKeyName: "line_item_equipment_assignments_created_by_fkey"
             columns: ["created_by"]
@@ -1162,7 +1451,6 @@ export type Database = {
       }
       line_item_templates: {
         Row: {
-          calculator_function_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -1172,10 +1460,10 @@ export type Database = {
           name: string | null
           organization_id: string | null
           output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
+          session_id: string | null
           unit_type: Database["public"]["Enums"]["unit_measure_type"] | null
         }
         Insert: {
-          calculator_function_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1185,10 +1473,10 @@ export type Database = {
           name?: string | null
           organization_id?: string | null
           output_unit?: Database["public"]["Enums"]["unit_measure_type"] | null
+          session_id?: string | null
           unit_type?: Database["public"]["Enums"]["unit_measure_type"] | null
         }
         Update: {
-          calculator_function_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1198,9 +1486,17 @@ export type Database = {
           name?: string | null
           organization_id?: string | null
           output_unit?: Database["public"]["Enums"]["unit_measure_type"] | null
+          session_id?: string | null
           unit_type?: Database["public"]["Enums"]["unit_measure_type"] | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_line_item_templates_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
           {
             foreignKeyName: "line_item_templates_created_by_fkey"
             columns: ["created_by"]
@@ -1228,6 +1524,7 @@ export type Database = {
           map_id: string | null
           quantity: number
           reference_doc: string | null
+          session_id: string | null
           template_id: string | null
           unit_measure: Database["public"]["Enums"]["unit_measure_type"]
           unit_price: number
@@ -1244,6 +1541,7 @@ export type Database = {
           map_id?: string | null
           quantity: number
           reference_doc?: string | null
+          session_id?: string | null
           template_id?: string | null
           unit_measure: Database["public"]["Enums"]["unit_measure_type"]
           unit_price: number
@@ -1260,6 +1558,7 @@ export type Database = {
           map_id?: string | null
           quantity?: number
           reference_doc?: string | null
+          session_id?: string | null
           template_id?: string | null
           unit_measure?: Database["public"]["Enums"]["unit_measure_type"]
           unit_price?: number
@@ -1267,6 +1566,13 @@ export type Database = {
           wbs_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_line_items_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
           {
             foreignKeyName: "line_items_contract_id_fkey"
             columns: ["contract_id"]
@@ -1307,6 +1613,7 @@ export type Database = {
           location_description: string | null
           map_number: string
           scope: string | null
+          session_id: string | null
           updated_at: string | null
           wbs_id: string
         }
@@ -1319,6 +1626,7 @@ export type Database = {
           location_description?: string | null
           map_number: string
           scope?: string | null
+          session_id?: string | null
           updated_at?: string | null
           wbs_id: string
         }
@@ -1331,10 +1639,18 @@ export type Database = {
           location_description?: string | null
           map_number?: string
           scope?: string | null
+          session_id?: string | null
           updated_at?: string | null
           wbs_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_maps_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
           {
             foreignKeyName: "map_locations_wbs_id_fkey"
             columns: ["wbs_id"]
@@ -1359,6 +1675,7 @@ export type Database = {
           id: string
           name: string
           phone: string | null
+          session_id: string | null
           updated_at: string | null
           website: string | null
         }
@@ -1369,6 +1686,7 @@ export type Database = {
           id?: string
           name: string
           phone?: string | null
+          session_id?: string | null
           updated_at?: string | null
           website?: string | null
         }
@@ -1379,10 +1697,18 @@ export type Database = {
           id?: string
           name?: string
           phone?: string | null
+          session_id?: string | null
           updated_at?: string | null
           website?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_organizations_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
           {
             foreignKeyName: "organizations_created_by_fkey"
             columns: ["created_by"]
@@ -1395,7 +1721,6 @@ export type Database = {
       profiles: {
         Row: {
           avatar_id: string | null
-          avatar_url: string | null
           created_at: string | null
           email: string | null
           full_name: string
@@ -1405,12 +1730,12 @@ export type Database = {
           organization_id: string | null
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
+          session_id: string | null
           updated_at: string | null
           username: string | null
         }
         Insert: {
           avatar_id?: string | null
-          avatar_url?: string | null
           created_at?: string | null
           email?: string | null
           full_name: string
@@ -1420,12 +1745,12 @@ export type Database = {
           organization_id?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          session_id?: string | null
           updated_at?: string | null
           username?: string | null
         }
         Update: {
           avatar_id?: string | null
-          avatar_url?: string | null
           created_at?: string | null
           email?: string | null
           full_name?: string
@@ -1435,10 +1760,18 @@ export type Database = {
           organization_id?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          session_id?: string | null
           updated_at?: string | null
           username?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_profiles_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
           {
             foreignKeyName: "profiles_avatar_id_fkey"
             columns: ["avatar_id"]
@@ -1514,19 +1847,29 @@ export type Database = {
         Row: {
           contract_id: string
           role: Database["public"]["Enums"]["user_role"] | null
+          session_id: string | null
           user_id: string
         }
         Insert: {
           contract_id: string
           role?: Database["public"]["Enums"]["user_role"] | null
+          session_id?: string | null
           user_id: string
         }
         Update: {
           contract_id?: string
           role?: Database["public"]["Enums"]["user_role"] | null
+          session_id?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_user_contracts_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
           {
             foreignKeyName: "user_contracts_contract_id_fkey"
             columns: ["contract_id"]
@@ -1552,6 +1895,7 @@ export type Database = {
           id: string
           location: string | null
           scope: string | null
+          session_id: string | null
           updated_at: string | null
           wbs_number: string
         }
@@ -1563,6 +1907,7 @@ export type Database = {
           id?: string
           location?: string | null
           scope?: string | null
+          session_id?: string | null
           updated_at?: string | null
           wbs_number: string
         }
@@ -1574,10 +1919,18 @@ export type Database = {
           id?: string
           location?: string | null
           scope?: string | null
+          session_id?: string | null
           updated_at?: string | null
           wbs_number?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_wbs_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "demo_mappings"
+            referencedColumns: ["session_id"]
+          },
           {
             foreignKeyName: "wbs_contract_id_fkey"
             columns: ["contract_id"]
@@ -1842,6 +2195,78 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      clone_change_orders_for_session: {
+        Args: { session_id: string }
+        Returns: undefined
+      }
+      clone_contract_organizations: {
+        Args: { session_id: string }
+        Returns: undefined
+      }
+      clone_contracts: {
+        Args: { session_id: string }
+        Returns: undefined
+      }
+      clone_crew_members: {
+        Args: { session_id: string }
+        Returns: undefined
+      }
+      clone_crews: {
+        Args: { session_id: string }
+        Returns: undefined
+      }
+      clone_daily_logs: {
+        Args: { session_id: string }
+        Returns: undefined
+      }
+      clone_equipment: {
+        Args: { session_id: string }
+        Returns: undefined
+      }
+      clone_equipment_assignments: {
+        Args: { session_id: string }
+        Returns: undefined
+      }
+      clone_inspections: {
+        Args: { session_id: string }
+        Returns: undefined
+      }
+      clone_issues: {
+        Args: { session_id: string }
+        Returns: undefined
+      }
+      clone_line_item_crew_assignments: {
+        Args: { session_id: string }
+        Returns: undefined
+      }
+      clone_line_item_entries: {
+        Args: { session_id: string }
+        Returns: undefined
+      }
+      clone_line_item_equipment_assignments: {
+        Args: { session_id: string }
+        Returns: undefined
+      }
+      clone_line_item_templates: {
+        Args: { session_id: string }
+        Returns: undefined
+      }
+      clone_line_items_for_maps: {
+        Args: { session_id: string }
+        Returns: undefined
+      }
+      clone_maps_for_wbs: {
+        Args: { session_id: string }
+        Returns: undefined
+      }
+      clone_wbs_for_contracts: {
+        Args: { session_id: string }
+        Returns: undefined
+      }
+      create_demo_environment: {
+        Args: { uid: string }
+        Returns: string
+      }
       disablelongtransactions: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -1876,6 +2301,10 @@ export type Database = {
       equals: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: boolean
+      }
+      execute_full_demo_clone: {
+        Args: { session_id: string }
+        Returns: undefined
       }
       geography: {
         Args: { "": string } | { "": unknown }
@@ -2125,19 +2554,25 @@ export type Database = {
         }[]
       }
       get_line_items_with_wkt: {
-        Args: { _contract_id: string }
+        Args:
+          | { _contract_id: string }
+          | { _contract_id: string; _session_id?: string }
         Returns: {
-          id: string
-          map_id: string
-          wbs_id: string
-          contract_id: string
-          line_code: string
+          contract_id: string | null
+          coordinates: unknown | null
+          created_at: string | null
           description: string
-          unit_measure: string
+          id: string
+          line_code: string
+          map_id: string | null
           quantity: number
+          reference_doc: string | null
+          session_id: string | null
+          template_id: string | null
+          unit_measure: Database["public"]["Enums"]["unit_measure_type"]
           unit_price: number
-          reference_doc: string
-          coordinates_wkt: string
+          updated_at: string | null
+          wbs_id: string
         }[]
       }
       get_maps_with_geojson: {
@@ -2151,16 +2586,21 @@ export type Database = {
         }[]
       }
       get_maps_with_wkt: {
-        Args: { _contract_id: string }
+        Args:
+          | { _contract_id: string }
+          | { _contract_id: string; _session_id?: string }
         Returns: {
+          budget: number | null
+          contract_id: string | null
+          coordinates: unknown | null
+          created_at: string | null
           id: string
-          wbs_id: string
-          contract_id: string
+          location_description: string | null
           map_number: string
-          location_description: string
-          coordinates_wkt: string
-          scope: string
-          budget: number
+          scope: string | null
+          session_id: string | null
+          updated_at: string | null
+          wbs_id: string
         }[]
       }
       get_proj4_from_srid: {
@@ -2168,14 +2608,20 @@ export type Database = {
         Returns: string
       }
       get_wbs_with_wkt: {
-        Args: { _contract_id: string }
+        Args:
+          | { _contract_id: string }
+          | { _contract_id: string; _session_id?: string }
         Returns: {
+          budget: number | null
+          contract_id: string
+          coordinates: unknown | null
+          created_at: string | null
           id: string
+          location: string | null
+          scope: string | null
+          session_id: string | null
+          updated_at: string | null
           wbs_number: string
-          scope: string
-          location: string
-          coordinates_wkt: string
-          budget: number
         }[]
       }
       gettransactionid: {

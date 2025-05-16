@@ -1,17 +1,16 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
-import { validateUserRole } from '@/lib/utils/validate-user-role';
-import type { Profile } from '@/lib/types';
+import { useNavigate } from 'react-router-dom';
+import { useLoadProfile } from '@/hooks/useLoadProfile';
 
 export function useAuth() {
-  const navigate = useNavigate();
-  const { setUser, setProfile, clearAuth } = useAuthStore();
-
+  const { user, setUser, clearAuth } = useAuthStore();
   const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const loadProfile = useLoadProfile();
 
   const login = async (identifier: string, password: string) => {
     setLoading(true);
@@ -19,65 +18,36 @@ export function useAuth() {
     setSuccess(null);
 
     try {
-      // 1) resolve username → email
-      let email = identifier.trim();
-      if (!email.includes('@')) {
-        const { data: u, error: ue } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('username', identifier.toLowerCase())
-          .single();
-        if (ue || !u?.email) throw new Error('Invalid credentials');
-        email = u.email;
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: identifier,
+        password,
+      });
+
+      if (authError || !data.user) {
+        setError(authError?.message || 'Login failed');
+        setLoading(false);
+        return null;
       }
 
-      // 2) sign in
-      const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
-      if (authErr || !authData.user) throw authErr ?? new Error('Login failed');
-      setUser(authData.user);
+      setUser(data.user);
 
-      // 3) fetch profile row
-      const { data: p, error: pErr } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          role,
-          full_name,
-          email,
-          username,
-          phone,
-          location,
-          avatar_id,
-          avatar_url,
-          organization_id,
-          job_title_id
-        `)
-        .eq('id', authData.user.id)
-        .single();
-      if (pErr || !p) throw pErr ?? new Error('Failed to load profile');
+      const profile = await loadProfile(data.user.id);
+      if (!profile) {
+        setError('Failed to load profile. You may need to complete onboarding.');
+        setLoading(false);
+        return null;
+      }
 
-      // 4) map exactly to your Profile interface
-      const mapped: Profile = {
-        id:             p.id,
-        user_role:      validateUserRole(p.role),
-        full_name:      p.full_name,
-        email:          p.email        ?? '',
-        username:       p.username     ?? null,
-        phone:          p.phone        ?? null,
-        location:       p.location     ?? null,
-        avatar_id:      p.avatar_id    ?? null,
-        avatar_url:     p.avatar_url   ?? null,
-        organization_id:p.organization_id ?? null,
-        job_title_id:   p.job_title_id    ?? null,
-      };
-
-      setProfile(mapped);
-      navigate('/dashboard');
-    } catch (err) {
-      setError((err as Error).message);
-      clearAuth();
-    } finally {
+      useAuthStore.getState().setProfile(profile);
+      setSuccess('Login successful');
       setLoading(false);
+      navigate('/dashboard');
+      return data.user;
+    } catch (err) {
+      console.error('[ERROR] Login error:', err);
+      setError('An unexpected error occurred during login');
+      setLoading(false);
+      return null;
     }
   };
 
@@ -85,36 +55,45 @@ export function useAuth() {
     setLoading(true);
     setError(null);
     setSuccess(null);
+    clearAuth();
 
     try {
-      // prevent duplicate accounts
-      const { data: existing } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
-      if (existing) throw new Error('Email already in use');
+      const { data, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
 
-      // 1) sign up
-      const { data: s, error: sErr } = await supabase.auth.signUp({ email, password });
-      if (sErr || !s.user) throw sErr ?? new Error('Signup failed');
+      if (authError) {
+        setError(authError.message || 'Signup failed');
+        setLoading(false);
+        return null;
+      }
 
-      // 2) create blank profile row
-      const { error: pErr } = await supabase
-        .from('profiles')
-        .insert({
-          id: s.user.id,
-          email,
-          full_name: '',
-          role: 'Contractor',
-          created_at: new Date().toISOString(),
-        });
-      if (pErr) throw new Error('Error creating profile');
-
-      setUser(s.user);
-      navigate('/onboarding');
+      navigate('/');
+      setSuccess('Signup successful! Please check your email to confirm your account.');
+      setLoading(false);
+      return data.user;
     } catch (err) {
-      setError((err as Error).message);
+      console.error('Signup error:', err);
+      setError('An unexpected error occurred during signup');
+      setLoading(false);
+      return null;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      setLoading(true);
+      await supabase.auth.signOut();
+      clearAuth();
+      setSuccess('Logged out successfully');
+      navigate('/');
+    } catch (err) {
+      console.error('Logout error:', err);
+      setError('An unexpected error occurred during logout');
     } finally {
       setLoading(false);
     }
@@ -126,17 +105,75 @@ export function useAuth() {
     setSuccess(null);
 
     try {
-      const { error: rpErr } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
-      if (rpErr) throw rpErr;
-      setSuccess('Password reset instructions sent.');
-    } catch {
-      setError('Failed to send reset instructions.');
-    } finally {
+
+      if (resetError) {
+        setError(resetError.message || 'Password reset failed');
+        setLoading(false);
+        return false;
+      }
+
+      setSuccess('Password reset email sent. Please check your inbox.');
       setLoading(false);
+      return true;
+    } catch (err) {
+      console.error('Password reset error:', err);
+      setError('An unexpected error occurred during password reset');
+      setLoading(false);
+      return false;
     }
   };
 
-  return { loading, error, success, login, signup, resetPassword };
+  const loginAsDemoUser = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: 'demo@example.com',
+        password: 'demo123',
+      });
+
+      if (authError || !data.user) {
+        setError(authError?.message || 'Demo login failed');
+        setLoading(false);
+        return null;
+      }
+
+      setUser(data.user);
+
+      const profile = await loadProfile(data.user.id);
+      if (!profile) {
+        setError('Failed to load demo profile.');
+        setLoading(false);
+        return null;
+      }
+
+      useAuthStore.getState().setProfile(profile);
+      setSuccess('Demo login successful');
+      navigate('/demo-redirect');
+      setLoading(false);
+      return data.user;
+    } catch (err) {
+      console.error('Demo login error:', err);
+      setError('An unexpected error occurred during demo login');
+      setLoading(false);
+      return null;
+    }
+  };
+
+  return {
+    user,
+    loading,
+    error,
+    success,
+    login,
+    signup,
+    logout,
+    resetPassword,
+    loginAsDemoUser,
+  };
 }

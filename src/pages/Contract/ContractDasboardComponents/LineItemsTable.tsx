@@ -1,5 +1,8 @@
-import type { LineItem } from '@/hooks/useContractData';
+import { useState } from 'react';
+import type { LineItem } from '@/hooks/contractHooks';
 import { GeometryButton } from '@/pages/Contract/SharedComponents/GoogleMaps/GeometryButton';
+import { FormulaModal } from '@/pages/Contract/EditableContractComponents/FormulaModal';
+import { Calculator } from 'lucide-react';
 
 interface Props {
   items: LineItem[];
@@ -7,6 +10,14 @@ interface Props {
 }
 
 export function LineItemsTable({ items, onLineItemClick }: Props) {
+  const [activeFormula, setActiveFormula] = useState<LineItem | null>(null);
+  const [formulaModalOpen, setFormulaModalOpen] = useState(false);
+
+  const handleFormulaClick = (item: LineItem) => {
+    setActiveFormula(item);
+    setFormulaModalOpen(true);
+  };
+
   return (
     <div className="overflow-x-auto relative">
       <table className="w-full text-sm">
@@ -20,6 +31,7 @@ export function LineItemsTable({ items, onLineItemClick }: Props) {
             <th className="text-right px-3 py-2">Total</th>
             <th className="text-right px-3 py-2">Paid</th>
             <th className="text-center px-3 py-2">Map</th>
+            <th className="text-center px-3 py-2">Formula</th>
           </tr>
         </thead>
         <tbody>
@@ -44,10 +56,27 @@ export function LineItemsTable({ items, onLineItemClick }: Props) {
                   />
                 )}
               </td>
+              <td className="px-3 py-2 text-center">
+                {item.formula && (
+                  <button 
+                    onClick={() => handleFormulaClick(item)}
+                    className="p-1 text-blue-600 hover:text-blue-800"
+                    title="View Formula"
+                  >
+                    <Calculator size={16} />
+                  </button>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      <FormulaModal
+        open={formulaModalOpen}
+        onClose={() => setFormulaModalOpen(false)}
+        formula={activeFormula?.formula || null}
+      />
     </div>
   );
 }

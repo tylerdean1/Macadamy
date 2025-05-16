@@ -1,6 +1,6 @@
-import * as WKT from '@terraformer/wkt';
-import type { GeometryData } from '@/lib/types';
-import type { Geometry, Point, LineString, Polygon } from 'geojson';
+import * as WKT from "@terraformer/wkt";
+import type { GeometryData } from "@/lib/types";
+import type { Geometry, LineString, Point, Polygon } from "geojson";
 
 /**
  * Converts a GeometryData object into a WKT string.
@@ -13,22 +13,22 @@ export function geometryToWKT(geometry: GeometryData | null): string | null {
     let geo: Geometry;
 
     switch (geometry.type) {
-      case 'Point':
+      case "Point":
         geo = {
-          type: 'Point',
-          coordinates: geometry.coordinates as Point['coordinates'],
+          type: "Point",
+          coordinates: geometry.coordinates as Point["coordinates"],
         };
         break;
-      case 'LineString':
+      case "LineString":
         geo = {
-          type: 'LineString',
-          coordinates: geometry.coordinates as LineString['coordinates'],
+          type: "LineString",
+          coordinates: geometry.coordinates as LineString["coordinates"],
         };
         break;
-      case 'Polygon':
+      case "Polygon":
         geo = {
-          type: 'Polygon',
-          coordinates: geometry.coordinates as Polygon['coordinates'],
+          type: "Polygon",
+          coordinates: geometry.coordinates as Polygon["coordinates"],
         };
         break;
       default:
@@ -37,7 +37,7 @@ export function geometryToWKT(geometry: GeometryData | null): string | null {
 
     return WKT.convert(geo);
   } catch (error) {
-    console.warn('Failed to convert GeometryData to WKT:', geometry, error);
+    console.warn("Failed to convert GeometryData to WKT:", geometry, error);
     return null;
   }
 }
