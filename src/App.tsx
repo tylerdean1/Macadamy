@@ -7,7 +7,7 @@ import { useBootstrapAuth } from '@/hooks/useBootstrapAuth';
 
 import { LandingPage } from '@/pages/StandardPages/LandingPage';
 import { ResetPassword } from '@/pages/StandardPages/ResetPassword';
-import { UserOnboarding } from '@/pages/StandardPages/UserOnboarding';
+import UserOnboarding from '@/pages/StandardPages/UserOnboarding';
 import { Dashboard } from '@/pages/StandardPages/Dashboard';
 import { ContractDashboard } from '@/pages/Contract/ContractDashboard';
 import ContractSettings from '@/pages/Contract/ContractSettings';
