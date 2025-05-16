@@ -6,8 +6,7 @@ import { useAuthStore } from '@/lib/store';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useProfileEdit } from '@/hooks/useProfileEdit';
 import { useContractFiltering } from '@/hooks/useContractFiltering';
-
-import { ProfileSection } from './StandardPageComponents/ProfileSelction';
+import { ProfileSection } from './StandardPageComponents/ProfileSection'; 
 import { EditProfileModal } from './StandardPageComponents/EditProfileModal';
 import { DashboardMetrics } from './StandardPageComponents/DashboardMetrics';
 import { ContractsSection } from './StandardPageComponents/ContractsSection';
@@ -94,7 +93,7 @@ export function Dashboard() {
   }
 
   // ── main render ─────────────────────────────────────────
-  const avatarUrl = profile.avatars ? profile.avatars.url : null;
+  const avatarUrl = profile.avatar_url ?? null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -108,7 +107,10 @@ export function Dashboard() {
           profileAvatarUrl={avatarUrl}
           organizations={organizations}
           jobTitles={jobTitles}
-          editForm={editForm}
+          editForm={{
+            ...editForm,
+            avatar_id: editForm.avatar_id ?? undefined,
+          }}
           selectedImage={selectedImage}
           crop={crop}
           zoom={zoom}
