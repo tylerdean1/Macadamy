@@ -9,12 +9,12 @@ export function useLoadProfile() {
   return async function loadProfile(userId: string): Promise<Profile | null> {
     const profileRes = await supabase
       .from('profiles')
-      .select(`
-        id, role, full_name, email, username, phone, location, avatar_id, organization_id, job_title_id, session_id,
-        organizations (id, name, address, phone, website),
-        job_titles (id, title, is_custom),
-        avatars (url)
-      `)
+      .select(
+        `id, role, full_name, email, username, phone, location, avatar_id, organization_id, job_title_id,
+         organizations:organization_id (id, name, address, phone, website),
+         job_titles:job_title_id (id, title, is_custom),
+         avatars:avatar_id (url)`
+      )
       .eq('id', userId)
       .single();
 
@@ -39,8 +39,8 @@ export function useLoadProfile() {
       job_title_id: pd.job_title_id,
       organizations: pd.organizations || null,
       job_titles: pd.job_titles || null,
-      is_demo_user: !!pd.session_id,
-      session_id: pd.session_id ?? null,
+      is_demo_user: false,
+      session_id: null,
     };
 
     setProfile(profile);

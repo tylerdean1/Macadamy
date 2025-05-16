@@ -15,12 +15,8 @@ export function useBootstrapAuth(): boolean {
     (async () => {
       try {
         console.log('[DEBUG] Bootstrapping auth...');
-        const {
-          data: sessionData,
-          error: sessionError,
-        } = await supabase.auth.getSession();
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
-        // No logged-in user?
         if (sessionError || !sessionData.session?.user) {
           console.log('[DEBUG] No active session found');
           clearAuth();
@@ -32,23 +28,14 @@ export function useBootstrapAuth(): boolean {
         console.log('[DEBUG] Found user session:', user.id);
         setUser(user);
 
-        // Fetch the profile row
         const { data, error } = await supabase
           .from('profiles')
-          .select(`
-            id,
-            role,
-            full_name,
-            email,
-            username,
-            phone,
-            location,
-            avatar_id,
-            organization_id,
-            job_title_id,
-            session_id,
-            avatars (url)
-          `)
+          .select(
+            `id, role, full_name, email, username, phone, location, avatar_id, organization_id, job_title_id, session_id,
+             organizations:organization_id (id, name, address, phone, website),
+             job_titles:job_title_id (id, title, is_custom),
+             avatars:avatar_id (url)`
+          )
           .eq('id', user.id)
           .single();
 
@@ -59,11 +46,9 @@ export function useBootstrapAuth(): boolean {
           return;
         }
 
-        // Check for a demo session
         const demoSession: DemoSession | null = getDemoSession();
         const isDemo = demoSession?.userId === user.id;
 
-        // Build our Profile object
         const profile: Profile = {
           id: data.id,
           user_role: validateUserRole(data.role),
@@ -73,9 +58,11 @@ export function useBootstrapAuth(): boolean {
           phone: data.phone ?? null,
           location: data.location ?? null,
           avatar_id: data.avatar_id ?? null,
-          avatar_url: data.avatars?.url ?? null, // ✅ loaded through join
+          avatar_url: data.avatars?.url ?? null,
           organization_id: data.organization_id ?? null,
           job_title_id: data.job_title_id ?? null,
+          organizations: data.organizations ?? null,
+          job_titles: data.job_titles ?? null,
           is_demo_user: isDemo,
           session_id: isDemo ? demoSession!.sessionId : data.session_id ?? undefined,
         };
