@@ -1,4 +1,4 @@
-import { convert } from "@terraformer/wkt";
+import * as WKT from '@terraformer/wkt';
 import type { GeometryData } from "@/lib/types";
 import type { Geometry, LineString, Point, Polygon } from "geojson";
 
@@ -35,7 +35,7 @@ export function geometryToWKT(geometry: GeometryData | null): string | null {
         return null;
     }
 
-    return convert(geo); // use correct function
+    return WKT.convert(geo);
   } catch (error) {
     console.warn("Failed to convert GeometryData to WKT:", geometry, error);
     return null;
