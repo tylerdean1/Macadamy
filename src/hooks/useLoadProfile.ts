@@ -1,49 +1,47 @@
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useAuthStore } from '@/lib/store';
-import { validateUserRole } from '@/lib/utils/validate-user-role';
-import type { Profile } from '@/lib/types';
+import type { Database } from '@/lib/database.types';
 
-export function useLoadProfile() {
-  const { setProfile } = useAuthStore();
+type UserRole = Database['public']['Enums']['user_role'];
 
-  return async function loadProfile(userId: string): Promise<Profile | null> {
-    const profileRes = await supabase
-      .from('profiles')
-      .select(
-        `id, role, full_name, email, username, phone, location, avatar_id, organization_id, job_title_id,
-         organizations:organization_id (id, name, address, phone, website),
-         job_titles:job_title_id (id, title, is_custom),
-         avatars:avatar_id (url)`
-      )
-      .eq('id', userId)
-      .single();
+export interface EnrichedProfile {
+  id: string;
+  full_name: string;
+  username: string | null;
+  email: string;
+  phone: string | null;
+  location: string | null;
+  role: UserRole;
+  job_title_id: string | null;
+  organization_id: string | null;
+  avatar_id: string | null;
+  avatar_url: string | null;
+  job_title: string | null;
+  organization_name: string | null;
+  session_id: string | null;
+}
 
-    if (profileRes.error || !profileRes.data) {
-      console.error('Failed to load profile:', profileRes.error);
-      return null;
-    }
+export function useLoadProfile(userId: string | null): EnrichedProfile | null {
+  const [profile, setProfile] = useState<EnrichedProfile | null>(null);
 
-    const pd = profileRes.data;
+  useEffect(() => {
+    if (!userId) return;
 
-    const profile: Profile = {
-      id: pd.id,
-      user_role: validateUserRole(pd.role),
-      full_name: pd.full_name,
-      email: pd.email ?? '',
-      username: pd.username,
-      phone: pd.phone,
-      location: pd.location,
-      avatar_id: pd.avatar_id,
-      avatar_url: pd.avatars?.url ?? null,
-      organization_id: pd.organization_id,
-      job_title_id: pd.job_title_id,
-      organizations: pd.organizations || null,
-      job_titles: pd.job_titles || null,
-      is_demo_user: false,
-      session_id: null,
+    const fetchProfile = async () => {
+      const { data, error } = await supabase.rpc('get_enriched_profile', {
+        _user_id: userId,
+      });
+
+      if (error || !data) {
+        console.error('Failed to fetch enriched profile:', error);
+        return;
+      }
+
+      setProfile(data[0]);
     };
 
-    setProfile(profile);
-    return profile;
-  };
+    fetchProfile();
+  }, [userId]);
+
+  return profile;
 }

@@ -1,81 +1,140 @@
-import React from 'react';
-import { ContractStatusSelect } from '@/pages/Contract/SharedComponents/ContractStatusSelect';
-import { GeometryButton } from '@/pages/Contract/SharedComponents/GoogleMaps/GeometryButton';
-import type { GeometryData } from '@/lib/types';
-import type { Database } from '@/lib/database.types';
-
-type Contract = Database['public']['Tables']['contracts']['Row'] & {
-  coordinates?: GeometryData | null;
-  coordinates_wkt?: string | null;
-};
+import { useState, useEffect } from 'react';
+import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
+import { ContractStatusBadge } from '../SharedComponents/ContractStatusBadge';
+import { LoadingState } from '@/components/ui/loading-state';
+import { ErrorState } from '@/components/ui/error-state';
+import type { ContractWithWktRow } from '@/lib/rpc.types';
+import { ErrorBoundary } from 'react-error-boundary';
+import { CalendarRange, MapPin } from 'lucide-react';
 
 interface ContractHeaderProps {
-  contract: Contract;
-  onStatusChange: (newStatus: Contract['status']) => Promise<void>;
-  refresh?: () => void;
+  /**
+   * Contract data
+   */
+  contract: ContractWithWktRow;
+  /**
+   * Whether the component is in a loading state
+   */
+  isLoading?: boolean;
+  /**
+   * Error message
+   */
+  error?: Error | string | null;
 }
 
-export const ContractHeader: React.FC<ContractHeaderProps> = ({
-  contract,
-  onStatusChange,
-  refresh,
-}) => {
-  const title = contract?.title?.replace(/\s*\(CLONE\)/i, '')?.trim() || 'N/A';
-  const isClone = contract?.title?.includes('(CLONE)');
-  const dateRange =
-    contract?.start_date && contract?.end_date
-      ? `${new Date(contract.start_date).toLocaleDateString()} - ${new Date(
-          contract.end_date
-        ).toLocaleDateString()}`
-      : 'N/A';
+/**
+ * ErrorFallback component to display when the ContractHeader encounters an error
+ */
+const ErrorFallback = ({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) => (
+  <Card className="mb-6">
+    <div className="p-4 md:p-6 text-center">
+      <ErrorState
+        error={error}
+        onRetry={resetErrorBoundary}
+        title="Error Loading Contract Header"
+      />
+    </div>
+  </Card>
+);
+
+/**
+ * ContractHeader Component
+ * 
+ * Displays the contract header information including title, status, location,
+ * description, map button, and contract period.
+ */
+export function ContractHeader({ 
+  contract, 
+  isLoading = false,
+  error = null
+}: ContractHeaderProps) {
+  const [contractData, setContractData] = useState<ContractWithWktRow>(contract);
+
+  // Update local state when contract prop changes
+  useEffect(() => {
+    setContractData(contract);
+  }, [contract]);
+  
+  // Format a date string for display
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'Not specified';    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return 'Invalid date';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card className="mb-6">
+        <LoadingState message="Loading contract information..." />
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="mb-6">
+        <ErrorState 
+          error={error instanceof Error ? error : String(error)}
+          title="Error Loading Contract Header"
+        />
+      </Card>
+    );
+  }
 
   return (
-    <div className="border-b border-background-lighter pb-6 mb-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 mb-2">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white break-words">{title}</h1>
-              {isClone && (
-                <span className="px-2 py-0.5 text-xs rounded-md bg-yellow-500/20 text-yellow-300 font-medium border border-yellow-500">
-                  Demo
+    <ErrorBoundary FallbackComponent={ErrorFallback} >
+      <Card className="mb-6">
+        <div className="p-4 md:p-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            {/* Title and status */}
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-white mb-1">
+                {contractData.title}
+              </h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <ContractStatusBadge status={contractData.status} />
+                <span className="text-sm text-gray-400 flex items-center">
+                  <MapPin size={14} className="mr-1" />
+                  {contractData.location || 'No location specified'}
                 </span>
+                <span className="text-sm text-gray-400 flex items-center">
+                  <CalendarRange size={14} className="mr-1" />
+                  {formatDate(contractData.start_date)} - {formatDate(contractData.end_date)}
+                </span>
+              </div>
+            </div>
+            
+            {/* Action buttons */}
+            <div className="flex items-center gap-2">
+              {contractData.coordinates_wkt && (
+                <button
+                  onClick={() => window.alert('Map view not implemented')}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-md bg-blue-700 hover:bg-blue-600 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+                  aria-label="View contract on map"
+                >
+                  <MapPin size={14} className="mr-1" />
+                  View Map
+                </button>
               )}
             </div>
-            {contract.status && (
-              <ContractStatusSelect value={contract.status} onChange={onStatusChange} />
-            )}
           </div>
-
-          {contract.location && (
-            <p className="text-sm text-gray-400 mt-1">
-              <strong>Location:</strong> {contract.location}
-            </p>
-          )}
-
-          {contract.description && (
-            <p className="text-sm text-gray-300 mt-1 italic">{contract.description}</p>
-          )}
-
-          {contract.coordinates && (
-            <div className="mt-2">
-              <GeometryButton
-                geometry={contract.coordinates}
-                wkt={null}
-                table="contracts"
-                targetId={contract.id}
-                label="View Contract Map"
-                onSaveSuccess={refresh}
-              />
+          
+          {/* Description */}
+          {contractData.description && (
+            <div className="mt-4">
+              <p className="text-gray-300 whitespace-pre-line">
+                {contractData.description}
+              </p>
             </div>
           )}
         </div>
-
-        <div className="w-full sm:w-auto text-left sm:text-right">
-          <p className="text-sm text-gray-500">Contract Period</p>
-          <p className="text-gray-300">{dateRange}</p>
-        </div>
-      </div>
-    </div>
+      </Card>
+    </ErrorBoundary>
   );
-};
+}

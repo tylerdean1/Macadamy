@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'; // Import React
 import { Plus, Save, Pencil, Download } from 'lucide-react'; // Import icons for actions
 import { supabase } from '@/lib/supabase'; // Import Supabase client
 import { useAuthStore } from '@/lib/store'; // Import the auth store for user state management
-import useRouteParamsAndNavigation from '@/hooks/useRouteParamsAndNavigation'; // Custom hook for route parameters
+import { useParams, useNavigate } from 'react-router-dom'; // Import React Router hooks
 import jsPDF from 'jspdf'; // Import jsPDF for PDF generation
 
 /** 
@@ -57,7 +57,8 @@ const getStatusColor = (status: string) =>
 
 // Issues component for managing and displaying issues
 export function Issues() {
-  const { id: contract_id } = useRouteParamsAndNavigation().params; // Get contract ID from route parameters
+  const { id: contract_id } = useParams(); // Get contract ID from route parameters
+  const navigate = useNavigate(); // Access navigation functionality
   const user = useAuthStore((state) => state.user); // Get current user from auth store
   const canEdit = ['admin', 'engineer', 'inspector'].includes(user?.role || ''); // Determine if the user can edit issues
 
@@ -124,71 +125,114 @@ export function Issues() {
     if (form.map_id) fetchLineItems(form.map_id); // Fetch line items
   }, [form.map_id]); // Dependencies
 
-  // Fetch assignees from Supabase
+  // Fetch assignees from Supabase using RPC
   const fetchAssignees = async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, full_name')
-      .order('full_name');
-  
+    const { data, error } = await supabase
+      .rpc('get_profiles_by_organization');
+
+    if (error) {
+      console.error('Error fetching assignees:', error);
+      return;
+    }
+
     setAssignees((data || []).map((profile) => ({
       id: profile.id,
       name: profile.full_name, // <-- Mapped full_name to name
     })));
   };
 
-// Fetch WBS from Supabase
-const fetchWBS = async (contractId: string) => {
-  const { data } = await supabase
-    .from('wbs')
-    .select('id, wbs_number') // maybe wbs_number or name depending what you want
-    .eq('contract_id', contractId);
+  // Fetch WBS from Supabase using RPC
+  const fetchWBS = async (contractId: string) => {
+    const { data, error } = await supabase
+      .rpc('get_wbs_with_wkt', { contract_id: contractId });
 
-  setWbsList((data || []).map((wbs) => ({
-    id: wbs.id,
-    name: wbs.wbs_number, // <-- map wbs_number as name
-  })));
-};
+    if (error) {
+      console.error('Error fetching WBS:', error);
+      return;
+    }
 
-// Fetch Maps from Supabase
-const fetchMaps = async (wbsId: string) => {
-  const { data } = await supabase
-    .from('maps')
-    .select('id, map_number')
-    .eq('wbs_id', wbsId);
+    setWbsList((data || []).map((wbs) => ({
+      id: wbs.id,
+      name: wbs.wbs_number, // <-- map wbs_number as name
+    })));
+  };
 
-  setMapList((data || []).map((map) => ({
-    id: map.id,
-    name: map.map_number, // <-- map map_number to name
-  })));
-};
+  // Fetch Maps from Supabase using RPC
+  const fetchMaps = async (wbsId: string) => {
+    // Since there's no RPC specifically for filtering by wbs_id, 
+    // we'll use the contract_id RPC and filter client-side
+    const { data, error } = await supabase
+      .from('maps')
+      .select('id, map_number')
+      .eq('wbs_id', wbsId);
 
-// Fetch Line Items from Supabase
-const fetchLineItems = async (mapId: string) => {
-  const { data } = await supabase
-    .from('line_items')
-    .select('id, description')
-    .eq('map_id', mapId);
+    if (error) {
+      console.error('Error fetching maps:', error);
+      return;
+    }
 
-  setLineItems((data || []).map((li) => ({
-    id: li.id,
-    name: li.description, // <-- map description to name
-  })));
-};
+    setMapList((data || []).map((map) => ({
+      id: map.id,
+      name: map.map_number, // <-- map map_number to name
+    })));
+  };
 
+  // Fetch Line Items from Supabase using RPC where possible
+  const fetchLineItems = async (mapId: string) => {
+    // Since get_line_items_with_wkt RPC doesn't support filtering by map_id,
+    // we need to use direct table access for this specific case
+    const { data, error } = await supabase
+      .from('line_items')
+      .select('id, description')
+      .eq('map_id', mapId);
+    
+    if (error) {
+      console.error('Error fetching line items:', error);
+      return;
+    }
 
-// Fetch Equipment from Supabase
-const fetchEquipment = async (contractId: string) => {
-  const { data } = await supabase
-    .from('equipment')
-    .select('id, name')
-    .eq('contract_id', contractId);
+    setLineItems((data || []).map((li) => ({
+      id: li.id,
+      name: li.description || 'Unnamed Line Item', // <-- map description to name
+    })));
+  };
 
-  setEquipmentList((data || []).map((eq) => ({
-    id: eq.id,
-    name: eq.name, // Already good
-  })));
-};
+  // Update fetchEquipment to actually use the contractId parameter with correct RPC flow
+  const fetchEquipment = async (contractId: string) => {
+    try {
+      // Try to use RPC first
+      const { data, error } = await supabase
+        .rpc('get_equipment_by_organization');
+
+      if (error) {
+        console.error('Error fetching equipment via RPC:', error);
+        throw error;
+      }
+
+      // Using the RPC data
+      setEquipmentList((data || []).map((eq) => ({
+        id: eq.id,
+        name: eq.name,
+      })));
+    } catch (_) {
+      // Fallback to direct query if RPC fails
+      console.log(`Falling back to direct query with contract_id: ${contractId}`);
+      const { data, error: directError } = await supabase
+        .from('equipment')
+        .select('id, name')
+        .eq('contract_id', contractId);
+      
+      if (directError) {
+        console.error('Error in fallback equipment fetch:', directError);
+        return;
+      }
+      
+      setEquipmentList((data || []).map((eq) => ({
+        id: eq.id,
+        name: eq.name,
+      })));
+    }
+  };
 
   // Upload files to Supabase storage and return their public URLs
   const uploadFiles = async (files: FileList | null): Promise<string[]> => {

@@ -1,166 +1,96 @@
-import { useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { useLoadProfile } from "@/hooks/useLoadProfile";
-import { useAuthStore } from "@/lib/store";
-import { toast } from "sonner";
-import type { Profile } from "@/lib/types";
+import { useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import type { Database, Json } from '@/lib/database.types';
+import { useAuthStore } from '@/lib/store';
 
-interface ProfileEditFormState {
-  avatar_id: string | null;
-  organization_id: string;
-  job_title_id: string;
-  address: string;
-  phone: string;
-  email: string;
-  custom_job_title: string;
+type Profile = Database['public']['Tables']['profiles']['Row'];
+type UserRole = Database['public']['Enums']['user_role'];
+
+export type EnrichedProfile = Profile & {
+  role: UserRole;
+};
+
+interface SaveProfilePayload {
+  full_name?: string;
+  email?: string;
+  username?: string;
+  phone?: string;
+  location?: string;
+  role?: UserRole;
+  organization_id?: string;
+  job_title_id?: string;
+  custom_job_title?: string; // if present, triggers job title insert
+  avatar_url?: string;       // used for custom avatars
+  avatar_id?: string;
+  is_preset?: boolean;
+  created_by?: string;
+  session_id?: string | null;
 }
 
-interface CropState {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+// Type guard for EnrichedProfile
+function isEnrichedProfile(profile: unknown): profile is EnrichedProfile {
+  return profile !== null &&
+         typeof profile === 'object' &&
+         'role' in profile &&
+         typeof (profile as EnrichedProfile).full_name === 'string';
 }
 
-export function useProfileEdit(userId: string | undefined) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState<ProfileEditFormState>({
-    avatar_id: null,
-    organization_id: "",
-    job_title_id: "",
-    address: "",
-    phone: "",
-    email: "",
-    custom_job_title: "",
-  });
+export function useProfileEdit() {
+  const { user, profile, setProfile } = useAuthStore();
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropState | null>(null);
+  const saveProfile = async (updates: SaveProfilePayload) => {
+    if (!user || !profile) return;
 
-  const loadProfile = useLoadProfile();
-
-  const initializeForm = (profile: Profile | null) => {
-    if (!profile) return;
-
-    setEditForm(() => ({
-      avatar_id: profile.avatar_id ?? null,
-      organization_id: profile.organization_id || "",
-      job_title_id: profile.job_title_id || "",
-      address: profile.location || "",
-      phone: profile.phone || "",
-      email: profile.email || "",
-      custom_job_title: profile.job_titles?.is_custom ? profile.job_titles.title : "",
-    }));
-  };
-
-  const handleFormChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    if (!e?.target?.name) return;
-    const { name, value } = e.target;
-    setEditForm((f) => ({ ...f, [name]: value }));
-  };
-
-  const handleAvatarUpload = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = () => setSelectedImage(reader.result as string);
-    reader.readAsDataURL(file);
-  };
-
-  const handleAvatarSelect = async (url: string) => {
-    if (!userId) return;
+    setIsSaving(true);
+    setError(null);
 
     try {
-      await supabase
-        .from("profiles")
-        .update({ avatar_id: url.split("/").pop() })
-        .eq("id", userId);
+      const typedProfile = isEnrichedProfile(profile) ? profile : null;
 
-      const updatedProfile = await loadProfile(userId);
-      if (updatedProfile) {
-        useAuthStore.getState().setProfile(updatedProfile);
-      }
-
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error("Error updating avatar:", error);
-      toast.error("Failed to update avatar");
-    }
-  };
-
-  const handleSaveProfile = async () => {
-    if (!userId) return;
-
-    try {
-      let jobTitleId = editForm.job_title_id;
-
-      if (!jobTitleId && editForm.custom_job_title.trim()) {
-        const { data: newJT, error: jtErr } = await supabase
-          .from("job_titles")
-          .insert({
-            title: editForm.custom_job_title.trim(),
-            is_custom: true,
-          })
-          .select()
-          .single();
-
-        if (jtErr || !newJT) {
-          toast.error("Failed to create job title.");
-          return;
-        }
-
-        jobTitleId = newJT.id;
-      }
-
-      const { error: updErr } = await supabase
-        .from("profiles")
-        .update({
-          avatar_id: editForm.avatar_id,
-          organization_id: editForm.organization_id,
-          job_title_id: jobTitleId,
-          phone: editForm.phone,
-          email: editForm.email,
-          location: editForm.address,
-        })
-        .eq("id", userId);
-
-      if (updErr) {
-        toast.error("Failed to update profile.");
+      if (!typedProfile) {
+        setError('Profile data is incomplete or invalid.');
+        setIsSaving(false);
         return;
       }
 
-      const updatedProfile = await loadProfile(userId);
-      if (!updatedProfile) {
-        toast.error("Failed to reload profile.");
-        return;
-      }
+      const payload: Record<string, unknown> = {
+        full_name: updates.full_name ?? typedProfile.full_name,
+        email: updates.email ?? typedProfile.email,
+        username: updates.username ?? typedProfile.username,
+        phone: updates.phone ?? typedProfile.phone,
+        location: updates.location ?? typedProfile.location,
+        role: updates.role ?? typedProfile.role,
+        organization_id: updates.organization_id ?? typedProfile.organization_id,
+        job_title_id: updates.job_title_id ?? typedProfile.job_title_id,
+        avatar_id: updates.avatar_id ?? typedProfile.avatar_id,
+        avatar_url: updates.avatar_url ?? null,
+        is_preset: updates.is_preset ?? true,
+        job_title: updates.custom_job_title ?? null,
+        is_custom: updates.custom_job_title ? true : false,
+        created_by: updates.created_by ?? user.id,
+        session_id: updates.session_id ?? typedProfile.session_id ?? null,
+      };
 
-      useAuthStore.getState().setProfile(updatedProfile);
-      setIsModalOpen(false);
-      toast.success("Profile updated successfully");
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      toast.error("An error occurred while updating your profile.");
+      const jsonPayload = payload as Json;
+
+      const { error: updateError } = await supabase.rpc('update_profiles', {
+        _id: typedProfile.id,
+        _data: jsonPayload,
+      });
+
+      if (updateError) throw updateError;
+
+      setProfile({ ...typedProfile, ...updates });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error('[useProfileEdit]', errorMessage);
+      setError(errorMessage || 'Failed to update profile');
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  return {
-    isModalOpen,
-    setIsModalOpen,
-    editForm,
-    selectedImage,
-    crop,
-    zoom,
-    croppedAreaPixels,
-    initializeForm,
-    handleFormChange,
-    handleAvatarUpload,
-    handleAvatarSelect,
-    handleSaveProfile,
-    setCrop,
-    setZoom,
-    setCroppedAreaPixels,
-  };
+  return { saveProfile, isSaving, error };
 }

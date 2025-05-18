@@ -4,4 +4,10 @@
     background-color: #3b82f6; /* Tailwind's blue-500 */
     width: var(--progress-width);
   }
+
+.budgetBar {
+  height: 0.5rem;
+  border-radius: 9999px;
+  transition: width 0.3s ease-in-out;
+}
   

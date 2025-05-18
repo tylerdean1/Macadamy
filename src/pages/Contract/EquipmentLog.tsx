@@ -53,13 +53,18 @@ export function EquipmentLog() {
 
   const fetchLogs = useCallback(async () => {
     try {
+      // Use the RPC function instead of direct table access
       const { data, error } = await supabase
-        .from('equipment_usage')
-        .select('*')
+        .rpc('get_equipment_usage')
         .order('usage_date', { ascending: false });
 
       if (error) throw error;
-      setLogs(data || []);
+      // Add notes property with default empty string if missing
+      const processedData = (data || []).map(log => ({
+        ...log,
+        notes: log.notes || ''
+      })) as EquipmentUsage[];
+      setLogs(processedData);
     } catch (error) {
       console.error('Error fetching logs:', error);
     } finally {
@@ -68,12 +73,21 @@ export function EquipmentLog() {
   }, []);
 
   const fetchOperators = useCallback(async () => {
-    const { data, error } = await supabase.from('profiles').select('id, full_name');
-    if (!error) setOperators(data || []);
+    // Use the RPC function for fetching profiles by organization
+    const { data, error } = await supabase.rpc('get_profiles_by_organization');
+    if (!error && data) {
+      // Map the returned data to the required Operator interface
+      const operators: Operator[] = data.map(profile => ({
+        id: profile.id,
+        full_name: profile.full_name || 'Unknown'
+      }));
+      setOperators(operators);
+    }
   }, []);
 
   const fetchEquipment = useCallback(async () => {
-    const { data, error } = await supabase.from('equipment').select('*');
+    // Use the RPC function for fetching equipment
+    const { data, error } = await supabase.rpc('get_equipment_by_organization');
     if (!error) setEquipmentList(data || []);
   }, []);
 
@@ -88,9 +102,12 @@ export function EquipmentLog() {
     if (!user) return;
 
     try {
-      const { error } = await supabase.from('equipment_usage').insert({
-        ...newLog,
-        created_by: user.id,
+      // Use the RPC function for inserting equipment usage
+      const { error } = await supabase.rpc('insert_equipment_usage', {
+        _data: {
+          ...newLog,
+          created_by: user.id,
+        }
       });
 
       if (error) throw error;
@@ -105,24 +122,30 @@ export function EquipmentLog() {
         operator_name: '',
         notes: '',
       });
-    } catch {
+    } catch (error) {
       alert('Error saving log');
+      console.error('Error saving log:', error);
     }
   };
 
   const handleAddEquipment = async () => {
     if (!user) return;
     try {
-      const { error } = await supabase.from('equipment').insert({
-        ...newEquipment,
-        created_by: user.id,
+      // Use the RPC function for inserting equipment
+      const { error } = await supabase.rpc('insert_equipment', {
+        _data: {
+          ...newEquipment,
+          created_by: user.id,
+        }
       });
+      
       if (error) throw error;
       setShowAddEquipment(false);
       setNewEquipment({ user_defined_id: '', name: '', description: '' });
       fetchEquipment();
-    } catch {
+    } catch (error) {
       alert('Error adding equipment');
+      console.error('Error adding equipment:', error);
     }
   };
 

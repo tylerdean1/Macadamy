@@ -3,85 +3,80 @@ import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
 import { Badge } from '@/pages/StandardPages/StandardPageComponents/badge';
-import { validateUserRole } from '@/lib/utils/validate-user-role';
-import type { Profile } from '@/lib/types';
+import { useDemoLogin } from '@/hooks/useDemoLogin';
+import { toast } from 'sonner';
 
 export function DemoRedirect() {
-  const { setUser, setProfile } = useAuthStore();
+  const { setUser } = useAuthStore();
+  const demoLogin = useDemoLogin();
   const [loading, setLoading] = useState(true);
+  const [setupStep, setSetupStep] = useState<string>('Authenticating demo user...');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
+        setSetupStep('Authenticating demo user...');
 
+        // 1. Sign in with demo credentials
         const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
           email: 'test@test.com',
           password: 'test123',
         });
-        if (authErr || !authData.user) throw new Error(authErr?.message || 'Failed to authenticate demo user');
+        
+        if (authErr || !authData.user) {
+          throw new Error(authErr?.message || 'Failed to authenticate demo user');
+        }
 
         setUser(authData.user);
+        setSetupStep('Creating demo environment...');
 
+        // 2. Create a demo environment with a unique session ID
         const { data: demoSessionId, error: demoErr } = await supabase.rpc('create_demo_environment', {
           uid: authData.user.id,
         });
 
-        if (demoErr || !demoSessionId) throw new Error(demoErr?.message || 'Failed creating demo environment');
+        if (demoErr || !demoSessionId) {
+          throw new Error(demoErr?.message || 'Failed creating demo environment');
+        }
 
+        setSetupStep('Cloning demo data...');
+        
+        // 3. Clone demo data using the session ID
         const { error: cloneErr } = await supabase.rpc('execute_full_demo_clone', {
           session_id: demoSessionId,
         });
 
-        if (cloneErr) throw new Error(cloneErr?.message || 'Failed cloning demo data');
+        if (cloneErr) {
+          throw new Error(cloneErr?.message || 'Failed cloning demo data');
+        }
 
-        const profileRes = await supabase
-          .from('profiles')
-          .select(`
-            id, role, full_name, email, username, phone, location, avatar_id, organization_id, job_title_id, session_id,
-            organizations (id, name, address, phone, website),
-            job_titles (id, title, is_custom),
-            avatars (url, is_preset)
-          `)
-          .eq('id', authData.user.id)
-          .single();
+        setSetupStep('Loading profile...');
+        
+        // 4. Load the profile using our useDemoLogin hook
+        const profile = await demoLogin(authData.user.id, demoSessionId);
+        
+        if (!profile) {
+          throw new Error('Failed to load demo profile');
+        }
 
-        if (profileRes.error) throw profileRes.error;
-
-        const pd = profileRes.data;
-
-        const profile: Profile = {
-          id: pd.id,
-          user_role: validateUserRole(pd.role),
-          full_name: pd.full_name,
-          email: pd.email ?? '',
-          username: pd.username,
-          phone: pd.phone,
-          location: pd.location,
-          avatar_id: pd.avatar_id,
-          avatar_url: pd.avatars?.url ?? null,
-          organization_id: pd.organization_id,
-          job_title_id: pd.job_title_id,
-          organizations: pd.organizations || null,
-          job_titles: pd.job_titles || null,
-          is_demo_user: true,
-          session_id: demoSessionId,
-        };
-
-        setProfile(profile);
+        toast.success('Demo environment created successfully');
         setLoading(false);
       } catch (err) {
+        console.error('Demo setup error:', err);
+        toast.error((err as Error).message || 'Failed to set up demo environment');
         setError((err as Error).message);
         setLoading(false);
       }
     })();
-  }, [setUser, setProfile]);
+  }, [setUser, demoLogin]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4" />
+        <p className="text-gray-300 text-lg">{setupStep}</p>
       </div>
     );
   }

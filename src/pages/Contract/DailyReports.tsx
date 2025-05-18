@@ -44,14 +44,13 @@ export function DailyReports() {
   const [contractCheckLoading, setContractCheckLoading] = useState(true); // Loading state for checking contract status
   const [editing, setEditing] = useState(false); // Editing state for current log
 
-  // Fetch daily logs based on contract ID
+  // Fetch daily logs based on contract ID using RPC
   useEffect(() => {
     async function fetchData() {
       try {
+        // Use get_daily_logs RPC to fetch logs 
         const { data, error } = await supabase
-          .from('daily_logs') // Fetch logs from the daily_logs table
-          .select('*')
-          .eq('contract_id', contract_id) // Filter by contract ID
+          .rpc('get_daily_logs', { contract_id: contract_id })
           .order('log_date', { ascending: false }); // Order logs by log date
 
         if (error) throw error; // Handle fetch errors
@@ -66,18 +65,19 @@ export function DailyReports() {
     fetchData(); // Invoke data fetch
   }, [contract_id]); // Dependency on contract ID
 
-  // Check contract status upon component mount
+  // Check contract status upon component mount using RPC
   useEffect(() => {
     async function fetchContractStatus() {
+      if (!contract_id) return;
+      
       try {
         const { data, error } = await supabase
-          .from('contracts')
-          .select('status')
-          .eq('id', contract_id)
-          .single(); // Fetch the status of the contract
+          .rpc('get_contract_with_wkt', { contract_id: contract_id });
 
         if (error) throw error; // Handle fetch errors
-        setContractStatus(data?.status); // Set the contract status state
+        if (data && data.length > 0) {
+          setContractStatus(data[0].status); // Set the contract status from the RPC result
+        }
       } catch (err) {
         console.error('Error fetching contract status:', err); // Log errors
       } finally {
@@ -88,22 +88,23 @@ export function DailyReports() {
     fetchContractStatus(); // Call function to check contract status
   }, [contract_id]); // Dependency on contract ID
 
-  // Handle updates to the daily log
+  // Handle updates to the daily log using RPC
   const handleUpdate = async () => {
-    if (!currentLog || !user) return; // Ensure user is authenticated and there is a log to update
+    if (!currentLog || !user || !currentLog.id) return; // Ensure user is authenticated and there is a log with a valid ID to update
 
     try {
-      const { error } = await supabase
-        .from('daily_logs') // Update or insert the log
-        .update({
+      // Use RPC function to update daily log
+      const { error } = await supabase.rpc('update_daily_logs', {
+        _id: currentLog.id,
+        _data: {
           weather_conditions: currentLog.weather_conditions, // Current weather conditions
           temperature: currentLog.temperature, // Current temperature
           visitors: currentLog.visitors, // Current visitors
           safety_incidents: currentLog.safety_incidents, // Current safety incidents
           updated_by: user.id, // User who updated the log
           updated_at: new Date().toISOString(), // Current timestamp
-        })
-        .eq('id', currentLog.id); // Target the specific log to update
+        }
+      });
 
       if (error) throw error; // Handle error during update
       setEditing(false); // Reset editing state
@@ -267,11 +268,19 @@ export function DailyReports() {
     </div>
   );
 }
+
 async function fetchData() {
+  if (!contract_id) return;
+  
   try {
-    // Add your implementation here or remove this function if not needed
-    console.log('Fetching data...');
+    // Use get_daily_logs RPC to fetch logs 
+    const { data, error } = await supabase
+      .rpc('get_daily_logs', { contract_id: contract_id })
+      .order('log_date', { ascending: false });
+
+    if (error) throw error;
+    setLogs(data || []);
   } catch (error) {
-    console.error('Error in fetchData:', error);
+    console.error('Error fetching daily logs:', error);
   }
 }

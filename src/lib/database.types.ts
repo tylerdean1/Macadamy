@@ -309,6 +309,7 @@ export type Database = {
           id: string
           location_notes: string | null
           map_location_id: string | null
+          organization_id: string | null
           profile_id: string
           role: string | null
           session_id: string | null
@@ -322,6 +323,7 @@ export type Database = {
           id?: string
           location_notes?: string | null
           map_location_id?: string | null
+          organization_id?: string | null
           profile_id: string
           role?: string | null
           session_id?: string | null
@@ -335,6 +337,7 @@ export type Database = {
           id?: string
           location_notes?: string | null
           map_location_id?: string | null
+          organization_id?: string | null
           profile_id?: string
           role?: string | null
           session_id?: string | null
@@ -360,6 +363,13 @@ export type Database = {
             columns: ["map_location_id"]
             isOneToOne: false
             referencedRelation: "maps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
@@ -725,6 +735,7 @@ export type Database = {
           id: string
           name: string
           operator_id: string | null
+          organization_id: string | null
           session_id: string | null
           user_defined_id: string
         }
@@ -735,6 +746,7 @@ export type Database = {
           id?: string
           name: string
           operator_id?: string | null
+          organization_id?: string | null
           session_id?: string | null
           user_defined_id: string
         }
@@ -745,6 +757,7 @@ export type Database = {
           id?: string
           name?: string
           operator_id?: string | null
+          organization_id?: string | null
           session_id?: string | null
           user_defined_id?: string
         }
@@ -761,6 +774,13 @@ export type Database = {
             columns: ["operator_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
@@ -858,11 +878,11 @@ export type Database = {
           map_id: string | null
           notes: string | null
           operator_id: string | null
-          operator_name: string | null
           session_id: string | null
           updated_at: string | null
           updated_by: string | null
           usage_date: string
+          wbs_id: string | null
         }
         Insert: {
           contract_id?: string | null
@@ -875,11 +895,11 @@ export type Database = {
           map_id?: string | null
           notes?: string | null
           operator_id?: string | null
-          operator_name?: string | null
           session_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
           usage_date?: string
+          wbs_id?: string | null
         }
         Update: {
           contract_id?: string | null
@@ -892,11 +912,11 @@ export type Database = {
           map_id?: string | null
           notes?: string | null
           operator_id?: string | null
-          operator_name?: string | null
           session_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
           usage_date?: string
+          wbs_id?: string | null
         }
         Relationships: [
           {
@@ -939,6 +959,13 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_usage_wbs_id_fkey"
+            columns: ["wbs_id"]
+            isOneToOne: false
+            referencedRelation: "wbs"
             referencedColumns: ["id"]
           },
           {
@@ -1226,77 +1253,6 @@ export type Database = {
           },
         ]
       }
-      line_item_crew_assignments: {
-        Row: {
-          created_at: string | null
-          created_by: string
-          crew_id: string
-          end_date: string | null
-          id: string
-          line_item_id: string
-          notes: string | null
-          session_id: string | null
-          start_date: string
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          created_by: string
-          crew_id: string
-          end_date?: string | null
-          id?: string
-          line_item_id: string
-          notes?: string | null
-          session_id?: string | null
-          start_date: string
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string
-          crew_id?: string
-          end_date?: string | null
-          id?: string
-          line_item_id?: string
-          notes?: string | null
-          session_id?: string | null
-          start_date?: string
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_line_item_crew_assignments_session"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "demo_mappings"
-            referencedColumns: ["session_id"]
-          },
-          {
-            foreignKeyName: "line_item_crew_assignments_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "line_item_crew_assignments_crew_id_fkey"
-            columns: ["crew_id"]
-            isOneToOne: false
-            referencedRelation: "crews"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "line_item_crew_assignments_line_item_id_fkey"
-            columns: ["line_item_id"]
-            isOneToOne: false
-            referencedRelation: "line_items"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       line_item_entries: {
         Row: {
           computed_output: number | null
@@ -1308,6 +1264,7 @@ export type Database = {
           line_item_id: string
           map_id: string
           notes: string | null
+          output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
           session_id: string | null
           wbs_id: string
         }
@@ -1321,6 +1278,7 @@ export type Database = {
           line_item_id: string
           map_id: string
           notes?: string | null
+          output_unit?: Database["public"]["Enums"]["unit_measure_type"] | null
           session_id?: string | null
           wbs_id: string
         }
@@ -1334,6 +1292,7 @@ export type Database = {
           line_item_id?: string
           map_id?: string
           notes?: string | null
+          output_unit?: Database["public"]["Enums"]["unit_measure_type"] | null
           session_id?: string | null
           wbs_id?: string
         }
@@ -1371,80 +1330,6 @@ export type Database = {
             columns: ["wbs_id"]
             isOneToOne: false
             referencedRelation: "wbs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      line_item_equipment_assignments: {
-        Row: {
-          created_at: string | null
-          created_by: string
-          end_date: string | null
-          equipment_id: string
-          id: string
-          line_item_id: string
-          notes: string | null
-          operator_id: string | null
-          session_id: string | null
-          start_date: string
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          created_by: string
-          end_date?: string | null
-          equipment_id: string
-          id?: string
-          line_item_id: string
-          notes?: string | null
-          operator_id?: string | null
-          session_id?: string | null
-          start_date: string
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string
-          end_date?: string | null
-          equipment_id?: string
-          id?: string
-          line_item_id?: string
-          notes?: string | null
-          operator_id?: string | null
-          session_id?: string | null
-          start_date?: string
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_line_item_equipment_assignments_session"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "demo_mappings"
-            referencedColumns: ["session_id"]
-          },
-          {
-            foreignKeyName: "line_item_equipment_assignments_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "line_item_equipment_assignments_line_item_id_fkey"
-            columns: ["line_item_id"]
-            isOneToOne: false
-            referencedRelation: "line_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "line_item_equipment_assignments_operator_id_fkey"
-            columns: ["operator_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1610,7 +1495,7 @@ export type Database = {
           coordinates: unknown | null
           created_at: string | null
           id: string
-          location_description: string | null
+          location: string | null
           map_number: string
           scope: string | null
           session_id: string | null
@@ -1623,7 +1508,7 @@ export type Database = {
           coordinates?: unknown | null
           created_at?: string | null
           id?: string
-          location_description?: string | null
+          location?: string | null
           map_number: string
           scope?: string | null
           session_id?: string | null
@@ -1636,7 +1521,7 @@ export type Database = {
           coordinates?: unknown | null
           created_at?: string | null
           id?: string
-          location_description?: string | null
+          location?: string | null
           map_number?: string
           scope?: string | null
           session_id?: string | null
@@ -2267,6 +2152,98 @@ export type Database = {
         Args: { uid: string }
         Returns: string
       }
+      delete_asphalt_types: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_avatars: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_change_orders: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_contracts: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_crew_members: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_crews: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_daily_logs: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_dump_trucks: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_equipment: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_equipment_assignments: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_equipment_usage: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_inspections: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_issues: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_job_titles: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_line_item_entries: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_line_item_templates: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_line_items: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_maps: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_organizations: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_profiles: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_tack_rates: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_user_contracts: {
+        Args: { _user_id: string; _contract_id: string }
+        Returns: undefined
+      }
+      delete_wbs: {
+        Args: { _id: string }
+        Returns: undefined
+      }
       disablelongtransactions: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -2530,21 +2507,148 @@ export type Database = {
         Args: { "": string }
         Returns: unknown
       }
+      get_all_line_item_templates: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          description: string
+          unit_type: Database["public"]["Enums"]["unit_measure_type"]
+          formula: Json
+          instructions: string
+          session_id: string
+        }[]
+      }
+      get_all_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          full_name: string
+          username: string
+          email: string
+          phone: string
+          location: string
+          role: Database["public"]["Enums"]["user_role"]
+          job_title_id: string
+          organization_id: string
+          avatar_id: string
+          avatar_url: string
+          session_id: string
+        }[]
+      }
+      get_avatars_for_profile: {
+        Args: { _profile_id: string }
+        Returns: {
+          id: string
+          url: string
+          is_preset: boolean
+        }[]
+      }
+      get_change_orders: {
+        Args: { contract_id: string }
+        Returns: {
+          id: string
+          line_item_id: string
+          new_quantity: number
+          new_unit_price: number
+          title: string
+          description: string
+          status: Database["public"]["Enums"]["change_order_status"]
+          submitted_date: string
+          approved_date: string
+          approved_by: string
+          created_by: string
+          attachments: string[]
+          session_id: string
+        }[]
+      }
+      get_contract_organizations: {
+        Args: { contract_id: string }
+        Returns: {
+          organization_id: string
+          notes: string
+          role: Database["public"]["Enums"]["organization_role"]
+        }[]
+      }
       get_contract_with_wkt: {
         Args: { contract_id: string }
         Returns: {
           id: string
           title: string
           description: string
-          status: Database["public"]["Enums"]["contract_status"]
-          budget: number
+          location: string
           start_date: string
           end_date: string
-          location: string
-          created_at: string
-          created_by: string
-          updated_at: string
+          budget: number
+          status: Database["public"]["Enums"]["contract_status"]
           coordinates_wkt: string
+          session_id: string
+        }[]
+      }
+      get_crew_members_by_organization: {
+        Args: { _organization_id: string }
+        Returns: {
+          crew_id: string
+          profile_id: string
+          role: string
+          assigned_at: string
+          created_by: string
+          map_location_id: string
+          location_notes: string
+          session_id: string
+        }[]
+      }
+      get_crews_by_organization: {
+        Args: { _organization_id: string }
+        Returns: {
+          id: string
+          name: string
+          description: string
+          foreman_id: string
+          created_by: string
+          session_id: string
+        }[]
+      }
+      get_daily_logs: {
+        Args: { _contract_id: string }
+        Returns: {
+          id: string
+          log_date: string
+          weather_conditions: string
+          temperature: string
+          work_performed: string
+          delays_encountered: string
+          visitors: string
+          safety_incidents: string
+          created_by: string
+          session_id: string
+        }[]
+      }
+      get_dashboard_metrics: {
+        Args: { _user_id: string }
+        Returns: {
+          active_contracts: number
+          total_issues: number
+          total_inspections: number
+        }[]
+      }
+      get_enriched_profile: {
+        Args: { _user_id: string }
+        Returns: {
+          id: string
+          full_name: string
+          username: string
+          email: string
+          phone: string
+          location: string
+          role: Database["public"]["Enums"]["user_role"]
+          job_title_id: string
+          organization_id: string
+          avatar_id: string
+          avatar_url: string
+          job_title: string
+          organization_name: string
+          session_id: string
         }[]
       }
       get_enum_values: {
@@ -2553,75 +2657,195 @@ export type Database = {
           value: string
         }[]
       }
-      get_line_items_with_wkt: {
-        Args:
-          | { _contract_id: string }
-          | { _contract_id: string; _session_id?: string }
+      get_equipment_assignments: {
+        Args: { _contract_id: string }
         Returns: {
-          contract_id: string | null
-          coordinates: unknown | null
-          created_at: string | null
-          description: string
           id: string
-          line_code: string
-          map_id: string | null
-          quantity: number
-          reference_doc: string | null
-          session_id: string | null
-          template_id: string | null
-          unit_measure: Database["public"]["Enums"]["unit_measure_type"]
-          unit_price: number
-          updated_at: string | null
-          wbs_id: string
+          equipment_id: string
+          operator_id: string
+          start_date: string
+          end_date: string
+          status: string
+          notes: string
+          session_id: string
         }[]
       }
-      get_maps_with_geojson: {
+      get_equipment_by_organization: {
+        Args: { _organization_id: string }
+        Returns: {
+          id: string
+          user_defined_id: string
+          name: string
+          description: string
+          operator_id: string
+          session_id: string
+        }[]
+      }
+      get_equipment_usage: {
+        Args: { _contract_id: string }
+        Returns: {
+          equipment_id: string
+          wbs_id: string
+          map_id: string
+          line_item_id: string
+          usage_date: string
+          hours_used: number
+          operator_id: string
+          session_id: string
+        }[]
+      }
+      get_issues: {
+        Args: { _contract_id: string }
+        Returns: {
+          id: string
+          wbs_id: string
+          map_id: string
+          line_item_id: string
+          equipment_id: string
+          title: string
+          description: string
+          priority: string
+          status: string
+          due_date: string
+          resolution: string
+          assigned_to: string
+          created_by: string
+          photo_urls: string[]
+          session_id: string
+        }[]
+      }
+      get_job_titles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          title: string
+          is_custom: boolean
+          session_id: string
+        }[]
+      }
+      get_line_item_entries: {
+        Args: { _contract_id: string }
+        Returns: {
+          id: string
+          wbs_id: string
+          map_id: string
+          line_item_id: string
+          entered_by: string
+          input_variables: Json
+          computed_output: number
+          notes: string
+          output_unit: Database["public"]["Enums"]["unit_measure_type"]
+          session_id: string
+        }[]
+      }
+      get_line_item_templates_by_organization: {
+        Args: { _organization_id: string }
+        Returns: {
+          id: string
+          name: string
+          description: string
+          unit_type: Database["public"]["Enums"]["unit_measure_type"]
+          formula: Json
+          instructions: string
+          session_id: string
+        }[]
+      }
+      get_line_items_with_wkt: {
         Args: { contract_id: string }
         Returns: {
           id: string
-          map_number: string
-          location_description: string
-          geojson: string
           wbs_id: string
+          map_id: string
+          line_code: string
+          description: string
+          template_id: string
+          unit_measure: Database["public"]["Enums"]["unit_measure_type"]
+          quantity: number
+          unit_price: number
+          reference_doc: string
+          coordinates_wkt: string
+          session_id: string
         }[]
       }
       get_maps_with_wkt: {
-        Args:
-          | { _contract_id: string }
-          | { _contract_id: string; _session_id?: string }
+        Args: { contract_id: string }
         Returns: {
-          budget: number | null
-          contract_id: string | null
-          coordinates: unknown | null
-          created_at: string | null
           id: string
-          location_description: string | null
-          map_number: string
-          scope: string | null
-          session_id: string | null
-          updated_at: string | null
           wbs_id: string
+          map_number: string
+          location: string
+          scope: string
+          budget: number
+          coordinates_wkt: string
+          session_id: string
+        }[]
+      }
+      get_organizations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          address: string
+          phone: string
+          website: string
+          session_id: string
+        }[]
+      }
+      get_profiles_by_contract: {
+        Args: { _contract_id: string }
+        Returns: {
+          id: string
+          full_name: string
+          username: string
+          email: string
+          phone: string
+          location: string
+          role: Database["public"]["Enums"]["user_role"]
+          job_title_id: string
+          organization_id: string
+          avatar_id: string
+          avatar_url: string
+          session_id: string
+        }[]
+      }
+      get_profiles_by_organization: {
+        Args: { _organization_id: string }
+        Returns: {
+          id: string
+          full_name: string
+          username: string
+          email: string
+          phone: string
+          location: string
+          role: Database["public"]["Enums"]["user_role"]
+          job_title_id: string
+          organization_id: string
+          avatar_id: string
+          avatar_url: string
+          session_id: string
         }[]
       }
       get_proj4_from_srid: {
         Args: { "": number }
         Returns: string
       }
-      get_wbs_with_wkt: {
-        Args:
-          | { _contract_id: string }
-          | { _contract_id: string; _session_id?: string }
+      get_user_contracts: {
+        Args: { _user_id: string }
         Returns: {
-          budget: number | null
           contract_id: string
-          coordinates: unknown | null
-          created_at: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          session_id: string
+        }[]
+      }
+      get_wbs_with_wkt: {
+        Args: { contract_id: string }
+        Returns: {
           id: string
-          location: string | null
-          scope: string | null
-          session_id: string | null
-          updated_at: string | null
           wbs_number: string
+          scope: string
+          budget: number
+          location: string
+          coordinates_wkt: string
+          session_id: string
         }[]
       }
       gettransactionid: {
@@ -2635,6 +2859,115 @@ export type Database = {
       gidx_out: {
         Args: { "": unknown }
         Returns: unknown
+      }
+      insert_asphalt_types: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_avatars: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_change_orders: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_contracts: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_crew_members: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_crews: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_daily_logs: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_dump_trucks: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_equipment: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_equipment_assignments: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_equipment_usage: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_inspections: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_issues: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_job_titles: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_line_item_entries: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_line_item_templates: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_line_items: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_maps: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_organizations: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_profile_full: {
+        Args: {
+          _role: Database["public"]["Enums"]["user_role"]
+          _full_name: string
+          _email: string
+          _username: string
+          _id?: string
+          _phone?: string
+          _location?: string
+          _job_title_id?: string
+          _custom_job_title?: string
+          _organization_id?: string
+          _custom_organization_name?: string
+          _avatar_id?: string
+        }
+        Returns: string
+      }
+      insert_profiles: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_tack_rates: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_user_contracts: {
+        Args: { _data: Json }
+        Returns: string
+      }
+      insert_wbs: {
+        Args: { _data: Json }
+        Returns: string
       }
       json: {
         Args: { "": unknown }
@@ -3914,6 +4247,98 @@ export type Database = {
       unlockrows: {
         Args: { "": string }
         Returns: number
+      }
+      update_asphalt_types: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_avatars: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_change_orders: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_contracts: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_crew_members: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_crews: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_daily_logs: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_dump_trucks: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_equipment: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_equipment_assignments: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_equipment_usage: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_inspections: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_issues: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_job_titles: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_line_item_entries: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_line_item_templates: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_line_items: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_maps: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_organizations: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_profiles: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_tack_rates: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_user_contracts: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
+      }
+      update_wbs: {
+        Args: { _id: string; _data: Json }
+        Returns: undefined
       }
       updategeometrysrid: {
         Args: {

@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 export function useRequireProfile() {
   const navigate = useNavigate();
   const { user, profile, clearAuth } = useAuthStore();
+  
   useEffect(() => {
     const handleMissingProfile = async () => {
       console.log("[DEBUG] useRequireProfile checking auth:", {
@@ -20,10 +21,25 @@ export function useRequireProfile() {
 
       // Only redirect if we have a user but no profile
       if (user && profile === null) {
-        console.warn("[WARN] User exists but no profile found. Signing out.");
-        await supabase.auth.signOut();
-        clearAuth();
-        navigate("/", { replace: true });
+        try {
+          // Try to fetch profile directly with RPC before giving up
+          const { data, error } = await supabase.rpc(
+            "get_enriched_profile",
+            { _user_id: user.id }
+          );
+          
+          if (error || !data || data.length === 0) {
+            console.warn("[WARN] User exists but no profile found. Signing out.");
+            await supabase.auth.signOut();
+            clearAuth();
+            navigate("/", { replace: true });
+          }
+        } catch (error) {
+          console.error("Error checking profile:", error);
+          await supabase.auth.signOut();
+          clearAuth();
+          navigate("/", { replace: true });
+        }
       }
     };
 

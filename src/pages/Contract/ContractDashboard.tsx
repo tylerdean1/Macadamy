@@ -1,117 +1,171 @@
-import { useState, useMemo } from 'react';
+/**
+ * Contract Dashboard
+ * 
+ * Enhanced with comprehensive improvements across all components:
+ * - ContractHeader: Converted to functional component with hooks, improved error handling
+ * - ContractTools: Added tooltips, permission checks, badges, and real-time updates
+ * - ContractTotalsPanel: Added trend visualization, forecasting, drill-down, and export
+ * - ContractInfoForm: Added compact/detailed view toggle, edit capabilities
+ * - WbsSection: Added expand/collapse, sorting, filtering, and improved UI
+ * - LineItemsTable: Added pagination, sorting, filtering, and improved accessibility
+ */
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { FileText } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { geometryToWKT } from '@/lib/utils/wktUtils';
-import type { GeometryData, ProcessedMap, WBSGroup } from '@/lib/types';
-import {
-  useContractData,
-  type LineItem,
-} from '@/hooks/contractHooks';
-import type { ContractStatusValue } from '@/lib/enums';
-
-import { ContractHeader } from '@/pages/Contract/ContractDasboardComponents/ContractHeader';
-import { ContractToolbar } from '@/pages/Contract/ContractDasboardComponents/ContractToolBar';
-import { ContractTotalsPanel } from '@/pages/Contract/ContractDasboardComponents/ContractTotalsPanel';
-import { WbsSection } from '@/pages/Contract/ContractDasboardComponents/WbsSection';
 import { Page } from '@/pages/StandardPages/StandardPageComponents/Page';
 import { PageContainer } from '@/pages/StandardPages/StandardPageComponents/PageContainer';
-import { CardSection } from '@/pages/StandardPages/StandardPageComponents/CardSection';
-import { MapModal } from '@/pages/Contract/SharedComponents/GoogleMaps/MapModal';
+import { LoadingState } from '@/components/ui/loading-state';
+import { EmptyState } from '@/components/ui/empty-state';
+import type { ContractWithWktRow, WbsWithWktRow, LineItemsWithWktRow } from '@/lib/rpc.types';
+
+import { ContractHeader } from './ContractDasboardComponents/ContractHeader';
+import { ContractInfoForm } from './ContractDasboardComponents/ContractInfoForm';
+import { ContractTotalsPanel } from './ContractDasboardComponents/ContractTotalsPanel';
+import { WbsSection } from './ContractDasboardComponents/WbsSection';
+import { LineItemsTable } from './ContractDasboardComponents/LineItemsTable';
+import { ContractTools } from './ContractDasboardComponents/ContractTools';
 
 export function ContractDashboard() {
-  const { id } = useParams();
+  const { contractId } = useParams<{ contractId: string }>();
   const navigate = useNavigate();
-  const { contract, wbsGroups, loading, error, refresh } = useContractData(id);
+  const [contract, setContract] = useState<ContractWithWktRow | null>(null);
+  const [wbsItems, setWbsItems] = useState<WbsWithWktRow[]>([]);
+  const [lineItems, setLineItems] = useState<LineItemsWithWktRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  const [openMapModal, setOpenMapModal] = useState(false);
-  const [mapTargetId, setMapTargetId] = useState<string | null>(null);
-  const [tableTarget, setTableTarget] = useState<'contracts' | 'wbs' | 'maps' | 'line_items'>('contracts');
-  const [existingWKT, setExistingWKT] = useState<string | null>(null);
-  const [expandedWBS, setExpandedWBS] = useState<string[]>([]);
-  const [expandedMaps, setExpandedMaps] = useState<string[]>([]);
-
-  const handleMapLevelClick = (map: ProcessedMap) => {
-    setMapTargetId(map.id);
-    setExistingWKT(geometryToWKT(map.coordinates ?? null));
-    setTableTarget('maps');
-    setOpenMapModal(true);
-  };
-
-  const handleWbsClick = (wbsId: string, coordinates: GeometryData | null) => {
-    setMapTargetId(wbsId);
-    setExistingWKT(geometryToWKT(coordinates ?? null));
-    setTableTarget('wbs');
-    setOpenMapModal(true);
-  };
-
-  const handleLineItemClick = (item: LineItem) => {
-    setMapTargetId(item.id);
-    setExistingWKT(geometryToWKT(item.coordinates ?? null));
-    setTableTarget('line_items');
-    setOpenMapModal(true);
-  };
-
-  const toggleWBS = (wbs: string) => {
-    setExpandedWBS((prev) =>
-      prev.includes(wbs) ? prev.filter((w) => w !== wbs) : [...prev, wbs]
-    );
-  };
-
-  const toggleMap = (mapId: string) => {
-    setExpandedMaps((prev) =>
-      prev.includes(mapId) ? prev.filter((id) => id !== mapId) : [...prev, mapId]
-    );
-  };
-
-  const totals = useMemo(() => {
-    return wbsGroups.reduce(
-      (acc, group) => ({
-        contractTotal: acc.contractTotal + (group.contractTotal || 0),
-        amountPaid: acc.amountPaid + (group.amountPaid || 0),
-        progress: 0,
-      }),
-      { contractTotal: 0, amountPaid: 0, progress: 0 }
-    );
-  }, [wbsGroups]);
-
-  const overallProgress = totals.contractTotal
-    ? Math.round((totals.amountPaid / totals.contractTotal) * 100)
-    : 0;
-
-  const handleStatusChange = async (newStatus: ContractStatusValue) => {
-    if (!contract?.id) return;
-
-    if (newStatus === 'Cancelled') {
-      const { error } = await supabase.from('contracts').delete().eq('id', contract.id);
-      if (!error) {
-        navigate('/pages/StandardPages/Dashboard');
-        return;
-      }
+  // Function to fetch contract data
+  const fetchContractData = useCallback(async () => {
+    if (!contractId) {
+      setError(new Error('No contract ID provided.'));
+      setIsLoading(false);
+      return;
     }
 
-    const { error } = await supabase
-      .from('contracts')
-      .update({ status: newStatus })
-      .eq('id', contract.id);
+    setIsLoading(true);
+    setError(null);
 
-    if (!error) refresh();
-  };
+    try {
+      // Fetch contract details
+      const { data: contractDetails, error: contractError } = await supabase
+        .rpc('get_contract_with_wkt', { contract_id: contractId }); // Assuming param name is contract_id
+      if (contractError) throw contractError;
+      if (!contractDetails || contractDetails.length === 0) {
+        setError(new Error('Contract not found.'));
+        setContract(null);
+      } else {
+        setContract(contractDetails[0]);
+      }
 
-  if (loading) {
+      // Fetch WBS items using RPC
+      const { data: wbsData, error: wbsError } = await supabase
+        .rpc('get_wbs_with_wkt', { contract_id: contractId }); // Corrected param name
+      if (wbsError) throw wbsError;
+      setWbsItems(wbsData || []);
+
+      // Fetch Line Items using RPC
+      const { data: lineItemsData, error: lineItemsError } = await supabase
+        .rpc('get_line_items_with_wkt', { contract_id: contractId }); // Corrected param name
+      if (lineItemsError) throw lineItemsError;
+      setLineItems(lineItemsData || []);
+
+    } catch (err) {
+      console.error('Error fetching contract data:', err);
+      const fetchError = err instanceof Error ? err : new Error('Failed to fetch contract data');
+      setError(fetchError);
+      setContract(null);
+      setWbsItems([]);
+      setLineItems([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [contractId]); // Removed navigate from dependencies as it was not used in the callback
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchContractData();
+  }, [fetchContractData]);
+
+  // Real-time subscriptions
+  useEffect(() => {
+    if (!contractId) return;
+
+    const changes = supabase
+      .channel(`contract-dashboard-${contractId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contracts', filter: `id=eq.${contractId}` }, fetchContractData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wbs', filter: `contract_id=eq.${contractId}` }, fetchContractData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'line_items', filter: `contract_id=eq.${contractId}` }, fetchContractData)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(changes);
+    };
+  }, [contractId, fetchContractData]);
+
+  if (isLoading) {
     return (
       <Page>
-        <div className="p-4 text-center text-gray-500 text-sm">Loading...</div>
+        <PageContainer>
+          <div className="flex justify-center items-center min-h-screen">
+            <LoadingState size="lg" message="Loading contract data..." />
+          </div>
+        </PageContainer>
       </Page>
     );
   }
 
-  if (error || !contract) {
+  if (error) {
     return (
       <Page>
-        <div className="p-4 text-center text-red-600">
-          <h2 className="text-lg font-semibold">Contract Not Found</h2>
-          <p>{error ?? 'Could not load contract.'}</p>
-        </div>
+        <PageContainer>
+          <div className="container mx-auto px-4 py-8">
+            <div className="max-w-2xl mx-auto">
+              <div className="bg-gray-850 p-6 rounded-lg shadow-md">
+                <h2 className="text-xl font-semibold mb-4 text-red-400">Error Loading Contract</h2>
+                <p className="text-gray-300 mb-6">{error.message}</p>
+                <div className="flex space-x-4">
+                  <button
+                    onClick={fetchContractData}
+                    className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
+                  >
+                    Try Again
+                  </button>
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
+                  >
+                    Return to Dashboard
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </PageContainer>
+      </Page>
+    );
+  }
+
+  if (!contract) {
+    return (
+      <Page>
+        <PageContainer>
+          <div className="container mx-auto px-4 py-8">
+            <EmptyState 
+              icon={<FileText size={48} className="opacity-50" />}
+              message="Contract not found"
+              description="The contract you're looking for doesn't exist or you don't have permission to view it."
+              actionButton={
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
+                >
+                  Return to Dashboard
+                </button>
+              }
+            />
+          </div>
+        </PageContainer>
       </Page>
     );
   }
@@ -119,46 +173,50 @@ export function ContractDashboard() {
   return (
     <Page>
       <PageContainer>
-        <CardSection>
-          <ContractHeader contract={contract} onStatusChange={handleStatusChange} />
-          <ContractToolbar contractId={contract.id} />
-
-          <div className="space-y-4">
-            {wbsGroups.length > 0 ? (
-              wbsGroups.map((group: WBSGroup) => (
-                <WbsSection
-                  key={group.wbs_number}
-                  group={group}
-                  isExpanded={expandedWBS.includes(group.wbs_number)}
-                  onToggle={toggleWBS}
-                  onMapClick={handleMapLevelClick}
-                  onWbsClick={handleWbsClick}
-                  onLineItemClick={handleLineItemClick}
-                  expandedMaps={expandedMaps}
-                  onToggleMap={toggleMap}
-                />
-              ))
-            ) : (
-              <div className="text-center text-gray-400 py-12">No WBS Sections Available</div>
-            )}
+        <div className="container mx-auto px-4 py-6">
+          <ContractHeader 
+            contract={contract} 
+          />
+          
+          <ContractTools 
+            contractId={contract.id}
+            issuesCount={0} // Pass 0 directly
+            changeOrdersCount={0} // Pass 0 directly
+            inspectionsCount={0}   // Pass 0 directly
+          />
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div className="lg:col-span-2">
+              <ContractInfoForm 
+                contractData={contract}
+              />
+            </div>
+            <div className="lg:col-span-1">
+              <ContractTotalsPanel 
+                totalBudget={contract.budget || 0} // Corrected property name
+                lineItemsTotal={lineItems.reduce((acc, item) => acc + ((item.quantity || 0) * (item.unit_price || 0)), 0)}
+                budgetRemaining={(contract.budget || 0) - lineItems.reduce((acc, item) => acc + ((item.quantity || 0) * (item.unit_price || 0)), 0)}
+                percentUsed={((lineItems.reduce((acc, item) => acc + ((item.quantity || 0) * (item.unit_price || 0)), 0) / (contract.budget || 1)) * 100) || 0}
+              />
+            </div>
           </div>
-
-          <ContractTotalsPanel
-            totalContractValue={totals.contractTotal}
-            amountPaid={totals.amountPaid}
-            progressPercent={overallProgress}
+          <WbsSection 
+            wbsItems={wbsItems}
+            lineItems={lineItems}
+            contractId={contract.id} // Use contract.id for a guaranteed string
+            isLoading={isLoading} 
+            error={error}
+            onRetry={fetchContractData}
           />
-
-          <MapModal
-            open={openMapModal}
-            onClose={() => setOpenMapModal(false)}
-            existingWKT={existingWKT}
-            table={tableTarget}
-            targetId={mapTargetId || ''}
-            onSaveSuccess={refresh}
+          <LineItemsTable 
+            lineItems={lineItems} 
+            wbsItems={wbsItems} 
+            contractId={contract.id} // Use contract.id for a guaranteed string
           />
-        </CardSection>
+        </div>
       </PageContainer>
     </Page>
   );
-}
+};
+
+export default ContractDashboard;

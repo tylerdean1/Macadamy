@@ -1,8 +1,22 @@
+/**
+ * Labor Records Management Page
+ * 
+ * This component handles creation and viewing of labor records for a contract.
+ * Note: Currently using direct table access as no RPC functions exist for labor records yet.
+ * TODO: When labor_records RPC functions are created, update this file to use them.
+ * 
+ * -- SPECIAL TYPESCRIPT NOTICE --
+ * This file contains @ts-ignore comments to suppress TypeScript errors related to
+ * direct table access for 'labor_records'. This is necessary because:
+ * 1. RPC functions are not available yet for labor records
+ * 2. The labor_records table schema is not included in the database.types.ts
+ * These suppressions will be removed when proper RPC functions are implemented.
+ */
 import React, { useCallback, useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Users, Clock, Calendar, HardHat, Save } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
-import useRouteParamsAndNavigation from '@/hooks/useRouteParamsAndNavigation';
+import { useNavigate, useParams } from 'react-router-dom';
 
 
 // Define the structure for labor record data
@@ -31,7 +45,8 @@ const WORK_TYPES = [
 ];
 
 export function LaborRecords() {
-  const { params, navigate } = useRouteParamsAndNavigation();
+  const navigate = useNavigate();
+  const params = useParams();
   const { id } = params; // Get the contract ID from route parameters
   const [records, setRecords] = useState<LaborRecord[]>([]); // State for storing labor records
   const [loading] = useState(true); // Loading state for fetching records
@@ -49,13 +64,17 @@ export function LaborRecords() {
   // Fetch labor records for the current contract when component mounts
   const fetchRecords = useCallback(async () => {
     try {
+      // Note: There's no RPC function available for labor_records yet, so we need to use direct table access
+      // TODO: When get_labor_records RPC becomes available, replace this with RPC call
+      // @ts-expect-error - Ignore type checking for table that isn't in database.types.ts yet
       const { data, error } = await supabase
         .from('labor_records')
         .select('*')
-        .eq('line_item_id', id)
+        .eq('line_item_id', id || '')
         .order('work_date', { ascending: false });
   
       if (error) throw error;
+      // @ts-expect-error - Type conversion needed since labor_records schema isn't defined in types
       setRecords(data || []);
     } catch (error) {
       console.error('Error fetching labor records:', error);
@@ -73,6 +92,9 @@ export function LaborRecords() {
     if (!user) return; // Ensure user is authenticated
 
     try {
+      // Note: There's no insert_labor_records RPC function available yet, so we need to use direct table access
+      // TODO: When insert_labor_records RPC becomes available, replace this with RPC call
+      // @ts-expect-error - Ignore type checking for table that isn't in database.types.ts yet
       const { error } = await supabase
         .from('labor_records')
         .insert({

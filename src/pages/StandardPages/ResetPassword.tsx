@@ -1,55 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Eye, EyeOff } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
+import { Mail } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function ResetPassword() {
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPwd1, setShowPwd1] = useState(false);
-  const [showPwd2, setShowPwd2] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [noAccountFound, setNoAccountFound] = useState(false);
   const navigate = useNavigate();
+  const { resetPassword } = useAuth();
 
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) navigate('/');
-    };
-    checkSession();
-  }, [navigate]);
-
-  const isStrongPassword = (pwd: string) =>
-    /[A-Z]/.test(pwd) && /[0-9]/.test(pwd) && pwd.length >= 6;
+  const validateEmail = (value: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    setNoAccountFound(false);
 
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match');
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address.');
+      toast.error('Please enter a valid email address.');
       return;
     }
 
-    if (!isStrongPassword(newPassword)) {
-      setError('Password must be at least 6 characters, include a number and an uppercase letter.');
-      return;
-    }
+    setLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (error) throw error;
-
-      setSuccess('Password has been reset successfully');
-      setTimeout(() => navigate('/'), 2000);
+      // Use the resetPassword method from useAuth hook
+      const result = await resetPassword(email);
+      
+      if (result) {
+        setSuccess('Password reset link sent! Check your email.');
+        toast.success('Password reset link sent! Check your email.');
+      }
     } catch (err) {
-      console.error('Error resetting password:', err);
-      setError('Error resetting password. Please try again.');
+      console.error('Error:', err);
+      setError('Something went wrong. Please try again.');
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -71,64 +65,43 @@ export function ResetPassword() {
             </div>
           )}
 
+          {noAccountFound && (
+            <div className="mb-4 p-4 bg-yellow-400/10 border border-yellow-400/20 rounded-lg text-yellow-300 text-sm">
+              No account found for that email.{' '}
+              <button
+                onClick={() => navigate('/onboarding')}
+                className="underline text-yellow-200 hover:text-white"
+              >
+                Sign up?
+              </button>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="newPassword" className="block text-sm font-medium text-gray-300 mb-2">
-                New Password
+              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                Email Address
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
-                  type={showPwd1 ? 'text' : 'password'}
-                  id="newPassword"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full bg-background border border-background-lighter text-gray-100 pl-10 pr-12 py-2.5 rounded-md focus:ring-2 focus:ring-primary"
+                  type="email"
+                  id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-background border border-background-lighter text-gray-100 pl-10 pr-4 py-2.5 rounded-md focus:ring-2 focus:ring-primary"
                   required
-                  placeholder="••••••••"
-                  minLength={6}
+                  placeholder="you@example.com"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPwd1((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                >
-                  {showPwd1 ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
-                Confirm New Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type={showPwd2 ? 'text' : 'password'}
-                  id="confirmPassword"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full bg-background border border-background-lighter text-gray-100 pl-10 pr-12 py-2.5 rounded-md focus:ring-2 focus:ring-primary"
-                  required
-                  placeholder="••••••••"
-                  minLength={6}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPwd2((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                >
-                  {showPwd2 ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
               </div>
             </div>
 
             <button
               type="submit"
-              className="w-full bg-primary hover:bg-primary-hover text-white py-2.5 px-4 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+              disabled={loading}
+              className="w-full bg-primary hover:bg-primary-hover text-white py-2.5 px-4 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
             >
-              Reset Password
+              {loading ? 'Sending reset link...' : 'Send Reset Email'}
             </button>
           </form>
 

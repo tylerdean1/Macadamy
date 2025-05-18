@@ -118,14 +118,6 @@ export type JobTitlesInsert =
 export type JobTitlesUpdate =
   Database["public"]["Tables"]["job_titles"]["Update"];
 
-// Line Item Crew Assignments Table
-export type LineItemCrewAssignments =
-  Database["public"]["Tables"]["line_item_crew_assignments"]["Row"];
-export type LineItemCrewAssignmentsInsert =
-  Database["public"]["Tables"]["line_item_crew_assignments"]["Insert"];
-export type LineItemCrewAssignmentsUpdate =
-  Database["public"]["Tables"]["line_item_crew_assignments"]["Update"];
-
 // Line Item Entries Table
 export type LineItemEntries =
   Database["public"]["Tables"]["line_item_entries"]["Row"];
@@ -133,14 +125,6 @@ export type LineItemEntriesInsert =
   Database["public"]["Tables"]["line_item_entries"]["Insert"];
 export type LineItemEntriesUpdate =
   Database["public"]["Tables"]["line_item_entries"]["Update"];
-
-// Line Item Equipment Assignments Table
-export type LineItemEquipmentAssignments =
-  Database["public"]["Tables"]["line_item_equipment_assignments"]["Row"];
-export type LineItemEquipmentAssignmentsInsert =
-  Database["public"]["Tables"]["line_item_equipment_assignments"]["Insert"];
-export type LineItemEquipmentAssignmentsUpdate =
-  Database["public"]["Tables"]["line_item_equipment_assignments"]["Update"];
 
 // Line Item Templates Table
 export type LineItemTemplates =
@@ -273,6 +257,7 @@ export interface ProcessedMap {
 export interface WBSGroup {
   id: string;
   wbs_number: string; // Equivalent to wbs_number in the database
+  wbs: string; // Alias for wbs_number to maintain compatibility
   description: string; // Equivalent to scope in the database
   location: string | null;
   coordinates: GeometryData | null;
@@ -373,3 +358,23 @@ export type LineItemsClean = Omit<LineItems, "line_code" | "description"> & {
   line_code: string;
   description: string;
 };
+
+export interface ContractRolePermission {
+  role: 'Admin' | 'Contractor' | 'Engineer' | 'Project Manager' | 'Inspector';
+  can_view: boolean;
+  can_edit: boolean;
+  can_approve: boolean;
+  can_delete: boolean;
+  can_create: boolean;
+  can_manage_users: boolean;
+}
+
+export interface Calculation {
+  id: string;
+  line_item_id: string;
+  template_id: string;
+  values: Record<string, number>;
+  results: Record<string, number>;
+  created_at?: string;
+  created_by?: string;
+}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'; // Import React hooks
 import { useParams, useNavigate } from 'react-router-dom'; // Import hooks for routing
 import { ArrowLeft } from 'lucide-react'; // Import arrow icon for navigation
 import { supabase } from '@/lib/supabase'; // Import Supabase client
+import { useAuthStore } from '@/lib/store'; // Import auth store to get user
 
 /** 
  * Change Order interface representing a change order record.
@@ -54,6 +55,7 @@ const getStatusColor = (status: string): string => {
 export function ChangeOrders() {
   const { id: contract_id } = useParams(); // Extract contract ID from route parameters
   const navigate = useNavigate(); // Use the navigate hook for route navigation
+  const user = useAuthStore(state => state.user); // Get current user from auth store
 
   const [orders, setOrders] = useState<ChangeOrder[]>([]); // State for the list of change orders
   const [lineItems, setLineItems] = useState<LineItem[]>([]); // State for the list of line items
@@ -70,27 +72,48 @@ export function ChangeOrders() {
     // Fetch change orders and line items on component mount
     async function fetchData() {
       try {
-        const [orderRes, lineItemRes] = await Promise.all([
-          supabase
-            .from('change_orders')
-            .select('*')
-            .eq('contract_id', contract_id)
-            .order('submitted_date', { ascending: false }), // Fetch change orders by contract ID
-          supabase
-            .from('line_items')
-            .select('id, line_code, description')
-            .eq('contract_id', contract_id), // Fetch line items by contract ID
-        ]);
+        // Fetch line items using RPC
+        const lineItemRes = await supabase
+          .rpc('get_line_items_with_wkt', { contract_id: contract_id || '' });
+          
+        // Use the get_change_orders RPC function
+        const orderRes = await supabase
+          .rpc('get_change_orders', { 
+            contract_id: contract_id || '' 
+          });
 
-        if (orderRes.error) throw orderRes.error; // Handle errors for order fetching
-        if (lineItemRes.error) throw lineItemRes.error; // Handle errors for line item fetching
+        if (orderRes.error) throw orderRes.error;
+        if (lineItemRes.error) throw lineItemRes.error;
 
-        setOrders(orderRes.data || []); // Set state for orders
-        setLineItems(lineItemRes.data || []); // Set state for line items
+        // Ensure the data conforms to the ChangeOrder interface
+        const typedOrders = orderRes.data?.map(order => ({
+          id: order.id,
+          contract_id: contract_id || '', // RPC doesn't return contract_id, so we use the route param
+          line_item_id: order.line_item_id || '',
+          title: order.title || '',
+          description: order.description || undefined,
+          new_quantity: order.new_quantity || 0,
+          new_unit_price: order.new_unit_price || undefined,
+          status: order.status || 'draft',
+          submitted_date: order.submitted_date || undefined,
+          approved_date: order.approved_date || undefined,
+          approved_by: order.approved_by || undefined,
+          attachments: order.attachments || undefined,
+        })) as ChangeOrder[];
+        
+        setOrders(typedOrders);
+        
+        const lineItemData = lineItemRes.data?.map(item => ({
+          id: item.id,
+          line_code: item.line_code,
+          description: item.description
+        })) || [];
+        
+        setLineItems(lineItemData);
       } catch (err) {
-        console.error('Error fetching change orders or line items:', err); // Log errors
+        console.error('Error fetching change orders or line items:', err);
       } finally {
-        setLoading(false); // Reset loading state
+        setLoading(false);
       }
     }
     fetchData(); // Call data fetching function
@@ -99,33 +122,61 @@ export function ChangeOrders() {
   // Handle creating a new change order
   const handleCreateOrder = async () => {
     if (!newOrder.title || !newOrder.line_item_id) return; // Ensure necessary fields are filled
-
-    const { data, error } = await supabase.from('change_orders').insert([
-      {
+    
+    // Use the insert_change_orders RPC function instead of direct table access
+    const { error } = await supabase.rpc('insert_change_orders', {
+      _data: {
         contract_id,
         title: newOrder.title,
         description: newOrder.description,
         line_item_id: newOrder.line_item_id,
         new_quantity: newOrder.new_quantity,
         new_unit_price: newOrder.new_unit_price,
-        status: newOrder.status || 'draft', // Default to draft if no status provided
-      },
-    ]).select('*'); // Insert new change order
+        status: newOrder.status || 'draft',
+        created_by: user?.id
+      }
+    });
 
     if (error) {
-      console.error('Error creating change order:', error); // Log errors
+      console.error('Error creating change order:', error);
       return;
     }
 
-    if (data) {
-      setOrders((prev) => [data[0], ...prev]); // Add new order to state
+    // Refresh orders after creating a new one using the get_change_orders RPC
+    try {
+      const orderRes = await supabase
+        .rpc('get_change_orders', { 
+          contract_id: contract_id || '' 
+        });
+        
+      if (orderRes.error) throw orderRes.error;
+      
+      // Ensure the data conforms to the ChangeOrder interface
+      const typedOrders = orderRes.data?.map(order => ({
+        id: order.id,
+        contract_id: contract_id || '', // RPC doesn't return contract_id, so we use the route param
+        line_item_id: order.line_item_id || '',
+        title: order.title || '',
+        description: order.description || undefined,
+        new_quantity: order.new_quantity || 0,
+        new_unit_price: order.new_unit_price || undefined,
+        status: order.status || 'draft',
+        submitted_date: order.submitted_date || undefined,
+        approved_date: order.approved_date || undefined,
+        approved_by: order.approved_by || undefined,
+        attachments: order.attachments || undefined,
+      })) as ChangeOrder[];
+      
+      setOrders(typedOrders);
       setNewOrder({
         title: '',
         line_item_id: '',
         new_quantity: 0,
         new_unit_price: undefined,
-        status: 'draft', // Reset to draft on new order
+        status: 'draft',
       });
+    } catch (err) {
+      console.error('Error refreshing change orders:', err);
     }
   };
 

@@ -1,295 +1,337 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import toast from 'react-hot-toast';
+// filepath: c:\Users\tyler\OneDrive\Desktop\Macadamy\public\src\pages\Contract\ContractSettings.tsx
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 
 import { Page } from '@/pages/StandardPages/StandardPageComponents/Page';
-import { PageContainer } from '@/pages/StandardPages/StandardPageComponents/PageContainer';
-import { CardSection } from '@/pages/StandardPages/StandardPageComponents/CardSection';
+import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
-import { ContractTotalsPanel } from '@/pages/Contract/ContractDasboardComponents/ContractTotalsPanel';
-import { EditableContractSection } from '@/pages/Contract/EditableContractComponents/EditableContractSection';
-import { EditableWbsItem } from '@/pages/Contract/EditableContractComponents/EditableWbsItem';
-import { EditableMapItem } from '@/pages/Contract/EditableContractComponents/EditableMapItem';
-import { EditableLineItem } from '@/pages/Contract/EditableContractComponents/EditableLineItem';
-import { MapModal } from '@/pages/Contract/SharedComponents/GoogleMaps/MapModal';
+import { ContractStatusSelect } from './SharedComponents/ContractStatusSelect';
+import { useAuthStore } from '@/lib/store';
+import { supabase } from '@/lib/supabase';
+import type { ContractWithWktRow, ProfilesByContractRow } from '@/lib/rpc.types';
+import type { Database } from '@/lib/database.types';
 
-import { useContractData } from '@/hooks/contractHooks';
-import { useEnumOptions } from '@/hooks/useEnumOptions';
-import { geometryToWKT } from '@/lib/utils/wktUtils';
+type ContractStatus = Database['public']['Enums']['contract_status'];
+type UserRole = Database['public']['Enums']['user_role'];
 
-import type { GeometryData } from '@/lib/types';
-import type { UnitMeasureTypeValue } from '@/lib/enums';
+export const ContractSettings = () => {
+  const { contractId } = useParams<{ contractId: string }>();
+  const navigate = useNavigate();
+  const { profile } = useAuthStore();
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [contract, setContract] = useState<ContractWithWktRow | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<ContractStatus>('Draft');
+  const [teamMembers, setTeamMembers] = useState<ProfilesByContractRow[]>([]);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
-export default function ContractSettings() {
-  const { id: contractId } = useParams<{ id: string }>();
-  const {
-    contract,
-    wbsGroups,
-    maps,
-    lineItems,
-    loading,
-    error,
-    refresh,
-    updateContract,
-    createWBS,
-    updateWBS,
-    deleteWBS,
-    createMap,
-    updateMap,
-    deleteMap,
-    createLineItem,
-    updateLineItem,
-    deleteLineItem,
-  } = useContractData(contractId);
-
-  const unitOpts = useEnumOptions('unit_measure_type') as UnitMeasureTypeValue[];
-
-  const [dirtyFlag, setDirtyFlag] = useState(false);
-  const [openMapModal, setOpenMapModal] = useState(false);
-  const [mapTargetId, setMapTargetId] = useState<string>('');
-  const [tableTarget, setTableTarget] = useState<'contract' | 'wbs' | 'map' | 'line'>('contract');
-  const [existingWKT, setExistingWKT] = useState<string>('');
-
-  const openMapModalFn = (id: string, level: 'contract' | 'wbs' | 'map' | 'line') => {
-    let coordinates: GeometryData | null = null;
-    if (level === 'contract' && contract) coordinates = contract.coordinates;
-    if (level === 'wbs') coordinates = wbsGroups.find(w => w.id === id)?.coordinates || null;
-    if (level === 'map') coordinates = maps.find(m => m.id === id)?.coordinates || null;
-    if (level === 'line') coordinates = lineItems.find(l => l.id === id)?.coordinates || null;
-    setExistingWKT(geometryToWKT(coordinates) ?? '');
-    setMapTargetId(id);
-    setTableTarget(level);
-    setOpenMapModal(true);
-  };
-
-  const totals = useMemo(() => {
-    return wbsGroups.reduce(
-      (acc, w) => ({
-        contractTotal: acc.contractTotal + (w.contractTotal || 0),
-        amountPaid: acc.amountPaid + (w.amountPaid || 0),
-        progress: 0,
-      }),
-      { contractTotal: 0, amountPaid: 0, progress: 0 }
-    );
-  }, [wbsGroups]);
-
-  const addWbs = async () => {
-    if (!contract) return;
-    const newWbs = {
-      contract_id: contract.id,
-      wbs_number: `WBS-${wbsGroups.length + 1}`,
-      description: 'New WBS Section',
-      coordinates: null,
-      budget: 0,
-      scope: 'New scope of work',
-    };
-    const wbsId = await createWBS(newWbs);
-    if (wbsId) {
-      refresh();
-    }
-  };
-
-  const addMap = async (wbsId: string) => {
-    if (!contract) return;
-    const newMap = {
-      contract_id: contract.id,
-      wbs_id: wbsId,
-      map_number: `Map-${maps.filter(m => m.wbs_id === wbsId).length + 1}`,
-      location_description: 'New Map Location',
-      coordinates: null,
-      budget: 0,
-      scope: '',
-    };
-    const mapId = await createMap(newMap);
-    if (mapId) {
-      refresh();
-    }
-  };
-  const addLineItem = async (mapId: string) => {
-    if (!contract) return;
-    const parentMap = maps.find(m => m.id === mapId);
-    if (!parentMap) return;
-
-    const newLine = {
-      contract_id: contract.id,
-      wbs_id: parentMap.wbs_id,
-      map_id: mapId,
-      line_code: `L-${lineItems.filter(l => l.map_id === mapId).length + 1}`,
-      description: 'New Line Item',
-      unit_measure: unitOpts[0],
-      quantity: 0,
-      unit_price: 0,
-      coordinates: null,
-      template_id: null,
-      reference_doc: null,
-      total_cost: 0,
-      amount_paid: 0,
-    };
-    await createLineItem(newLine);
-    refresh();
-  };
-
-  const overallProgress = totals.contractTotal
-    ? Math.round((totals.amountPaid / totals.contractTotal) * 100)
-    : 0;
-
-  const saveAll = async () => {
-    toast.promise(refresh(), {
-      loading: 'Saving...',
-      success: 'Changes saved!',
-      error: 'Save failed',
-    });
-    setDirtyFlag(false);
-  };
-
+  // Fetch contract data
   useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (dirtyFlag) {
-        e.preventDefault();
-        e.returnValue = '';
+    const fetchContractData = async () => {
+      if (!contractId) return;
+      
+      setIsLoading(true);
+      try {
+        // Get contract data
+        const { data: contractData, error: contractError } = await supabase
+          .rpc('get_contract_with_wkt', { contract_id: contractId });
+          
+        if (contractError) throw contractError;
+        
+        if (contractData && contractData.length > 0) {
+          setContract(contractData[0]);
+          setSelectedStatus(contractData[0].status);
+        } else {
+          toast.error('Contract not found');
+          navigate('/dashboard');
+          return;
+        }
+        
+        // Get team members
+        const { data: teamData, error: teamError } = await supabase
+          .rpc('get_profiles_by_contract', { _contract_id: contractId });
+          
+        if (teamError) throw teamError;
+        setTeamMembers(teamData || []);
+        
+      } catch (error) {
+        console.error('Error fetching contract data:', error);
+        toast.error('Failed to load contract data');
+      } finally {
+        setIsLoading(false);
       }
     };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [dirtyFlag]);
 
-  if (loading) {
-    return (
-      <Page>
-        <div className="p-4 text-center text-sm text-gray-500">Loading contract settings...</div>
-      </Page>
-    );
-  }
+    fetchContractData();
+  }, [contractId, navigate]);
 
-  if (error || !contract) {
-    return (
-      <Page>
-        <div className="p-4 text-center text-red-600">
-          <h2 className="text-lg font-semibold">Contract Not Found</h2>
-          <p>{error ?? 'Could not load contract details.'}</p>
-        </div>
-      </Page>
-    );
-  }
+  // Update contract status
+  const handleUpdateStatus = async () => {
+    if (!contractId || !contract) return;
+    
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.rpc(
+        'update_contracts',
+        { 
+          _id: contractId,
+          _data: { status: selectedStatus }
+        }
+      );
+      
+      if (error) throw error;
+      
+      setContract(prev => prev ? { ...prev, status: selectedStatus } : null);
+      toast.success('Contract status updated successfully');
+    } catch (error) {
+      console.error('Error updating contract status:', error);
+      toast.error('Failed to update contract status');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Remove team member
+  const handleRemoveTeamMember = async (userId: string) => {
+    if (!contractId) return;
+    
+    try {
+      const { error } = await supabase.rpc(
+        'remove_profile_from_contract', 
+        { 
+          _contract_id: contractId,
+          _profile_id: userId
+        }
+      );
+      
+      if (error) throw error;
+      
+      setTeamMembers(prev => prev.filter(member => member.id !== userId));
+      toast.success('Team member removed successfully');
+    } catch (error) {
+      console.error('Error removing team member:', error);
+      toast.error('Failed to remove team member');
+    }
+  };
+
+  // Update team member role
+  const handleUpdateTeamMemberRole = async (userId: string, role: UserRole) => {
+    if (!contractId) return;
+    
+    try {
+      const { error } = await supabase.rpc(
+        'update_profile_contract_role', 
+        { 
+          _contract_id: contractId,
+          _profile_id: userId,
+          _role: role
+        }
+      );
+      
+      if (error) throw error;
+      
+      setTeamMembers(prev => prev.map(member => 
+        member.id === userId ? { ...member, role } : member
+      ));
+      toast.success('Team member role updated');
+    } catch (error) {
+      console.error('Error updating team member role:', error);
+      toast.error('Failed to update role');
+    }
+  };
+
+  // Delete contract
+  const handleDeleteContract = async () => {
+    if (!contractId || !contract || deleteConfirmation !== contract.title) return;
+    
+    try {
+      const { error } = await supabase.rpc(
+        'delete_contract',
+        { _contract_id: contractId }
+      );
+      
+      if (error) throw error;
+      
+      toast.success('Contract deleted successfully');
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error deleting contract:', error);
+      toast.error('Failed to delete contract');
+    }
+  };
 
   return (
-    <Page>
-      <PageContainer>
-        <CardSection>
-          <EditableContractSection
-            contract={contract}
-            onChange={(updated) => {
-              updateContract(updated);
-              setDirtyFlag(true);
-            }}
-            onSave={saveAll}
-            onOpenMapModal={() => openMapModalFn(contract.id, 'contract')}
-          />
-
-          {wbsGroups.map(wbs => (
-            <div key={wbs.id} className="mb-4">
-              <EditableWbsItem
-                wbsId={wbs.id}
-                wbsNumber={wbs.wbs_number ?? ''}
-                description={wbs.description ?? ''}
-                onUpdate={(id, updates) => {
-                  updateWBS(id, updates);
-                  setDirtyFlag(true);
-                }}
-                onDelete={() => deleteWBS(wbs.id)}
-                onViewMap={() => openMapModalFn(wbs.id, 'wbs')}
-              />
-
-              {(maps.filter(m => m.wbs_id === wbs.id)).map(map => (
-                <div key={map.id} className="ml-6">
-                  <EditableMapItem
-                    mapId={map.id}
-                    mapNumber={map.map_number ?? ''}
-                    locationDescription={map.location_description ?? ''}
-                    onUpdate={(id, updates) => {
-                      updateMap(id, updates);
-                      setDirtyFlag(true);
-                    }}
-                    onDelete={() => deleteMap(map.id)}
-                    onViewMap={() => openMapModalFn(map.id, 'map')}
-                  />
-
-                  {(lineItems.filter(li => li.map_id === map.id)).map(li => (
-                    <EditableLineItem
-                      key={li.id}
-                      lineId={li.id}
-                      lineCode={li.line_code ?? ''}
-                      description={li.description ?? ''}
-                      quantity={li.quantity ?? 0}
-                      unitPrice={li.unit_price ?? 0}
-                      unitMeasure={li.unit_measure}
-                      onUpdate={(id, updates) => {
-                        updateLineItem(id, updates);
-                        setDirtyFlag(true);
-                      }}
-                      onDelete={() => deleteLineItem(li.id)}
+    <Page title="Contract Settings">
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="mb-6 flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Contract Settings</h1>
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/contract/${contractId}`)}
+          >
+            Back to Dashboard
+          </Button>
+        </div>
+        
+        <div className="space-y-6">
+          {isLoading ? (
+            <Card className="p-8 flex justify-center items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {/* Contract Status */}
+              <Card className="p-6">
+                <h2 className="text-xl font-semibold mb-4">Contract Status</h2>
+                <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                  <div className="w-full md:w-64">
+                    <ContractStatusSelect
+                      value={selectedStatus}
+                      onChange={setSelectedStatus}
                     />
-                  ))}
-
-                  <div className="ml-8 mt-2">
-                    <Button onClick={() => addLineItem(map.id)} size="sm">
-                      + Add Line Item
-                    </Button>
+                  </div>
+                  
+                  <Button
+                    variant="primary"
+                    onClick={handleUpdateStatus}
+                    disabled={isSaving || selectedStatus === contract?.status}
+                    className="mt-2 md:mt-0"
+                  >
+                    {isSaving ? 'Updating...' : 'Update Status'}
+                  </Button>
+                </div>
+              </Card>
+              
+              {/* Team Management */}
+              <Card className="p-6">
+                <h2 className="text-xl font-semibold mb-4">Team Management</h2>
+                
+                {teamMembers.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-gray-800 text-left">
+                          <th className="px-4 py-3 text-sm font-medium">Name</th>
+                          <th className="px-4 py-3 text-sm font-medium">Email</th>
+                          <th className="px-4 py-3 text-sm font-medium">Role</th>
+                          <th className="px-4 py-3 text-sm font-medium">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-700">
+                        {teamMembers.map((member) => (
+                          <tr key={member.id} className="hover:bg-gray-750">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center">
+                                {member.avatar_url ? (
+                                  <img
+                                    src={member.avatar_url}
+                                    alt={member.full_name || 'User'}
+                                    className="w-8 h-8 rounded-full mr-3"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center mr-3">
+                                    {(member.full_name || 'U').charAt(0)}
+                                  </div>
+                                )}
+                                <span>{member.full_name || 'Unnamed User'}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-gray-300">{member.email}</td>
+                            <td className="px-4 py-3">
+                              <select
+                                value={member.role}
+                                onChange={(e) => handleUpdateTeamMemberRole(member.id, e.target.value as UserRole)}
+                                className="bg-gray-700 text-white border-0 rounded-md px-3 py-1.5 text-sm"
+                                disabled={member.id === profile?.id}
+                              >
+                                <option value="admin">Admin</option>
+                                <option value="member">Member</option>
+                                <option value="viewer">Viewer</option>
+                              </select>
+                            </td>
+                            <td className="px-4 py-3">
+                              <Button
+                                variant="danger"
+                                size="xs"
+                                onClick={() => handleRemoveTeamMember(member.id)}
+                                disabled={member.id === profile?.id}
+                              >
+                                Remove
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-gray-400">No team members assigned to this contract.</p>
+                )}
+              </Card>
+              
+              {/* Danger Zone */}
+              <Card className="p-6 border border-red-900 bg-gray-850">
+                <h2 className="text-xl font-semibold mb-4 text-red-400">Danger Zone</h2>
+                <div className="space-y-4">
+                  <div className="mb-4">
+                    <h3 className="text-md font-medium mb-2 text-red-400">Delete Contract</h3>
+                    <p className="text-sm text-gray-400 mb-3">
+                      This will permanently delete the contract and all associated data.
+                    </p>
+                    
+                    {!showDeleteConfirmation ? (
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => setShowDeleteConfirmation(true)}
+                      >
+                        Delete Contract
+                      </Button>
+                    ) : (
+                      <div>
+                        <p className="text-sm text-gray-300 mb-2">
+                          To confirm, please type <strong>{contract.title}</strong> below:
+                        </p>
+                        <input
+                          type="text"
+                          value={deleteConfirmation}
+                          onChange={(e) => setDeleteConfirmation(e.target.value)}
+                          className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 mb-3"
+                        />
+                        <div className="flex space-x-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setShowDeleteConfirmation(false);
+                              setDeleteConfirmation('');
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={handleDeleteContract}
+                            disabled={deleteConfirmation !== contract.title}
+                          >
+                            Confirm Delete
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
-
-              <div className="ml-6 mt-2">
-                <Button onClick={() => addMap(wbs.id)} size="sm">
-                  + Add Map
-                </Button>
-              </div>
+              </Card>
             </div>
-          ))}
-
-          <div className="mt-4">
-            <Button onClick={addWbs} size="sm">
-              + Add WBS
-            </Button>
-          </div>
-
-          <ContractTotalsPanel
-            totalContractValue={totals.contractTotal}
-            amountPaid={totals.amountPaid}
-            progressPercent={overallProgress}
-          />
-
-          <div className="flex justify-end mt-6">
-            <Button
-              variant={dirtyFlag ? 'primary' : 'ghost'}
-              disabled={!dirtyFlag}
-              onClick={saveAll}
-            >
-              Save All Changes
-            </Button>
-          </div>
-        </CardSection>
-      </PageContainer>
-
-      <MapModal
-        open={openMapModal}
-        onClose={() => setOpenMapModal(false)}
-        table={
-          tableTarget === 'contract'
-            ? 'contracts'
-            : tableTarget === 'wbs'
-            ? 'wbs'
-            : tableTarget === 'map'
-            ? 'maps'
-            : 'line_items'
-        }
-        targetId={mapTargetId}
-        existingWKT={existingWKT}
-        onSaveSuccess={() => {
-          setOpenMapModal(false);
-          refresh();
-        }}
-      />
+          )}
+        </div>
+      </div>
     </Page>
   );
-}
+};
+
+export default ContractSettings;

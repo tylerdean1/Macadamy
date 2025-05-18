@@ -1,17 +1,17 @@
-import { supabase } from '@/lib/supabase';
-import { useAuthStore } from '@/lib/store';
-import { validateUserRole } from '@/lib/utils/validate-user-role';
-import type { Profile } from '@/lib/types';
+import { supabase } from "@/lib/supabase";
+import { useAuthStore } from "@/lib/store";
+import { validateUserRole } from "@/lib/utils/validate-user-role";
+import type { EnrichedProfile } from "@/lib/store";
 
 export function useDemoLogin() {
   const { setProfile } = useAuthStore();
 
   return async function loadProfile(
     userId: string,
-    sessionId: string | null = null
-  ): Promise<Profile | null> {
+    sessionId: string | null = null,
+  ): Promise<EnrichedProfile | null> {
     const profileRes = await supabase
-      .from('profiles')
+      .from("profiles")
       .select(
         `
         id, role, full_name, email, username, phone, location,
@@ -19,33 +19,32 @@ export function useDemoLogin() {
         organizations (id, name, address, phone, website),
         job_titles (id, title, is_custom),
         avatars (url)
-        `
+        `,
       )
-      .eq('id', userId)
+      .eq("id", userId)
       .single();
 
     if (profileRes.error || !profileRes.data) {
-      console.error('Failed to load profile:', profileRes.error);
+      console.error("Failed to load profile:", profileRes.error);
       return null;
     }
 
     const pd = profileRes.data;
 
-    const profile: Profile = {
+    const profile: EnrichedProfile = {
       id: pd.id,
-      user_role: validateUserRole(pd.role),
       full_name: pd.full_name,
-      email: pd.email ?? '',
       username: pd.username,
+      email: pd.email ?? "",
       phone: pd.phone,
       location: pd.location,
+      role: validateUserRole(pd.role),
+      job_title_id: pd.job_title_id,
+      organization_id: pd.organization_id,
       avatar_id: pd.avatar_id,
       avatar_url: pd.avatars?.url ?? null,
-      organization_id: pd.organization_id,
-      job_title_id: pd.job_title_id,
-      organizations: pd.organizations || null,
-      job_titles: pd.job_titles || null,
-      is_demo_user: !!pd.session_id, // infer based on presence of session
+      job_title: pd.job_titles?.title ?? null,
+      organization_name: pd.organizations?.name ?? null,
       session_id: sessionId ?? pd.session_id ?? null, // prefer passed session ID
     };
 
