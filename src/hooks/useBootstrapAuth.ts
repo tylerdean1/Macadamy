@@ -31,17 +31,19 @@ export function useBootstrapAuth(): boolean {
   }, [user, profile, authLoading, loadProfile, navigate]);
 
   useEffect((): void => {
-    if (isBootstrapping === false && (authLoading === true || authLoading === false)) {
-      // Example navigation logic (currently commented out as per original structure)
-      // if (!user) {
-      //   console.log("[useBootstrapAuth] No user, navigating to /login.");
-      //   navigate("/login");
-      // } else if (user && !profile) {
-      //   console.log(
-      //     "[useBootstrapAuth] User exists, but no profile, navigating to /create-profile.",
-      //   );
-      //   navigate("/create-profile");
-      // }
+    // Ensure bootstrapping is complete and auth is not actively loading
+    if (isBootstrapping === false && authLoading === false) {
+      // Check if the user object is null or undefined
+      if (!user) {
+        console.log("[useBootstrapAuth] No user, navigating to /login.");
+        navigate("/login");
+      } else if (user && profile === null) {
+        // User exists, but profile is explicitly null (meaning it hasn'''s been loaded or doesn'''t exist)
+        console.log(
+          "[useBootstrapAuth] User exists, but no profile, navigating to /create-profile.",
+        );
+        navigate("/create-profile");
+      }
     }
   }, [user, profile, isBootstrapping, authLoading, navigate]);
 
