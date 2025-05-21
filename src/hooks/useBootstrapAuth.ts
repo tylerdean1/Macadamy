@@ -22,9 +22,18 @@ export function useBootstrapAuth(): boolean {
   useEffect(() => {
     setIsLoading(true); // Set loading true at the start of the effect
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         const supabaseUser = session?.user ?? null;
         setUser(supabaseUser);
+
+        if (event === "PASSWORD_RECOVERY") {
+          console.log(
+            "[useBootstrapAuth] Password recovery event detected, navigating to /update-password",
+          );
+          navigate("/update-password"); // Navigate to the new UpdatePassword page
+          setIsLoading(false);
+          return;
+        }
 
         if (supabaseUser) {
           await loadProfile(supabaseUser.id); // loadProfile should handle its own loading state internally

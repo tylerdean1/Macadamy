@@ -22,6 +22,7 @@ const Issues = lazy(() => import('@/pages/Contract/Issues'));
 const DailyReports = lazy(() => import('@/pages/Contract/DailyReports'));
 const DemoRedirect = lazy(() => import('@/pages/StandardPages/DemoRedirect'));
 const NotFoundPage = lazy(() => import('@/pages/StandardPages/NotFoundPage'));
+const UpdatePassword = lazy(() => import('@/pages/StandardPages/UpdatePassword'));
 
 import { ProtectedRoute } from '@/pages/StandardPages/StandardPageComponents/ProtectedRoute';
 import { Navbar } from '@/pages/StandardPages/StandardPageComponents/Navbar';
@@ -91,6 +92,7 @@ export default function App(): JSX.Element {
           <Route path="/" element={<LandingPage />} />
           <Route path="/demo" element={<DemoRedirect />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/update-password" element={<UpdatePassword />} />
           <Route path="/onboarding" element={<UserOnboarding />} />
 
           {/* Protected */}

@@ -51,94 +51,76 @@ export function useAuth(): Record<string, unknown> {
       identifier: string,
       password: string,
     ): Promise<EnrichedProfile | null> => {
-      // setLoading(true);
       setError(null);
 
-      if (window.sessionStorage.getItem("lastLoginAttempt") !== identifier) {
+      const trimmedIdentifier = identifier.trim(); // Trim identifier once at the beginning
+      const lastAttemptIdentifier = window.sessionStorage.getItem("lastLoginAttempt");
+      if (lastAttemptIdentifier !== trimmedIdentifier) {
         setLoginAttempts(0);
       }
-      window.sessionStorage.setItem("lastLoginAttempt", identifier);
+      window.sessionStorage.setItem("lastLoginAttempt", trimmedIdentifier);
 
-      if (!validateEmail(identifier)) {
+      if (!validateEmail(trimmedIdentifier)) {
         setError("Please enter a valid email address");
         toast.error("Please enter a valid email address");
-        // setLoading(false);
         return null;
       }
 
       try {
-        const { data: userExists } = await supabase
-          .from("profiles")
-          .select("id")
-          .ilike("email", identifier.trim())
-          .maybeSingle();
-
-        if (!userExists) {
-          setError("No account found with this email");
-          toast.error("No account found with this email. Please sign up.");
-          // setLoading(false);
-          return null;
-        }
-
         const { data, error: authError } = await supabase.auth
           .signInWithPassword({
-            email: identifier,
+            email: trimmedIdentifier,
             password,
           });
 
-        if (Boolean(authError) || !data.user) {
-          const newAttempts = loginAttempts + 1;
-          setLoginAttempts(newAttempts);
-          setError((typeof authError?.message === 'string' && authError.message.trim() !== '') ? authError.message : "Login failed");
-          if (newAttempts >= 3) {
-            toast.error(
-              "Too many failed attempts. Try resetting your password.",
-            );
-            navigate("/reset-password");
+        // If there's an authError OR if data is null OR if data.user is null, login failed.
+        if (authError !== null || data === null || data.user === null) {
+          const currentAttempts = loginAttempts + 1;
+          setLoginAttempts(currentAttempts);
+
+          const supabaseErrorMessage = authError?.message; // This can be string or undefined
+          // Display Supabase error message if it's a non-null, non-empty string, otherwise a generic message.
+          const displayMessage = (typeof supabaseErrorMessage === 'string' && supabaseErrorMessage.trim().length > 0)
+            ? supabaseErrorMessage
+            : "Invalid email or password. Please check your credentials.";
+          setError(displayMessage);
+
+          if (currentAttempts >= 3) {
+            toast.error("Too many failed login attempts. Please try resetting your password.");
           } else {
-            toast.error(
-              (typeof authError?.message === 'string' && authError.message.trim() !== '') ? authError.message : "Incorrect password. Please try again.",
-            );
+            toast.error(displayMessage);
           }
-          // setLoading(false);
           return null;
         }
 
+        // Login successful, data.user exists
         setUser(data.user);
-        await useAuthStore.getState().loadProfile(data.user.id); // Load profile via store
+        await useAuthStore.getState().loadProfile(data.user.id);
         const currentProfile = useAuthStore.getState().profile;
 
         if (!currentProfile) {
-          setError(
-            "Failed to load profile. You may need to complete onboarding.",
-          );
-          toast.error(
-            "Failed to load profile. You may need to complete onboarding.",
-          );
-          // Potentially clearAuth() here if profile is essential for logged-in state
-          // setLoading(false);
+          setError("Login successful, but failed to load your profile. Please complete onboarding.");
+          toast.warning("Login successful, but your profile is not yet complete. Redirecting to onboarding.");
+          navigate("/onboarding");
           return null;
         }
 
+        setLoginAttempts(0);
+        window.sessionStorage.removeItem("lastLoginAttempt");
+
         toast.success("Welcome back!");
-        navigate(
-          currentProfile.role === "Admin" ? "/admin/dashboard" : "/dashboard",
-        ); // Example role-based redirect
+        navigate(currentProfile.role === "Admin" ? "/admin/dashboard" : "/dashboard");
         return currentProfile;
+
       } catch (err) {
         console.error("[ERROR] Login error:", err);
-        const message = err instanceof Error
-          ? err.message
-          : "An unexpected error occurred during login";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred during login";
         setError(message);
         toast.error(message);
-        // setLoading(false);
         return null;
-      } finally {
-        // setLoading(false);
       }
     },
-    [navigate, setUser, loginAttempts],
+    [navigate, setUser, loginAttempts, setLoginAttempts, setError, validateEmail],
   );
 
   // --- SIGNUP FUNCTION ---
