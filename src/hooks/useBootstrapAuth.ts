@@ -45,16 +45,20 @@ export function useBootstrapAuth(): boolean {
 
   useEffect(() => {
     if (authStoreLoading === false) {
-      if (!user) {
-        console.log("[useBootstrapAuth] No user, navigating to /login.");
-        navigate("/login");
-      } else if (user && profile === null) {
+      // If a user exists but their profile hasn'''t been loaded or is incomplete,
+      // navigate them to the onboarding page to complete their profile.
+      // We assume that /onboarding is the correct route for profile creation/completion.
+      if (user && profile === null) {
         // Explicitly check profile for null
         console.log(
-          "[useBootstrapAuth] User exists, but no profile, navigating to /create-profile.",
+          "[useBootstrapAuth] User exists, but no profile, navigating to /onboarding.",
         );
-        navigate("/create-profile");
+        navigate("/onboarding"); // Navigate to the existing onboarding route
       }
+      // If there'''s no user (!user), we no longer navigate from here.
+      // Access to protected routes will be handled by the ProtectedRoute component,
+      // which should redirect to the landing page ('/') if the user is not authenticated.
+      // Public routes like '/', '/reset-password', etc., will remain accessible.
     }
   }, [user, profile, authStoreLoading, navigate]);
 
