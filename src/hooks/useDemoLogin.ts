@@ -1,54 +1,112 @@
+import { useCallback, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/lib/store";
-import { validateUserRole } from "@/lib/utils/validate-user-role";
 import type { EnrichedProfile } from "@/lib/store";
+import { cloneDemoData, DemoSession } from "@/lib/utils/cloneDemoData";
+import { toast } from "sonner";
 
-export function useDemoLogin() {
-  const { setProfile } = useAuthStore();
+export function useDemoLogin(): {
+    loading: boolean;
+    error: string | null;
+    loginAsDemoUser: () => Promise<EnrichedProfile | null>;
+} {
+    const { setUser, setProfile } = useAuthStore();
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-  return async function loadProfile(
-    userId: string,
-    sessionId: string | null = null,
-  ): Promise<EnrichedProfile | null> {
-    const profileRes = await supabase
-      .from("profiles")
-      .select(
-        `
-        id, role, full_name, email, username, phone, location,
-        avatar_id, organization_id, job_title_id, session_id,
-        organizations (id, name, address, phone, website),
-        job_titles (id, title, is_custom),
-        avatars (url)
-        `,
-      )
-      .eq("id", userId)
-      .single();
+    const loginAsDemoUser = useCallback(
+        async (): Promise<EnrichedProfile | null> => {
+            setLoading(true);
+            setError(null);
+            let currentToastId: string | number | undefined = undefined;
 
-    if (profileRes.error || !profileRes.data) {
-      console.error("Failed to load profile:", profileRes.error);
-      return null;
-    }
+            try {
+                currentToastId = toast.loading("Preparing demo environment...");
 
-    const pd = profileRes.data;
+                const demoSessionData: DemoSession = await cloneDemoData();
 
-    const profile: EnrichedProfile = {
-      id: pd.id,
-      full_name: pd.full_name,
-      username: pd.username,
-      email: pd.email ?? "",
-      phone: pd.phone,
-      location: pd.location,
-      role: validateUserRole(pd.role),
-      job_title_id: pd.job_title_id,
-      organization_id: pd.organization_id,
-      avatar_id: pd.avatar_id,
-      avatar_url: pd.avatars?.url ?? null,
-      job_title: pd.job_titles?.title ?? null,
-      organization_name: pd.organizations?.name ?? null,
-      session_id: sessionId ?? pd.session_id ?? null, // prefer passed session ID
-    };
+                toast.success("Demo environment ready!", {
+                    id: currentToastId,
+                    duration: 2000,
+                });
+                currentToastId = toast.loading("Logging into demo account..."); // New toast, new ID
 
-    setProfile(profile);
-    return profile;
-  };
+                const demoEmail = typeof import.meta.env.VITE_DEMO_USER_EMAIL === 'string' ? import.meta.env.VITE_DEMO_USER_EMAIL : '';
+                const demoPassword = typeof import.meta.env.VITE_DEMO_USER_PASSWORD === 'string' ? import.meta.env.VITE_DEMO_USER_PASSWORD : '';
+
+                if (demoEmail.length === 0 || demoPassword.length === 0) {
+                    console.error(
+                        "VITE_DEMO_USER_EMAIL or VITE_DEMO_USER_PASSWORD environment variables are not set.",
+                    );
+                    const errMsg = "Demo user credentials are not configured. Please set VITE_DEMO_USER_EMAIL and VITE_DEMO_USER_PASSWORD in your .env file.";
+                    toast.error(errMsg, { id: currentToastId });
+                    throw new Error(errMsg);
+                }
+
+                if (demoEmail === "demo@example.com") {
+                    console.warn(
+                        "Using default demo credentials. Ensure VITE_DEMO_USER_EMAIL and VITE_DEMO_USER_PASSWORD are set in your .env file for a real demo account.",
+                    );
+                }
+
+                const { data: authData, error: authError } = await supabase.auth
+                    .signInWithPassword({
+                        email: demoEmail,
+                        password: demoPassword,
+                    });
+
+                let authErrorMsg = '';
+                if (authError && typeof authError.message === 'string' && authError.message.length > 0) {
+                    authErrorMsg = authError.message;
+                }
+
+                if (authErrorMsg.length > 0 || typeof authData !== 'object' || authData === null || typeof authData.user !== 'object' || authData.user === null) {
+                    const errMsg = authErrorMsg.length > 0 ? authErrorMsg : "Demo login failed. Check credentials or demo account status.";
+                    setError(errMsg);
+                    toast.error(
+                        authErrorMsg.length > 0 ? authErrorMsg : "Demo login failed. Please try again later or contact support.",
+                        { id: currentToastId },
+                    );
+                    return null;
+                }
+
+                setUser(authData.user);
+
+                // Assuming loadProfile itself doesn't manage global loading state in a way that conflicts
+                await useAuthStore.getState().loadProfile(demoSessionData.userId);
+
+                const demoProfile = useAuthStore.getState().profile;
+
+                if (!demoProfile) {
+                    const errMsg = "Failed to load demo profile. The demo account might be incomplete.";
+                    setError(errMsg);
+                    toast.error(
+                        "Failed to load demo profile. Please try again later or contact support.",
+                        { id: currentToastId },
+                    );
+                    return null;
+                }
+
+                setProfile(demoProfile);
+                // Update the current toast to success, or dismiss it if a global login success toast will appear.
+                toast.success("Logged into demo account successfully!", { id: currentToastId });
+                return demoProfile;
+            } catch (err) {
+                const errorMessage = err instanceof Error ? err.message : String(err);
+                setError(errorMessage);
+                if (currentToastId) {
+                    toast.error(errorMessage, { id: currentToastId });
+                } else {
+                    // This case would be rare, e.g. if toast.loading itself failed initially
+                    toast.error(errorMessage);
+                }
+                return null;
+            } finally {
+                setLoading(false);
+            }
+        },
+        [setUser, setProfile],
+    );
+
+    return { loading, error, loginAsDemoUser };
 }

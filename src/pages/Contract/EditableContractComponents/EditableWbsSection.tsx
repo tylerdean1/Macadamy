@@ -1,76 +1,31 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'react-hot-toast';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
-import { EditableWbsItem } from './EditableWbsItem';
 import { supabase } from '@/lib/supabase';
-import { useAuthStore } from '@/lib/store';
-import type { 
-  WbsWithWktRow, 
-  MapsWithWktRow, 
-  LineItemsWithWktRow
-} from '@/lib/rpc.types';
+import { getDemoSession } from '@/lib/utils/cloneDemoData';
+import type { WbsWithWktRow } from '@/lib/rpc.types';
 
 interface EditableWbsSectionProps {
   wbsItems: WbsWithWktRow[];
-  mapItems: MapsWithWktRow[];
-  lineItems: LineItemsWithWktRow[];
   contractId: string;
   onWbsUpdate: (wbs: WbsWithWktRow) => void;
   onWbsCreate: (wbs: WbsWithWktRow) => void;
   onWbsDelete: (wbsId: string) => void;
-  onMapUpdate: (map: MapsWithWktRow) => void;
-  onMapCreate: (map: MapsWithWktRow) => void;
-  onMapDelete: (mapId: string) => void;
 }
 
 export function EditableWbsSection({
   wbsItems,
-  mapItems,
-  lineItems,
   contractId,
   onWbsUpdate,
   onWbsCreate,
-  onWbsDelete,
-  onMapUpdate,
-  onMapCreate,
-  onMapDelete
+  onWbsDelete
 }: EditableWbsSectionProps) {
-  const { profile } = useAuthStore();
   const [isCreatingWbs, setIsCreatingWbs] = useState(false);
   const [newWbsNumber, setNewWbsNumber] = useState('');
   const [newWbsScope, setNewWbsScope] = useState('');
   const [newWbsBudget, setNewWbsBudget] = useState('0');
-
-  // Format currency values
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
-      currency: 'USD' 
-    }).format(amount);
-  };
-
-  // Calculate budget utilization for a WBS
-  const calculateBudgetUtilization = (wbsId: string) => {
-    const items = lineItems.filter(item => item.wbs_id === wbsId);
-    const wbs = wbsItems.find(w => w.id === wbsId);
-    
-    if (!wbs || !items.length || wbs.budget <= 0) return 0;
-    
-    const totalUsed = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
-    return (totalUsed / wbs.budget) * 100;
-  };
-
-  // Get maps count for a WBS
-  const getMapsCount = (wbsId: string) => {
-    return mapItems.filter(map => map.wbs_id === wbsId).length;
-  };
-
-  // Get line items count for a WBS
-  const getLineItemsCount = (wbsId: string) => {
-    return lineItems.filter(item => item.wbs_id === wbsId).length;
-  };
 
   const handleCreateWbs = async () => {
     if (!newWbsNumber.trim()) {
@@ -80,6 +35,7 @@ export function EditableWbsSection({
 
     try {
       const newWbsId = uuidv4();
+      const demoSession = getDemoSession();
       const wbsData = {
         id: newWbsId,
         contract_id: contractId,
@@ -87,23 +43,33 @@ export function EditableWbsSection({
         scope: newWbsScope.trim() || null,
         budget: parseFloat(newWbsBudget) || 0,
         location: '',
-        created_by: profile?.id || '',
+        ...(demoSession ? { session_id: demoSession.sessionId } : {}),
       };
 
       // Use the Supabase RPC call
       const { error } = await supabase.rpc('insert_wbs', { _data: wbsData });
-      
+
       if (error) throw error;
 
       // Get the created WBS to ensure we have all fields
       const { data: newWbsData, error: fetchError } = await supabase
-        .rpc('get_wbs_with_wkt', { contract_id: contractId });
-      
+        .rpc('get_wbs_with_wkt', { contract_id_param: contractId });
+
       if (fetchError) throw fetchError;
-      
+
       const createdWbs = newWbsData.find(wbs => wbs.id === newWbsId);
       if (createdWbs) {
-        onWbsCreate(createdWbs);
+        onWbsCreate({
+          ...createdWbs,
+          budget: 0,
+          coordinates: null,
+          location: '',
+          scope: '',
+          wbs_number: '',
+          created_at: createdWbs.created_at ?? null,
+          updated_at: createdWbs.updated_at ?? null,
+          session_id: createdWbs.session_id ?? null,
+        });
         toast.success('WBS created successfully');
         setIsCreatingWbs(false);
         setNewWbsNumber('');
@@ -122,8 +88,8 @@ export function EditableWbsSection({
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Work Breakdown Structure</h2>
           {!isCreatingWbs && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setIsCreatingWbs(true)}
             >
@@ -175,8 +141,8 @@ export function EditableWbsSection({
                 />
               </div>
               <div className="flex justify-end space-x-3 mt-3">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => {
                     setIsCreatingWbs(false);
@@ -187,10 +153,10 @@ export function EditableWbsSection({
                 >
                   Cancel
                 </Button>
-                <Button 
-                  variant="primary" 
+                <Button
+                  variant="primary"
                   size="sm"
-                  onClick={handleCreateWbs}
+                  onClick={() => { void handleCreateWbs(); }}
                 >
                   Create WBS
                 </Button>
@@ -202,8 +168,8 @@ export function EditableWbsSection({
         {wbsItems.length === 0 && !isCreatingWbs ? (
           <div className="text-center py-8">
             <p className="text-gray-400 mb-4">No WBS items have been created yet</p>
-            <Button 
-              variant="primary" 
+            <Button
+              variant="primary"
               size="sm"
               onClick={() => setIsCreatingWbs(true)}
             >
@@ -213,17 +179,33 @@ export function EditableWbsSection({
         ) : (
           <div className="space-y-4">
             {wbsItems.map(wbs => (
-              <EditableWbsItem
-                key={wbs.id}
-                wbs={wbs}
-                maps={mapItems.filter(map => map.wbs_id === wbs.id)}
-                lineItems={lineItems.filter(item => item.wbs_id === wbs.id)}
-                onUpdate={onWbsUpdate}
-                onDelete={onWbsDelete}
-                onMapUpdate={onMapUpdate}
-                onMapCreate={onMapCreate}
-                onMapDelete={onMapDelete}
-              />
+              <div key={wbs.id} className="p-4 border border-gray-700 rounded-md">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-md font-semibold">{wbs.wbs_number}</h3>
+                  <div className="text-sm text-gray-400">
+                    Budget: {wbs.budget != null ? wbs.budget.toFixed(2) : '0.00'}
+                  </div>
+                </div>
+                <div className="text-sm text-gray-300 mb-2">
+                  {wbs.scope}
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => onWbsUpdate(wbs)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onWbsDelete(wbs.id)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
             ))}
           </div>
         )}

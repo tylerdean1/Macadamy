@@ -19,16 +19,16 @@ import { useAuthStore } from '@/lib/store';
 import { useNavigate, useParams } from 'react-router-dom';
 
 
-// Define the structure for labor record data
-interface LaborRecord {
-  id?: string; // Optional ID for existing records
-  line_item_id: string; // Associated line item ID
-  worker_count: number; // Number of workers involved
-  hours_worked: number; // Number of hours worked
-  work_date: string; // Date of the work done
-  work_type: string; // Type of work performed
-  notes: string; // Additional notes for the work
-}
+// Define a runtime type for labor records (until added to database.types.ts)
+type LaborRecord = {
+  id: string;
+  line_item_id: string;
+  worker_count: number;
+  hours_worked: number;
+  work_date: string;
+  work_type: string;
+  notes: string;
+};
 
 // Available work types for selection
 const WORK_TYPES = [
@@ -44,7 +44,7 @@ const WORK_TYPES = [
   'Other'
 ];
 
-export function LaborRecords() {
+export default function LaborRecords() {
   const navigate = useNavigate();
   const params = useParams();
   const { id } = params; // Get the contract ID from route parameters
@@ -52,7 +52,8 @@ export function LaborRecords() {
   const [loading] = useState(true); // Loading state for fetching records
   const [isCreating, setIsCreating] = useState(false); // State to manage log creation
   const [newRecord, setNewRecord] = useState<LaborRecord>({ // Initial state for new record form
-    line_item_id: id || '',
+    id: crypto.randomUUID(), // Generate a unique ID for the new record
+    line_item_id: typeof id === 'string' && id.trim() !== '' ? id : '',
     worker_count: 1, // Default to 1 worker
     hours_worked: 8, // Default to 8 hours worked
     work_date: new Date().toISOString().split('T')[0], // Default to today's date
@@ -66,24 +67,49 @@ export function LaborRecords() {
     try {
       // Note: There's no RPC function available for labor_records yet, so we need to use direct table access
       // TODO: When get_labor_records RPC becomes available, replace this with RPC call
-      // @ts-expect-error - Ignore type checking for table that isn't in database.types.ts yet
-      const { data, error } = await supabase
-        .from('labor_records')
+      // @ts-expect-error labor_records not in database.types.ts
+      const { data, error } = await supabase.from('labor_records')
         .select('*')
-        .eq('line_item_id', id || '')
+        .eq('line_item_id', typeof id === 'string' && id.trim() !== '' ? id : '')
         .order('work_date', { ascending: false });
-  
+
       if (error) throw error;
-      // @ts-expect-error - Type conversion needed since labor_records schema isn't defined in types
-      setRecords(data || []);
+      // --- Fix for type errors and type guards (lines 78-88) ---
+      // Helper to safely extract and cast property
+      function getString(obj: Record<string, unknown>, key: string, fallback = ''): string {
+        const val = obj[key];
+        return typeof val === 'string' ? val : fallback;
+      }
+      function getNumber(obj: Record<string, unknown>, key: string, fallback = 0): number {
+        const val = obj[key];
+        return typeof val === 'number' ? val : fallback;
+      }
+      // Normalize and map data to ensure all required fields are present
+      const validLaborRecords: LaborRecord[] = Array.isArray(data)
+        ? data
+          .filter((item) => typeof item === 'object' && item !== null)
+          .map((item) => {
+            const rec = item as Record<string, unknown>;
+            return {
+              id: getString(rec, 'id', crypto.randomUUID()),
+              line_item_id: getString(rec, 'line_item_id', typeof id === 'string' && id.trim() !== '' ? id : ''),
+              worker_count: getNumber(rec, 'worker_count', 1),
+              hours_worked: getNumber(rec, 'hours_worked', 0),
+              work_date: getString(rec, 'work_date', new Date().toISOString().split('T')[0]),
+              work_type: getString(rec, 'work_type', ''),
+              notes: getString(rec, 'notes', '')
+            };
+          })
+        : [];
+      setRecords(validLaborRecords);
     } catch (error) {
       console.error('Error fetching labor records:', error);
       setRecords([]);
     }
   }, [id]); // ✅ dependency: id
-  
+
   useEffect(() => {
-    fetchRecords();
+    void fetchRecords();
   }, [fetchRecords]); // ✅ no ESLint warning now
 
   // Handle submission of the new labor record form
@@ -91,24 +117,31 @@ export function LaborRecords() {
     e.preventDefault(); // Prevent default form submission behavior
     if (!user) return; // Ensure user is authenticated
 
+    const { worker_count, hours_worked, work_date, work_type, notes } = newRecord;
+
     try {
       // Note: There's no insert_labor_records RPC function available yet, so we need to use direct table access
       // TODO: When insert_labor_records RPC becomes available, replace this with RPC call
-      // @ts-expect-error - Ignore type checking for table that isn't in database.types.ts yet
-      const { error } = await supabase
-        .from('labor_records')
-        .insert({
-          ...newRecord,
-          created_by: user.id // Link the record to the current user
-        });
+      // @ts-expect-error labor_records not in database.types.ts
+      const { error: insertError } = await supabase.from('labor_records').insert({
+        id: crypto.randomUUID(), // Generate a unique ID for the new record
+        line_item_id: typeof id === 'string' && id.trim() !== '' ? id : '',
+        worker_count,
+        hours_worked,
+        work_date,
+        work_type,
+        notes,
+      } as unknown);
 
-      if (error) throw error; // Handle errors during insertion
+      if (insertError) throw insertError; // Handle errors during insertion
 
       setIsCreating(false); // Close the creation form
-      fetchRecords(); // Refresh the records list
+      // Fix: void fetchRecords()
+      void fetchRecords(); // Refresh the records list
       // Reset the newRecord state to initial values
       setNewRecord({
-        line_item_id: id || '',
+        id: crypto.randomUUID(),
+        line_item_id: typeof id === 'string' && id.trim() !== '' ? id : '',
         worker_count: 1,
         hours_worked: 8,
         work_date: new Date().toISOString().split('T')[0],
@@ -157,7 +190,7 @@ export function LaborRecords() {
         {/* New labor record creation form */}
         {isCreating && (
           <div className="mb-8 bg-background-light rounded-lg border border-background-lighter p-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={e => { void handleSubmit(e); }} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-400 mb-1">

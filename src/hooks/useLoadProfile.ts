@@ -1,46 +1,43 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import type { Database } from '@/lib/database.types';
+import { rpcClient } from '@/lib/rpc.client';
+import type { EnrichedProfile } from '@/lib/store';
 
-type UserRole = Database['public']['Enums']['user_role'];
-
-export interface EnrichedProfile {
-  id: string;
-  full_name: string;
-  username: string | null;
-  email: string;
-  phone: string | null;
-  location: string | null;
-  role: UserRole;
-  job_title_id: string | null;
-  organization_id: string | null;
-  avatar_id: string | null;
-  avatar_url: string | null;
-  job_title: string | null;
-  organization_name: string | null;
-  session_id: string | null;
-}
-
+/**
+ * Custom hook to load an enriched profile for a given user ID.
+ * Note: Consider using `useAuthStore` for managing the authenticated user's profile,
+ * as this hook provides local state and might be redundant if the profile
+ * is already managed globally by `useAuthStore`.
+ * This hook could be useful for loading profiles of users other than the authenticated one,
+ * if that's a requirement.
+ */
 export function useLoadProfile(userId: string | null): EnrichedProfile | null {
   const [profile, setProfile] = useState<EnrichedProfile | null>(null);
-
   useEffect(() => {
-    if (!userId) return;
+    if (userId == null || userId === '') {
+      setProfile(null); // Clear profile if no userId
+      return;
+    }
 
-    const fetchProfile = async () => {
-      const { data, error } = await supabase.rpc('get_enriched_profile', {
-        _user_id: userId,
-      });
+    const fetchProfile = async (): Promise<void> => {
+      try {
+        const data = await rpcClient.getEnrichedProfile({
+          _user_id: userId,
+        });
 
-      if (error || !data) {
-        console.error('Failed to fetch enriched profile:', error);
-        return;
+        if (!data) {
+          console.warn('[useLoadProfile] No profile data found for user ID:', userId);
+          setProfile(null);
+          return;
+        }
+
+        setProfile(data as EnrichedProfile); // Assuming data matches EnrichedProfile
+      } catch (e) {
+        console.error('[useLoadProfile] Unexpected error fetching profile:', e);
+        setProfile(null);
       }
-
-      setProfile(data[0]);
     };
 
-    fetchProfile();
+    void fetchProfile();
   }, [userId]);
 
   return profile;

@@ -31,7 +31,7 @@ interface DailyLog {
  * logs while pulling and displaying data from Supabase. The component includes
  * state management for loading status, current log details, and the list of logs.
  */
-export function DailyReports() {
+export default function DailyReports() {
   const { id: contract_id } = useParams(); // Extract contract ID from route parameters
   const navigate = useNavigate(); // Use navigate for routing
   const user = useAuthStore(state => state.user); // Fetch the current user from the auth store
@@ -47,35 +47,46 @@ export function DailyReports() {
   // Fetch daily logs based on contract ID using RPC
   useEffect(() => {
     async function fetchData() {
+      if (typeof contract_id !== 'string' || contract_id.length === 0) return;
       try {
-        // Use get_daily_logs RPC to fetch logs 
         const { data, error } = await supabase
-          .rpc('get_daily_logs', { contract_id: contract_id })
-          .order('log_date', { ascending: false }); // Order logs by log date
-
-        if (error) throw error; // Handle fetch errors
-        setLogs(data || []); // Update logs state
+          .rpc('get_daily_logs', { _contract_id: contract_id });
+        if (error) throw error;
+        // Map and coerce fields to match DailyLog interface
+        const logs: DailyLog[] = Array.isArray(data)
+          ? data.map((log) => ({
+            ...log,
+            contract_id: contract_id,
+            temperature: typeof log.temperature === 'string' ? parseFloat(log.temperature) : log.temperature,
+            weather_conditions: log.weather_conditions ?? null,
+            work_performed: log.work_performed ?? null,
+            delays_encountered: log.delays_encountered ?? null,
+            visitors: log.visitors ?? null,
+            safety_incidents: log.safety_incidents ?? null,
+          }))
+          : [];
+        setLogs(logs);
       } catch (err) {
-        console.error('Failed to fetch daily logs:', err); // Log errors for debugging
+        console.error('Failed to fetch daily logs:', err);
       } finally {
-        setLoading(false); // Hide loading indicator after fetch
+        setLoading(false);
       }
     }
-    
-    fetchData(); // Invoke data fetch
+
+    void fetchData(); // Invoke data fetch
   }, [contract_id]); // Dependency on contract ID
 
   // Check contract status upon component mount using RPC
   useEffect(() => {
     async function fetchContractStatus() {
-      if (!contract_id) return;
-      
+      if (typeof contract_id !== 'string' || contract_id.length === 0) return;
+
       try {
         const { data, error } = await supabase
           .rpc('get_contract_with_wkt', { contract_id: contract_id });
 
-        if (error) throw error; // Handle fetch errors
-        if (data && data.length > 0) {
+        if (error) throw error;
+        if (Array.isArray(data) && data.length > 0 && typeof data[0].status === 'string') {
           setContractStatus(data[0].status); // Set the contract status from the RPC result
         }
       } catch (err) {
@@ -85,12 +96,39 @@ export function DailyReports() {
       }
     }
 
-    fetchContractStatus(); // Call function to check contract status
+    void fetchContractStatus(); // Call function to check contract status
   }, [contract_id]); // Dependency on contract ID
+
+  // Move fetchData to top-level so it can be called from handleUpdate
+  async function fetchData() {
+    if (typeof contract_id !== 'string' || contract_id.length === 0) return;
+    try {
+      const { data, error } = await supabase
+        .rpc('get_daily_logs', { _contract_id: contract_id });
+      if (error) throw error;
+      const logs: DailyLog[] = Array.isArray(data)
+        ? data.map((log) => ({
+          ...log,
+          contract_id: contract_id,
+          temperature: typeof log.temperature === 'string' ? parseFloat(log.temperature) : log.temperature,
+          weather_conditions: log.weather_conditions ?? null,
+          work_performed: log.work_performed ?? null,
+          delays_encountered: log.delays_encountered ?? null,
+          visitors: log.visitors ?? null,
+          safety_incidents: log.safety_incidents ?? null,
+        }))
+        : [];
+      setLogs(logs);
+    } catch (err) {
+      console.error('Failed to fetch daily logs:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   // Handle updates to the daily log using RPC
   const handleUpdate = async () => {
-    if (!currentLog || !user || !currentLog.id) return; // Ensure user is authenticated and there is a log with a valid ID to update
+    if (!currentLog || typeof user !== 'object' || user === null || typeof currentLog.id !== 'string' || currentLog.id.length === 0) return;
 
     try {
       // Use RPC function to update daily log
@@ -106,9 +144,9 @@ export function DailyReports() {
         }
       });
 
-      if (error) throw error; // Handle error during update
-      setEditing(false); // Reset editing state
-      fetchData(); // Refresh logs after update
+      if (error) throw error;
+      setEditing(false);
+      void fetchData(); // Refresh logs after update
     } catch (err) {
       console.error('Error updating daily log:', err); // Log errors
     }
@@ -228,7 +266,7 @@ export function DailyReports() {
                 Cancel
               </button>
               <button
-                onClick={handleUpdate} // Call update function on save
+                onClick={() => { void handleUpdate(); }} // Call update function on save
                 className="flex items-center px-4 py-2 bg-primary text-white rounded hover:bg-primary-hover"
               >
                 <Save className="w-5 h-5 mr-2" /> Save {/* Save button */}
@@ -249,17 +287,17 @@ export function DailyReports() {
                   <h3 className="text-white font-semibold text-lg">
                     {new Date(log.log_date).toLocaleDateString()} {/* Display log date */}
                   </h3>
-                  <p className="text-gray-400 text-sm">Created by {log.created_by || '—'}</p>
+                  <p className="text-gray-400 text-sm">Created by {typeof log.created_by === 'string' && log.created_by.length > 0 ? log.created_by : '—'}</p>
                 </div>
                 <div className="text-sm text-gray-400">
                   {log.weather_conditions} | {log.temperature}°F {/* Display weather and temperature */}
                 </div>
               </div>
               <p className="text-gray-300 text-sm mb-1">
-                <strong>Visitors:</strong> {log.visitors || '—'}
+                <strong>Visitors:</strong> {typeof log.visitors === 'string' && log.visitors.length > 0 ? log.visitors : '—'}
               </p>
               <p className="text-gray-300 text-sm">
-                <strong>Safety:</strong> {log.safety_incidents || '—'}
+                <strong>Safety:</strong> {typeof log.safety_incidents === 'string' && log.safety_incidents.length > 0 ? log.safety_incidents : '—'}
               </p>
             </div>
           ))}
@@ -267,20 +305,4 @@ export function DailyReports() {
       </div>
     </div>
   );
-}
-
-async function fetchData() {
-  if (!contract_id) return;
-  
-  try {
-    // Use get_daily_logs RPC to fetch logs 
-    const { data, error } = await supabase
-      .rpc('get_daily_logs', { contract_id: contract_id })
-      .order('log_date', { ascending: false });
-
-    if (error) throw error;
-    setLogs(data || []);
-  } catch (error) {
-    console.error('Error fetching daily logs:', error);
-  }
 }

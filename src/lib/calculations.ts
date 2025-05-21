@@ -51,7 +51,7 @@ export interface LineItem {
  * @param {LineItem} item - The line item to process.
  * @returns {LineItem & { contractTotal: number; amountPaid: number; progress: number; }} - The processed line item with additional calculations.
  */
-export function processLineItem(item: LineItem) {
+export function processLineItem(item: LineItem): LineItem & { contractTotal: number; amountPaid: number; progress: number; } {
   const contractTotal = calculateContractTotal(item.quantity, item.unitPrice);
   const amountPaid = calculateAmountPaid(item.quantityToDate, item.unitPrice);
   const progress = calculateProgress(amountPaid, contractTotal);

@@ -34,7 +34,6 @@ export function GeometryButton({
   onSaveSuccess,
   disabled = false,
 }: GeometryButtonProps) {
-  const [hover, setHover] = useState(false);
   const [open, setOpen] = useState(false);
 
   // Validate required props
@@ -69,17 +68,21 @@ export function GeometryButton({
     <div className="relative inline-block">
       {/* Clickable text / icon */}
       <div
-        onMouseEnter={() => !isDisabled && hasValidGeometry && setHover(true)}
-        onMouseLeave={() => setHover(false)}
+        onMouseEnter={() => {
+          if (typeof isDisabled === 'boolean' && isDisabled) return;
+          if (typeof hasValidGeometry === 'boolean' && hasValidGeometry) {
+            // setHover(true); // Remove or replace with actual logic if needed
+          }
+        }}
+        onMouseLeave={() => { }}
         className="inline-block"
       >
         <button
           onClick={handleButtonClick}
-          className={`text-sm flex items-center gap-1 ${
-            isDisabled
-              ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
-              : 'text-blue-600 dark:text-blue-400 hover:underline'
-          }`}
+          className={`text-sm flex items-center gap-1 ${isDisabled
+            ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+            : 'text-blue-600 dark:text-blue-400 hover:underline'
+            }`}
           disabled={isDisabled}
           type="button"
         >
@@ -88,7 +91,7 @@ export function GeometryButton({
         </button>
 
         {/* Hover map preview - only show if we have valid geometry */}
-        {hover && hasValidGeometry && (
+        {typeof hasValidGeometry === 'boolean' && hasValidGeometry && (
           <div
             className="absolute top-full left-1/2 mt-2 -translate-x-1/2 z-50 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg pointer-events-none overflow-hidden"
             role="tooltip"
@@ -106,7 +109,7 @@ export function GeometryButton({
       </div>
 
       {/* Editing modal - only render when needed */}
-      {!isDisabled && (
+      {!isDisabled && open && (
         <MapModal
           open={open}
           onClose={() => setOpen(false)}

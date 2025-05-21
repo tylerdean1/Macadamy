@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { BudgetTracker } from '../SharedComponents/BudgetProgressBar';
-import type { 
-  LineItemsWithWktRow, 
+import type {
+  LineItemsWithWktRow,
   WbsWithWktRow
 } from '@/lib/rpc.types';
 
@@ -28,11 +28,11 @@ export const LineItemsTable: React.FC<LineItemsTableProps> = ({
 }) => {  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  
+
   // Sorting state
   const [sortBy, setSortBy] = useState<SortableColumn>('line_code');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  
+
   // Filtering/search state
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWbs, setSelectedWbs] = useState<string>('');
@@ -58,9 +58,9 @@ export const LineItemsTable: React.FC<LineItemsTableProps> = ({
 
   // Format currency values
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
-      currency: 'USD' 
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
     }).format(amount);
   };
 
@@ -72,10 +72,10 @@ export const LineItemsTable: React.FC<LineItemsTableProps> = ({
           item.description.toLowerCase().includes(searchTerm.toLowerCase()) &&
           (selectedWbs ? item.wbs_id === selectedWbs : true)
         );
-      })      .sort((a, b) => {
+      }).sort((a, b) => {
         let aValue: string | number | null | undefined; // Allow for null/undefined
         let bValue: string | number | null | undefined; // Allow for null/undefined
-        
+
         // Handle special calculated values
         if (sortBy === 'total') {
           aValue = (a.quantity ?? 0) * (a.unit_price ?? 0);
@@ -94,20 +94,20 @@ export const LineItemsTable: React.FC<LineItemsTableProps> = ({
           // Since mapItems is removed, direct map_id sorting or remove this sort option
           aValue = a.map_id ?? '';
           bValue = b.map_id ?? '';
-        } else {          
+        } else {
           aValue = a[sortBy];
           bValue = b[sortBy];
         }
-        
+
         // Ensure consistent comparison for potentially null/undefined values
         if (aValue == null && bValue != null) return sortDirection === 'asc' ? -1 : 1;
         if (aValue != null && bValue == null) return sortDirection === 'asc' ? 1 : -1;
         if (aValue == null && bValue == null) return 0;
 
-        if (aValue! < bValue!) {
+        if (aValue < bValue) {
           return sortDirection === 'asc' ? -1 : 1;
         }
-        if (aValue! > bValue!) {
+        if (aValue > bValue) {
           return sortDirection === 'asc' ? 1 : -1;
         }
         return 0;
@@ -287,16 +287,17 @@ export const LineItemsTable: React.FC<LineItemsTableProps> = ({
                   const lineTotal = item.quantity * item.unit_price;
                   const wbs = wbsItems.find(w => w.id === item.wbs_id);
                   const wbsBudget = wbs ? wbs.budget : 0;
-                  const percentUsed = calculateBudgetPercent(item.quantity, item.unit_price, wbsBudget);
+                  // Fix: Ensure all arguments to calculateBudgetPercent are numbers, not null
+                  const percentUsed = calculateBudgetPercent(item.quantity ?? 0, item.unit_price ?? 0, wbsBudget ?? 0);
                   const isOverBudget = percentUsed > 100;
-                  
+
                   return (
                     <tr key={item.id} className="hover:bg-gray-800">
                       <td className="px-3 py-3 text-sm">{item.line_code}</td>
                       <td className="px-3 py-3 text-sm">{item.description}</td>
                       <td className="px-3 py-3 text-sm">{getWbsLabel(item.wbs_id)}</td>
                       {/* Display for map_id will now show the ID directly or 'N/A' */}
-                      <td className="px-3 py-3 text-sm">{item.map_id || 'N/A'}</td>
+                      <td className="px-3 py-3 text-sm">{item.map_id != null && item.map_id !== '' ? item.map_id : 'N/A'}</td>
                       <td className="px-3 py-3 text-sm text-right">
                         {(item.quantity ?? 0).toFixed(2)} {item.unit_measure}
                       </td>
@@ -304,8 +305,8 @@ export const LineItemsTable: React.FC<LineItemsTableProps> = ({
                       <td className="px-3 py-3 text-sm text-right">{formatCurrency(lineTotal)}</td>                      <td className="px-3 py-3 text-center">
                         <div className="flex items-center justify-center gap-2">
                           <div className="w-24">
-                            <BudgetTracker 
-                              percentUsed={percentUsed} 
+                            <BudgetTracker
+                              percentUsed={percentUsed}
                               isOverBudget={isOverBudget}
                               className="scale-90"
                             />

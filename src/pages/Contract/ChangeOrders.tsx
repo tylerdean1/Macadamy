@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'; // Import hooks for r
 import { ArrowLeft } from 'lucide-react'; // Import arrow icon for navigation
 import { supabase } from '@/lib/supabase'; // Import Supabase client
 import { useAuthStore } from '@/lib/store'; // Import auth store to get user
+import { getDemoSession } from '@/lib/utils/cloneDemoData'; // Import demo session utility
 
 /** 
  * Change Order interface representing a change order record.
@@ -27,7 +28,6 @@ interface ChangeOrder {
  */
 interface LineItem {
   id: string; // ID of the line item
-  line_code: string; // Code for the line item
   description: string; // Description of the line item
 }
 
@@ -52,7 +52,7 @@ const getStatusColor = (status: string): string => {
 };
 
 // ChangeOrders component for displaying and managing change orders
-export function ChangeOrders() {
+export default function ChangeOrders() {
   const { id: contract_id } = useParams(); // Extract contract ID from route parameters
   const navigate = useNavigate(); // Use the navigate hook for route navigation
   const user = useAuthStore(state => state.user); // Get current user from auth store
@@ -72,43 +72,41 @@ export function ChangeOrders() {
     // Fetch change orders and line items on component mount
     async function fetchData() {
       try {
-        // Fetch line items using RPC
+        // Use contract_id_param for get_line_items_with_wkt and contract_id for get_change_orders
+        const safeContractId = typeof contract_id === 'string' && contract_id.length > 0 ? contract_id : '';
         const lineItemRes = await supabase
-          .rpc('get_line_items_with_wkt', { contract_id: contract_id || '' });
-          
-        // Use the get_change_orders RPC function
+          .rpc('get_line_items_with_wkt', { contract_id_param: safeContractId });
         const orderRes = await supabase
-          .rpc('get_change_orders', { 
-            contract_id: contract_id || '' 
-          });
+          .rpc('get_change_orders', { contract_id: safeContractId });
 
         if (orderRes.error) throw orderRes.error;
         if (lineItemRes.error) throw lineItemRes.error;
 
         // Ensure the data conforms to the ChangeOrder interface
-        const typedOrders = orderRes.data?.map(order => ({
-          id: order.id,
-          contract_id: contract_id || '', // RPC doesn't return contract_id, so we use the route param
-          line_item_id: order.line_item_id || '',
-          title: order.title || '',
-          description: order.description || undefined,
-          new_quantity: order.new_quantity || 0,
-          new_unit_price: order.new_unit_price || undefined,
-          status: order.status || 'draft',
-          submitted_date: order.submitted_date || undefined,
-          approved_date: order.approved_date || undefined,
-          approved_by: order.approved_by || undefined,
-          attachments: order.attachments || undefined,
-        })) as ChangeOrder[];
-        
+        const typedOrders = Array.isArray(orderRes.data)
+          ? orderRes.data.map(order => ({
+            id: order.id,
+            contract_id: safeContractId,
+            line_item_id: order.line_item_id ?? '',
+            title: order.title ?? '',
+            description: order.description ?? undefined,
+            new_quantity: order.new_quantity ?? 0,
+            new_unit_price: order.new_unit_price ?? undefined,
+            status: order.status ?? 'draft',
+            submitted_date: order.submitted_date ?? undefined,
+            approved_date: order.approved_date ?? undefined,
+            approved_by: order.approved_by ?? undefined,
+            attachments: Array.isArray(order.attachments) ? order.attachments : undefined,
+          }))
+          : [];
         setOrders(typedOrders);
-        
-        const lineItemData = lineItemRes.data?.map(item => ({
-          id: item.id,
-          line_code: item.line_code,
-          description: item.description
-        })) || [];
-        
+
+        const lineItemData = Array.isArray(lineItemRes.data)
+          ? lineItemRes.data.map(item => ({
+            id: item.id,
+            description: item.description ?? ''
+          }))
+          : [];
         setLineItems(lineItemData);
       } catch (err) {
         console.error('Error fetching change orders or line items:', err);
@@ -116,13 +114,14 @@ export function ChangeOrders() {
         setLoading(false);
       }
     }
-    fetchData(); // Call data fetching function
+    void fetchData(); // Call data fetching function
   }, [contract_id]); // Dependency to refetch on contract ID change
 
   // Handle creating a new change order
   const handleCreateOrder = async () => {
-    if (!newOrder.title || !newOrder.line_item_id) return; // Ensure necessary fields are filled
-    
+    if (typeof newOrder.title !== 'string' || newOrder.title.length === 0 || typeof newOrder.line_item_id !== 'string' || newOrder.line_item_id.length === 0) return; // Ensure necessary fields are filled
+
+    const demoSession = getDemoSession();
     // Use the insert_change_orders RPC function instead of direct table access
     const { error } = await supabase.rpc('insert_change_orders', {
       _data: {
@@ -132,8 +131,9 @@ export function ChangeOrders() {
         line_item_id: newOrder.line_item_id,
         new_quantity: newOrder.new_quantity,
         new_unit_price: newOrder.new_unit_price,
-        status: newOrder.status || 'draft',
-        created_by: user?.id
+        status: typeof newOrder.status === 'string' && newOrder.status.length > 0 ? newOrder.status : 'draft',
+        created_by: user?.id,
+        ...(demoSession ? { session_id: demoSession.sessionId } : {}),
       }
     });
 
@@ -145,28 +145,26 @@ export function ChangeOrders() {
     // Refresh orders after creating a new one using the get_change_orders RPC
     try {
       const orderRes = await supabase
-        .rpc('get_change_orders', { 
-          contract_id: contract_id || '' 
+        .rpc('get_change_orders', {
+          contract_id: typeof contract_id === 'string' && contract_id.length > 0 ? contract_id : ''
         });
-        
       if (orderRes.error) throw orderRes.error;
-      
-      // Ensure the data conforms to the ChangeOrder interface
-      const typedOrders = orderRes.data?.map(order => ({
-        id: order.id,
-        contract_id: contract_id || '', // RPC doesn't return contract_id, so we use the route param
-        line_item_id: order.line_item_id || '',
-        title: order.title || '',
-        description: order.description || undefined,
-        new_quantity: order.new_quantity || 0,
-        new_unit_price: order.new_unit_price || undefined,
-        status: order.status || 'draft',
-        submitted_date: order.submitted_date || undefined,
-        approved_date: order.approved_date || undefined,
-        approved_by: order.approved_by || undefined,
-        attachments: order.attachments || undefined,
-      })) as ChangeOrder[];
-      
+      const typedOrders = Array.isArray(orderRes.data)
+        ? orderRes.data.map(order => ({
+          id: order.id,
+          contract_id: typeof contract_id === 'string' && contract_id.length > 0 ? contract_id : '',
+          line_item_id: order.line_item_id ?? '',
+          title: order.title ?? '',
+          description: order.description ?? undefined,
+          new_quantity: order.new_quantity ?? 0,
+          new_unit_price: order.new_unit_price ?? undefined,
+          status: order.status ?? 'draft',
+          submitted_date: order.submitted_date ?? undefined,
+          approved_date: order.approved_date ?? undefined,
+          approved_by: order.approved_by ?? undefined,
+          attachments: Array.isArray(order.attachments) ? order.attachments : undefined,
+        }))
+        : [];
       setOrders(typedOrders);
       setNewOrder({
         title: '',
@@ -224,7 +222,7 @@ export function ChangeOrders() {
             <option value="">Select Line Item</option> {/* Prompt for selection */}
             {lineItems.map((li) => (
               <option key={li.id} value={li.id}>
-                {li.line_code} – {li.description} {/* Display line item code and description */}
+                {li.description} {/* Display line item code and description */}
               </option>
             ))}
           </select>
@@ -244,13 +242,13 @@ export function ChangeOrders() {
           />
           <textarea
             placeholder="Description"
-            value={newOrder.description || ''}
+            value={typeof newOrder.description === 'string' ? newOrder.description : ''}
             onChange={(e) => setNewOrder({ ...newOrder, description: e.target.value })} // Update description
             className="border rounded p-2 col-span-full"
           />
         </div>
         <button
-          onClick={handleCreateOrder} // Call create order function on click
+          onClick={() => { void handleCreateOrder(); }} // Call create order function on click
           className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
         >
           Submit Change Order
@@ -281,7 +279,7 @@ export function ChangeOrders() {
                   onClick={() => navigate(`/contracts/${contract_id}/change-orders/${order.id}`)} // Navigate to order details
                 >
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">{order.title}</td> {/* Render order title */}
-                  <td className="px-6 py-4 text-sm text-gray-700">{lineItems.find(li => li.id === order.line_item_id)?.description || 'Unknown'}</td> {/* Render line item description */}
+                  <td className="px-6 py-4 text-sm text-gray-700">{(() => { const found = lineItems.find(li => li.id === order.line_item_id); return (found && typeof found.description === 'string' && found.description.length > 0) ? found.description : 'Unknown'; })()}</td> {/* Render line item description */}
                   <td className="px-6 py-4 text-sm text-gray-900">{order.new_quantity}</td> {/* Render new quantity */}
                   <td className="px-6 py-4 text-sm text-gray-900">{order.new_unit_price ?? '—'}</td> {/* Render new unit price */}
                   <td className="px-6 py-4 text-sm">
@@ -289,7 +287,7 @@ export function ChangeOrders() {
                       {order.status} {/* Render order status */}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{order.submitted_date ? new Date(order.submitted_date).toLocaleDateString() : '—'}</td> {/* Render submission date */}
+                  <td className="px-6 py-4 text-sm text-gray-500">{typeof order.submitted_date === 'string' && order.submitted_date.length > 0 ? new Date(order.submitted_date).toLocaleDateString() : '—'}</td> {/* Render submission date */}
                 </tr>
               ))}
             </tbody>

@@ -39,3 +39,6 @@ lerna-debug.log*
 # Supabase
 .branches
 .temp
+
+# Python cache
+__pycache__/

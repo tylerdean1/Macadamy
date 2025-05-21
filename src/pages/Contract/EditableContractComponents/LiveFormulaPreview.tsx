@@ -1,68 +1,77 @@
 import React from 'react';
 import { evaluate } from 'mathjs';
-import type { Variable } from '@/lib/formula.types';
+import type { CalculatorTemplate } from '@/lib/formula.types';
 import { CheckCircle, XCircle, RefreshCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface LiveFormulaPreviewProps {
-  formula: string;
-  variables: Variable[];
+  calculator: CalculatorTemplate;
 }
 
 export const LiveFormulaPreview: React.FC<LiveFormulaPreviewProps> = ({
-  formula,
-  variables,
+  calculator,
 }) => {
-  const { result, missing, isValid, unit } = React.useMemo(() => {
-    if (!formula || variables.length === 0) {
-      return {
-        result: null,
-        missing: [],
-        isValid: false,
-        unit: null,
-      };
-    }
+  const formula = calculator.formula?.expression ?? '';
+  const variables = calculator.variables;
 
-    const scope: Record<string, number> = {};
-    const missing: string[] = [];
+  const { result, missing, isValid, unit } = React.useMemo<{
+    result: number | null;
+    missing: string[];
+    isValid: boolean;
+    unit: string | null;
+  }>(
+    () => {
+      if (!formula || !Array.isArray(variables) || variables.length === 0) {
+        return {
+          result: null,
+          missing: [],
+          isValid: false,
+          unit: null,
+        };
+      }
 
-    for (const v of variables) {
-      if (v.name && v.value !== undefined && v.value !== '') {
-        const parsed = parseFloat(String(v.value));
-        if (!isNaN(parsed)) {
-          scope[v.name] = parsed;
+      const scope: Record<string, number> = {};
+      const missing: string[] = [];
+
+      for (const v of variables) {
+        if (v.name && v.value !== undefined && v.value !== '') {
+          const parsed = parseFloat(String(v.value));
+          if (!isNaN(parsed)) {
+            scope[v.name] = parsed;
+          } else {
+            missing.push(v.name);
+          }
         } else {
           missing.push(v.name);
         }
-      } else {
-        missing.push(v.name);
       }
-    }
 
-    try {
-      const evalResult = evaluate(formula, scope);
+      // Add type assertion for evaluate to avoid unsafe assignment
+      const evaluated = evaluate(formula, scope) as unknown;
+      // For evalResult, add a type guard to ensure it is a number or null
+      let evalResult: number | null = null;
+      if (typeof evaluated === 'number' && !Number.isNaN(evaluated)) {
+        evalResult = evaluated;
+      } else {
+        evalResult = null;
+      }
+
       const unitSet = new Set(variables.map((v) => v.unit).filter(Boolean));
+      const foundUnit = unitSet.size === 1 ? [...unitSet][0] : null;
       return {
-        result: evalResult,
+        result: typeof evalResult === 'number' ? evalResult : null,
         missing,
         isValid: true,
-        unit: unitSet.size === 1 ? [...unitSet][0] : null,
+        unit: typeof foundUnit === 'string' ? foundUnit : null,
       };
-    } catch {
-      return {
-        result: 'Invalid formula',
-        missing,
-        isValid: false,
-        unit: null,
-      };
-    }
-  }, [formula, variables]);
+    },
+    [formula, variables]
+  );
 
   return (
     <div
-      className={`p-4 rounded mt-4 text-white ${
-        isValid ? 'bg-gray-800' : 'border border-red-500'
-      }`}
+      className={`p-4 rounded mt-4 text-white ${isValid ? 'bg-gray-800' : 'border border-red-500'
+        }`}
     >
       <h3 className="font-semibold mb-2 text-lg">Live Formula Result</h3>
 
@@ -75,7 +84,7 @@ export const LiveFormulaPreview: React.FC<LiveFormulaPreviewProps> = ({
       <div className="flex items-center gap-2 text-xl">
         <pre className={isValid ? 'text-primary' : 'text-red-400'}>
           {result !== null ? result : 'No output yet'}
-          {unit ? ` ${unit}` : ''}
+          {typeof unit === 'string' && unit.trim() !== '' ? ` ${unit}` : ''}
         </pre>
 
         <AnimatePresence>
@@ -89,7 +98,7 @@ export const LiveFormulaPreview: React.FC<LiveFormulaPreviewProps> = ({
               <CheckCircle className="text-green-400 w-5 h-5" />
             </motion.div>
           )}
-          {!isValid && result && (
+          {!isValid && typeof result === 'number' && !Number.isNaN(result) && result !== 0 && (
             <motion.div
               key="invalid"
               initial={{ opacity: 0, scale: 0.8 }}
@@ -102,7 +111,7 @@ export const LiveFormulaPreview: React.FC<LiveFormulaPreviewProps> = ({
         </AnimatePresence>
       </div>
 
-      {!isValid && (
+      {!isValid && result !== null && typeof result === 'number' && !Number.isNaN(result) && (
         <button
           className="mt-3 flex items-center gap-1 text-sm text-gray-400 hover:text-white transition"
           onClick={() => console.log('Re-evaluating...')}

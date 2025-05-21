@@ -1,4 +1,4 @@
-import wktToGeoJSON from "@terraformer/wkt";
+import * as WKT from "@terraformer/wkt";
 import type { GeometryData } from "@/lib/types";
 
 export interface PointGeometry {
@@ -25,9 +25,9 @@ export interface GoogleLatLng {
  * Parses a WKT string into a GeometryData object (GeoJSON-compatible).
  */
 export function parseWktToGeoJson(wkt: string | null): GeometryData | null {
-  if (!wkt) return null;
+  if (wkt === null || wkt === undefined || wkt === "") return null;
   try {
-    return wktToGeoJSON.parse(wkt) as GeometryData;
+    return WKT.wktToGeoJSON(wkt) as GeometryData;
   } catch (err) {
     console.error("[parseWktToGeoJson] Failed to parse WKT:", wkt, err);
     return null;

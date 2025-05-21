@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEnumOptions } from '@/hooks/useEnumOptions';
-import { useSignup } from '@/hooks/useSignup';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/lib/store';
-import type { EnrichedProfileInput } from '@/hooks/useSignup';
+import { rpcClient } from '@/lib/rpc.client';
+import type { AuthEnrichedProfileInput } from '@/hooks/useAuth';
 
-type UserRole = EnrichedProfileInput['role'];
+type UserRole = AuthEnrichedProfileInput['role'];
 
 export default function UserOnboarding() {
   const navigate = useNavigate();
-  const { signup, error, isLoading } = useSignup();
+  const { signup: signupRaw, error, loading: isLoadingRaw } = useAuth();
+  const signup = signupRaw as ((email: string, password: string, profileInput: AuthEnrichedProfileInput) => Promise<unknown>);
+  const isLoading = Boolean(isLoadingRaw);
   const roleOptions = useEnumOptions('user_role');
   const { user, profile } = useAuthStore();
 
@@ -24,35 +26,35 @@ export default function UserOnboarding() {
     }
   }, [user, profile, navigate]);
 
-  const [form, setForm] = useState<EnrichedProfileInput & { password: string }>({
+  const [form, setForm] = useState<AuthEnrichedProfileInput & { password: string }>({
     full_name: '',
     username: '',
     email: '',
     password: '',
-    role: 'Contractor',
+    role: 'Contractor', // Default role
     phone: '',
     location: '',
-    job_title_id: undefined,
-    custom_job_title: '',
-    organization_id: undefined,
-    custom_organization_name: '',
-    avatar_id: undefined,
+    // job_title_id: undefined, // These are optional in AuthEnrichedProfileInput
+    // custom_job_title: '',
+    // organization_id: undefined,
+    // custom_organization_name: '',
+    // avatar_id: undefined,
   });
 
   const [step, setStep] = useState(1);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (step === 2 && form.username.trim().length >= 3) {
+    if (step === 2 && typeof form.username === 'string' && form.username.trim().length >= 3) {
       const checkUsername = async () => {
-        const { data } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('username', form.username.toUpperCase())
-          .maybeSingle();
-        setUsernameAvailable(!data);
+        try {
+          const profile = await rpcClient.getEnrichedProfileByUsername({ _username: form.username.toUpperCase() });
+          setUsernameAvailable(!profile);
+        } catch {
+          setUsernameAvailable(null);
+        }
       };
-      checkUsername();
+      void checkUsername();
     }
   }, [form.username, step]);
 
@@ -65,8 +67,12 @@ export default function UserOnboarding() {
     }
 
     // Username validation
-    if (!usernameAvailable) {
+    if (usernameAvailable === false) {
       toast.error('Please choose a different username. This one is already taken.');
+      return;
+    }
+    if (usernameAvailable === null) {
+      toast.error('Please wait while we check if the username is available');
       return;
     }
 
@@ -82,25 +88,29 @@ export default function UserOnboarding() {
       return;
     }
 
-    const profileInput: EnrichedProfileInput = {
+    const profileInput: AuthEnrichedProfileInput = {
       full_name: form.full_name,
       username: form.username.toUpperCase(),
       email: form.email,
-      phone: form.phone || undefined,
-      location: form.location || undefined,
+      phone: typeof form.phone === 'string' && form.phone.trim() !== '' ? form.phone : undefined,
+      location: typeof form.location === 'string' && form.location.trim() !== '' ? form.location : undefined,
       role: form.role,
-      job_title_id: form.job_title_id || undefined,
-      custom_job_title: form.custom_job_title || undefined,
-      organization_id: form.organization_id || undefined,
-      custom_organization_name: form.custom_organization_name || undefined,
-      avatar_id: form.avatar_id || undefined,
+      job_title_id: typeof form.job_title_id === 'string' && form.job_title_id.trim() !== '' ? form.job_title_id : undefined,
+      custom_job_title: typeof form.custom_job_title === 'string' && form.custom_job_title.trim() !== '' ? form.custom_job_title : undefined,
+      organization_id: typeof form.organization_id === 'string' && form.organization_id.trim() !== '' ? form.organization_id : undefined,
+      custom_organization_name: typeof form.custom_organization_name === 'string' && form.custom_organization_name.trim() !== '' ? form.custom_organization_name : undefined,
+      avatar_id: typeof form.avatar_id === 'string' && form.avatar_id.trim() !== '' ? form.avatar_id : undefined,
     };
 
     try {
       // Call the signup method with email, password, and profile data
-      await signup(form.email, form.password, profileInput);
-      toast.success('Account created successfully!');
-      navigate('/dashboard');
+      const signedUpProfile = await signup(form.email, form.password, profileInput); // signup now returns profile or null
+      if (typeof signedUpProfile !== 'undefined' && signedUpProfile !== null && typeof signedUpProfile === 'object') {
+        // Success logic (if any)
+      } else {
+        // Error handling is done within useAuth (sets error state, shows toast)
+        // toast.error('Error creating account. Please try again.'); // Redundant if useAuth shows a toast
+      }
     } catch (err) {
       console.error('Signup error:', err);
       toast.error('Error creating account. Please try again.');
@@ -111,7 +121,7 @@ export default function UserOnboarding() {
     <div className="max-w-xl mx-auto mt-16 p-6 bg-background-light rounded shadow border border-background-lighter">
       <h1 className="text-2xl font-bold mb-6 text-white">Create Your Account</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={e => { void handleSubmit(e); }} className="space-y-6">
         {step === 1 && (
           <>
             <div>
@@ -147,22 +157,22 @@ export default function UserOnboarding() {
                     toast.error('Please enter your email address');
                     return;
                   }
-                  
+
                   if (!(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))) {
                     toast.error('Please enter a valid email address');
                     return;
                   }
-                  
+
                   if (!form.password.trim()) {
                     toast.error('Please enter a password');
                     return;
                   }
-                  
+
                   if (form.password.length < 6) {
                     toast.error('Password must be at least 6 characters');
                     return;
                   }
-                  
+
                   setStep(2);
                 }}
                 className="px-4 py-2 bg-primary hover:bg-primary-hover rounded"
@@ -236,34 +246,29 @@ export default function UserOnboarding() {
                 type="button"
                 onClick={() => {
                   // Validate full name and username before proceeding
-                  if (!form.full_name.trim()) {
+                  if (!form.full_name || !form.full_name.trim()) {
                     toast.error('Please enter your full name');
                     return;
                   }
-                  
-                  if (!form.username.trim()) {
+                  if (!form.username || !form.username.trim()) {
                     toast.error('Please enter a username');
                     return;
                   }
-                  
                   if (form.username.trim().length < 3) {
                     toast.error('Username must be at least 3 characters');
                     return;
                   }
-                  
                   if (usernameAvailable === false) {
                     toast.error('This username is already taken. Please choose another one.');
                     return;
                   }
-                  
                   if (usernameAvailable === null) {
                     toast.error('Please wait while we check if the username is available');
                     return;
                   }
-                  
                   setStep(3);
                 }}
-                disabled={!usernameAvailable || isLoading}
+                disabled={Boolean(usernameAvailable !== true || isLoading)}
                 className="px-4 py-2 bg-primary hover:bg-primary-hover rounded disabled:opacity-50"
               >
                 Next
@@ -302,7 +307,7 @@ export default function UserOnboarding() {
               />
             </div>
 
-            {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+            {typeof error === 'string' && error.trim() !== '' ? <p className="text-red-500 text-sm mt-2">{error}</p> : null}
 
             <div className="mt-4 flex justify-between">
               <button

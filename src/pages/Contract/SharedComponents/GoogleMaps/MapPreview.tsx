@@ -27,7 +27,7 @@ export function MapPreview({
 
   // Parse WKT to GeoJSON on wktGeometry change
   useEffect(() => {
-    if (wktGeometry) {
+    if (wktGeometry !== null && wktGeometry !== undefined && wktGeometry !== '') {
       const geoJson = parseWktToGeoJson(wktGeometry);
       setGeometry(geoJson);
     } else {
@@ -65,7 +65,7 @@ export function MapPreview({
       }
     };
 
-    initMap();
+    void initMap();
   }, []);
 
   // Draw geometry on the map when both map and geometry are available
@@ -138,7 +138,8 @@ export function MapPreview({
           paths[0].forEach((point) => bounds.extend(point));
           mapInstance.fitBounds(bounds);
           break;
-        }        default:
+        }
+        default:
           console.warn('Unsupported geometry type:', String(geometry.type));
       }
     } catch (error) {
@@ -150,9 +151,8 @@ export function MapPreview({
     <div
       ref={mapRef}
       style={{ width, height }}
-      className={`rounded-md overflow-hidden border border-gray-700 ${className} ${
-        onClick ? 'cursor-pointer' : ''
-      }`}
+      className={`rounded-md overflow-hidden border border-gray-700 ${className} ${onClick ? 'cursor-pointer' : ''
+        }`}
       onClick={onClick}
     />
   );

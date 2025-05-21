@@ -1,96 +1,94 @@
-import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import type { Database, Json } from '@/lib/database.types';
-import { useAuthStore } from '@/lib/store';
+import { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { rpcClient } from "@/lib/rpc.client";
+import { AllProfilesRow, UpdateProfileFullRpcArgs } from "@/lib/rpc.types";
+import { useAuthStore } from "@/lib/store";
 
-type Profile = Database['public']['Tables']['profiles']['Row'];
-type UserRole = Database['public']['Enums']['user_role'];
-
-export type EnrichedProfile = Profile & {
-  role: UserRole;
+type ReturnType = {
+  updateProfile: (updates: Partial<AllProfilesRow> & { id: string }) => Promise<void>;
+  loading: boolean;
+  error: Error | null;
+  success: boolean;
 };
 
-interface SaveProfilePayload {
-  full_name?: string;
-  email?: string;
-  username?: string;
-  phone?: string;
-  location?: string;
-  role?: UserRole;
-  organization_id?: string;
-  job_title_id?: string;
-  custom_job_title?: string; // if present, triggers job title insert
-  avatar_url?: string;       // used for custom avatars
-  avatar_id?: string;
-  is_preset?: boolean;
-  created_by?: string;
-  session_id?: string | null;
-}
-
-// Type guard for EnrichedProfile
-function isEnrichedProfile(profile: unknown): profile is EnrichedProfile {
-  return profile !== null &&
-         typeof profile === 'object' &&
-         'role' in profile &&
-         typeof (profile as EnrichedProfile).full_name === 'string';
-}
-
-export function useProfileEdit() {
+const useProfileEdit = (): ReturnType => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null); // Changed from any to Error | null
+  const [success, setSuccess] = useState(false);
   const { user, profile, setProfile } = useAuthStore();
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const saveProfile = async (updates: SaveProfilePayload) => {
-    if (!user || !profile) return;
-
-    setIsSaving(true);
+  const updateProfile = async (
+    updates: Partial<AllProfilesRow> & { id: string },
+  ): Promise<void> => {
+    setLoading(true);
     setError(null);
+    setSuccess(false);
+
+    if (!user) {
+      setError(new Error("User not authenticated")); // Changed to new Error()
+      setLoading(false);
+      return;
+    }
 
     try {
-      const typedProfile = isEnrichedProfile(profile) ? profile : null;
-
-      if (!typedProfile) {
-        setError('Profile data is incomplete or invalid.');
-        setIsSaving(false);
+      const session = (await supabase.auth.getSession()).data.session;
+      if (!session) {
+        setError(new Error("No active session found")); // Changed to new Error()
+        setLoading(false);
         return;
       }
 
-      const payload: Record<string, unknown> = {
-        full_name: updates.full_name ?? typedProfile.full_name,
-        email: updates.email ?? typedProfile.email,
-        username: updates.username ?? typedProfile.username,
-        phone: updates.phone ?? typedProfile.phone,
-        location: updates.location ?? typedProfile.location,
-        role: updates.role ?? typedProfile.role,
-        organization_id: updates.organization_id ?? typedProfile.organization_id,
-        job_title_id: updates.job_title_id ?? typedProfile.job_title_id,
-        avatar_id: updates.avatar_id ?? typedProfile.avatar_id,
-        avatar_url: updates.avatar_url ?? null,
-        is_preset: updates.is_preset ?? true,
-        job_title: updates.custom_job_title ?? null,
-        is_custom: updates.custom_job_title ? true : false,
-        created_by: updates.created_by ?? user.id,
-        session_id: updates.session_id ?? typedProfile.session_id ?? null,
+      const { id, ...profileData } = updates;
+
+      const rpcArgs: UpdateProfileFullRpcArgs = {
+        p_id: id,
+        p_full_name: profileData.full_name,
+        p_username: profileData.username,
+        p_email: profileData.email,
+        p_phone: profileData.phone,
+        p_location: profileData.location,
+        p_role: profileData.role,
+        p_job_title_id: profileData.job_title_id,
+        p_organization_id: profileData.organization_id,
+        p_avatar_id: profileData.avatar_id,
+        p_created_by: user.id,
+        p_session_id: typeof profile?.session_id === 'string' && profile.session_id.trim() !== '' ? profile.session_id : '',
       };
 
-      const jsonPayload = payload as Json;
-
-      const { error: updateError } = await supabase.rpc('update_profiles', {
-        _id: typedProfile.id,
-        _data: jsonPayload,
+      // Remove undefined properties
+      Object.keys(rpcArgs).forEach((key) => {
+        const K = key as keyof UpdateProfileFullRpcArgs;
+        if (rpcArgs[K] === undefined) {
+          delete rpcArgs[K];
+        }
       });
 
-      if (updateError) throw updateError;
+      await rpcClient.updateProfileFull(rpcArgs);
 
-      setProfile({ ...typedProfile, ...updates });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      console.error('[useProfileEdit]', errorMessage);
-      setError(errorMessage || 'Failed to update profile');
+      if (profile && profile.id === id) {
+        const updatedProfileData = { ...profile };
+        for (const key in profileData) {
+          if (Object.prototype.hasOwnProperty.call(profileData, key)) {
+            // Assuming profileData keys are valid for updatedProfileData
+            (updatedProfileData as Record<string, unknown>)[key] = (profileData as Record<string, unknown>)[key];
+          }
+        }
+        setProfile(updatedProfileData);
+      }
+      setSuccess(true);
+    } catch (e: unknown) { // Changed from 'any' to 'unknown'
+      console.error("Update profile hook error:", e);
+      if (e instanceof Error) {
+        setError(e);
+      } else {
+        setError(new Error("An unexpected error occurred"));
+      }
+      setSuccess(false);
     } finally {
-      setIsSaving(false);
+      setLoading(false);
     }
   };
 
-  return { saveProfile, isSaving, error };
+  return { updateProfile, loading, error, success };
 }
+
+export { useProfileEdit };

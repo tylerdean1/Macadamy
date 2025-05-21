@@ -26,18 +26,21 @@ import { WbsSection } from './ContractDasboardComponents/WbsSection';
 import { LineItemsTable } from './ContractDasboardComponents/LineItemsTable';
 import { ContractTools } from './ContractDasboardComponents/ContractTools';
 
-export function ContractDashboard() {
+export default function ContractDashboard() {
   const { contractId } = useParams<{ contractId: string }>();
   const navigate = useNavigate();
   const [contract, setContract] = useState<ContractWithWktRow | null>(null);
   const [wbsItems, setWbsItems] = useState<WbsWithWktRow[]>([]);
   const [lineItems, setLineItems] = useState<LineItemsWithWktRow[]>([]);
+  const [issuesCount, setIssuesCount] = useState<number>(0);
+  const [changeOrdersCount, setChangeOrdersCount] = useState<number>(0);
+  const [inspectionsCount, setInspectionsCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   // Function to fetch contract data
   const fetchContractData = useCallback(async () => {
-    if (!contractId) {
+    if (typeof contractId !== 'string' || !contractId.trim()) {
       setError(new Error('No contract ID provided.'));
       setIsLoading(false);
       return;
@@ -49,9 +52,9 @@ export function ContractDashboard() {
     try {
       // Fetch contract details
       const { data: contractDetails, error: contractError } = await supabase
-        .rpc('get_contract_with_wkt', { contract_id: contractId }); // Assuming param name is contract_id
+        .rpc('get_contract_with_wkt', { contract_id: contractId });
       if (contractError) throw contractError;
-      if (!contractDetails || contractDetails.length === 0) {
+      if (!Array.isArray(contractDetails) || contractDetails.length === 0) {
         setError(new Error('Contract not found.'));
         setContract(null);
       } else {
@@ -60,15 +63,66 @@ export function ContractDashboard() {
 
       // Fetch WBS items using RPC
       const { data: wbsData, error: wbsError } = await supabase
-        .rpc('get_wbs_with_wkt', { contract_id: contractId }); // Corrected param name
+        .rpc('get_wbs_with_wkt', { contract_id_param: contractId });
       if (wbsError) throw wbsError;
-      setWbsItems(wbsData || []);
+      const wbsRows: WbsWithWktRow[] = Array.isArray(wbsData) ? wbsData.map(item => ({
+        id: item.id,
+        contract_id: item.contract_id,
+        description: item.description,
+        level: item.level,
+        parent_wbs_id: item.parent_wbs_id,
+        order_number: item.order_number,
+        created_at: item.created_at ?? null,
+        updated_at: item.updated_at ?? null,
+        session_id: item.session_id ?? null,
+        budget: 0,
+        coordinates: null,
+        location: '',
+        scope: '',
+        wbs_number: '',
+      })) : [];
+      setWbsItems(wbsRows);
 
       // Fetch Line Items using RPC
       const { data: lineItemsData, error: lineItemsError } = await supabase
-        .rpc('get_line_items_with_wkt', { contract_id: contractId }); // Corrected param name
+        .rpc('get_line_items_with_wkt', { contract_id_param: contractId });
       if (lineItemsError) throw lineItemsError;
-      setLineItems(lineItemsData || []);
+      const lineItemsRows: LineItemsWithWktRow[] = Array.isArray(lineItemsData) ? lineItemsData.map(item => ({
+        id: item.id,
+        contract_id: item.contract_id,
+        wbs_id: item.wbs_id,
+        description: item.description,
+        quantity: item.quantity,
+        unit: item.unit,
+        unit_price: item.unit_price,
+        created_at: item.created_at ?? null,
+        updated_at: item.updated_at ?? null,
+        session_id: item.session_id ?? null,
+        coordinates: null,
+        line_code: '',
+        map_id: null,
+        reference_doc: null,
+        template_id: null,
+        unit_measure: 'Feet (FT)',
+        coordinates_wkt: null,
+      })) : [];
+      setLineItems(lineItemsRows);
+
+      // Fetch counts
+      const { data: issuesCountData, error: issuesCountError } = await supabase
+        .rpc('get_issues_count_for_contract', { contract_id_param: contractId });
+      if (issuesCountError) throw issuesCountError;
+      setIssuesCount(issuesCountData || 0);
+
+      const { data: changeOrdersCountData, error: changeOrdersCountError } = await supabase
+        .rpc('get_change_orders_count_for_contract', { contract_id_param: contractId });
+      if (changeOrdersCountError) throw changeOrdersCountError;
+      setChangeOrdersCount(changeOrdersCountData || 0);
+
+      const { data: inspectionsCountData, error: inspectionsCountError } = await supabase
+        .rpc('get_inspections_count_for_contract', { contract_id_param: contractId });
+      if (inspectionsCountError) throw inspectionsCountError;
+      setInspectionsCount(inspectionsCountData || 0);
 
     } catch (err) {
       console.error('Error fetching contract data:', err);
@@ -77,6 +131,9 @@ export function ContractDashboard() {
       setContract(null);
       setWbsItems([]);
       setLineItems([]);
+      setIssuesCount(0);
+      setChangeOrdersCount(0);
+      setInspectionsCount(0);
     } finally {
       setIsLoading(false);
     }
@@ -84,22 +141,25 @@ export function ContractDashboard() {
 
   // Initial data fetch
   useEffect(() => {
-    fetchContractData();
+    void fetchContractData(); // Use void for fire-and-forget
   }, [fetchContractData]);
 
   // Real-time subscriptions
   useEffect(() => {
-    if (!contractId) return;
+    if (typeof contractId !== 'string' || !contractId.trim()) return; // Explicit null/empty check
 
     const changes = supabase
       .channel(`contract-dashboard-${contractId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'contracts', filter: `id=eq.${contractId}` }, fetchContractData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'wbs', filter: `contract_id=eq.${contractId}` }, fetchContractData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'line_items', filter: `contract_id=eq.${contractId}` }, fetchContractData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contracts', filter: `id=eq.${contractId}` }, () => { void fetchContractData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wbs', filter: `contract_id=eq.${contractId}` }, () => { void fetchContractData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'line_items', filter: `contract_id=eq.${contractId}` }, () => { void fetchContractData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'issues', filter: `contract_id=eq.${contractId}` }, () => { void fetchContractData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'change_orders', filter: `contract_id=eq.${contractId}` }, () => { void fetchContractData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inspections', filter: `contract_id=eq.${contractId}` }, () => { void fetchContractData(); })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(changes);
+      void supabase.removeChannel(changes); // Use void for fire-and-forget
     };
   }, [contractId, fetchContractData]);
 
@@ -126,7 +186,7 @@ export function ContractDashboard() {
                 <p className="text-gray-300 mb-6">{error.message}</p>
                 <div className="flex space-x-4">
                   <button
-                    onClick={fetchContractData}
+                    onClick={() => { void fetchContractData(); }} // Wrap async in void arrow
                     className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
                   >
                     Try Again
@@ -151,7 +211,7 @@ export function ContractDashboard() {
       <Page>
         <PageContainer>
           <div className="container mx-auto px-4 py-8">
-            <EmptyState 
+            <EmptyState
               icon={<FileText size={48} className="opacity-50" />}
               message="Contract not found"
               description="The contract you're looking for doesn't exist or you don't have permission to view it."
@@ -174,43 +234,47 @@ export function ContractDashboard() {
     <Page>
       <PageContainer>
         <div className="container mx-auto px-4 py-6">
-          <ContractHeader 
-            contract={contract} 
+          <ContractHeader
+            contract={contract}
           />
-          
-          <ContractTools 
+
+          <ContractTools
             contractId={contract.id}
-            issuesCount={0} // Pass 0 directly
-            changeOrdersCount={0} // Pass 0 directly
-            inspectionsCount={0}   // Pass 0 directly
+            issuesCount={issuesCount}
+            changeOrdersCount={changeOrdersCount}
+            inspectionsCount={inspectionsCount}
           />
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             <div className="lg:col-span-2">
-              <ContractInfoForm 
+              <ContractInfoForm
                 contractData={contract}
               />
             </div>
             <div className="lg:col-span-1">
-              <ContractTotalsPanel 
-                totalBudget={contract.budget || 0} // Corrected property name
-                lineItemsTotal={lineItems.reduce((acc, item) => acc + ((item.quantity || 0) * (item.unit_price || 0)), 0)}
-                budgetRemaining={(contract.budget || 0) - lineItems.reduce((acc, item) => acc + ((item.quantity || 0) * (item.unit_price || 0)), 0)}
-                percentUsed={((lineItems.reduce((acc, item) => acc + ((item.quantity || 0) * (item.unit_price || 0)), 0) / (contract.budget || 1)) * 100) || 0}
+              <ContractTotalsPanel
+                totalBudget={typeof contract.budget === 'number' ? contract.budget : 0}
+                lineItemsTotal={lineItems.reduce((acc, item) => acc + (typeof item.quantity === 'number' && typeof item.unit_price === 'number' ? item.quantity * item.unit_price : 0), 0)}
+                budgetRemaining={(typeof contract.budget === 'number' ? contract.budget : 0) - lineItems.reduce((acc, item) => acc + (typeof item.quantity === 'number' && typeof item.unit_price === 'number' ? item.quantity * item.unit_price : 0), 0)}
+                percentUsed={(() => {
+                  const budget = typeof contract.budget === 'number' && contract.budget !== 0 ? contract.budget : 1;
+                  const used = lineItems.reduce((acc, item) => acc + (typeof item.quantity === 'number' && typeof item.unit_price === 'number' ? item.quantity * item.unit_price : 0), 0);
+                  return (used / budget) * 100;
+                })()}
               />
             </div>
           </div>
-          <WbsSection 
+          <WbsSection
             wbsItems={wbsItems}
             lineItems={lineItems}
             contractId={contract.id} // Use contract.id for a guaranteed string
-            isLoading={isLoading} 
+            isLoading={isLoading}
             error={error}
-            onRetry={fetchContractData}
+            onRetry={() => { void fetchContractData(); }} // Wrap async in void arrow
           />
-          <LineItemsTable 
-            lineItems={lineItems} 
-            wbsItems={wbsItems} 
+          <LineItemsTable
+            lineItems={lineItems}
+            wbsItems={wbsItems}
             contractId={contract.id} // Use contract.id for a guaranteed string
           />
         </div>
@@ -218,5 +282,3 @@ export function ContractDashboard() {
     </Page>
   );
 };
-
-export default ContractDashboard;

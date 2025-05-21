@@ -20,7 +20,7 @@ export function Badge({
   return (
     <span className={`inline-flex items-center gap-1 font-medium rounded-full 
       ${getVariantClasses(variant, 'badge')} ${getSizeClasses(size, 'badge')} ${className}`}>
-      {icon && <span className="mr-1">{icon}</span>}
+      {Boolean(icon) && <span className="mr-1">{icon}</span>}
       {children}
     </span>
   );

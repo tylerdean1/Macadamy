@@ -43,7 +43,7 @@ export const ContractStatusSelect = ({
       }
     };
 
-    fetchStatusOptions();
+    void fetchStatusOptions();
   }, []);
 
   const getStatusColor = (status: ContractStatus): string => {
@@ -75,7 +75,10 @@ export const ContractStatusSelect = ({
     <div className={`relative ${className}`}>
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value as ContractStatus)}
+        onChange={(e) => {
+          const newValue = e.target.value as ContractStatus;
+          onChange(newValue);
+        }}
         disabled={disabled}
         aria-label="Contract Status"
         title="Select contract status"

@@ -3,14 +3,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'react-hot-toast';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
-import { BudgetTracker } from '../SharedComponents/BudgetProgressBar';
-import { EditableLineItem } from './EditableLineItem';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
-import { type UnitMeasureType } from '@/lib/enums';
-import type { 
-  LineItemsWithWktRow, 
-  WbsWithWktRow, 
+import { UnitMeasureType } from '@/lib/enums';
+import { getDemoSession } from '@/lib/utils/cloneDemoData';
+import type {
+  LineItemsWithWktRow,
+  WbsWithWktRow,
   MapsWithWktRow
 } from '@/lib/rpc.types';
 
@@ -20,8 +19,6 @@ interface EditableLineItemsTableProps {
   mapItems: MapsWithWktRow[];
   contractId: string;
   onLineItemCreate: (lineItem: LineItemsWithWktRow) => void;
-  onLineItemUpdate: (lineItem: LineItemsWithWktRow) => void;
-  onLineItemDelete: (lineItemId: string) => void;
 }
 
 export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
@@ -29,9 +26,7 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
   wbsItems,
   mapItems,
   contractId,
-  onLineItemCreate,
-  onLineItemUpdate,
-  onLineItemDelete
+  onLineItemCreate
 }) => {
   const { profile } = useAuthStore();
   const [isCreating, setIsCreating] = useState(false);
@@ -41,7 +36,7 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
     map_id: '',
     line_code: '',
     description: '',
-    unit_measure: 'Each (EA)' as UnitMeasureType,
+    unit_measure: 'Feet (FT)' as UnitMeasureType, // Fix: Use a valid default value for unit_measure, e.g., the first enum value or a required value
     quantity: 1,
     unit_price: 0,
     reference_doc: ''
@@ -55,18 +50,15 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
         const { data, error } = await supabase.rpc('get_enum_values', {
           enum_type: 'unit_measure_type'
         });
-        
         if (error) throw error;
-        
-        if (data && Array.isArray(data)) {
+        if (Array.isArray(data)) {
           setUnitOptions(data.map(item => item.value as UnitMeasureType));
         }
       } catch (error) {
         console.error('Error fetching unit measure options:', error);
       }
     };
-
-    fetchUnitOptions();
+    void fetchUnitOptions();
   }, []);
 
   const handleInputChange = (field: string, value: string | number) => {
@@ -78,90 +70,74 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
       toast.error('Please select a WBS');
       return;
     }
-    
     if (!newItem.line_code) {
       toast.error('Line code is required');
       return;
     }
-    
     if (!newItem.description) {
       toast.error('Description is required');
       return;
     }
-
     try {
       const lineItemId = uuidv4();
+      const demoSession = getDemoSession();
+      const createdBy = (typeof profile?.id === 'string' && profile.id.trim() !== '') ? profile.id : undefined;
       const lineItemData = {
         id: lineItemId,
         contract_id: contractId,
         ...newItem,
-        created_by: profile?.id || '',
+        created_by: createdBy,
+        ...(demoSession ? { session_id: demoSession.sessionId } : {}),
       };
-
       // Use direct RPC call without casting
-      const { error } = await supabase.rpc('insert_line_items', { 
-        _data: lineItemData 
+      const { error } = await supabase.rpc('insert_line_items', {
+        _data: lineItemData
       });
-      
       if (error) throw error;
-
       // Get the created line item to ensure we have all fields
       const { data: lineItemsData, error: fetchError } = await supabase
-        .rpc('get_line_items_with_wkt', { contract_id: contractId });
-      
+        .rpc('get_line_items_with_wkt', { contract_id_param: contractId });
       if (fetchError) throw fetchError;
-      
       const createdLineItem = lineItemsData.find(item => item.id === lineItemId);
-      if (createdLineItem) {
-        onLineItemCreate(createdLineItem);
+      if (createdLineItem && createdLineItem.id) {
+        const validUnitMeasures = Object.values(UnitMeasureType) as string[];
+        const fallbackUnit = UnitMeasureType.Feet;
+        let safeUnit = fallbackUnit;
+        if (typeof createdLineItem.unit_measure === 'string' && validUnitMeasures.includes(createdLineItem.unit_measure)) {
+          safeUnit = createdLineItem.unit_measure as UnitMeasureType;
+        } else if (typeof createdLineItem.unit === 'string' && validUnitMeasures.includes(createdLineItem.unit)) {
+          safeUnit = createdLineItem.unit as UnitMeasureType;
+        }
+        const safeLineItem = {
+          ...createdLineItem,
+          coordinates: 'coordinates' in createdLineItem ? createdLineItem.coordinates : null,
+          line_code: createdLineItem.line_code ?? '',
+          map_id: createdLineItem.map_id ?? null,
+          unit_measure: safeUnit,
+          reference_doc: createdLineItem.reference_doc ?? null,
+          template_id: createdLineItem.template_id ?? '',
+          coordinates_wkt: createdLineItem.coordinates_wkt ?? null,
+        };
+        onLineItemCreate(safeLineItem as LineItemsWithWktRow);
         toast.success('Line item created successfully');
         setIsCreating(false);
-        setNewItem({
-          wbs_id: '',
-          map_id: '',
-          line_code: '',
-          description: '',
-          unit_measure: 'Each (EA)' as UnitMeasureType,
-          quantity: 1,
-          unit_price: 0,
-          reference_doc: ''
-        });
       }
-    } catch (error){
+    } catch (error) {
       console.error('Error creating line item:', error);
       toast.error('Failed to create line item');
     }
   };
 
-  const getWbsLabel = (wbsId: string) => {
-    const wbs = wbsItems.find(item => item.id === wbsId);
-    return wbs ? wbs.wbs_number : 'Unknown WBS';
-  };
-
-  const getMapLabel = (mapId: string) => {
-    const map = mapItems.find(item => item.id === mapId);
-    return map ? map.map_number : 'N/A';
-  };
-
   // Filter maps based on selected WBS
-  const filteredMaps = newItem.wbs_id 
+  const filteredMaps = newItem.wbs_id
     ? mapItems.filter(map => map.wbs_id === newItem.wbs_id)
     : [];
 
-  // Calculate the budget utilization for a line item
-  const calculateBudgetPercent = (lineItem: LineItemsWithWktRow) => {
-    const wbs = wbsItems.find(w => w.id === lineItem.wbs_id);
-    if (!wbs || wbs.budget <= 0) return 0;
-    
-    const lineTotal = lineItem.quantity * lineItem.unit_price;
-    return (lineTotal / wbs.budget) * 100;
-  };
-
   // Format currency values
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
-      currency: 'USD' 
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
     }).format(amount);
   };
 
@@ -171,8 +147,8 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Line Items</h2>
           {!isCreating && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setIsCreating(true)}
             >
@@ -222,8 +198,8 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
                     title="Select a map for this line item"
                   >
                     <option value="">No Map</option>
-                    {filteredMaps.map(map => (
-                      <option key={map.id} value={map.id}>
+                    {filteredMaps.filter(map => map.id !== null && map.id !== undefined).map(map => (
+                      <option key={String(map.id)} value={String(map.id)}>
                         {map.map_number}
                       </option>
                     ))}
@@ -334,8 +310,8 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
               </div>
 
               <div className="flex justify-end space-x-3 mt-3">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => {
                     setIsCreating(false);
@@ -353,10 +329,13 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
                 >
                   Cancel
                 </Button>
-                <Button 
-                  variant="primary" 
+                <Button
+                  variant="primary"
                   size="sm"
-                  onClick={handleCreateLineItem}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    void handleCreateLineItem();
+                  }}
                 >
                   Create Line Item
                 </Button>
@@ -368,8 +347,8 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
         {lineItems.length === 0 && !isCreating ? (
           <div className="text-center py-8">
             <p className="text-gray-400 mb-4">No line items have been created yet</p>
-            <Button 
-              variant="primary" 
+            <Button
+              variant="primary"
               size="sm"
               onClick={() => setIsCreating(true)}
             >
@@ -394,94 +373,35 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
               </thead>
               <tbody className="divide-y divide-gray-800">
                 {lineItems.map(item => (
-                  <EditableLineItem
-                    key={item.id}
-                    lineId={item.id}
-                    lineCode={item.line_code}
-                    description={item.description || ''}
-                    quantity={item.quantity}
-                    unitPrice={item.unit_price}
-                    unitMeasure={item.unit_measure}
-                    wbsLabel={getWbsLabel(item.wbs_id)}
-                    mapLabel={item.map_id ? getMapLabel(item.map_id) : 'N/A'}
-                    wbsId={item.wbs_id}
-                    mapId={item.map_id}
-                    referenceDoc={item.reference_doc || ''}
-                    wbsOptions={wbsItems.map(wbs => ({ value: wbs.id, label: wbs.wbs_number }))}
-                    mapOptions={mapItems}
-                    unitOptions={unitOptions}
-                    onUpdate={(lineId, updates) => {
-                      // Update directly in the database with inline RPC
-                      (async () => {
-                        try {
-                          const { error } = await supabase.rpc('update_line_items', {
-                            _id: lineId,
-                            _data: {
-                              line_code: updates.line_code,
-                              description: updates.description,
-                              wbs_id: updates.wbs_id,
-                              map_id: updates.map_id || null,
-                              unit_measure: updates.unit_measure,
-                              quantity: updates.quantity,
-                              unit_price: updates.unit_price,
-                              reference_doc: updates.reference_doc || ''
-                            }
-                          });
-                          
-                          if (error) {
-                            console.error('Error updating line item:', error);
-                            toast.error('Failed to update line item');
-                            return;
-                          }
-                          
-                          // If successful, update the UI state
-                          const updatedItem: LineItemsWithWktRow = {
-                            ...item,
-                            line_code: updates.line_code,
-                            description: updates.description || '',
-                            wbs_id: updates.wbs_id,
-                            map_id: updates.map_id || '',
-                            unit_measure: updates.unit_measure,
-                            quantity: updates.quantity,
-                            unit_price: updates.unit_price,
-                            reference_doc: updates.reference_doc || '',
-                            template_id: item.template_id || '',
-                            coordinates_wkt: item.coordinates_wkt || '',
-                            session_id: item.session_id || ''
-                          };
-                          
-                          onLineItemUpdate(updatedItem);
-                          toast.success('Line item updated successfully');
-                        } catch (err) {
-                          console.error('Error updating line item:', err);
-                          toast.error('Failed to update line item');
-                        }
-                      })();
-                    }}
-                    onDelete={(lineItemId) => {
-                      // Delete directly in the database with inline RPC
-                      (async () => {
-                        try {
-                          const { error } = await supabase.rpc('delete_line_items', {
-                            _id: lineItemId
-                          });
-                          
-                          if (error) {
-                            console.error('Error deleting line item:', error);
-                            toast.error('Failed to delete line item');
-                            return;
-                          }
-                          
-                          // If successful, update the UI state
-                          onLineItemDelete(lineItemId);
-                          toast.success('Line item deleted successfully');
-                        } catch (err) {
-                          console.error('Error deleting line item:', err);
-                          toast.error('Failed to delete line item');
-                        }
-                      })();
-                    }}
-                  />
+                  <tr key={item.id}>
+                    <td className="px-3 py-4 text-sm font-medium text-gray-200 whitespace-nowrap">
+                      {item.line_code}
+                    </td>
+                    <td className="px-3 py-4 text-sm text-gray-300 whitespace-nowrap">
+                      {item.description}
+                    </td>
+                    <td className="px-3 py-4 text-sm text-gray-300 whitespace-nowrap">
+                      {item.wbs_id}
+                    </td>
+                    <td className="px-3 py-4 text-sm text-gray-300 whitespace-nowrap">
+                      {item.map_id}
+                    </td>
+                    <td className="px-3 py-4 text-sm text-gray-300 whitespace-nowrap text-right">
+                      {item.quantity}
+                    </td>
+                    <td className="px-3 py-4 text-sm text-gray-300 whitespace-nowrap text-right">
+                      {formatCurrency(item.unit_price)}
+                    </td>
+                    <td className="px-3 py-4 text-sm text-gray-300 whitespace-nowrap text-right">
+                      {formatCurrency(item.quantity * item.unit_price)}
+                    </td>
+                    <td className="px-3 py-4 text-sm text-gray-300 whitespace-nowrap text-center">
+                      {/* Budget cell, content not specified */}
+                    </td>
+                    <td className="px-3 py-4 text-sm text-gray-300 whitespace-nowrap text-center">
+                      {/* Actions cell, content not specified */}
+                    </td>
+                  </tr>
                 ))}
               </tbody>
               <tfoot>

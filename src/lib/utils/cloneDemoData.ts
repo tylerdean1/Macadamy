@@ -3,29 +3,31 @@
   – one-stop helper for creating & caching demo sessions
 ───────────────────────────────────────────────────────────*/
 
-import { supabase } from '@/lib/supabase'; // use the single shared client
+import { rpcClient } from "@/lib/rpc.client"; // use the dedicated RPC client
 
 /* ── env vars ───────────────────────────────────────────── */
-const BASE_PROFILE = import.meta.env
-  .VITE_BASE_PROFILE_ID as string; // “0000…0000” test user
+// const BASE_PROFILE_ID = import.meta.env
+//   .VITE_BASE_PROFILE_ID as string; // No longer used here
+const BASE_PROFILE_EMAIL = import.meta.env.VITE_BASE_PROFILE_EMAIL as string;
 
 /* ── local-storage / cache ──────────────────────────────── */
 export interface DemoSession {
-  sessionId : string; // uuid for the cloned profile
-  userId    : string; // same as sessionId unless you hook up Supabase Auth
-  createdAt : number; // epoch ms
+  sessionId: string; // uuid for the cloned profile
+  userId: string; // same as sessionId unless you hook up Supabase Auth
+  createdAt: number; // epoch ms
 }
 
-const STORAGE_KEY = 'demo_session';
-const TTL_MS      = 12 * 60 * 60 * 1_000; // 12h
+const STORAGE_KEY = "demo_session";
+const TTL_MS = 12 * 60 * 60 * 1_000; // 12h
 
 /** Try to read an un-expired session from localStorage */
 export function getDemoSession(): DemoSession | null {
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return null;
+  if (raw === null || raw === undefined || raw === '') return null;
 
   try {
-    const s: DemoSession = JSON.parse(raw);
+    // Use type assertion for JSON.parse
+    const s = JSON.parse(raw) as DemoSession;
     if (Date.now() - s.createdAt > TTL_MS) {
       localStorage.removeItem(STORAGE_KEY);
       return null;
@@ -37,7 +39,7 @@ export function getDemoSession(): DemoSession | null {
   }
 }
 
-function saveDemoSession(s: DemoSession) {
+function saveDemoSession(s: DemoSession): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
 }
 
@@ -54,21 +56,37 @@ export async function cloneDemoData(): Promise<DemoSession> {
   const cached = getDemoSession();
   if (cached) return cached;
 
-  // 2️⃣ invoke your master RPC
-  const { data, error } = await supabase
-    .rpc('execute_full_demo_clone', { session_id: BASE_PROFILE })
-    .single<{ cloned_profile_id: string }>();
-
-  if (error || !data?.cloned_profile_id) {
+  if (!BASE_PROFILE_EMAIL) {
+    console.error(
+      "VITE_BASE_PROFILE_EMAIL environment variable is not set. This is required to create a demo environment.",
+    );
     throw new Error(
-      `Failed to create demo environment: ${error?.message ?? 'no data'}`
+      "Demo environment configuration error: VITE_BASE_PROFILE_EMAIL is not set.",
+    );
+  }
+  // 2️⃣ Call create_demo_environment to initialize profile and session
+  const creationInfo = await rpcClient.createDemoEnvironment({
+    base_profile_email: BASE_PROFILE_EMAIL
+  });
+
+  if (!creationInfo?.created_session_id || !creationInfo?.created_profile_id) {
+    console.error(
+      "Failed to create demo environment (profile creation step)",
+    );
+    throw new Error(
+      `Failed to create demo environment (profile creation step): No data returned from create_demo_environment RPC. Ensure it returns created_session_id and created_profile_id.`,
     );
   }
 
-  // 3️⃣ build & persist
+  const { created_session_id, created_profile_id } = creationInfo;
+
+  // 3️⃣ Call execute_full_demo_clone to populate all other demo data
+  await rpcClient.executeFullDemoClone({ p_session_id: created_session_id }); // Pass the newly created session_id
+
+  // 4️⃣ Build & persist DemoSession
   const session: DemoSession = {
-    sessionId: data.cloned_profile_id,
-    userId:    data.cloned_profile_id,
+    sessionId: created_session_id, // This is the session ID for all cloned data
+    userId: created_profile_id, // This is the ID of the newly cloned user profile
     createdAt: Date.now(),
   };
   saveDemoSession(session);

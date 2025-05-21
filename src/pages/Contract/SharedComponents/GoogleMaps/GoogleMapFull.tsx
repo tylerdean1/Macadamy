@@ -128,7 +128,7 @@ export class GoogleMapFull extends Component<Props, State> {
     super(props);
     this.state = {
       visibility: {},
-      showPanel: props.showPanel || true,
+      showPanel: typeof props.showPanel === 'boolean' ? props.showPanel : true,
       userLoc: {
         lat: 39.8283,
         lng: -98.5795,
@@ -142,7 +142,7 @@ export class GoogleMapFull extends Component<Props, State> {
   loadContractData = async () => {
     try {
       const { contractId } = this.props;
-      
+
       // Inline RPC for fetching contract data
       const response = await fetch(`/api/contracts/${contractId}`, {
         method: 'GET',
@@ -150,17 +150,17 @@ export class GoogleMapFull extends Component<Props, State> {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch contract data: ${response.statusText}`);
       }
-      
-      const contractData = await response.json();
-      
-      if (contractData) {
+
+      const contractData: unknown = await response.json();
+      if (typeof contractData === 'object' && contractData !== null && 'contract' in contractData && 'wbsGroups' in contractData) {
+        const typedData = contractData as { contract: Contract; wbsGroups: WbsItem[] };
         this.setState({
-          contract: contractData.contract,
-          wbsGroups: contractData.wbsGroups
+          contract: typedData.contract,
+          wbsGroups: typedData.wbsGroups
         }, () => {
           this.buildVisibilityMap();
           this.drawAllOverlays();
@@ -231,13 +231,13 @@ export class GoogleMapFull extends Component<Props, State> {
       }
     }
 
-    if (shape) this.overlaysRef[id] = shape;
+    if (shape !== null) this.overlaysRef[id] = shape;
   }
 
   drawAllOverlays = () => {
     const { contract, wbsGroups } = this.state;
-    if (!wbsGroups || wbsGroups.length === 0) return;
-    
+    if (!Array.isArray(wbsGroups) || wbsGroups.length === 0) return;
+
     const items = [
       { id: 'contract', geom: contract?.coordinates, col: '#34A853' },
       ...wbsGroups.map((w) => ({
@@ -245,7 +245,7 @@ export class GoogleMapFull extends Component<Props, State> {
         geom: w.coordinates,
         col: '#FBBC05',
       })),
-      ...wbsGroups.flatMap((w) => 
+      ...wbsGroups.flatMap((w) =>
         w.maps.map((m) => ({
           id: `map-${m.id}`,
           geom: m.coordinates,
@@ -264,7 +264,7 @@ export class GoogleMapFull extends Component<Props, State> {
     ];
 
     items.forEach(i => {
-      if (i && i.id) {
+      if (typeof i === 'object' && i !== null && typeof i.id === 'string' && i.id) {
         this.drawGeometry(i.id, i.geom, {
           strokeColor: i.col,
           fillColor: i.col,
@@ -335,13 +335,13 @@ export class GoogleMapFull extends Component<Props, State> {
 
   initializeMap = async () => {
     if (!this.mapDivRef.current) return;
-    
+
     try {
       // Load Google Maps with Places library
       await googleMapsLoader.load();
-      
+
       // Check if Places library is available
-      if (!google.maps.places) {
+      if (!('places' in google.maps) || typeof google.maps.places !== 'object' || google.maps.places == null) {
         console.error("Google Maps Places library is not loaded");
         // Try to load Places library
         await new Promise<void>((resolve) => {
@@ -357,7 +357,7 @@ export class GoogleMapFull extends Component<Props, State> {
         getGeometryCenter(this.state.contract?.coordinates) ??
         this.state.userLoc;
 
-      if (this.mapDivRef.current) {
+      if (this.mapDivRef.current !== null && this.mapDivRef.current !== undefined) {
         this.mapRef = new google.maps.Map(this.mapDivRef.current, {
           center: centre,
           zoom: 12,
@@ -369,29 +369,29 @@ export class GoogleMapFull extends Component<Props, State> {
         try {
           const autocomplete = new google.maps.places.Autocomplete(
             this.searchInputRef.current,
-            { 
+            {
               fields: ['geometry', 'name'],
               types: ['geocode', 'establishment']
             }
           );
-          
+
           autocomplete.bindTo('bounds', this.mapRef);
-          
+
           google.maps.event.addListener(autocomplete, 'place_changed', () => {
             const place = autocomplete.getPlace();
-            
+
             if (!place.geometry || !place.geometry.location) {
               console.warn("Returned place contains no geometry");
               return;
             }
-            
+
             const loc = place.geometry.location;
             if (this.mapRef) {
               this.mapRef.setCenter(loc);
               this.mapRef.setZoom(16);
-              
-              new google.maps.Marker({ 
-                map: this.mapRef, 
+
+              new google.maps.Marker({
+                map: this.mapRef,
                 position: loc,
                 animation: google.maps.Animation.DROP,
                 title: place.name
@@ -405,9 +405,9 @@ export class GoogleMapFull extends Component<Props, State> {
 
       // Set up drawing manager
       const drawingManager = this.setupDrawingManager();
-      
+
       // Load contract data after map initialization
-      await this.loadContractData();
+      void this.loadContractData();
 
       return () => {
         if (drawingManager) drawingManager.setMap(null);
@@ -418,13 +418,13 @@ export class GoogleMapFull extends Component<Props, State> {
   }
 
   componentDidMount() {
-    this.initializeMap();
+    void this.initializeMap();
   }
 
   componentDidUpdate(prevProps: Props) {
     // If contract ID changes, reload data
     if (prevProps.contractId !== this.props.contractId) {
-      this.loadContractData();
+      void this.loadContractData();
     }
 
     // Recenter when focus geometry changes
@@ -432,7 +432,7 @@ export class GoogleMapFull extends Component<Props, State> {
       const ctr =
         getGeometryCenter(this.props.focusGeometry) ??
         getGeometryCenter(this.state.contract?.coordinates);
-      
+
       if (ctr) {
         this.mapRef.setCenter(ctr);
         this.mapRef.setZoom(12);
@@ -440,8 +440,8 @@ export class GoogleMapFull extends Component<Props, State> {
     }
 
     // Redraw overlays if visibility changes
-    if (prevProps.focusGeometry !== this.props.focusGeometry || 
-        prevProps.contractId !== this.props.contractId) {
+    if (prevProps.focusGeometry !== this.props.focusGeometry ||
+      prevProps.contractId !== this.props.contractId) {
       this.drawAllOverlays();
     }
   }

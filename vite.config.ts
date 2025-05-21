@@ -1,13 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
-import commonjs from 'vite-plugin-commonjs'; // ✅ import the plugin
+import path from 'node:path';
 
-// https://vitejs.dev/config/
+// 🚫 Removed vite-plugin-commonjs
 export default defineConfig({
   plugins: [
     react(),
-    commonjs() // ✅ include the plugin here
   ],
   optimizeDeps: {
     exclude: ['lucide-react'],
@@ -20,6 +18,16 @@ export default defineConfig({
   server: {
     hmr: {
       overlay: false,
+    },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          html2canvas: ['html2canvas'],
+          purify: ['dompurify'],
+        },
+      },
     },
   },
 });

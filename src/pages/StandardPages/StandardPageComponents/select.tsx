@@ -18,15 +18,18 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     fullWidth = false,
     ...props
   }, ref) => {
-    const selectId = id || `select-${Math.random().toString(36).substring(2, 9)}`; 
-    
+    const selectId = typeof id === 'string' && id.trim() !== '' ? id : `select-${Math.random().toString(36).substring(2, 9)}`;
+    const hasLabel = typeof label === 'string' && label.trim() !== '';
+    const hasError = typeof error === 'string' && error.trim() !== '';
+    const hasHelperText = typeof helperText === 'string' && helperText.trim() !== '';
+
     return (
-      <div className={`${fullWidth ? 'w-full' : ''}`}>
-        {label && (
+      <div className={fullWidth ? 'w-full' : ''}>
+        {hasLabel ? (
           <label htmlFor={selectId} className="block text-sm font-medium text-gray-300 mb-1">
             {label}
           </label>
-        )}
+        ) : null}
         <select
           id={selectId}
           ref={ref}
@@ -34,23 +37,23 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             block
             bg-background
             border
-            ${error ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-primary'} 
-            text-white 
-            rounded-md 
-            px-3 
-            py-2 
+            ${hasError ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-primary'}
+            text-white
+            rounded-md
+            px-3
+            py-2
             appearance-none
-            focus:outline-none 
-            focus:ring-2 
-            focus:border-transparent 
+            focus:outline-none
+            focus:ring-2
+            focus:border-transparent
             transition-colors
-            ${fullWidth ? 'w-full' : ''} 
-            ${className} 
+            ${fullWidth ? 'w-full' : ''}
+            ${className}
           `}
           {...props}
         >
           {options.map((option) => (
-            <option 
+            <option
               key={option.value}
               value={option.value}
               disabled={option.disabled}
@@ -59,11 +62,11 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             </option>
           ))}
         </select>
-        {(helperText || error) && (
-          <p className={`mt-1 text-sm ${error ? 'text-red-500' : 'text-gray-400'}`}>
-            {error || helperText}
+        {(hasHelperText || hasError) ? (
+          <p className={`mt-1 text-sm ${hasError ? 'text-red-500' : 'text-gray-400'}`}>
+            {hasError ? error : helperText}
           </p>
-        )}
+        ) : null}
       </div>
     );
   }

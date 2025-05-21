@@ -43,8 +43,8 @@ const ErrorFallback = ({ error, resetErrorBoundary }: { error: Error; resetError
  * Displays the contract header information including title, status, location,
  * description, map button, and contract period.
  */
-export function ContractHeader({ 
-  contract, 
+export function ContractHeader({
+  contract,
   isLoading = false,
   error = null
 }: ContractHeaderProps) {
@@ -54,10 +54,10 @@ export function ContractHeader({
   useEffect(() => {
     setContractData(contract);
   }, [contract]);
-  
+
   // Format a date string for display
   const formatDate = (dateString: string) => {
-    if (!dateString) return 'Not specified';    try {
+    if (!dateString) return 'Not specified'; try {
       return new Date(dateString).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -76,10 +76,11 @@ export function ContractHeader({
     );
   }
 
-  if (error) {
+  // error: use direct check for error (error !== null && error !== undefined && error !== '')
+  if (error !== null && error !== undefined && error !== '') {
     return (
       <Card className="mb-6">
-        <ErrorState 
+        <ErrorState
           error={error instanceof Error ? error : String(error)}
           title="Error Loading Contract Header"
         />
@@ -98,21 +99,25 @@ export function ContractHeader({
                 {contractData.title}
               </h1>
               <div className="flex items-center gap-2 flex-wrap">
-                <ContractStatusBadge status={contractData.status} />
+                {/* ContractStatusBadge: fallback to 'Draft' if status is null */}
+                <ContractStatusBadge status={contractData.status ?? 'Draft'} />
                 <span className="text-sm text-gray-400 flex items-center">
                   <MapPin size={14} className="mr-1" />
-                  {contractData.location || 'No location specified'}
+                  {/* location: handle null/empty */}
+                  {typeof contractData.location === 'string' && contractData.location.trim() !== '' ? contractData.location : 'No location specified'}
                 </span>
                 <span className="text-sm text-gray-400 flex items-center">
                   <CalendarRange size={14} className="mr-1" />
-                  {formatDate(contractData.start_date)} - {formatDate(contractData.end_date)}
+                  {/* formatDate: pass empty string if date is null */}
+                  {formatDate(contractData.start_date ?? '')} - {formatDate(contractData.end_date ?? '')}
                 </span>
               </div>
             </div>
-            
+
             {/* Action buttons */}
             <div className="flex items-center gap-2">
-              {contractData.coordinates_wkt && (
+              {/* coordinates_wkt: handle null/empty */}
+              {typeof contractData.coordinates_wkt === 'string' && contractData.coordinates_wkt.trim() !== '' && (
                 <button
                   onClick={() => window.alert('Map view not implemented')}
                   className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-md bg-blue-700 hover:bg-blue-600 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
@@ -124,9 +129,9 @@ export function ContractHeader({
               )}
             </div>
           </div>
-          
+
           {/* Description */}
-          {contractData.description && (
+          {typeof contractData.description === 'string' && contractData.description.trim() !== '' && (
             <div className="mt-4">
               <p className="text-gray-300 whitespace-pre-line">
                 {contractData.description}

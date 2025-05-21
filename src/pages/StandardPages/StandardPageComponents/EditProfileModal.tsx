@@ -61,7 +61,7 @@ export function EditProfileModal({
 }: EditProfileModalProps) {
   // Crop & Upload handler using croppedAreaPixels
   const handleCropAndUpload = async () => {
-    if (!selectedImage || !croppedAreaPixels) return;
+    if (typeof selectedImage !== 'string' || !croppedAreaPixels) return;
     try {
       const blob = await getCroppedImg(selectedImage, croppedAreaPixels);
       const file = new File([blob], 'avatar.png', { type: 'image/png' });
@@ -99,7 +99,7 @@ export function EditProfileModal({
               />
             </label>
           </div>
-          {selectedImage && (
+          {typeof selectedImage === 'string' && selectedImage !== '' && (
             <div className="relative w-full h-64 mb-4">
               <Cropper
                 image={selectedImage}
@@ -110,7 +110,7 @@ export function EditProfileModal({
                 onZoomChange={onZoomChange}
                 onCropComplete={onCropComplete}
               />
-              <Button onClick={handleCropAndUpload} className="mt-2 w-full">
+              <Button onClick={() => { void handleCropAndUpload(); }} className="mt-2 w-full">
                 Crop & Upload
               </Button>
             </div>
@@ -122,7 +122,7 @@ export function EditProfileModal({
             <Select
               name="organization_id"
               id="organization_id"
-              value={editForm.organization_id || ''}
+              value={typeof editForm.organization_id === 'string' ? editForm.organization_id : ''}
               onChange={onFormChange}
               options={[
                 { value: '', label: 'Select organization' },
@@ -136,21 +136,23 @@ export function EditProfileModal({
             <Select
               name="job_title_id"
               id="job_title_id"
-              value={editForm.job_title_id || ''}
+              value={typeof editForm.job_title_id === 'string' ? editForm.job_title_id : ''}
               onChange={onFormChange}
               options={[
                 { value: '', label: 'Select job title' },
                 ...jobTitles.map(jt => ({ value: jt.id, label: jt.title })),
               ]}
             />
+            {/* Only show custom job title input if job_title_id is empty string and not null/undefined */}
             {editForm.job_title_id === '' && (
               <Input
                 type="text"
                 name="custom_job_title"
                 placeholder="Enter your role"
-                value={editForm.custom_job_title || ''}
+                value={typeof editForm.custom_job_title === 'string' ? editForm.custom_job_title : ''}
                 onChange={onFormChange}
                 className="mt-2"
+                aria-label="Custom job title"
               />
             )}
           </FormField>
@@ -160,7 +162,7 @@ export function EditProfileModal({
               type="text"
               id="address"
               name="address"
-              value={editForm.address || ''}
+              value={typeof editForm.address === 'string' ? editForm.address : ''}
               onChange={onFormChange}
             />
           </FormField>
@@ -170,7 +172,7 @@ export function EditProfileModal({
               type="text"
               id="phone"
               name="phone"
-              value={editForm.phone || ''}
+              value={typeof editForm.phone === 'string' ? editForm.phone : ''}
               onChange={onFormChange}
             />
           </FormField>
@@ -180,12 +182,12 @@ export function EditProfileModal({
               type="email"
               id="email"
               name="email"
-              value={editForm.email || ''}
+              value={typeof editForm.email === 'string' ? editForm.email : ''}
               onChange={onFormChange}
             />
           </FormField>
 
-          <Button onClick={onSaveProfile} className="w-full mt-4">
+          <Button onClick={() => { void onSaveProfile(); }} className="w-full mt-4">
             Save
           </Button>
         </FormSection>

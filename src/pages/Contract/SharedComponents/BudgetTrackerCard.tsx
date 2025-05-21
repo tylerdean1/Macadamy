@@ -39,12 +39,12 @@ export class BudgetTracker extends Component<BudgetTrackerProps, State> {
   }
 
   componentDidMount() {
-    this.fetchBudgetData();
+    void this.fetchBudgetData();
   }
 
   componentDidUpdate(prevProps: BudgetTrackerProps) {
     if (prevProps.contractId !== this.props.contractId) {
-      this.fetchBudgetData();
+      void this.fetchBudgetData();
     }
   }
 
@@ -54,7 +54,7 @@ export class BudgetTracker extends Component<BudgetTrackerProps, State> {
 
     try {
       this.setState({ loading: true, error: null });
-      
+
       // Inline RPC call to get contract budget data
       const budgetResponse = await fetch(`/api/contracts/${contractId}/budget`, {
         method: 'GET',
@@ -67,14 +67,14 @@ export class BudgetTracker extends Component<BudgetTrackerProps, State> {
         throw new Error(`Failed to fetch budget data: ${budgetResponse.statusText}`);
       }
 
-      const budgetData = await budgetResponse.json();
-      
+      const budgetData = (await budgetResponse.json()) as { contractBudget?: number; lineItemTotal?: number };
+
       // Calculate derived values (these could also be returned by the API)
-      const contractBudget = budgetData.contractBudget || 0;
-      const lineItemTotal = budgetData.lineItemTotal || 0;
+      const contractBudget = typeof budgetData.contractBudget === 'number' ? budgetData.contractBudget : 0;
+      const lineItemTotal = typeof budgetData.lineItemTotal === 'number' ? budgetData.lineItemTotal : 0;
       const difference = contractBudget - lineItemTotal;
       const percentageUsed = contractBudget > 0 ? (lineItemTotal / contractBudget) * 100 : 0;
-      
+
       this.setState({
         budgetData: {
           contractBudget,
@@ -86,9 +86,9 @@ export class BudgetTracker extends Component<BudgetTrackerProps, State> {
       });
     } catch (err) {
       console.error('Error fetching budget data:', err);
-      this.setState({ 
+      this.setState({
         error: err instanceof Error ? err.message : 'Unknown error',
-        loading: false 
+        loading: false
       });
     }
   }
@@ -113,7 +113,7 @@ export class BudgetTracker extends Component<BudgetTrackerProps, State> {
       >
         {loading ? (
           <div className="py-4 text-center text-gray-500">Loading budget data...</div>
-        ) : error ? (
+        ) : typeof error === 'string' && error.length > 0 ? (
           <div className="py-4 text-center text-red-500">{error}</div>
         ) : (
           <div className="space-y-4">

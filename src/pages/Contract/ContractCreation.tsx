@@ -7,8 +7,10 @@ import { Page } from '@/pages/StandardPages/StandardPageComponents/Page';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { ContractInfoForm } from './ContractDasboardComponents/ContractInfoForm';
-import { MapModal } from './SharedComponents/GoogleMaps/MapModal';
+import { MapModal } from './SharedComponents/MapModal';
 import { MapPreview } from './SharedComponents/GoogleMaps/MapPreview';
+import { getDemoSession } from '@/lib/utils/cloneDemoData';
+import { parseWktToGeoJson, geometryToWKT } from '@/lib/utils/geometryUtils';
 
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
@@ -21,10 +23,10 @@ type ContractStatus = Database['public']['Enums']['contract_status'];
 export const ContractCreation = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
-  
+
   const [contractData, setContractData] = useState<Partial<ContractWithWktRow>>({
     title: '',
     description: '',
@@ -36,43 +38,42 @@ export const ContractCreation = () => {
     coordinates_wkt: null
   });
 
-  const handleChange = (field: keyof ContractWithWktRow, value: string | number | ContractStatus) => {
-    setContractData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleMapSave = (wkt: string) => {
-    setContractData(prev => ({ ...prev, coordinates_wkt: wkt }));
+  const handleMapSave = (geometry: import('@/lib/types').GeometryData) => {
+    const wkt = geometryToWKT(geometry);
+    setContractData(prev => ({ ...prev, coordinates_wkt: (typeof wkt === 'string' && wkt.length > 0) ? wkt : undefined }));
   };
 
   const handleSubmit = async () => {
-    if (!user?.id) {
+    if (typeof user?.id !== 'string' || user.id.length === 0) {
       toast.error('You must be logged in to create a contract');
       return;
     }
-    
-    if (!contractData.title || !contractData.location || !contractData.start_date || !contractData.end_date) {
+    if (typeof contractData.title !== 'string' || contractData.title.length === 0 ||
+      typeof contractData.location !== 'string' || contractData.location.length === 0 ||
+      typeof contractData.start_date !== 'string' || contractData.start_date.length === 0 ||
+      typeof contractData.end_date !== 'string' || contractData.end_date.length === 0) {
       toast.error('Please fill out all required fields');
       return;
     }
-
     setIsSubmitting(true);
-    
+
     try {
       // Generate a new UUID for the contract
       const contractId = uuidv4();
-      
+      const demoSession = getDemoSession();
       // Prepare contract data
       const newContract = {
         id: contractId,
         ...contractData,
-        created_by: user.id
+        created_by: user.id,
+        ...(demoSession ? { session_id: demoSession.sessionId } : {}),
       };
 
       // Insert the contract
       const { error: contractError } = await supabase.rpc('insert_contracts', {
         _data: newContract
       });
-      
+
       if (contractError) throw contractError;
 
       // Assign the contract to the user
@@ -83,7 +84,7 @@ export const ContractCreation = () => {
           role: 'Project Manager'
         }
       });
-      
+
       if (assignError) throw assignError;
 
       toast.success('Contract created successfully!');
@@ -103,21 +104,16 @@ export const ContractCreation = () => {
           <Card className="mb-6">
             <div className="p-6">
               <h1 className="text-2xl font-bold mb-6">Create New Contract</h1>
-              
-              <ContractInfoForm 
-                contractData={contractData as ContractWithWktRow}
-                onChange={handleChange}
-                isEditMode={true}
-                isCreating={true}
-              />
-              
+
+              <ContractInfoForm contractData={contractData as ContractWithWktRow} />
+
               <div className="mt-6 border-t border-gray-700 pt-6">
                 <h2 className="text-lg font-semibold mb-4">Location</h2>
-                
-                {contractData.coordinates_wkt ? (
+
+                {typeof contractData.coordinates_wkt === 'string' && contractData.coordinates_wkt.length > 0 ? (
                   <div onClick={() => setShowMapModal(true)} className="cursor-pointer">
-                    <MapPreview 
-                      wktGeometry={contractData.coordinates_wkt} 
+                    <MapPreview
+                      wktGeometry={contractData.coordinates_wkt}
                       height="300px"
                       onClick={() => setShowMapModal(true)}
                     />
@@ -126,7 +122,7 @@ export const ContractCreation = () => {
                     </div>
                   </div>
                 ) : (
-                  <div 
+                  <div
                     className="border-2 border-dashed border-gray-700 rounded-md flex items-center justify-center h-60 cursor-pointer hover:border-gray-500 transition-colors"
                     onClick={() => setShowMapModal(true)}
                   >
@@ -137,18 +133,18 @@ export const ContractCreation = () => {
                   </div>
                 )}
               </div>
-              
+
               <div className="mt-6 flex justify-end space-x-3">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => navigate('/dashboard')}
                   disabled={isSubmitting}
                 >
                   Cancel
                 </Button>
-                <Button 
-                  variant="primary" 
-                  onClick={handleSubmit}
+                <Button
+                  variant="primary"
+                  onClick={() => { void handleSubmit(); }}
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? 'Creating...' : 'Create Contract'}
@@ -158,13 +154,15 @@ export const ContractCreation = () => {
           </Card>
         </div>
       </div>
-      
-      <MapModal 
+
+      <MapModal
         isOpen={showMapModal}
         onClose={() => setShowMapModal(false)}
         onSave={handleMapSave}
-        initialWkt={contractData.coordinates_wkt || undefined}
+        initialGeometry={typeof contractData.coordinates_wkt === 'string' && contractData.coordinates_wkt.length > 0 ? parseWktToGeoJson(contractData.coordinates_wkt) : undefined}
         title="Set Contract Location"
+        contractId={typeof contractData.id === 'string' && contractData.id.length > 0 ? contractData.id : ''}
+        mode="edit"
       />
     </Page>
   );

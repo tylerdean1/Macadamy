@@ -45,7 +45,7 @@ export const ContractTotalsPanel: React.FC<ContractTotalsPanelProps> = ({
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Contract Totals</h2>
           <div className="flex gap-2">
-            <button 
+            <button
               onClick={() => setShowDetails(!showDetails)}
               className="text-gray-400 hover:text-white transition-colors p-1 rounded"
               aria-label={showDetails ? "Hide details" : "Show details"}
@@ -86,10 +86,10 @@ export const ContractTotalsPanel: React.FC<ContractTotalsPanelProps> = ({
             isNegative={percentUsed > 100}
           />
         </div>
-        
+
         <AnimatePresence>
           {showDetails && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
@@ -117,7 +117,7 @@ const TotalItem = ({ label, value, isNegative }: TotalItemProps) => {
   return (
     <div className="flex justify-between items-center">
       <span className="text-gray-400">{label}</span>
-      <span className={`font-medium ${isNegative ? 'text-red-500' : ''}`}>
+      <span className={`font-medium ${isNegative === true ? 'text-red-500' : ''}`}>
         {value}
       </span>
     </div>

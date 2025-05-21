@@ -1,10 +1,10 @@
-import { UserRole } from '../enums'; 
+import { UserRole } from "../enums";
 
 /**
  * Validates the user_role value and ensures it matches a valid UserRole.
- * Falls back to a default role if invalid or unexpected data is encountered.
+ * Returns null if invalid or unexpected data is encountered.
  */
-export function validateUserRole(userRole: string | null): UserRole {
+export function validateUserRole(userRole: string | null): UserRole | null {
   const validRoles: UserRole[] = [
     UserRole.Admin,
     UserRole.Contractor,
@@ -13,10 +13,10 @@ export function validateUserRole(userRole: string | null): UserRole {
     UserRole.Inspector,
   ];
 
-  if (userRole && validRoles.includes(userRole as UserRole)) {
+  if (typeof userRole === 'string' && userRole.trim() !== '' && validRoles.includes(userRole as UserRole)) {
     return userRole as UserRole;
   }
 
-  // Fallback to a default role if invalid
-  return UserRole.Admin;
+  // Return null if the role is invalid or not found
+  return null;
 }

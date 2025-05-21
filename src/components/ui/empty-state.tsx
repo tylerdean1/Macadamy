@@ -37,15 +37,15 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   className = '',
 }) => {
   return (
-    <div 
+    <div
       className={`flex flex-col items-center justify-center py-8 px-4 text-center border border-dashed border-gray-700 rounded-lg ${className}`}
-      role="region" 
+      role="region"
       aria-label="Empty content"
     >
-      {icon && <div className="mb-4 text-gray-500">{icon}</div>}
+      {icon != null && icon !== '' && <div className="mb-4 text-gray-500">{icon}</div>}
       <p className="mb-2 text-base font-medium text-gray-300">{message}</p>
-      {description && <p className="mb-4 text-sm text-gray-400">{description}</p>}
-      {actionButton && <div className="mt-2">{actionButton}</div>}
+      {typeof description === 'string' && description.trim() !== '' && <p className="mb-4 text-sm text-gray-400">{description}</p>}
+      {actionButton != null && actionButton !== '' && <div className="mt-2">{actionButton}</div>}
     </div>
   );
 };

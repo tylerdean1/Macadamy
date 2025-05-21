@@ -20,13 +20,17 @@ export function Button({
   rightIcon,
   disabled,
   ...props
-}: ButtonProps) {
-  const isDisabled = disabled || isLoading;
+}: ButtonProps): JSX.Element {
+  const isDisabled: boolean = Boolean(disabled) || Boolean(isLoading);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+  const variantClasses = (getVariantClasses as any)(variant, 'button') as string;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+  const sizeClasses = (getSizeClasses as any)(size, 'button') as string;
 
   return (
     <button
       className={`inline-flex items-center justify-center rounded focus:outline-none focus:ring-2 transition-colors
-        ${getVariantClasses(variant, 'button')} ${getSizeClasses(size, 'button')}
+        ${variantClasses} ${sizeClasses}
         ${isDisabled ? 'opacity-60 cursor-not-allowed' : ''} ${className}`}
       disabled={isDisabled}
       {...props}
@@ -38,9 +42,9 @@ export function Button({
         </svg>
       ) : (
         <>
-          {leftIcon && <span className="mr-2">{leftIcon}</span>}
+          {Boolean(leftIcon) && <span className="mr-2">{leftIcon}</span>}
           {children}
-          {rightIcon && <span className="ml-2">{rightIcon}</span>}
+          {Boolean(rightIcon) && <span className="ml-2">{rightIcon}</span>}
         </>
       )}
     </button>

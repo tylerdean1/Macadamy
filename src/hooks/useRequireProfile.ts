@@ -4,49 +4,48 @@ import { useAuthStore } from "@/lib/store";
 import { supabase } from "@/lib/supabase";
 
 /**
- * This hook ensures that a valid profile is loaded.
- * If no profile is found (but the user is logged in),
- * it signs out the session and redirects to the homepage.
+ * This hook ensures that a user has a loaded profile.
+ * If a user is authenticated but their profile is not available after loading attempts,
+ * it signs out the user and redirects to the homepage.
+ * This hook should be used on pages that absolutely require a profile to function.
  */
-export function useRequireProfile() {
+export function useRequireProfile(): void {
   const navigate = useNavigate();
-  const { user, profile, clearAuth } = useAuthStore();
-  
+  const { user, profile, isLoading, clearAuth } = useAuthStore((state) => ({
+    user: state.user,
+    profile: state.profile,
+    isLoading: state.isLoading,
+    clearAuth: state.clearAuth,
+  }));
+
   useEffect(() => {
-    const handleMissingProfile = async () => {
-      console.log("[DEBUG] useRequireProfile checking auth:", {
-        user,
-        profile,
-      });
+    // Only proceed if the authentication and profile loading process has finished
+    if (isLoading) {
+      console.log("[useRequireProfile] Auth/profile state is loading. Waiting...");
+      return;
+    }
 
-      // Only redirect if we have a user but no profile
-      if (user && profile === null) {
+    console.log("[useRequireProfile] Auth/profile state resolved:", {
+      user: !!user,
+      profile: !!profile,
+      isLoading,
+    });      // If there is an authenticated user but no profile after loading has completed
+    if (user && !profile) {
+      console.warn(
+        "[useRequireProfile] User is authenticated, but no profile found after loading. Signing out.",
+      );
+      const performSignOut = async (): Promise<void> => {
         try {
-          // Try to fetch profile directly with RPC before giving up
-          const { data, error } = await supabase.rpc(
-            "get_enriched_profile",
-            { _user_id: user.id }
-          );
-          
-          if (error || !data || data.length === 0) {
-            console.warn("[WARN] User exists but no profile found. Signing out.");
-            await supabase.auth.signOut();
-            clearAuth();
-            navigate("/", { replace: true });
-          }
-        } catch (error) {
-          console.error("Error checking profile:", error);
           await supabase.auth.signOut();
-          clearAuth();
-          navigate("/", { replace: true });
+        } catch (signOutError) {
+          console.error("[useRequireProfile] Error during signOut:", signOutError);
         }
-      }
-    };
+        clearAuth(); // Clear local auth state
+        navigate("/", { replace: true }); // Redirect to homepage
+      };
 
-    // Add a small delay to allow profile loading to complete
-    const timeoutId = setTimeout(() => {
-      handleMissingProfile();
-    }, 500);
-    return () => clearTimeout(timeoutId);
-  }, [user, profile, clearAuth, navigate]);
+      void performSignOut();
+    }
+    // If no user, or user and profile exist, do nothing.
+  }, [user, profile, isLoading, clearAuth, navigate]);
 }

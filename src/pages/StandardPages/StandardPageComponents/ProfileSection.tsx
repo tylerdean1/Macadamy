@@ -15,7 +15,7 @@ export function ProfileSection({ profile, onEdit }: ProfileSectionProps) {
         {/* Avatar + Welcome */}
         <div className="flex-1">
           <div className="flex items-center gap-4 mb-4">
-            {profile.avatar_url && (
+            {typeof profile.avatar_url === 'string' && profile.avatar_url.trim() !== '' && (
               <img
                 src={profile.avatar_url}
                 alt="Avatar"
@@ -40,43 +40,48 @@ export function ProfileSection({ profile, onEdit }: ProfileSectionProps) {
 
           {/* Optional Metadata */}
           <div className="text-gray-400 space-y-1">
-            {profile.organizations?.name && (
-              <p className="flex items-center">
-                <Building2 className="w-4 h-4 mr-2" />
-                {profile.organizations.name}
-              </p>
-            )}
-            {profile.job_titles?.title && (
-              <p className="flex items-center">
-                <FileText className="w-4 h-4 mr-2" />
-                {profile.job_titles.title}
-              </p>
-            )}
-            {profile.organizations?.address && (
-              <p className="flex items-center">
-                <MapPin className="w-4 h-4 mr-2" />
-                {profile.organizations.address}
-              </p>
-            )}
-            {profile.organizations?.phone && (
-              <p className="flex items-center">
-                <Phone className="w-4 h-4 mr-2" />
-                {profile.organizations.phone}
-              </p>
-            )}
-            {profile.organizations?.website && (
-              <p className="flex items-center">
-                <Mail className="w-4 h-4 mr-2" />
-                <a
-                  href={profile.organizations.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:underline text-blue-400"
-                >
-                  {profile.organizations.website}
-                </a>
-              </p>
-            )}
+            {typeof profile.organizations?.name === 'string' &&
+              profile.organizations?.name.trim() !== '' && (
+                <p className="flex items-center">
+                  <Building2 className="w-4 h-4 mr-2" />
+                  {profile.organizations.name}
+                </p>
+              )}
+            {typeof profile.job_titles?.title === 'string' &&
+              profile.job_titles?.title.trim() !== '' && (
+                <p className="flex items-center">
+                  <FileText className="w-4 h-4 mr-2" />
+                  {profile.job_titles.title}
+                </p>
+              )}
+            {typeof profile.organizations?.address === 'string' &&
+              profile.organizations?.address.trim() !== '' && (
+                <p className="flex items-center">
+                  <MapPin className="w-4 h-4 mr-2" />
+                  {profile.organizations.address}
+                </p>
+              )}
+            {typeof profile.organizations?.phone === 'string' &&
+              profile.organizations?.phone.trim() !== '' && (
+                <p className="flex items-center">
+                  <Phone className="w-4 h-4 mr-2" />
+                  {profile.organizations.phone}
+                </p>
+              )}
+            {typeof profile.organizations?.website === 'string' &&
+              profile.organizations?.website.trim() !== '' && (
+                <p className="flex items-center">
+                  <Mail className="w-4 h-4 mr-2" />
+                  <a
+                    href={profile.organizations.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline text-blue-400"
+                  >
+                    {profile.organizations.website}
+                  </a>
+                </p>
+              )}
           </div>
         </div>
       </div>

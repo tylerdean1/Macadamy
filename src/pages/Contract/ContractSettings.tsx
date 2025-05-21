@@ -8,18 +8,18 @@ import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { ContractStatusSelect } from './SharedComponents/ContractStatusSelect';
 import { useAuthStore } from '@/lib/store';
-import { supabase } from '@/lib/supabase';
+import { rpcClient } from '@/lib/rpc.client';
 import type { ContractWithWktRow, ProfilesByContractRow } from '@/lib/rpc.types';
 import type { Database } from '@/lib/database.types';
 
 type ContractStatus = Database['public']['Enums']['contract_status'];
 type UserRole = Database['public']['Enums']['user_role'];
 
-export const ContractSettings = () => {
+export default function ContractSettings() {
   const { contractId } = useParams<{ contractId: string }>();
   const navigate = useNavigate();
   const { profile } = useAuthStore();
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [contract, setContract] = useState<ContractWithWktRow | null>(null);
@@ -31,32 +31,25 @@ export const ContractSettings = () => {
   // Fetch contract data
   useEffect(() => {
     const fetchContractData = async () => {
-      if (!contractId) return;
-      
+      if (typeof contractId !== 'string' || contractId.length === 0) return;
       setIsLoading(true);
       try {
         // Get contract data
-        const { data: contractData, error: contractError } = await supabase
-          .rpc('get_contract_with_wkt', { contract_id: contractId });
-          
-        if (contractError) throw contractError;
-        
-        if (contractData && contractData.length > 0) {
+        const contractDataResult = await rpcClient.getContractWithWkt({ contract_id: contractId });
+        const contractData = Array.isArray(contractDataResult) ? contractDataResult : [];
+        if (contractData.length > 0) {
           setContract(contractData[0]);
-          setSelectedStatus(contractData[0].status);
+          setSelectedStatus(contractData[0].status ?? 'Draft');
         } else {
           toast.error('Contract not found');
           navigate('/dashboard');
           return;
         }
-        
+
         // Get team members
-        const { data: teamData, error: teamError } = await supabase
-          .rpc('get_profiles_by_contract', { _contract_id: contractId });
-          
-        if (teamError) throw teamError;
-        setTeamMembers(teamData || []);
-        
+        const teamDataResult = await rpcClient.getProfilesByContract({ _contract_id: contractId });
+        const teamData = Array.isArray(teamDataResult) ? teamDataResult : [];
+        setTeamMembers(teamData);
       } catch (error) {
         console.error('Error fetching contract data:', error);
         toast.error('Failed to load contract data');
@@ -65,25 +58,17 @@ export const ContractSettings = () => {
       }
     };
 
-    fetchContractData();
+    void fetchContractData();
   }, [contractId, navigate]);
 
   // Update contract status
   const handleUpdateStatus = async () => {
-    if (!contractId || !contract) return;
-    
+    if (typeof contractId !== 'string' || contractId.length === 0 || !contract) return;
+
     setIsSaving(true);
     try {
-      const { error } = await supabase.rpc(
-        'update_contracts',
-        { 
-          _id: contractId,
-          _data: { status: selectedStatus }
-        }
-      );
-      
-      if (error) throw error;
-      
+      await rpcClient.updateContracts({ _id: contractId, _data: { status: selectedStatus } });
+
       setContract(prev => prev ? { ...prev, status: selectedStatus } : null);
       toast.success('Contract status updated successfully');
     } catch (error) {
@@ -96,19 +81,10 @@ export const ContractSettings = () => {
 
   // Remove team member
   const handleRemoveTeamMember = async (userId: string) => {
-    if (!contractId) return;
-    
+    if (typeof contractId !== 'string' || contractId.length === 0) return;
     try {
-      const { error } = await supabase.rpc(
-        'remove_profile_from_contract', 
-        { 
-          _contract_id: contractId,
-          _profile_id: userId
-        }
-      );
-      
-      if (error) throw error;
-      
+      await rpcClient.removeProfileFromContract({ _contract_id: contractId, _profile_id: userId });
+
       setTeamMembers(prev => prev.filter(member => member.id !== userId));
       toast.success('Team member removed successfully');
     } catch (error) {
@@ -119,21 +95,11 @@ export const ContractSettings = () => {
 
   // Update team member role
   const handleUpdateTeamMemberRole = async (userId: string, role: UserRole) => {
-    if (!contractId) return;
-    
+    if (typeof contractId !== 'string' || contractId.length === 0) return;
     try {
-      const { error } = await supabase.rpc(
-        'update_profile_contract_role', 
-        { 
-          _contract_id: contractId,
-          _profile_id: userId,
-          _role: role
-        }
-      );
-      
-      if (error) throw error;
-      
-      setTeamMembers(prev => prev.map(member => 
+      await rpcClient.updateProfileContractRole({ _contract_id: contractId, _profile_id: userId, _role: role });
+
+      setTeamMembers(prev => prev.map(member =>
         member.id === userId ? { ...member, role } : member
       ));
       toast.success('Team member role updated');
@@ -145,16 +111,10 @@ export const ContractSettings = () => {
 
   // Delete contract
   const handleDeleteContract = async () => {
-    if (!contractId || !contract || deleteConfirmation !== contract.title) return;
-    
+    if (typeof contractId !== 'string' || contractId.length === 0 || !contract || deleteConfirmation !== contract.title) return;
     try {
-      const { error } = await supabase.rpc(
-        'delete_contract',
-        { _contract_id: contractId }
-      );
-      
-      if (error) throw error;
-      
+      await rpcClient.deleteContracts({ _id: contractId });
+
       toast.success('Contract deleted successfully');
       navigate('/dashboard');
     } catch (error) {
@@ -163,8 +123,11 @@ export const ContractSettings = () => {
     }
   };
 
+  // Fix: Add null checks before accessing contract properties
+  if (!contract) return null;
+
   return (
-    <Page title="Contract Settings">
+    <Page>
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="mb-6 flex justify-between items-center">
           <h1 className="text-2xl font-bold">Contract Settings</h1>
@@ -175,7 +138,7 @@ export const ContractSettings = () => {
             Back to Dashboard
           </Button>
         </div>
-        
+
         <div className="space-y-6">
           {isLoading ? (
             <Card className="p-8 flex justify-center items-center">
@@ -193,10 +156,10 @@ export const ContractSettings = () => {
                       onChange={setSelectedStatus}
                     />
                   </div>
-                  
+
                   <Button
                     variant="primary"
-                    onClick={handleUpdateStatus}
+                    onClick={() => { void handleUpdateStatus(); }}
                     disabled={isSaving || selectedStatus === contract?.status}
                     className="mt-2 md:mt-0"
                   >
@@ -204,11 +167,11 @@ export const ContractSettings = () => {
                   </Button>
                 </div>
               </Card>
-              
+
               {/* Team Management */}
               <Card className="p-6">
                 <h2 className="text-xl font-semibold mb-4">Team Management</h2>
-                
+
                 {teamMembers.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse">
@@ -243,9 +206,10 @@ export const ContractSettings = () => {
                             <td className="px-4 py-3">
                               <select
                                 value={member.role}
-                                onChange={(e) => handleUpdateTeamMemberRole(member.id, e.target.value as UserRole)}
+                                onChange={(e) => { void handleUpdateTeamMemberRole(member.id, e.target.value as UserRole); }}
                                 className="bg-gray-700 text-white border-0 rounded-md px-3 py-1.5 text-sm"
                                 disabled={member.id === profile?.id}
+                                title="Select option"
                               >
                                 <option value="admin">Admin</option>
                                 <option value="member">Member</option>
@@ -255,8 +219,8 @@ export const ContractSettings = () => {
                             <td className="px-4 py-3">
                               <Button
                                 variant="danger"
-                                size="xs"
-                                onClick={() => handleRemoveTeamMember(member.id)}
+                                size="sm"
+                                onClick={() => { void handleRemoveTeamMember(member.id); }}
                                 disabled={member.id === profile?.id}
                               >
                                 Remove
@@ -271,7 +235,7 @@ export const ContractSettings = () => {
                   <p className="text-gray-400">No team members assigned to this contract.</p>
                 )}
               </Card>
-              
+
               {/* Danger Zone */}
               <Card className="p-6 border border-red-900 bg-gray-850">
                 <h2 className="text-xl font-semibold mb-4 text-red-400">Danger Zone</h2>
@@ -281,7 +245,7 @@ export const ContractSettings = () => {
                     <p className="text-sm text-gray-400 mb-3">
                       This will permanently delete the contract and all associated data.
                     </p>
-                    
+
                     {!showDeleteConfirmation ? (
                       <Button
                         variant="danger"
@@ -300,6 +264,7 @@ export const ContractSettings = () => {
                           value={deleteConfirmation}
                           onChange={(e) => setDeleteConfirmation(e.target.value)}
                           className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 mb-3"
+                          placeholder="Enter value"
                         />
                         <div className="flex space-x-3">
                           <Button
@@ -315,7 +280,7 @@ export const ContractSettings = () => {
                           <Button
                             variant="danger"
                             size="sm"
-                            onClick={handleDeleteContract}
+                            onClick={() => { void handleDeleteContract(); }}
                             disabled={deleteConfirmation !== contract.title}
                           >
                             Confirm Delete
@@ -334,4 +299,4 @@ export const ContractSettings = () => {
   );
 };
 
-export default ContractSettings;
+// TODO: Fix: These RPCs are not available in the generated supabase client. Use the custom rpcClient or add them to the supabase client if needed.

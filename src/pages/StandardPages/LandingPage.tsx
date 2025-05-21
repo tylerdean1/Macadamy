@@ -7,7 +7,7 @@ import { FEATURE_SECTIONS } from '@/pages/StandardPages/StandardPageComponents/L
 import { AuthForm } from '@/pages/StandardPages/StandardPageComponents/AuthForm';
 import { Building2, ShieldCheck, Clock, Users } from 'lucide-react';
 
-export function LandingPage() {
+export default function LandingPage() {
   const navigate = useNavigate();
 
   const WHY_CHOOSE = useMemo(

@@ -1,5 +1,5 @@
 import type { Database } from "./database.types";
-import type { UserRole } from "./enums";
+import type { ContractStatusValue, UserRole } from "./enums";
 
 /**
  * General Utilities
@@ -318,6 +318,43 @@ export interface Profile {
 }
 
 /**
+ * Type for the get_enriched_profile RPC response
+ */
+export interface EnrichedUserProfile {
+  id: string;
+  full_name: string | null;
+  username: string | null;
+  email: string | null;
+  phone: string | null;
+  location: string | null;
+  role: UserRole | null;
+  job_title_id: string | null;
+  job_title: string | null;
+  organization_id: string | null;
+  organization_name: string | null;
+  avatar_id: string | null;
+  avatar_url: string | null;
+  session_id: string | null;
+}
+
+export interface EnrichedUserContract {
+  id: string;
+  title: string | null;
+  description: string | null;
+  location: string | null;
+  start_date: string | null; // Dates are typically strings in ISO format
+  end_date: string | null; // Dates are typically strings in ISO format
+  created_by: string | null;
+  created_at: string | null; // Timestamps are typically strings in ISO format
+  updated_at: string | null; // Timestamps are typically strings in ISO format
+  budget: number | null;
+  status: ContractStatusValue | null;
+  coordinates: Json | null; // Changed from any to Json
+  user_contract_role: UserRole | null;
+  session_id?: string | null; // Added optional session_id for compatibility
+}
+
+/**
  * Specific Interfaces for Components
  */
 export interface EditForm {
@@ -360,7 +397,7 @@ export type LineItemsClean = Omit<LineItems, "line_code" | "description"> & {
 };
 
 export interface ContractRolePermission {
-  role: 'Admin' | 'Contractor' | 'Engineer' | 'Project Manager' | 'Inspector';
+  role: "Admin" | "Contractor" | "Engineer" | "Project Manager" | "Inspector";
   can_view: boolean;
   can_edit: boolean;
   can_approve: boolean;

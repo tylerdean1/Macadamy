@@ -63,19 +63,19 @@ export const AttachmentHandler: React.FC<AttachmentHandlerProps> = ({
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Construct the storage path
   const getStoragePath = (fileName: string) => {
     return `${parentId}${folderPath ? `/${folderPath}` : ''}/${fileName}`;
   };
-  
+
   // Handle file upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
-    
+
     const files = Array.from(e.target.files);
     setIsUploading(true);
-    
+
     try {
       const uploadPromises = files.map(async (file) => {
         const { error } = await supabase
@@ -85,27 +85,27 @@ export const AttachmentHandler: React.FC<AttachmentHandlerProps> = ({
             cacheControl: '3600',
             upsert: true
           });
-          
+
         if (error) throw error;
-        
+
         // Get URL for the uploaded file
         const { data: urlData } = await supabase
           .storage
           .from(storageBucket)
           .createSignedUrl(getStoragePath(file.name), 3600);
-          
+
         return {
           name: file.name,
-          url: urlData?.signedUrl || '',
+          url: typeof urlData?.signedUrl === 'string' && urlData.signedUrl.length > 0 ? urlData.signedUrl : '',
           type: file.type,
           size: file.size
         };
       });
-      
+
       const uploadedFiles = await Promise.all(uploadPromises);
       onAttachmentsChange([...attachments, ...uploadedFiles]);
       toast.success(`${files.length} file(s) uploaded successfully`);
-      
+
       // Clear file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -117,19 +117,19 @@ export const AttachmentHandler: React.FC<AttachmentHandlerProps> = ({
       setIsUploading(false);
     }
   };
-  
+
   // Delete attachment
   const deleteAttachment = async (fileName: string) => {
     if (!window.confirm(`Are you sure you want to delete ${fileName}?`)) return;
-    
+
     try {
       const { error } = await supabase
         .storage
         .from(storageBucket)
         .remove([getStoragePath(fileName)]);
-        
+
       if (error) throw error;
-      
+
       onAttachmentsChange(attachments.filter(a => a.name !== fileName));
       toast.success(`File deleted successfully`);
     } catch (error) {
@@ -137,7 +137,7 @@ export const AttachmentHandler: React.FC<AttachmentHandlerProps> = ({
       toast.error('Failed to delete file');
     }
   };
-  
+
   // Format file size
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -146,7 +146,7 @@ export const AttachmentHandler: React.FC<AttachmentHandlerProps> = ({
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
-  
+
   // Get file type icon
   const getFileIcon = (fileType: string) => {
     if (fileType.startsWith('image/')) return <img src="/icons/image-file.svg" alt="Image" className="h-5 w-5" />;
@@ -155,21 +155,21 @@ export const AttachmentHandler: React.FC<AttachmentHandlerProps> = ({
     if (fileType.includes('excel') || fileType.includes('sheet')) return <img src="/icons/xls-file.svg" alt="Spreadsheet" className="h-5 w-5" />;
     return <FileText size={18} />;
   };
-  
+
   return (
     <div className={`mt-4 ${className}`}>
       <h3 className="text-sm font-medium text-gray-400 mb-2">{label}</h3>
-      
+
       {/* File upload input */}
       {canEdit && (
         <div className="mb-4">
-          <label 
+          <label
             className={`flex items-center justify-center w-full p-2 border border-dashed border-gray-600 rounded-md cursor-pointer hover:border-primary transition-colors ${isUploading ? 'bg-gray-800 opacity-50' : ''}`}
           >
             <input
               type="file"
               ref={fileInputRef}
-              onChange={handleFileUpload}
+              onChange={e => { void handleFileUpload(e); }}
               multiple
               className="hidden"
               disabled={isUploading}
@@ -181,13 +181,13 @@ export const AttachmentHandler: React.FC<AttachmentHandlerProps> = ({
           </label>
         </div>
       )}
-      
+
       {/* Attachments list */}
       {attachments.length > 0 ? (
         <ul className="space-y-2">
           {attachments.map((file, index) => (
-            <li 
-              key={`${file.name}-${index}`} 
+            <li
+              key={`${file.name}-${index}`}
               className="flex items-center justify-between p-2 bg-gray-800 rounded-md"
             >
               <div className="flex items-center overflow-hidden">
@@ -222,8 +222,8 @@ export const AttachmentHandler: React.FC<AttachmentHandlerProps> = ({
                   <Download size={16} />
                 </a>
                 {canEdit && (
-                  <button 
-                    onClick={() => deleteAttachment(file.name)}
+                  <button
+                    onClick={() => { void deleteAttachment(file.name); }}
                     className="p-1.5 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-700 transition-colors"
                     aria-label="Delete file"
                     title="Delete file"

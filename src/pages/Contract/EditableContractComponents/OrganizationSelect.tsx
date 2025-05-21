@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { rpcClient } from '@/lib/rpc.client';
 import { Input } from '@/pages/StandardPages/StandardPageComponents/input';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import type { Organization } from '@/lib/types';
 import { Search, Plus } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface OrganizationSelectProps {
   selectedId: string | null;
@@ -22,14 +23,15 @@ export default function OrganizationSelect({
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { currentSessionId } = useAuth();
 
   useEffect(() => {
     const fetchOrganizations = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase.from('organizations').select('*').order('name');
-        if (error) throw error;
-        setOrganizations(data || []);
+        if (typeof currentSessionId !== 'string' || currentSessionId.length === 0) throw new Error('No session ID available');
+        const data = await rpcClient.getOrganizations({ p_session_id: currentSessionId });
+        setOrganizations(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error loading organizations:', error);
       } finally {
@@ -37,8 +39,8 @@ export default function OrganizationSelect({
       }
     };
 
-    fetchOrganizations();
-  }, []);
+    void fetchOrganizations();
+  }, [currentSessionId]);
 
   const filtered = organizations.filter((org) =>
     org.name.toLowerCase().includes(search.toLowerCase())

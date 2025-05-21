@@ -42,8 +42,8 @@ export interface ToolButton {
  * All tools are navigational and do not perform write operations directly.
  * Badge counts are for display purposes only.
  */
-export const ContractTools: React.FC<ContractToolsProps> = ({ 
-  contractId, 
+export const ContractTools: React.FC<ContractToolsProps> = ({
+  contractId,
   issuesCount = 0, // Default to 0 if not provided
   changeOrdersCount = 0, // Default to 0
   inspectionsCount = 0 // Default to 0
@@ -70,14 +70,16 @@ export const ContractTools: React.FC<ContractToolsProps> = ({
       onClick: () => navigate(`/contracts/${contractId}/daily-reports`),
       color: 'bg-blue-500/30 text-blue-500 hover:bg-blue-500/40',
     },
-    {      icon: <Truck className="w-5 h-5" />,
+    {
+      icon: <Truck className="w-5 h-5" />,
       label: 'Equipment Log',
       onClick: () => navigate(`/contracts/${contractId}/equipment`),
       color: 'bg-green-500/30 text-green-500 hover:bg-green-500/40',
       // requiresPermission: true, // Removed
       // permissionRoles: ['Admin', 'Project Manager', 'Contractor'], // Removed
     },
-    {      icon: <Users className="w-5 h-5" />,
+    {
+      icon: <Users className="w-5 h-5" />,
       label: 'Labor Records',
       onClick: () => navigate(`/contracts/${contractId}/labor`),
       color: 'bg-purple-500/30 text-purple-500 hover:bg-purple-500/40',
@@ -121,17 +123,17 @@ export const ContractTools: React.FC<ContractToolsProps> = ({
       // requiresPermission: true, // Removed
       // permissionRoles: ['Admin', 'Project Manager'], // Removed
     },
-  ];  
-  
+  ];
+
   // Filter buttons based on user permissions - REMOVED (all buttons are shown in view-only)
   // const allowedButtons = buttons.filter(btn => 
   //   !btn.requiresPermission || hasPermission(btn.permissionRoles)
   // );
   const allowedButtons = buttons; // All buttons are allowed
-  
+
   return (
     <div className={`transition-all duration-300 ${isSticky ? 'sticky top-0 z-10' : ''}`}>
-      <Card 
+      <Card
         className={`mb-6 ${isSticky ? 'shadow-lg' : ''}`}
         title="Contract Tools"
         subtitle="Quick access to contract management features"
@@ -146,7 +148,7 @@ export const ContractTools: React.FC<ContractToolsProps> = ({
               >
                 <div className="relative">
                   {btn.icon}
-                  {btn.badgeCount && btn.badgeCount > 0 && (
+                  {typeof btn.badgeCount === 'number' && btn.badgeCount > 0 && (
                     <span className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
                       {btn.badgeCount > 99 ? '99+' : btn.badgeCount}
                     </span>

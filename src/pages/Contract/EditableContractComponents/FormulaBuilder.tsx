@@ -3,29 +3,24 @@ import { Input } from '@/pages/StandardPages/StandardPageComponents/input';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { Trash2 } from 'lucide-react';
 import { Modal } from '@/pages/StandardPages/StandardPageComponents/modal';
-import type { Variable } from '@/lib/formula.types';
+import type { CalculatorTemplate, Variable } from '@/lib/formula.types';
+import { UnitMeasureType } from '@/lib/enums';
 
 interface FormulaBuilderProps {
-  formula: string;
-  variables: Variable[];
-  onFormulaChange: (value: string) => void;
-  onVariablesChange: (vars: Variable[]) => void;
+  calculator: CalculatorTemplate;
+  onCalculatorChange: (value: CalculatorTemplate) => void;
   onSave: () => void;
 }
 
 export function FormulaBuilder({
-  formula,
-  variables,
-  onFormulaChange,
-  onVariablesChange,
+  calculator,
+  onCalculatorChange,
   onSave,
-  
 }: FormulaBuilderProps) {
   const [newVar, setNewVar] = useState<Omit<Variable, 'defaultValue'>>({
     name: '',
-    label: '',
-    type: 'number',
-    unit: '',
+    type: 'input',
+    unit: undefined,
     value: '',
   });
 
@@ -33,25 +28,29 @@ export function FormulaBuilder({
 
   const addVariable = () => {
     if (!newVar.name) return;
-    onVariablesChange([
-      ...variables,
+    const updatedVars = [
+      ...calculator.variables,
       {
-        ...newVar,
+        name: newVar.name,
+        type: 'input',
+        unit: newVar.unit as UnitMeasureType | null | undefined,
         defaultValue: parseFloat(newVar.value as string) || 0,
         value: newVar.value,
-      },
-    ]);
-    setNewVar({ name: '', label: '', type: 'number', unit: '', value: '' });
+      } as Variable,
+    ];
+    onCalculatorChange({ ...calculator, variables: updatedVars });
+    setNewVar({ name: '', type: 'input', unit: undefined, value: '' });
   };
 
   const deleteVariable = (name: string) => {
-    const updated = variables.filter((v) => v.name !== name);
-    onVariablesChange(updated);
+    const updated = calculator.variables.filter((v) => v.name !== name);
+    onCalculatorChange({ ...calculator, variables: updated });
   };
 
   const checkUnused = () => {
-    const usedNames = (formula.match(/\b[a-zA-Z_]\w*\b/g) || []) as string[];
-    const unused = variables.filter((v) => !usedNames.includes(v.name));
+    const formulaExpr = calculator.formula.expression || '';
+    const usedNames = Array.isArray(formulaExpr.match(/\b[a-zA-Z_]\w*\b/g)) ? formulaExpr.match(/\b[a-zA-Z_]\w*\b/g) as string[] : [];
+    const unused = calculator.variables.filter((v) => !usedNames.includes(v.name));
     return unused.length > 0;
   };
 
@@ -69,9 +68,10 @@ export function FormulaBuilder({
   };
 
   const removeUnusedVars = () => {
-    const usedNames = (formula.match(/\b[a-zA-Z_]\w*\b/g) || []) as string[];
-    const filtered = variables.filter((v) => usedNames.includes(v.name));
-    onVariablesChange(filtered);
+    const formulaExpr = calculator.formula.expression || '';
+    const usedNames = Array.isArray(formulaExpr.match(/\b[a-zA-Z_]\w*\b/g)) ? formulaExpr.match(/\b[a-zA-Z_]\w*\b/g) as string[] : [];
+    const filtered = calculator.variables.filter((v) => usedNames.includes(v.name));
+    onCalculatorChange({ ...calculator, variables: filtered });
     setShowWarning(false);
   };
 
@@ -86,8 +86,8 @@ export function FormulaBuilder({
         />
         <Input
           placeholder="Unit"
-          value={newVar.unit}
-          onChange={(e) => setNewVar({ ...newVar, unit: e.target.value })}
+          value={newVar.unit ?? ''}
+          onChange={(e) => setNewVar({ ...newVar, unit: e.target.value as UnitMeasureType })}
         />
         <Input
           placeholder="Value"
@@ -99,7 +99,7 @@ export function FormulaBuilder({
 
       {/* Variable List */}
       <div>
-        {variables.map((v) => (
+        {calculator.variables.map((v) => (
           <div
             key={v.name}
             className="grid grid-cols-4 gap-2 items-center mb-2 bg-muted px-2 py-1 rounded"
@@ -127,8 +127,16 @@ export function FormulaBuilder({
         <Input
           id="formula"
           placeholder="e.g. length * width * depth"
-          value={formula}
-          onChange={(e) => onFormulaChange(e.target.value)}
+          value={calculator.formula.expression}
+          onChange={(e) =>
+            onCalculatorChange({
+              ...calculator,
+              formula: {
+                ...calculator.formula,
+                expression: e.target.value,
+              },
+            })
+          }
         />
       </div>
 

@@ -1,92 +1,65 @@
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuthStore } from '@/lib/store';
-import { supabase } from '@/lib/supabase';
-import { Badge } from '@/pages/StandardPages/StandardPageComponents/badge';
-import { useDemoLogin } from '@/hooks/useDemoLogin';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { Badge } from '@/pages/StandardPages/StandardPageComponents/badge';
 
-export function DemoRedirect() {
-  const { setUser } = useAuthStore();
-  const demoLogin = useDemoLogin();
-  const [loading, setLoading] = useState(true);
-  const [setupStep, setSetupStep] = useState<string>('Authenticating demo user...');
-  const [error, setError] = useState<string | null>(null);
+export default function DemoRedirect() {
+  // Cast loginAsDemoUser to the correct function type
+  const { loginAsDemoUser: loginAsDemoUserRaw, loading: authLoading, error: authErrorHook, profile } = useAuth();
+  const loginAsDemoUser = loginAsDemoUserRaw as (() => Promise<unknown>);
+  const [isLoadingLocally, setIsLoadingLocally] = useState(true);
+  const [errorLocally, setErrorLocally] = useState<string | null>(null);
 
   useEffect(() => {
-    (async () => {
+    let isMounted = true;
+    const attemptDemoLogin = async () => {
+      if (!isMounted) return;
+      setIsLoadingLocally(true);
+      setErrorLocally(null);
       try {
-        setLoading(true);
-        setSetupStep('Authenticating demo user...');
-
-        // 1. Sign in with demo credentials
-        const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
-          email: 'test@test.com',
-          password: 'test123',
-        });
-        
-        if (authErr || !authData.user) {
-          throw new Error(authErr?.message || 'Failed to authenticate demo user');
+        const demoProfile = await loginAsDemoUser();
+        if ((typeof demoProfile !== 'object' || demoProfile === null) && (!(typeof authErrorHook === 'string' && authErrorHook.length > 0))) {
+          const genericMessage = 'Failed to set up demo environment. Please try again.';
+          setErrorLocally(genericMessage);
+          toast.error(genericMessage);
         }
-
-        setUser(authData.user);
-        setSetupStep('Creating demo environment...');
-
-        // 2. Create a demo environment with a unique session ID
-        const { data: demoSessionId, error: demoErr } = await supabase.rpc('create_demo_environment', {
-          uid: authData.user.id,
-        });
-
-        if (demoErr || !demoSessionId) {
-          throw new Error(demoErr?.message || 'Failed creating demo environment');
-        }
-
-        setSetupStep('Cloning demo data...');
-        
-        // 3. Clone demo data using the session ID
-        const { error: cloneErr } = await supabase.rpc('execute_full_demo_clone', {
-          session_id: demoSessionId,
-        });
-
-        if (cloneErr) {
-          throw new Error(cloneErr?.message || 'Failed cloning demo data');
-        }
-
-        setSetupStep('Loading profile...');
-        
-        // 4. Load the profile using our useDemoLogin hook
-        const profile = await demoLogin(authData.user.id, demoSessionId);
-        
-        if (!profile) {
-          throw new Error('Failed to load demo profile');
-        }
-
-        toast.success('Demo environment created successfully');
-        setLoading(false);
       } catch (err) {
-        console.error('Demo setup error:', err);
-        toast.error((err as Error).message || 'Failed to set up demo environment');
-        setError((err as Error).message);
-        setLoading(false);
+        if (isMounted) {
+          const message = err instanceof Error ? err.message : 'An unexpected error occurred during demo setup.';
+          setErrorLocally(message);
+          toast.error(message);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingLocally(false);
+        }
       }
-    })();
-  }, [setUser, demoLogin]);
+    };
+    void attemptDemoLogin();
+    return () => {
+      isMounted = false;
+    };
+  }, [loginAsDemoUser]);
 
-  if (loading) {
+  if (isLoadingLocally === true || authLoading === true) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4" />
-        <p className="text-gray-300 text-lg">{setupStep}</p>
+        <p className="text-gray-300 text-lg">Setting up your demo environment...</p>
       </div>
     );
   }
 
-  if (error) {
+  const displayError = typeof errorLocally === 'string' && errorLocally.length > 0
+    ? errorLocally
+    : (typeof authErrorHook === 'string' && authErrorHook.length > 0 ? authErrorHook : '');
+  if (displayError.length > 0) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="bg-background-light p-8 rounded-lg border border-background-lighter max-w-md w-full">
           <h2 className="text-xl font-bold text-white mb-4">Demo Setup Failed</h2>
-          <p className="text-gray-400 mb-6">{error}</p>
+          <p className="text-gray-400 mb-6">{displayError}</p>
           <button
             onClick={() => (window.location.href = '/')}
             className="w-full bg-primary hover:bg-primary-hover text-white py-2 px-4 rounded"
@@ -98,15 +71,23 @@ export function DemoRedirect() {
     );
   }
 
+  if (typeof profile === 'object' && profile !== null) {
+    return (
+      <>
+        <div className="w-full text-center bg-yellow-400/90 text-black py-2 text-sm">
+          <Badge className="bg-black/80 text-yellow-300 px-2 py-0.5 rounded-full">
+            DEMO USER
+          </Badge>{' '}
+          You&apos;re in a sandbox. Changes expire after 12 hrs.
+        </div>
+        <Navigate to="/dashboard" replace />
+      </>
+    );
+  }
+
   return (
-    <>
-      <div className="w-full text-center bg-yellow-400/90 text-black py-2 text-sm">
-        <Badge className="bg-black/80 text-yellow-300 px-2 py-0.5 rounded-full">
-          DEMO USER
-        </Badge>{' '}
-        — You're in a sandbox. Changes expire after 12 hrs.
-      </div>
-      <Navigate to="/dashboard" replace />
-    </>
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+      <p className="text-gray-300 text-lg">Finalizing demo session...</p>
+    </div>
   );
 }

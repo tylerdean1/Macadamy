@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Calculator, FileText } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
+import { rpcClient } from '@/lib/rpc.client';
 
-export function Calculators() {
+export default function Calculators() {
   const { id } = useParams(); // Retrieve the contract ID from the URL parameters
   const navigate = useNavigate(); // Hook to facilitate navigation between routes
+  const { currentSessionId } = useAuth();
   interface CalculatorTemplate {
     id: string;
     name: string;
@@ -19,25 +21,20 @@ export function Calculators() {
 
   // Fetch calculator templates when the component mounts or ID changes
   useEffect(() => {
-    fetchTemplates();
-  }, [id]);
+    if (typeof currentSessionId !== 'string' || currentSessionId.length === 0) return;
+    void fetchTemplates();
+  }, [id, currentSessionId]);
 
   // Function to fetch templates from the database
   const fetchTemplates = async () => {
+    if (typeof currentSessionId !== 'string' || currentSessionId.length === 0) return;
     try {
-      const { data, error } = await supabase
-        .from('line_item_templates')
-        .select('*')
-        .order('created_at', { ascending: false });
-  
-      if (error) throw error;
-      
+      const data = await rpcClient.getAllLineItemTemplates({ p_session_id: currentSessionId });
       interface FormulaJson {
         variables?: { name: string; value: string | number }[];
       }
-      const parsedTemplates: CalculatorTemplate[] = (data || []).map((template) => {
+      const parsedTemplates: CalculatorTemplate[] = (Array.isArray(data) ? data : []).map((template) => {
         const formulaData = template.formula as FormulaJson;
-  
         return {
           id: template.id,
           name: template.name ?? 'Untitled',
@@ -46,7 +43,6 @@ export function Calculators() {
           variables: Array.isArray(formulaData?.variables) ? formulaData.variables : [],
         };
       });
-  
       setTemplates(parsedTemplates);
     } catch (error) {
       console.error('Error fetching line item templates:', error);

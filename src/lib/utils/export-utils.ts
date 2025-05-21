@@ -37,8 +37,10 @@ const flattenObject = (
                 );
             } else if (Array.isArray(value)) {
                 acc[propKey] = JSON.stringify(value);
+            } else if (typeof value === 'string' || typeof value === 'number') {
+                acc[propKey] = value.toString();
             } else {
-                acc[propKey] = value?.toString() || "";
+                acc[propKey] = "";
             }
 
             return acc;
@@ -53,9 +55,12 @@ const flattenObject = (
 const processValueForCsv = (value: unknown): string => {
     if (value === null || value === undefined) return "";
 
-    const strValue = typeof value === "object"
-        ? JSON.stringify(value)
-        : String(value);
+    // In processValueForCsv, handle all non-string/number/boolean/null/undefined as JSON.stringify
+    const strValue = (typeof value === "string" || typeof value === "number" || typeof value === "boolean")
+        ? String(value)
+        : value === null || value === undefined
+            ? ""
+            : JSON.stringify(value);
 
     // Escape values that contain commas, quotes, or newlines
     if (
@@ -75,7 +80,8 @@ export const exportDataToFile = (
     { fileName, data, format }: ExportOptions,
 ): void => {
     try {
-        if (!data || (Array.isArray(data) && data.length === 0)) {
+        // In exportDataToFile, use nullish check for data
+        if (data == null || (Array.isArray(data) && data.length === 0)) {
             throw new Error("No data to export");
         }
 
@@ -108,8 +114,7 @@ export const exportDataToFile = (
                 const entries = Object.entries(flattenedData);
                 content = "Property,Value\n" +
                     entries.map(([key, value]) =>
-                        `${processValueForCsv(key)},${
-                            processValueForCsv(value)
+                        `${processValueForCsv(key)},${processValueForCsv(value)
                         }`
                     ).join("\n");
             } else {
@@ -139,8 +144,7 @@ export const exportDataToFile = (
     } catch (error) {
         console.error("Error exporting data:", error);
         toast.error(
-            `Failed to export data: ${
-                error instanceof Error ? error.message : "Unknown error"
+            `Failed to export data: ${error instanceof Error ? error.message : "Unknown error"
             }`,
         );
     }

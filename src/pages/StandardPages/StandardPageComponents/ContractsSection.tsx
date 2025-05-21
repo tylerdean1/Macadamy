@@ -16,23 +16,51 @@ import type { Variant } from '@/lib/ui.types';
 
 import { toast } from 'sonner';
 
-import type { Contracts } from '@/lib/types';
-import type { ContractStatusValue } from '@/lib/enums';
-import { getStatusBadgeMeta } from '@/utils/status-utils';
-
 /* ---------- props ---------- */
+// Define a type for a contract (customize as needed)
+interface Contract {
+  id: string;
+  title?: string;
+  description?: string;
+  location?: string;
+  start_date?: string;
+  end_date?: string;
+  budget?: number;
+  status?: string;
+}
+
 interface ContractsSectionProps {
-  filteredContracts: Contracts[];
+  filteredContracts: Contract[];
   searchQuery: string;
   onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
+
 
 export function ContractsSection({
   filteredContracts,
   searchQuery,
   onSearchChange,
-}: ContractsSectionProps) {
+}: ContractsSectionProps): JSX.Element {
   const navigate = useNavigate();
+
+  // Use filteredContracts prop directly
+  const contracts = Array.isArray(filteredContracts) ? filteredContracts : [];
+
+  if (!contracts.length) {
+    return (
+      <div className="text-center py-8">
+        <FileText className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-white mb-2">
+          No Contracts Found
+        </h3>
+        <p className="text-gray-400 mb-6">
+          {searchQuery
+            ? 'No contracts match your search criteria'
+            : 'Start by creating your first contract'}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card rounded-lg border border-border p-6 mb-8">
@@ -80,10 +108,36 @@ export function ContractsSection({
           </div>
         ) : (
           filteredContracts.map((contract) => {
-            /* status badge meta --------------------------------------- */
-            const { variant, icon } = getStatusBadgeMeta(
-              contract.status as ContractStatusValue,
-            );
+            if (typeof contract?.id !== 'string' || contract.id.length === 0)
+              return null;
+
+            const title =
+              typeof contract.title === 'string'
+                ? contract.title.replace(/\s*\(Demo:.*?\)/i, '').trim()
+                : 'N/A';
+            const hasDemo =
+              typeof contract.title === 'string' &&
+              contract.title.includes('(Demo:');
+            const description = contract.description ?? '';
+            const location = contract.location ?? '';
+            const startDate =
+              typeof contract.start_date === 'string' &&
+                contract.start_date.length > 0
+                ? contract.start_date
+                : undefined;
+            const endDate =
+              typeof contract.end_date === 'string' &&
+                contract.end_date.length > 0
+                ? contract.end_date
+                : undefined;
+            const budget =
+              typeof contract.budget === 'number'
+                ? contract.budget.toLocaleString()
+                : '';
+            const status = contract.status ?? '';
+
+            const hasStartDate = typeof startDate === 'string' && startDate.length > 0;
+            const hasEndDate = typeof endDate === 'string' && endDate.length > 0;
 
             return (
               <div
@@ -107,51 +161,45 @@ export function ContractsSection({
                   {/* left column ------------------------------------------------ */}
                   <div>
                     <h3 className="text-lg font-medium text-white mb-2">
-                      {contract.title
-                        ?.replace(/\s*\(Demo:.*?\)/i, '')
-                        ?.trim() || 'N/A'}
-                      {contract.title?.includes('(Demo:') && (
+                      {title}
+                      {hasDemo && (
                         <span className="ml-2 text-xs text-yellow-400 font-semibold">
                           Demo
                         </span>
                       )}
                     </h3>
 
-                    <p className="text-gray-400 mb-4">
-                      {contract.description}
-                    </p>
+                    <p className="text-gray-400 mb-4">{description}</p>
 
                     <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
-                      {contract.location && (
+                      {location && (
                         <span className="flex items-center">
                           <MapPin className="w-4 h-4 mr-2" />
-                          {contract.location}
+                          {location}
                         </span>
                       )}
 
-                      {contract.start_date && contract.end_date && (
+                      {hasStartDate && hasEndDate && (
                         <span className="flex items-center">
                           <Calendar className="w-4 h-4 mr-2" />
-                          {new Date(
-                            contract.start_date,
-                          ).toLocaleDateString()}
+                          {startDate}
                           {' – '}
-                          {new Date(contract.end_date).toLocaleDateString()}
+                          {endDate}
                         </span>
                       )}
 
                       {typeof contract.budget === 'number' && (
                         <span className="flex items-center">
                           <DollarSign className="w-4 h-4 mr-2" />
-                          ${contract.budget.toLocaleString()}
+                          ${budget}
                         </span>
                       )}
                     </div>
                   </div>
 
                   {/* status badge ----------------------------------------------- */}
-                  <Badge variant={variant as Variant} icon={icon}>
-                    {contract.status}
+                  <Badge variant={'default' as Variant} icon={undefined}>
+                    {status}
                   </Badge>
                 </div>
               </div>

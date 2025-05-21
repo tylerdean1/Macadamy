@@ -19,7 +19,9 @@ export function AuthForm({
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { login, loginAsDemoUser } = useAuth();
+  const { login: loginRaw, loginAsDemoUser: loginAsDemoUserRaw } = useAuth();
+  const login = loginRaw as ((identifier: string, password: string) => Promise<unknown>);
+  const loginAsDemoUser = loginAsDemoUserRaw as (() => Promise<unknown>);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,10 +42,9 @@ export function AuthForm({
     try {
       // The login method will handle validation, toast messages, and redirection
       const result = await login(identifier, password);
-      // If login fails, it will show appropriate error toast in the useAuth hook
-      
-      // If login fails, clear password for security but keep email for convenience
-      if (!result) {
+      if (typeof result !== 'undefined' && result !== null && typeof result === 'object') {
+        // Success logic (if any)
+      } else {
         setPassword('');
       }
     } catch (err) {
@@ -71,8 +72,7 @@ export function AuthForm({
   return (
     <Card className="bg-background-light p-8 rounded-lg shadow-xl border border-background-lighter w-full max-w-md mx-auto">
       <h2 className="text-2xl font-bold text-white mb-6">Welcome Back</h2>
-
-      <form onSubmit={handleLogin} className="space-y-6">
+      <form onSubmit={e => { void handleLogin(e); }} className="space-y-6">
         <div>
           <label htmlFor="id" className="block text-sm text-gray-300 mb-2">
             Email
@@ -146,20 +146,18 @@ export function AuthForm({
           className="block w-full text-sm text-primary disabled:opacity-50"
           type="button"
         >
-          Don't have an account? Sign up
+          Don&apos;t have an account? Sign up
         </button>
       </div>
 
-      <div className="mt-6">
-        <Button
-          type="button"
-          onClick={handleDemoLogin}
-          disabled={loading}
-          className="w-full bg-secondary text-white py-2.5 rounded disabled:opacity-50"
-        >
-          Try Demo
-        </Button>
-      </div>
+      <button
+        type="button"
+        onClick={() => { void handleDemoLogin(); }}
+        className="w-full mt-4 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 px-4 rounded-lg transition-colors"
+        disabled={loading}
+      >
+        Demo Login
+      </button>
     </Card>
   );
 }

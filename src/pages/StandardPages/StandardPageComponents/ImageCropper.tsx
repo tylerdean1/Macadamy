@@ -40,7 +40,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, aspectRatio = 1 }: ImageCroppe
   // Handle the crop completion and pass the resulting image back
   const handleCropComplete = useCallback(async () => {
     if (!croppedAreaPixels) return; // Ensure the cropped area is set
-    
+
     try {
       const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels); // Get cropped image blob
       onCropComplete(croppedImage); // Call the callback with cropped image
@@ -77,7 +77,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, aspectRatio = 1 }: ImageCroppe
             max={3}
             step={0.1}
             value={zoom}
-            onChange={(e) => setZoom(Number(e.target.value))}
+            onChange={() => { void handleCropComplete(); }}
             className="w-full accent-primary"
             aria-label="Zoom Level"
           />
@@ -86,7 +86,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, aspectRatio = 1 }: ImageCroppe
       </div>
       <Button
         type="button"
-        onClick={handleCropComplete} // Trigger the crop and upload
+        onClick={() => { void handleCropComplete(); }} // Trigger the crop and upload
         className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
         aria-label="Complete Crop"
       >

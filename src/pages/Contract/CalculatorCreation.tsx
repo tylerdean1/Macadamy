@@ -3,23 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Minus, Save } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
-import type { Database } from '@/lib/database.types';
-
-type CalculatorTemplateInsert = Database['public']['Tables']['line_item_templates']['Insert'];
-
-interface Variable {
-  name: string;
-  label: string;
-  type: string;
-  unit: string;
-  defaultValue: number;
-}
-
-interface Formula {
-  name: string;
-  expression: string;
-  description: string;
-}
+import type { CalculatorTemplate, Variable as CanonicalVariable, Formula as CanonicalFormula } from '@/lib/formula.types';
 
 const MATH_OPERATIONS = [
   { symbol: '+', description: 'Addition' },
@@ -53,22 +37,21 @@ const MATH_FUNCTIONS = [
   { name: 'E', description: 'e (2.71828...)' },
 ];
 
-export function CalculatorCreation() {
+export default function CalculatorCreation() {
   const { id } = useParams();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user) as { id: string } | null;
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [variables, setVariables] = useState<Variable[]>([
+  const [variables, setVariables] = useState<CanonicalVariable[]>([
     {
       name: 'length',
-      label: 'Length',
-      type: 'number',
-      unit: 'ft',
+      type: 'input',
+      unit: 'Feet (FT)',
       defaultValue: 0,
     },
   ]);
-  const [formulas, setFormulas] = useState<Formula[]>([
+  const [formulas, setFormulas] = useState<CanonicalFormula[]>([
     {
       name: 'result',
       expression: 'length',
@@ -78,17 +61,24 @@ export function CalculatorCreation() {
   const [error, setError] = useState<string | null>(null);
 
   const handleAddVariable = () => {
-    setVariables([...variables, { name: '', label: '', type: 'number', unit: '', defaultValue: 0 }]);
+    setVariables([...variables, { name: '', type: 'input', unit: 'Feet (FT)', defaultValue: 0 }]);
   };
 
   const handleRemoveVariable = (index: number) => {
     setVariables(variables.filter((_, i) => i !== index));
   };
 
-  const handleVariableChange = (index: number, field: keyof Variable, value: string | number) => {
+  const handleVariableChange = (index: number, field: keyof CanonicalVariable, value: string | number) => {
     const newVariables = [...variables];
     if (field === 'defaultValue') {
       newVariables[index][field] = typeof value === 'string' ? parseFloat(value) : value;
+    } else if (field === 'type') {
+      // Only allow valid types for 'type' field
+      if (value === 'input' || value === 'output' || value === 'constant') {
+        newVariables[index][field] = value;
+      }
+    } else if (field === 'unit') {
+      newVariables[index][field] = value as CanonicalVariable['unit'];
     } else {
       newVariables[index][field] = value as string;
     }
@@ -103,7 +93,7 @@ export function CalculatorCreation() {
     setFormulas(formulas.filter((_, i) => i !== index));
   };
 
-  const handleFormulaChange = (index: number, field: keyof Formula, value: string) => {
+  const handleFormulaChange = (index: number, field: keyof CanonicalFormula, value: string) => {
     const newFormulas = [...formulas];
     newFormulas[index][field] = value;
     setFormulas(newFormulas);
@@ -112,7 +102,7 @@ export function CalculatorCreation() {
   const insertIntoFormula = (index: number, text: string) => {
     const formula = formulas[index];
     const activeElement = document.activeElement as HTMLInputElement | null;
-    const cursorPosition = activeElement?.selectionStart || formula.expression.length;
+    const cursorPosition = activeElement?.selectionStart ?? formula.expression.length;
     const newExpression = formula.expression.slice(0, cursorPosition) + text + formula.expression.slice(cursorPosition);
     handleFormulaChange(index, 'expression', newExpression);
   };
@@ -136,18 +126,17 @@ export function CalculatorCreation() {
         formulaNames.add(formula.name);
       }
 
-      const newCalculator: CalculatorTemplateInsert = {
-        id: crypto.randomUUID(),
+      const calculatorTemplate: CalculatorTemplate = {
+        id: '',
         name,
         description,
-        formula: JSON.parse(JSON.stringify({ variables, formulas })),
-        created_by: user.id,
-        created_at: new Date().toISOString(),
-        unit_type: 'Each (EA)',
-        output_unit: 'Each (EA)',
+        variables,
+        formula: formulas[0],
       };
-
-      const { error: insertError } = await supabase.from('line_item_templates').insert(newCalculator);
+      const { error: insertError } = await supabase.from('line_item_templates').insert({
+        ...calculatorTemplate,
+        formula: JSON.stringify(calculatorTemplate.formula),
+      });
       if (insertError) throw insertError;
 
       navigate(`/contracts/${id}/line-items`);
@@ -179,14 +168,14 @@ export function CalculatorCreation() {
         </div>
 
         {/* Display error message if any */}
-        {error && (
+        {typeof error === 'string' && error.trim() !== '' && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500">
             {error}
           </div>
         )}
 
         {/* Form for entering calculator template details */}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={(e) => { void handleSubmit(e); }} className="space-y-6">
           <div className="bg-background-light rounded-lg border border-background-lighter p-6">
             <h2 className="text-lg font-medium text-white mb-4">Template Details</h2>
             <div className="space-y-4">
@@ -244,7 +233,6 @@ export function CalculatorCreation() {
             <div className="space-y-4">
               {variables.map((variable, index) => {
                 const nameId = `variableName-${index}`;
-                const labelId = `variableLabel-${index}`;
                 const unitId = `variableUnit-${index}`;
                 const defaultValId = `variableDefaultVal-${index}`;
                 return (
@@ -269,28 +257,6 @@ export function CalculatorCreation() {
                       />
                     </div>
 
-                    {/* Label field */}
-                    <div>
-                      <label
-                        className="block text-sm font-medium text-gray-400 mb-1"
-                        htmlFor={labelId}
-                      >
-                        Label
-                      </label>
-                      <input
-                        id={labelId}
-                        type="text"
-                        value={variable.label}
-                        onChange={(e) =>
-                          handleVariableChange(index, 'label', e.target.value)
-                        }
-                        className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                        placeholder="Variable Label"
-                        aria-label="Variable Label"
-                        required
-                      />
-                    </div>
-
                     {/* Unit field */}
                     <div>
                       <label
@@ -299,16 +265,34 @@ export function CalculatorCreation() {
                       >
                         Unit
                       </label>
-                      <input
+                      <select
                         id={unitId}
-                        type="text"
-                        value={variable.unit}
-                        onChange={(e) =>
-                          handleVariableChange(index, 'unit', e.target.value)
-                        }
+                        value={variable.unit ?? ''}
+                        onChange={(e) => handleVariableChange(index, 'unit', e.target.value || '')}
                         className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                         required
-                      />
+                      >
+                        <option value="">Select unit</option>
+                        <option value="Feet (FT)">Feet (FT)</option>
+                        <option value="Inches (IN)">Inches (IN)</option>
+                        <option value="Linear Feet (LF)">Linear Feet (LF)</option>
+                        <option value="Mile (MI)">Mile (MI)</option>
+                        <option value="Shoulder Mile (SMI)">Shoulder Mile (SMI)</option>
+                        <option value="Square Feet (SF)">Square Feet (SF)</option>
+                        <option value="Square Yard (SY)">Square Yard (SY)</option>
+                        <option value="Acre (AC)">Acre (AC)</option>
+                        <option value="Cubic Foot (CF)">Cubic Foot (CF)</option>
+                        <option value="Cubic Yard (CY)">Cubic Yard (CY)</option>
+                        <option value="Ton (TON)">Ton (TON)</option>
+                        <option value="Pound (LB)">Pound (LB)</option>
+                        <option value="Gallon (GAL)">Gallon (GAL)</option>
+                        <option value="Lump Sum (LS)">Lump Sum (LS)</option>
+                        <option value="Hour (HR)">Hour (HR)</option>
+                        <option value="Day (DAY)">Day (DAY)</option>
+                        <option value="Each (EA)">Each (EA)</option>
+                        <option value="Station (STA)">Station (STA)</option>
+                        <option value="Degrees (*)">Degrees (*)</option>
+                      </select>
                     </div>
 
                     {/* Default Value field */}
@@ -406,7 +390,7 @@ export function CalculatorCreation() {
                       <input
                         id={`formulaDescription-${formulaIndex}`}
                         type="text"
-                        value={formula.description}
+                        value={formula.description ?? ''}
                         onChange={(e) =>
                           handleFormulaChange(
                             formulaIndex,
@@ -486,29 +470,26 @@ export function CalculatorCreation() {
                           Operations
                         </label>
                         <div className="flex flex-wrap gap-2">
-                          {MATH_OPERATIONS.map((op, opIndex) => (
-                            <button
-                              key={opIndex}
-                              type="button"
-                              onClick={() =>
-                                insertIntoFormula(
-                                  formulaIndex,
-                                  op.insert || op.symbol
-                                )
-                              }
-                              onDragStart={(e) =>
-                                e.dataTransfer.setData(
-                                  'text/plain',
-                                  op.insert || op.symbol
-                                )
-                              }
-                              className="w-8 h-8 flex items-center justify-center bg-blue-500/10 text-blue-500 rounded-md hover:bg-blue-500/20 transition-colors text-lg font-mono"
-                              aria-label={`Insert operation "${op.description}"`}
-                              title={op.description}
-                            >
-                              {op.symbol}
-                            </button>
-                          ))}
+                          {MATH_OPERATIONS.map((op, opIndex) => {
+                            const opText = op.insert ?? op.symbol;
+                            return (
+                              <button
+                                key={opIndex}
+                                type="button"
+                                onClick={() =>
+                                  insertIntoFormula(formulaIndex, opText)
+                                }
+                                onDragStart={(e) =>
+                                  e.dataTransfer.setData('text/plain', opText)
+                                }
+                                className="w-8 h-8 flex items-center justify-center bg-blue-500/10 text-blue-500 rounded-md hover:bg-blue-500/20 transition-colors text-lg font-mono"
+                                aria-label={`Insert operation "${op.description}"`}
+                                title={op.description}
+                              >
+                                {op.symbol}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>

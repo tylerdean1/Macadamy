@@ -13,11 +13,11 @@ interface ModalProps {
 }
 
 // Modal component for displaying overlay content
-export function Modal({ 
-  isOpen, 
-  onClose, 
-  title, 
-  children, 
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
   className = '', // Default className to an empty string
   showCloseButton = true // Default to showing the close button
 }: ModalProps) {
@@ -28,7 +28,7 @@ export function Modal({
         onClose(); // Close modal on ESC key press
       }
     };
-    
+
     if (isOpen) {
       window.addEventListener('keydown', handleEsc); // Add event listener when modal is open
     }
@@ -48,7 +48,9 @@ export function Modal({
         onClick={e => e.stopPropagation()} // Prevent closing when clicking inside
       >
         <div className="modal-header"> {/* Header section of the modal */}
-          {title && <h2 className="modal-title">{title}</h2>} {/* Render title if exists */}
+          {typeof title === 'string' && title.trim() !== '' && ( // Render title if exists and is not empty
+            <h2 className="modal-title">{title}</h2>
+          )}
           {showCloseButton && ( // Conditionally render the close button
             <Button
               className="modal-close-button"

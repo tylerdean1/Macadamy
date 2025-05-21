@@ -24,54 +24,60 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     ...props // Spread remaining props for the input element
   }, ref) => {
     // Generate a unique ID if one is not provided
-    const inputId = id || `input-${Math.random().toString(36).substring(2, 9)}`;
+    const inputId = typeof id === 'string' && id.trim() !== '' ? id : `input-${Math.random().toString(36).substring(2, 9)}`;
+
+    const hasLabel = typeof label === 'string' && label.trim() !== '';
+    const hasError = typeof error === 'string' && error.trim() !== '';
+    const hasHelperText = typeof helperText === 'string' && helperText.trim() !== '';
+    const hasStartAdornment = Boolean(startAdornment);
+    const hasEndAdornment = Boolean(endAdornment);
 
     return (
-      <div className={`${fullWidth ? 'w-full' : ''}`}> {/* Set full width if specified */}
-        {label && ( // Render the label if it exists
+      <div className={fullWidth ? 'w-full' : ''}>
+        {hasLabel ? (
           <label htmlFor={inputId} className="block text-sm font-medium text-gray-300 mb-1">
             {label}
           </label>
-        )}
-        <div className="relative"> {/* Wrapper for the input */}
-          {startAdornment && ( // Render the start adornment if provided
+        ) : null}
+        <div className="relative">
+          {hasStartAdornment ? (
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               {startAdornment}
             </div>
-          )}
+          ) : null}
           <input
-            id={inputId}  // Bind the generated ID to the input element
-            ref={ref} // Forward ref to access the input directly
+            id={inputId}
+            ref={ref}
             className={`
               bg-background
               border
-              ${error ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-primary'} // Conditional styles based on error
+              ${hasError ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-primary'}
               text-white
               rounded-md
               px-3
               py-2
-              ${startAdornment ? 'pl-10' : ''} // Extra padding for start adornment
-              ${endAdornment ? 'pr-10' : ''} // Extra padding for end adornment
+              ${hasStartAdornment ? 'pl-10' : ''}
+              ${hasEndAdornment ? 'pr-10' : ''}
               focus:outline-none
               focus:ring-2
               focus:border-transparent
               transition-colors
-              ${fullWidth ? 'w-full' : ''} // Full width if specified
-              ${className} // Additional classes to apply
+              ${fullWidth ? 'w-full' : ''}
+              ${className}
             `}
-            {...props} // Spread other props for the input
+            {...props}
           />
-          {endAdornment && ( // Render the end adornment if provided
+          {hasEndAdornment ? (
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
               {endAdornment}
             </div>
-          )}
+          ) : null}
         </div>
-        {(helperText || error) && ( // Display helper text or error message if present
-          <p className={`mt-1 text-sm ${error ? 'text-red-500' : 'text-gray-400'}`}>
-            {error || helperText} {/* Show either error or helper text */}
+        {(hasHelperText || hasError) ? (
+          <p className={`mt-1 text-sm ${hasError ? 'text-red-500' : 'text-gray-400'}`}>
+            {hasError ? error : helperText}
           </p>
-        )}
+        ) : null}
       </div>
     );
   }

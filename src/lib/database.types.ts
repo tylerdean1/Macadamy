@@ -2149,8 +2149,12 @@ export type Database = {
         Returns: undefined
       }
       create_demo_environment: {
-        Args: { uid: string }
-        Returns: string
+        Args: { base_profile_email: string }
+        Returns: Json
+      }
+      custom_access_token_hook: {
+        Args: { claims: Json }
+        Returns: Json
       }
       delete_asphalt_types: {
         Args: { _id: string }
@@ -2280,7 +2284,7 @@ export type Database = {
         Returns: boolean
       }
       execute_full_demo_clone: {
-        Args: { session_id: string }
+        Args: { p_session_id: string }
         Returns: undefined
       }
       geography: {
@@ -2562,6 +2566,10 @@ export type Database = {
           session_id: string
         }[]
       }
+      get_change_orders_count_for_contract: {
+        Args: { contract_id_param: string }
+        Returns: number
+      }
       get_contract_organizations: {
         Args: { contract_id: string }
         Returns: {
@@ -2651,6 +2659,43 @@ export type Database = {
           session_id: string
         }[]
       }
+      get_enriched_profile_by_username: {
+        Args: { _username: string }
+        Returns: {
+          id: string
+          full_name: string
+          username: string
+          email: string
+          phone: string
+          location: string
+          role: Database["public"]["Enums"]["user_role"]
+          job_title_id: string
+          organization_id: string
+          avatar_id: string
+          avatar_url: string
+          job_title: string
+          organization_name: string
+          session_id: string
+        }[]
+      }
+      get_enriched_user_contracts: {
+        Args: { _user_id: string }
+        Returns: {
+          id: string
+          title: string
+          description: string
+          location: string
+          start_date: string
+          end_date: string
+          created_by: string
+          created_at: string
+          updated_at: string
+          budget: number
+          status: Database["public"]["Enums"]["contract_status"]
+          coordinates_wkt: string
+          user_contract_role: Database["public"]["Enums"]["user_role"]
+        }[]
+      }
       get_enum_values: {
         Args: { enum_type: string }
         Returns: {
@@ -2694,6 +2739,10 @@ export type Database = {
           session_id: string
         }[]
       }
+      get_inspections_count_for_contract: {
+        Args: { contract_id_param: string }
+        Returns: number
+      }
       get_issues: {
         Args: { _contract_id: string }
         Returns: {
@@ -2713,6 +2762,10 @@ export type Database = {
           photo_urls: string[]
           session_id: string
         }[]
+      }
+      get_issues_count_for_contract: {
+        Args: { contract_id_param: string }
+        Returns: number
       }
       get_job_titles: {
         Args: Record<PropertyKey, never>
@@ -2750,20 +2803,31 @@ export type Database = {
         }[]
       }
       get_line_items_with_wkt: {
-        Args: { contract_id: string }
+        Args: { contract_id_param: string }
         Returns: {
           id: string
+          contract_id: string
           wbs_id: string
-          map_id: string
-          line_code: string
           description: string
-          template_id: string
-          unit_measure: Database["public"]["Enums"]["unit_measure_type"]
           quantity: number
+          unit: Database["public"]["Enums"]["unit_measure_type"]
           unit_price: number
-          reference_doc: string
-          coordinates_wkt: string
+          total_price: number
+          notes: string
+          status: string
+          start_date: string
+          end_date: string
+          actual_quantity: number
+          actual_cost: number
+          created_at: string
+          updated_at: string
           session_id: string
+          coordinates_wkt: string
+          line_code: string
+          map_id: string
+          unit_measure: string
+          reference_doc: string
+          template_id: string
         }[]
       }
       get_maps_with_wkt: {
@@ -2837,15 +2901,22 @@ export type Database = {
         }[]
       }
       get_wbs_with_wkt: {
-        Args: { contract_id: string }
+        Args: { contract_id_param: string }
         Returns: {
           id: string
-          wbs_number: string
-          scope: string
-          budget: number
-          location: string
-          coordinates_wkt: string
+          contract_id: string
+          description: string
+          level: number
+          parent_wbs_id: string
+          order_number: number
+          created_at: string
+          updated_at: string
           session_id: string
+          coordinates_wkt: string
+          wbs_number: string
+          budget: number
+          scope: string
+          location: string
         }[]
       }
       gettransactionid: {

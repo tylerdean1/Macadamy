@@ -1,24 +1,21 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { rpcClient } from '@/lib/rpc.client';
 
 /**
  * Custom hook to fetch enum options from the database
  * @param enumType The name of the enum type to fetch
  * @returns Array of enum values as strings
  */
-export function useEnumOptions(enumType: string) {
+export function useEnumOptions(enumType: string): string[] {
   const [options, setOptions] = useState<string[]>([]);
 
   useEffect(() => {
-    const fetchEnumOptions = async () => {
+    const fetchEnumOptions = async (): Promise<void> => {
       try {
-        const { data, error } = await supabase.rpc('get_enum_values', {
+        const data = await rpcClient.getEnumValues({
           enum_type: enumType,
         });
-
-        if (error) throw error;
-
-        const values = data?.map((item: { value: string }) => item.value) || [];
+        const values = Array.isArray(data) ? data.map((item: { value: string }) => item.value) : [];
         setOptions(values);
       } catch (error) {
         console.error(`Error loading enum options for ${enumType}:`, error);
@@ -26,7 +23,7 @@ export function useEnumOptions(enumType: string) {
       }
     };
 
-    fetchEnumOptions();
+    void fetchEnumOptions();
   }, [enumType]);
 
   return options;
@@ -39,13 +36,10 @@ export function useEnumOptions(enumType: string) {
  */
 export async function fetchEnumOptions(enumType: string): Promise<string[]> {
   try {
-    const { data, error } = await supabase.rpc('get_enum_values', {
+    const data = await rpcClient.getEnumValues({
       enum_type: enumType,
     });
-
-    if (error) throw error;
-
-    return data?.map((item: { value: string }) => item.value) || [];
+    return Array.isArray(data) ? data.map((item: { value: string }) => item.value) : [];
   } catch (error) {
     console.error(`Error fetching enum options for ${enumType}:`, error);
     return [];

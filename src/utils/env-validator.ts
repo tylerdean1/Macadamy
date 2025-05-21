@@ -9,10 +9,10 @@
  */
 export function validateEnvVariables(variables: string[]): void {
   const missing = variables.filter(variable => {
-    const value = import.meta.env[variable];
+    const value = import.meta.env[variable] as string | undefined;
     return value === undefined || value === '';
   });
-  
+
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
@@ -25,7 +25,7 @@ export function validateEnvVariables(variables: string[]): void {
  * @throws Error if the environment variable is missing
  */
 export function getRequiredEnv(name: string): string {
-  const value = import.meta.env[name];
+  const value = import.meta.env[name] as string | undefined;
   if (value === undefined || value === '') {
     throw new Error(`Missing required environment variable: ${name}`);
   }
@@ -39,7 +39,7 @@ export function getRequiredEnv(name: string): string {
  * @returns The value of the environment variable or the default value
  */
 export function getOptionalEnv(name: string, defaultValue: string): string {
-  const value = import.meta.env[name];
+  const value = import.meta.env[name] as string | undefined;
   if (value === undefined || value === '') {
     return defaultValue;
   }

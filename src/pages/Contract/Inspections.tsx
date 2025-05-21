@@ -19,6 +19,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
 import { FileText, Plus, Pencil } from 'lucide-react';
+import { getDemoSession } from '@/lib/utils/cloneDemoData';
 
 // Define the structure of an inspection record
 interface Inspection {
@@ -43,7 +44,7 @@ interface Option {
   name: string;
 }
 
-export function Inspections() {
+export default function Inspections() {
   const user = useAuthStore(state => state.user);
 
   // State variables
@@ -80,27 +81,27 @@ export function Inspections() {
   const [lineItems, setLineItems] = useState<Option[]>([]);
 
   // Check if the user has edit permissions
-  const canEdit = ['admin', 'engineer', 'inspector'].includes(user?.role || '');
+  const canEdit = typeof user?.role === 'string' && ['admin', 'engineer', 'inspector'].includes(user.role);
 
   // Initial load
   useEffect(() => {
-    loadOptions();
-    fetchInspections();
+    void loadOptions();
+    void fetchInspections();
   }, []);
 
   // Dynamically load WBS after contract is selected
   useEffect(() => {
-    if (newInspection.contract_id) fetchWbs(newInspection.contract_id);
+    if (newInspection.contract_id) void fetchWbs(newInspection.contract_id);
   }, [newInspection.contract_id]);
 
   // Load maps once WBS is selected
   useEffect(() => {
-    if (newInspection.wbs_id) fetchMaps(newInspection.wbs_id);
+    if (newInspection.wbs_id) void fetchMaps(newInspection.wbs_id);
   }, [newInspection.wbs_id]);
 
   // Load line items when map is selected
   useEffect(() => {
-    if (newInspection.map_id) fetchLineItems(newInspection.map_id);
+    if (newInspection.map_id) void fetchLineItems(newInspection.map_id);
   }, [newInspection.map_id]);
 
   // Fetch contract list using RPC
@@ -109,13 +110,13 @@ export function Inspections() {
       // Note: get_contract_with_wkt normally expects a contract_id parameter,
       // but when called without it, it should return all contracts
       const { data, error } = await supabase.rpc('get_contract_with_wkt', { contract_id: '' });
-      
+
       if (error) {
         console.error('Error fetching contracts:', error);
         return;
       }
-      
-      if (data && Array.isArray(data)) {
+
+      if (Array.isArray(data)) {
         setContracts(data.map((contract) => ({
           id: contract.id,
           name: contract.title
@@ -129,20 +130,20 @@ export function Inspections() {
   // Fetch WBS entries for a contract using RPC
   async function fetchWbs(contractId: string) {
     try {
-      const { data, error } = await supabase.rpc('get_wbs_with_wkt', { 
-        contract_id: contractId 
+      const { data, error } = await supabase.rpc('get_wbs_with_wkt', {
+        contract_id_param: contractId
       });
-      
+
       if (error) {
         console.error('Error fetching WBS:', error);
         setWbsList([]);
         return;
       }
-      
-      if (data && Array.isArray(data)) {
+
+      if (Array.isArray(data)) {
         setWbsList(data.map((wbs) => ({
           id: wbs.id,
-          name: wbs.wbs_number
+          name: wbs.wbs_number || wbs.description || 'Unnamed WBS',
         })));
       } else {
         setWbsList([]);
@@ -158,17 +159,17 @@ export function Inspections() {
     try {
       // In this application, get_maps_with_wkt needs contract_id, not wbs_id
       // This is likely a design issue in the API, but we need to work with it
-      const { data, error } = await supabase.rpc('get_maps_with_wkt', { 
+      const { data, error } = await supabase.rpc('get_maps_with_wkt', {
         contract_id: wbsId // Using wbsId as contract_id because that's what the API expects
       });
-      
+
       if (error) {
         console.error('Error fetching maps:', error);
         setMapList([]);
         return;
       }
-      
-      if (data && Array.isArray(data)) {
+
+      if (Array.isArray(data)) {
         // Filter maps to only show ones related to the selected WBS
         const filteredMaps = data.filter(map => map.wbs_id === wbsId);
         setMapList(filteredMaps.map((map) => ({
@@ -193,17 +194,17 @@ export function Inspections() {
         .from('line_items')
         .select('id, description')
         .eq('map_id', mapId);
-        
+
       if (error) {
         console.error('Error fetching line items:', error);
         setLineItems([]);
         return;
       }
-      
-      if (data && data.length > 0) {
-        setLineItems(data.map(li => ({ 
-          id: li.id, 
-          name: li.description || 'Unnamed Line Item' 
+
+      if (Array.isArray(data) && data.length > 0) {
+        setLineItems(data.map(li => ({
+          id: li.id,
+          name: li.description || 'Unnamed Line Item'
         })));
       } else {
         setLineItems([]);
@@ -223,12 +224,12 @@ export function Inspections() {
         .from('inspections')
         .select('*')
         .order('created_at', { ascending: false });
-        
+
       if (error) {
         console.error('Error fetching inspections:', error);
         return;
       }
-      setInspections(data || []);
+      setInspections(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Unexpected error in fetchInspections:', err);
     }
@@ -253,13 +254,13 @@ export function Inspections() {
 
     try {
       const pdfUrl = await uploadFile(pdfFile, 'inspections');
-      if (!pdfUrl) return;
+      if (typeof pdfUrl !== 'string' || pdfUrl.length === 0) return;
 
       const photoUrls: string[] = [];
       if (photoFiles) {
         for (const file of Array.from(photoFiles)) {
           const url = await uploadFile(file, 'inspection-photos');
-          if (url) photoUrls.push(url);
+          if (typeof url === 'string' && url.length > 0) photoUrls.push(url);
         }
       }
 
@@ -273,13 +274,14 @@ export function Inspections() {
         pdf_url: pdfUrl,
         photo_urls: photoUrls.length > 0 ? photoUrls : null,
         created_by: user.id,
+        ...(getDemoSession() ? { session_id: getDemoSession()!.sessionId } : {}),
       };
 
       let error;
-      if (editingId) {
+      if (typeof editingId === 'string' && editingId.length > 0) {
         // Use RPC for updating inspection
         const result = await supabase.rpc('update_inspections', {
-          _id: editingId, 
+          _id: editingId,
           _data: {
             ...insertData,
             updated_by: user.id,
@@ -301,18 +303,18 @@ export function Inspections() {
       } else {
         setCreating(false);
         setEditingId(null);
-        setNewInspection({ 
-          name: '', 
-          description: '', 
-          contract_id: '', 
-          wbs_id: '', 
-          map_id: '', 
-          line_item_id: '', 
-          photo_urls: [] 
+        setNewInspection({
+          name: '',
+          description: '',
+          contract_id: '',
+          wbs_id: '',
+          map_id: '',
+          line_item_id: '',
+          photo_urls: []
         });
         setPdfFile(null);
         setPhotoFiles(null);
-        fetchInspections();
+        void fetchInspections();
       }
     } catch (err) {
       console.error('Unexpected error in handleSave:', err);
@@ -324,11 +326,11 @@ export function Inspections() {
   function handleEdit(insp: Inspection) {
     setNewInspection({
       name: insp.name,
-      description: insp.description || '',
+      description: typeof insp.description === 'string' ? insp.description : '',
       contract_id: insp.contract_id,
-      wbs_id: insp.wbs_id || '',
-      map_id: insp.map_id || '',
-      line_item_id: insp.line_item_id || '',
+      wbs_id: typeof insp.wbs_id === 'string' ? insp.wbs_id : '',
+      map_id: typeof insp.map_id === 'string' ? insp.map_id : '',
+      line_item_id: typeof insp.line_item_id === 'string' ? insp.line_item_id : '',
       photo_urls: insp.photo_urls || [],
     });
     setEditingId(insp.id!);
@@ -349,7 +351,7 @@ export function Inspections() {
 
       {/* Inspection Form */}
       {creating && (
-        <form onSubmit={handleSave} className="space-y-4 bg-background-light p-4 rounded border">
+        <form onSubmit={e => { void handleSave(e); }} className="space-y-4 bg-background-light p-4 rounded border">
           <input
             type="text"
             placeholder="Name"
@@ -433,7 +435,7 @@ export function Inspections() {
               <div>
                 <div className="text-lg font-bold">{insp.name}</div>
                 <p className="text-gray-400 text-sm">{insp.description}</p>
-                <a href={insp.pdf_url || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline inline-flex gap-1 mt-1">
+                <a href={typeof insp.pdf_url === 'string' && insp.pdf_url.length > 0 ? insp.pdf_url : '#'} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline inline-flex gap-1 mt-1">
                   <FileText className="w-4 h-4" /> View PDF
                 </a>
               </div>

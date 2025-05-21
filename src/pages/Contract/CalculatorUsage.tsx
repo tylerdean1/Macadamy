@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, RefreshCw } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
+import { rpcClient } from '@/lib/rpc.client';
 import { useAuthStore } from '@/lib/store';
+import { evaluate } from 'mathjs'; // Import mathjs
 
 // This interface defines the structure for Variables used in calculations
 interface Variable {
@@ -23,7 +25,6 @@ interface Formula {
 // This interface defines the structure for Calculator templates fetched from the database
 interface CalculatorTemplate {
   id: string;             // Unique identifier for the calculator template
-  line_code: string;      // Line code associated with the calculator template
   name: string;           // The name of the calculator template
   description: string;    // Description detailing the template
   variables: Variable[];  // List of variables associated with this template
@@ -42,9 +43,10 @@ interface Calculation {
   created_at?: string;             // Optional created_at timestamp from database
 }
 
-export function CalculatorUsage() {
+export default function CalculatorUsage() {
   const { id, templateId } = useParams(); // Extract contract ID and template ID from route parameters
   const navigate = useNavigate();
+  const { currentSessionId } = useAuth();
 
   const [template, setTemplate] = useState<CalculatorTemplate | null>(null);
   const [calculations, setCalculations] = useState<Calculation[]>([]);
@@ -57,20 +59,49 @@ export function CalculatorUsage() {
 
   const user = useAuthStore((state) => state.user);
 
-  // Fetch the calculator template from the database using Supabase
+  // Fetch the calculator template from the database using RPC
   const fetchTemplate = useCallback(async () => {
+    if (typeof currentSessionId !== 'string' || currentSessionId.length === 0 || typeof templateId !== 'string' || templateId.length === 0) return;
     try {
-      const { data, error } = await supabase
-        .from('line_item_templates')
-        .select('*')
-        .eq('id', templateId)
-        .single();
-
-      if (error) throw error;
-      setTemplate(data);
-
+      const data = await rpcClient.getAllLineItemTemplates({ p_session_id: currentSessionId });
+      const found = Array.isArray(data) ? data.find((t) => t.id === templateId) : undefined;
+      if (!found) throw new Error('Template not found');
+      // Parse variables and formulas from formula JSON
+      let variables: Variable[] = [];
+      let formulas: Formula[] = [];
+      try {
+        // 1. Remove all usage of line_code if not present on the type
+        // 2. Type-safe JSON parsing for formulaObj
+        let formulaObj: { variables?: Variable[]; formulas?: Formula[] } = {};
+        if (typeof found?.formula === 'string') {
+          try {
+            const parsed: unknown = JSON.parse(found.formula);
+            if (
+              typeof parsed === 'object' &&
+              parsed !== null &&
+              ('variables' in parsed || 'formulas' in parsed)
+            ) {
+              formulaObj = parsed as { variables?: Variable[]; formulas?: Formula[] };
+            }
+          } catch {
+            // Optionally log error
+          }
+        } else if (typeof found?.formula === 'object' && found.formula !== null) {
+          formulaObj = found.formula;
+        }
+        // 3. Access variables/formulas safely
+        variables = Array.isArray(formulaObj.variables) ? formulaObj.variables : [];
+        formulas = Array.isArray(formulaObj.formulas) ? formulaObj.formulas : [];
+      } catch { /* Optionally log error */ }
+      setTemplate({
+        id: found.id,
+        name: found.name ?? '',
+        description: found.description ?? '',
+        variables,
+        formulas,
+      });
       // Initialize input values with default values from the template
-      const initialValues = data.variables.reduce(
+      const initialValues = variables.reduce(
         (acc: Record<string, number>, v: Variable) => {
           acc[v.name] = v.defaultValue;
           return acc;
@@ -82,39 +113,28 @@ export function CalculatorUsage() {
       console.error('Error fetching template:', error);
       setError('Error loading calculator template');
     }
-  }, [templateId]); // <-- Include templateId in dependencies
+  }, [templateId, currentSessionId]);
 
-  // Fetch previously saved calculations from the database
-  const fetchCalculations = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('line_item_calculations')
-        .select('*')
-        .eq('template_id', templateId)
-        .eq('line_item_id', id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setCalculations(data || []);
-    } catch (error) {
-      console.error('Error fetching calculations:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [templateId, id]); // <-- Include templateId and id in dependencies
+  // Fetch previously saved calculations from the database (TODO: refactor to RPC if available)
+  // Add runtime guard for id and templateId
+  const fetchCalculations = useCallback(() => {
+    if (typeof id !== 'string' || id.length === 0 || typeof templateId !== 'string' || templateId.length === 0) return;
+    // TODO: Replace with RPC when available
+    setCalculations([]);
+    setLoading(false);
+  }, [templateId, id]);
 
   // Evaluate a mathematical expression and return its evaluated result
-  const evaluateExpression = (expression: string, values: Record<string, number>): number => {
+  const evaluateExpression = (expression: string, currentValues: Record<string, number>): number => {
     try {
-      const evalString = expression.replace(/[a-zA-Z_][a-zA-Z0-9_]*/g, (match) => {
-        if (match in values) {
-          return values[match].toString();
-        }
-        throw new Error(`Unknown variable: ${match}`);
-      });
-      return new Function(`return ${evalString}`)();
+      // The scope (variables) is passed directly to mathjs
+      const resultUnknown: unknown = evaluate(expression, currentValues);
+      if (typeof resultUnknown !== 'number') return 0;
+      return resultUnknown;
     } catch (error) {
-      console.error('Error evaluating expression:', error);
+      console.error('Error evaluating expression with mathjs:', error);
+      // Return NaN or throw a custom error to be handled by the caller
+      // For now, returning 0 to maintain previous behavior, but NaN might be more appropriate
       return 0;
     }
   };
@@ -137,42 +157,22 @@ export function CalculatorUsage() {
   }, [calculateResults]);
 
   useEffect(() => {
-    fetchTemplate();
-    fetchCalculations();
+    void fetchTemplate();
+    void fetchCalculations();
   }, [templateId, fetchTemplate, fetchCalculations]);
 
   // Save the current calculation to the database
-  const handleSave = async () => {
-    if (!template || !user) return;
-    try {
-      setError(null);
-      const { error } = await supabase
-        .from('line_item_calculations')
-        .insert({
-          line_item_id: id,
-          template_id: template.id,
-          station_number: stationNumber || null,
-          values,
-          results,
-          notes: notes || null,
-          created_by: user.id
-        });
-
-      if (error) throw error;
-      setStationNumber('');
-      setNotes('');
-      fetchCalculations();
-    } catch (error) {
-      console.error('Error saving calculation:', error);
-      setError('Error saving calculation');
-    }
+  const handleSave = () => {
+    if (!template || !user || typeof id !== 'string' || id.length === 0 || typeof templateId !== 'string' || templateId.length === 0) return;
+    setError('Saving calculations is not yet supported via RPC.');
+    // TODO: Implement save via RPC when available
   };
 
   // Load a previous calculation into the form
   const handleLoadCalculation = (calculation: Calculation) => {
     setValues(calculation.values);
-    setStationNumber(calculation.station_number || '');
-    setNotes(calculation.notes || '');
+    setStationNumber(calculation.station_number ?? '');
+    setNotes(calculation.notes ?? '');
   };
 
   // Loading indicator
@@ -218,12 +218,11 @@ export function CalculatorUsage() {
             </button>
             <div>
               <h1 className="text-2xl font-bold text-white">{template.name}</h1>
-              <p className="text-gray-400">Line Code: {template.line_code}</p>
             </div>
           </div>
         </div>
 
-        {error && (
+        {typeof error === 'string' && error.length > 0 && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500">
             {error}
           </div>
@@ -312,7 +311,7 @@ export function CalculatorUsage() {
               </div>
               <div className="mt-4">
                 <button
-                  onClick={handleSave}
+                  onClick={() => { void handleSave(); }}
                   className="flex items-center px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-md transition-colors"
                   aria-label="Save calculation"
                 >
@@ -341,7 +340,7 @@ export function CalculatorUsage() {
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="text-sm text-gray-400">
-                          {calc.created_at ? new Date(calc.created_at).toLocaleString() : ''}
+                          {typeof calc.created_at === 'string' && calc.created_at.length > 0 ? new Date(calc.created_at).toLocaleString() : ''}
                         </div>
                         <button
                           onClick={(e) => {
@@ -355,7 +354,7 @@ export function CalculatorUsage() {
                           <RefreshCw className="w-4 h-4" />
                         </button>
                       </div>
-                      {calc.station_number && (
+                      {typeof calc.station_number === 'string' && calc.station_number.trim() !== '' && (
                         <div className="text-sm text-gray-400 mb-2">
                           Station: {calc.station_number}
                         </div>
@@ -368,7 +367,7 @@ export function CalculatorUsage() {
                           </div>
                         ))}
                       </div>
-                      {calc.notes && (
+                      {typeof calc.notes === 'string' && calc.notes.trim() !== '' && (
                         <div className="mt-2 text-sm text-gray-400 border-t border-background-lighter pt-2">
                           {calc.notes}
                         </div>

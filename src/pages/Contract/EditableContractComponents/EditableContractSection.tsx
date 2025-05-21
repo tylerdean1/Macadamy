@@ -20,7 +20,7 @@ export const EditableContractSection: React.FC<EditableContractSectionProps> = (
   onOpenMapModal,
 }) => {
   // Handle status change
-  const handleStatusChange = async (status: ContractStatusValue) => {
+  const handleStatusChange = (status: ContractStatusValue) => {
     onChange({ ...contract, status });
   };
 
@@ -36,14 +36,14 @@ export const EditableContractSection: React.FC<EditableContractSectionProps> = (
             className="text-xl font-bold w-full"
             aria-label="Contract Title"
           />
-          
+
           <div className="mt-2 flex items-center gap-4">
-            <ContractStatusSelect 
-              value={contract.status as ContractStatusValue} 
-              onChange={handleStatusChange} 
+            <ContractStatusSelect
+              value={contract.status}
+              onChange={handleStatusChange}
             />
           </div>
-          
+
           <Input
             value={contract.location ?? ''}
             onChange={(e) => onChange({ ...contract, location: e.target.value })}
@@ -51,7 +51,7 @@ export const EditableContractSection: React.FC<EditableContractSectionProps> = (
             className="mt-2 w-full"
             aria-label="Contract Location"
           />
-          
+
           <textarea
             value={contract.description ?? ''}
             onChange={(e) => onChange({ ...contract, description: e.target.value })}
@@ -61,7 +61,7 @@ export const EditableContractSection: React.FC<EditableContractSectionProps> = (
             aria-label="Contract Description"
           />
         </div>
-        
+
         <div className="w-full sm:w-auto space-y-2">
           <p className="text-sm text-gray-500">Contract Period</p>
           <div className="flex flex-col sm:items-end gap-2">

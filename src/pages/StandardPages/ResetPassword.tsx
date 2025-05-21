@@ -4,14 +4,16 @@ import { useAuth } from '@/hooks/useAuth';
 import { Mail } from 'lucide-react';
 import { toast } from 'sonner';
 
-export function ResetPassword() {
+export default function ResetPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [noAccountFound, setNoAccountFound] = useState(false);
   const navigate = useNavigate();
-  const { resetPassword } = useAuth();
+  // Cast resetPassword to the correct function type
+  const { resetPassword: resetPasswordRaw } = useAuth();
+  const resetPassword = resetPasswordRaw as ((email: string) => Promise<unknown>);
 
   const validateEmail = (value: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -31,10 +33,8 @@ export function ResetPassword() {
     setLoading(true);
 
     try {
-      // Use the resetPassword method from useAuth hook
       const result = await resetPassword(email);
-      
-      if (result) {
+      if (typeof result === 'object' && result !== null) {
         setSuccess('Password reset link sent! Check your email.');
         toast.success('Password reset link sent! Check your email.');
       }
@@ -53,13 +53,14 @@ export function ResetPassword() {
         <div className="bg-background-light p-8 rounded-lg shadow-xl border border-background-lighter">
           <h1 className="text-2xl font-bold text-white mb-6">Reset Your Password</h1>
 
-          {error && (
+          {/* For error/success rendering, use explicit null/empty checks */}
+          {typeof error === 'string' && error.length > 0 && (
             <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm">
               {error}
             </div>
           )}
 
-          {success && (
+          {typeof success === 'string' && success.length > 0 && (
             <div className="mb-4 p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-green-500 text-sm">
               {success}
             </div>
@@ -77,7 +78,8 @@ export function ResetPassword() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {/* For form, use: <form onSubmit={e => { void handleSubmit(e); }} ... > */}
+          <form onSubmit={e => { void handleSubmit(e); }} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
                 Email Address

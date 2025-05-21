@@ -1,11 +1,9 @@
-import logoImg from '@/assets/images/Logo.png';
-
 export function Logo() {
   return (
     <div className="flex items-center gap-3">
       <div className="relative">
         <img
-          src={logoImg}
+          src="/favicon.png" // Use the favicon directly from the public folder
           alt="Macadamy Logo"
           className="w-[125px] h-[125px] rounded-full"
         />

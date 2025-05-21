@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
+import { getDemoSession } from '@/lib/utils/cloneDemoData';
 
 interface EquipmentUsage {
   id?: string;
@@ -26,7 +27,7 @@ interface EquipmentItem {
   description: string;
 }
 
-export function EquipmentLog() {
+export default function EquipmentLog() {
   const user = useAuthStore(state => state.user);
 
   const [logs, setLogs] = useState<EquipmentUsage[]>([]);
@@ -53,18 +54,16 @@ export function EquipmentLog() {
 
   const fetchLogs = useCallback(async () => {
     try {
-      // Use the RPC function instead of direct table access
       const { data, error } = await supabase
         .rpc('get_equipment_usage')
         .order('usage_date', { ascending: false });
 
       if (error) throw error;
-      // Add notes property with default empty string if missing
-      const processedData = (data || []).map(log => ({
+      const processedData = Array.isArray(data) ? data.map(log => ({
         ...log,
-        notes: log.notes || ''
-      })) as EquipmentUsage[];
-      setLogs(processedData);
+        notes: 'notes' in log ? log.notes : '',
+      })) : [];
+      setLogs(processedData as EquipmentUsage[]);
     } catch (error) {
       console.error('Error fetching logs:', error);
     } finally {
@@ -73,10 +72,8 @@ export function EquipmentLog() {
   }, []);
 
   const fetchOperators = useCallback(async () => {
-    // Use the RPC function for fetching profiles by organization
     const { data, error } = await supabase.rpc('get_profiles_by_organization');
-    if (!error && data) {
-      // Map the returned data to the required Operator interface
+    if (Array.isArray(data) && !error) {
       const operators: Operator[] = data.map(profile => ({
         id: profile.id,
         full_name: profile.full_name || 'Unknown'
@@ -86,15 +83,14 @@ export function EquipmentLog() {
   }, []);
 
   const fetchEquipment = useCallback(async () => {
-    // Use the RPC function for fetching equipment
     const { data, error } = await supabase.rpc('get_equipment_by_organization');
-    if (!error) setEquipmentList(data || []);
+    if (Array.isArray(data) && !error) setEquipmentList(data);
   }, []);
 
   useEffect(() => {
-    fetchLogs();
-    fetchOperators();
-    fetchEquipment();
+    void fetchLogs();
+    void fetchOperators();
+    void fetchEquipment();
   }, [fetchLogs, fetchOperators, fetchEquipment]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,18 +98,19 @@ export function EquipmentLog() {
     if (!user) return;
 
     try {
-      // Use the RPC function for inserting equipment usage
+      const demoSession = getDemoSession();
       const { error } = await supabase.rpc('insert_equipment_usage', {
         _data: {
           ...newLog,
           created_by: user.id,
+          ...(demoSession ? { session_id: demoSession.sessionId } : {}),
         }
       });
 
       if (error) throw error;
 
       setIsCreating(false);
-      fetchLogs();
+      void fetchLogs();
       setNewLog({
         equipment_id: '',
         usage_date: new Date().toISOString().split('T')[0],
@@ -131,18 +128,19 @@ export function EquipmentLog() {
   const handleAddEquipment = async () => {
     if (!user) return;
     try {
-      // Use the RPC function for inserting equipment
+      const demoSession = getDemoSession();
       const { error } = await supabase.rpc('insert_equipment', {
         _data: {
           ...newEquipment,
           created_by: user.id,
+          ...(demoSession ? { session_id: demoSession.sessionId } : {}),
         }
       });
-      
+
       if (error) throw error;
       setShowAddEquipment(false);
       setNewEquipment({ user_defined_id: '', name: '', description: '' });
-      fetchEquipment();
+      void fetchEquipment();
     } catch (error) {
       alert('Error adding equipment');
       console.error('Error adding equipment:', error);
@@ -161,7 +159,7 @@ export function EquipmentLog() {
       </div>
 
       {isCreating && (
-        <form onSubmit={handleSubmit} className="bg-background-light p-4 rounded border space-y-4">
+        <form onSubmit={e => { void handleSubmit(e); }} className="bg-background-light p-4 rounded border space-y-4">
           <select
             aria-label="Select equipment"
             value={newLog.equipment_id}
@@ -206,7 +204,7 @@ export function EquipmentLog() {
 
           <select
             aria-label="Select operator"
-            value={newLog.operator_id || ''}
+            value={typeof newLog.operator_id === 'string' && newLog.operator_id.length > 0 ? newLog.operator_id : ''}
             onChange={(e) => setNewLog({ ...newLog, operator_id: e.target.value || null })}
             className="w-full text-black px-4 py-2 rounded"
           >
@@ -266,7 +264,7 @@ export function EquipmentLog() {
               <button onClick={() => setShowAddEquipment(false)} className="bg-gray-600 px-4 py-2 rounded">
                 Cancel
               </button>
-              <button onClick={handleAddEquipment} className="bg-blue-600 px-4 py-2 rounded">
+              <button onClick={() => { void handleAddEquipment(); }} className="bg-blue-600 px-4 py-2 rounded">
                 Add Equipment
               </button>
             </div>
@@ -279,7 +277,7 @@ export function EquipmentLog() {
           <div key={log.id} className="bg-background-light p-4 rounded border">
             <div className="font-semibold">{log.equipment_id}</div>
             <div>{log.usage_date} – {log.hours_used} hrs</div>
-            <div className="text-sm text-gray-400">{log.notes}</div>
+            <div className="text-sm text-gray-400">{log.notes ?? ''}</div>
           </div>
         ))}
       </div>
