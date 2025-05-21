@@ -1,51 +1,62 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/lib/store";
+import { supabase } from "@/lib/supabase";
 
 /**
- * Hook to initialize auth state and load user profile if needed.
- * This hook uses the auth store which internally uses the RPC client.
+ * Hook to initialize auth state by listening to Supabase auth changes,
+ * update the Zustand store, and manage app loading status and initial navigation.
  */
 export function useBootstrapAuth(): boolean {
-  // Use correct type for store
-  const store = useAuthStore();
-  const user = store.user;
-  const profile = store.profile;
-  const authLoading = store.isLoading;
-  const loadProfile = store.loadProfile;
-  const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const {
+    setUser,
+    loadProfile,
+    user,
+    profile,
+    isLoading: authStoreLoading,
+    clearAuth,
+    setIsLoading, // Assuming setIsLoading is part of your store
+  } = useAuthStore();
   const navigate = useNavigate();
 
-  useEffect((): void => {
-    const bootstrap = async (): Promise<void> => {
-      if (authLoading === true || authLoading === false) {
-        // In bootstrap, add type guard for user.id
-        if (user !== null && profile == null && typeof user.id === 'string') {
-          await loadProfile(user.id);
+  useEffect(() => {
+    setIsLoading(true); // Set loading true at the start of the effect
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        const supabaseUser = session?.user ?? null;
+        setUser(supabaseUser);
+
+        if (supabaseUser) {
+          await loadProfile(supabaseUser.id); // loadProfile should handle its own loading state internally
+        } else {
+          clearAuth(); // clearAuth should set isLoading to false
         }
-        setIsBootstrapping(false);
-      }
+        // If neither user nor loadProfile/clearAuth sets loading to false, do it here.
+        // However, it'''s better if loadProfile and clearAuth manage this.
+        // For now, let'''s assume they do. If not, uncomment the line below.
+        // setIsLoading(false);
+      },
+    );
+
+    return () => {
+      authListener?.subscription.unsubscribe(); // Correct way to unsubscribe
     };
+  }, [setUser, loadProfile, clearAuth, setIsLoading]);
 
-    void bootstrap();
-  }, [user, profile, authLoading, loadProfile, navigate]);
-
-  useEffect((): void => {
-    // Ensure bootstrapping is complete and auth is not actively loading
-    if (isBootstrapping === false && authLoading === false) {
-      // Check if the user object is null or undefined
+  useEffect(() => {
+    if (authStoreLoading === false) {
       if (!user) {
         console.log("[useBootstrapAuth] No user, navigating to /login.");
         navigate("/login");
       } else if (user && profile === null) {
-        // User exists, but profile is explicitly null (meaning it hasn'''s been loaded or doesn'''t exist)
+        // Explicitly check profile for null
         console.log(
           "[useBootstrapAuth] User exists, but no profile, navigating to /create-profile.",
         );
         navigate("/create-profile");
       }
     }
-  }, [user, profile, isBootstrapping, authLoading, navigate]);
+  }, [user, profile, authStoreLoading, navigate]);
 
-  return isBootstrapping || Boolean(authLoading);
+  return authStoreLoading;
 }

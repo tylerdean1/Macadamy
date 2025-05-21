@@ -28,6 +28,7 @@ export type AuthState = {
   user: SupabaseUser | null;
   profile: EnrichedProfile | null;
   isLoading: boolean;
+  setIsLoading: (isLoading: boolean) => void; // Add setIsLoading action
   setUser: (user: SupabaseUser | null) => void;
   setProfile: (profile: EnrichedProfile | null) => void;
   clearAuth: () => void;
@@ -44,6 +45,8 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       profile: null,
       isLoading: true, // Initialize isLoading to true
+
+      setIsLoading: (isLoading: boolean): void => set({ isLoading }), // Implement setIsLoading
 
       setUser: (user: SupabaseUser | null): void =>
         set((state) => ({
