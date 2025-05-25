@@ -89,15 +89,16 @@ export default function ContractDashboard() {
         if (typeof item.unit_measure === 'string' && validUnitMeasures.includes(item.unit_measure as UnitMeasureType)) {
           safeUnit = item.unit_measure as UnitMeasureType;
         }
+        // Fix: Use item.line_code for legacy, otherwise item.item_code, and always assign to item_code for LineItemsWithWktRow
         return {
           id: item.id,
           contract_id: item.contract_id,
           wbs_id: item.wbs_id,
           map_id: item.map_id ?? null,
-          item_code: item.line_code ?? null,
+          item_code: 'item_code' in item && typeof item.item_code === 'string' ? item.item_code : ('line_code' in item && typeof item.line_code === 'string' ? item.line_code : null),
           description: item.description ?? null,
-          quantity: item.quantity ?? null,
-          unit_price: item.unit_price ?? null,
+          quantity: item.quantity ?? 0,
+          unit_price: item.unit_price ?? 0,
           unit_measure: safeUnit,
           reference_doc: item.reference_doc ?? null,
           template_id: item.template_id ?? null,

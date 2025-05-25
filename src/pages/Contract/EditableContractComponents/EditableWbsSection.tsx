@@ -36,15 +36,6 @@ export function EditableWbsSection({
     try {
       const newWbsId = uuidv4();
       const demoSession = getDemoSession();
-      const wbsData = {
-        id: newWbsId,
-        contract_id: contractId,
-        wbs_number: newWbsNumber.trim(),
-        scope: newWbsScope.trim() || null,
-        budget: parseFloat(newWbsBudget) || 0,
-        location: '',
-        ...(demoSession ? { session_id: demoSession.sessionId } : {}),
-      };
 
       // Use the Supabase RPC call
       const { error } = await supabase.rpc('insert_wbs', {
@@ -65,18 +56,9 @@ export function EditableWbsSection({
       if (fetchError) throw fetchError;
 
       const createdWbs = newWbsData.find(wbs => wbs.id === newWbsId);
+      // When creating WBS, do not add extra properties not in WbsWithWktRow
       if (createdWbs) {
-        onWbsCreate({
-          ...createdWbs,
-          budget: 0,
-          coordinates: null,
-          location: '',
-          scope: '',
-          wbs_number: '',
-          created_at: createdWbs.created_at ?? null,
-          updated_at: createdWbs.updated_at ?? null,
-          session_id: createdWbs.session_id ?? null,
-        });
+        onWbsCreate(createdWbs);
         toast.success('WBS created successfully');
         setIsCreatingWbs(false);
         setNewWbsNumber('');

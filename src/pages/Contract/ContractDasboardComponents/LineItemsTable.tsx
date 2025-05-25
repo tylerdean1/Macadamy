@@ -44,9 +44,10 @@ export const LineItemsTable: React.FC<LineItemsTableProps> = ({
       .filter(Boolean) as WbsWithWktRow[];
   }, [lineItems, wbsItems]);
 
+  // Fix: Handle possible nulls for wbs_number in display and sorting
   const getWbsLabel = React.useCallback((wbsId: string) => {
     const wbs = wbsItems.find(item => item.id === wbsId);
-    return wbs ? wbs.wbs_number : 'Unknown WBS';
+    return wbs && typeof wbs.wbs_number === 'string' ? wbs.wbs_number : 'Unknown WBS';
   }, [wbsItems]);
 
   // Calculate the budget utilization for a line item
@@ -75,34 +76,25 @@ export const LineItemsTable: React.FC<LineItemsTableProps> = ({
       }).sort((a, b) => {
         let aValue: string | number = '';
         let bValue: string | number = '';
-        if (sortBy === 'total') {
-          aValue = (a.quantity ?? 0) * (a.unit_price ?? 0);
-          bValue = (b.quantity ?? 0) * (b.unit_price ?? 0);
-        } else if (sortBy === 'budget_percent') {
-          const aWbs = wbsItems.find(w => w.id === a.wbs_id);
-          const bWbs = wbsItems.find(w => w.id === b.wbs_id);
-          const aWbsBudget = aWbs?.budget ?? 0;
-          const bWbsBudget = bWbs?.budget ?? 0;
-          aValue = calculateBudgetPercent(a.quantity ?? 0, a.unit_price ?? 0, aWbsBudget);
-          bValue = calculateBudgetPercent(b.quantity ?? 0, b.unit_price ?? 0, bWbsBudget);
-        } else if (sortBy === 'wbs_id') {
-          aValue = getWbsLabel(a.wbs_id) ?? '';
-          bValue = getWbsLabel(b.wbs_id) ?? '';
-        } else if (sortBy === 'map_id') {
-          aValue = a.map_id ?? '';
-          bValue = b.map_id ?? '';
-        } else {
-          // Only allow valid keys
-          if (sortBy === 'item_code' || sortBy === 'description' || sortBy === 'quantity' || sortBy === 'unit_price') {
-            aValue = a[sortBy] ?? '';
-            bValue = b[sortBy] ?? '';
-          }
+        if (sortBy === 'item_code') {
+          aValue = a.item_code ?? '';
+          bValue = b.item_code ?? '';
+        } else if (sortBy === 'description') {
+          aValue = a.description ?? '';
+          bValue = b.description ?? '';
+        } else if (sortBy === 'quantity') {
+          aValue = a.quantity ?? 0;
+          bValue = b.quantity ?? 0;
+        } else if (sortBy === 'unit_price') {
+          aValue = a.unit_price ?? 0;
+          bValue = b.unit_price ?? 0;
         }
-        if (aValue < bValue) {
-          return sortDirection === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortDirection === 'asc' ? 1 : -1;
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          return sortDirection === 'asc'
+            ? aValue.localeCompare(bValue)
+            : bValue.localeCompare(aValue);
+        } else if (typeof aValue === 'number' && typeof bValue === 'number') {
+          return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
         }
         return 0;
       });
@@ -279,14 +271,18 @@ export const LineItemsTable: React.FC<LineItemsTableProps> = ({
               <tbody className="divide-y divide-gray-800">
                 {paginatedLineItems.map(item => {
                   const lineTotal = (item.quantity ?? 0) * (item.unit_price ?? 0);
-                  const wbs = wbsItems.find(w => w.id === item.wbs_id);
-                  const wbsBudget = wbs ? wbs.budget : 0;
-                  const percentUsed = calculateBudgetPercent(item.quantity ?? 0, item.unit_price ?? 0, wbsBudget ?? 0);
+                  // Fix: Use wbs for wbsBudget, not w
+                  const wbs = wbsItems.find(wbs => wbs.id === item.wbs_id);
+                  const wbsBudget = wbs ? wbs.budget ?? 0 : 0;
+                  const percentUsed = calculateBudgetPercent(item.quantity ?? 0, item.unit_price ?? 0, wbsBudget);
+
                   const isOverBudget = percentUsed > 100;
 
                   return (
                     <tr key={item.id} className="hover:bg-gray-800">
-                      <td className="px-3 py-3 text-sm">{item.item_code}</td>
+                      <td className="px-3 py-4 text-sm font-medium text-gray-200 whitespace-nowrap">
+                        {item.item_code}
+                      </td>
                       <td className="px-3 py-3 text-sm">{item.description ?? ''}</td>
                       <td className="px-3 py-3 text-sm">{getWbsLabel(item.wbs_id)}</td>
                       <td className="px-3 py-3 text-sm">{item.map_id != null && item.map_id !== '' ? item.map_id : 'N/A'}</td>

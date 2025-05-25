@@ -30,7 +30,7 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
     map_id: '',
     item_code: '',
     description: '',
-    unit_measure: 'Feet (FT)' as UnitMeasureType, // Fix: Use a valid default value for unit_measure, e.g., the first enum value or a required value
+    unit_measure: 'Feet (FT)' as UnitMeasureType,
     quantity: 1,
     unit_price: 0,
     reference_doc: ''
@@ -80,7 +80,7 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
         _contract_id: contractId,
         _wbs_id: newItem.wbs_id,
         _map_id: newItem.map_id ? newItem.map_id : undefined,
-        _line_code: newItem.item_code, // Use _line_code for backend
+        _line_code: newItem.item_code,
         _description: newItem.description,
         _unit_measure: newItem.unit_measure,
         _quantity: newItem.quantity,
@@ -105,6 +105,7 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
         } else if (typeof createdLineItem.unit === 'string' && validUnitMeasures.includes(createdLineItem.unit)) {
           safeUnit = createdLineItem.unit as UnitMeasureType;
         }
+        // When mapping backend line item, add 'item_code' property from 'line_code'
         const safeLineItem: LineItemsWithWktRow = {
           ...createdLineItem,
           unit_measure: safeUnit,

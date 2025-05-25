@@ -236,7 +236,7 @@ export interface ProcessedMap {
   budget: number | null; // From the database directly
   line_items: {
     id: string;
-    line_code: string;
+    item_code: string;
     description: string;
     unit_measure: string;
     quantity: number;

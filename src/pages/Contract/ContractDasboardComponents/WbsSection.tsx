@@ -156,36 +156,29 @@ export function WbsSection({
   };
 
   // Filter and sort WBS items
+  // Fix: Handle nulls for wbs_number in display and sorting
   const sortedAndFilteredWbs = useMemo(() => {
-    // First apply search/filter
-    let filtered = wbsItems;
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      filtered = wbsItems.filter(item =>
-        item.wbs_number.toLowerCase().includes(search) ||
-        (item.scope ?? '').toLowerCase().includes(search) ||
-        (item.location ?? '').toLowerCase().includes(search)
-      );
-    }
-
-    // Then apply sorting
-    return [...filtered].sort((a, b) => {
-      if (sortBy === 'wbs_number') {
-        return sortOrder === 'asc'
-          ? a.wbs_number.localeCompare(b.wbs_number)
-          : b.wbs_number.localeCompare(a.wbs_number);
-      } else if (sortBy === 'budget') {
-        return sortOrder === 'asc'
-          ? (a.budget ?? 0) - (b.budget ?? 0)
-          : (b.budget ?? 0) - (a.budget ?? 0);
-      } else { // utilization
-        const utilizationA = calculateBudgetUtilization(a.id);
-        const utilizationB = calculateBudgetUtilization(b.id);
-        return sortOrder === 'asc'
-          ? utilizationA - utilizationB
-          : utilizationB - utilizationA;
-      }
-    });
+    return wbsItems
+      .filter(wbs => (wbs.wbs_number ?? '').toLowerCase().includes(searchTerm.toLowerCase()))
+      .sort((a, b) => {
+        if (sortBy === 'wbs_number') {
+          const aNum = a.wbs_number ?? '';
+          const bNum = b.wbs_number ?? '';
+          return sortOrder === 'asc'
+            ? aNum.localeCompare(bNum)
+            : bNum.localeCompare(aNum);
+        } else if (sortBy === 'budget') {
+          return sortOrder === 'asc'
+            ? (a.budget ?? 0) - (b.budget ?? 0)
+            : (b.budget ?? 0) - (a.budget ?? 0);
+        } else { // utilization
+          const utilizationA = calculateBudgetUtilization(a.id);
+          const utilizationB = calculateBudgetUtilization(b.id);
+          return sortOrder === 'asc'
+            ? utilizationA - utilizationB
+            : utilizationB - utilizationA;
+        }
+      });
   }, [wbsItems, searchTerm, sortBy, sortOrder, calculateBudgetUtilization]);
 
   if (isLoading) {
@@ -376,8 +369,8 @@ export function WbsSection({
                                   // Fix: Add nullish coalescing or fallback for possibly null fields
                                   return (
                                     <div key={item.id} className="text-xs p-2 bg-gray-800 rounded flex justify-between">
-                                      <span className="text-gray-300">{item.line_code}</span>
-                                      <span className="text-gray-400">{formatCurrency(item.quantity * item.unit_price)}</span>
+                                      <span className="text-gray-300">{item.item_code ?? ''}</span>
+                                      <span className="text-gray-400">{formatCurrency((item.quantity ?? 0) * (item.unit_price ?? 0))}</span>
                                     </div>
                                   );
                                 })

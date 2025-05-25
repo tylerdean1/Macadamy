@@ -62,16 +62,18 @@ export const ContractCreation = () => {
       const contractId = uuidv4();
       const demoSession = getDemoSession();
       // Prepare contract data
-      const newContract = {
-        id: contractId,
-        ...contractData,
-        created_by: user.id,
-        ...(demoSession ? { session_id: demoSession.sessionId } : {}),
-      };
-
       // Insert the contract
-      const { error: contractError } = await supabase.rpc('insert_contracts', {
-        ...newContract
+      const { error: contractError } = await supabase.rpc('insert_contract', {
+        _title: contractData.title ?? '',
+        _description: contractData.description ?? '',
+        _location: contractData.location ?? '',
+        _start_date: contractData.start_date ?? '',
+        _end_date: contractData.end_date ?? '',
+        _budget: contractData.budget ?? 0,
+        _status: contractData.status ?? 'Draft',
+        _coordinates: contractData.coordinates_wkt ?? undefined,
+        _created_by: user.id,
+        ...(demoSession ? { _session_id: demoSession.sessionId } : {})
       });
 
       if (contractError) throw contractError;

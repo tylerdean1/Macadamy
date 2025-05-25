@@ -12,7 +12,8 @@ export default function Calculators() {
     id: string;
     name: string;
     description: string;
-    line_code: string;
+    line_code: string; // (optional, legacy support only)
+    item_code: string; // Use this for new code
     variables: { name: string; value: string | number }[]; // Replace with the actual structure of variables
   }
 
@@ -40,6 +41,12 @@ export default function Calculators() {
           name: template.name ?? 'Untitled',
           description: template.description ?? '',
           line_code: 'N/A', // replace if your schema includes it
+          // Safely extract item_code or line_code from template (typed as unknown)
+          item_code: typeof template === 'object' && template !== null && 'item_code' in template && typeof (template as { item_code?: string }).item_code === 'string'
+            ? (template as { item_code: string }).item_code
+            : (typeof template === 'object' && template !== null && 'line_code' in template && typeof (template as { line_code?: string }).line_code === 'string'
+              ? (template as { line_code: string }).line_code
+              : 'N/A'),
           variables: Array.isArray(formulaData?.variables) ? formulaData.variables : [],
         };
       });
