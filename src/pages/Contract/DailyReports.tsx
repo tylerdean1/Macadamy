@@ -131,17 +131,17 @@ export default function DailyReports() {
     if (!currentLog || typeof user !== 'object' || user === null || typeof currentLog.id !== 'string' || currentLog.id.length === 0) return;
 
     try {
-      // Use RPC function to update daily log
-      const { error } = await supabase.rpc('update_daily_logs', {
+      // Use correct RPC function to update daily log
+      const { error } = await supabase.rpc('update_daily_log', {
         _id: currentLog.id,
-        _data: {
-          weather_conditions: currentLog.weather_conditions, // Current weather conditions
-          temperature: currentLog.temperature, // Current temperature
-          visitors: currentLog.visitors, // Current visitors
-          safety_incidents: currentLog.safety_incidents, // Current safety incidents
-          updated_by: user.id, // User who updated the log
-          updated_at: new Date().toISOString(), // Current timestamp
-        }
+        _work_performed: currentLog.work_performed ?? undefined,
+        _weather_conditions: currentLog.weather_conditions ?? undefined,
+        _temperature: typeof currentLog.temperature === 'number' ? currentLog.temperature : undefined,
+        _delays_encountered: currentLog.delays_encountered ?? undefined,
+        _safety_incidents: currentLog.safety_incidents ?? undefined,
+        _visitors: currentLog.visitors ?? undefined,
+        _updated_by: user.id,
+        _updated_at: new Date().toISOString(),
       });
 
       if (error) throw error;

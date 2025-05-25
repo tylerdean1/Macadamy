@@ -18,6 +18,7 @@ import { PageContainer } from '@/pages/StandardPages/StandardPageComponents/Page
 import { LoadingState } from '@/components/ui/loading-state';
 import { EmptyState } from '@/components/ui/empty-state';
 import type { ContractWithWktRow, WbsWithWktRow, LineItemsWithWktRow } from '@/lib/rpc.types';
+import { UnitMeasureType } from '@/lib/enums';
 
 import { ContractHeader } from './ContractDasboardComponents/ContractHeader';
 import { ContractInfoForm } from './ContractDasboardComponents/ContractInfoForm';
@@ -63,49 +64,47 @@ export default function ContractDashboard() {
 
       // Fetch WBS items using RPC
       const { data: wbsData, error: wbsError } = await supabase
-        .rpc('get_wbs_with_wkt', { contract_id_param: contractId });
+        .rpc('get_wbs_with_wkt', { _contract_id: contractId, _session_id: '' });
       if (wbsError) throw wbsError;
       const wbsRows: WbsWithWktRow[] = Array.isArray(wbsData) ? wbsData.map(item => ({
         id: item.id,
         contract_id: item.contract_id,
-        description: item.description,
-        level: item.level,
-        parent_wbs_id: item.parent_wbs_id,
-        order_number: item.order_number,
-        created_at: item.created_at ?? null,
-        updated_at: item.updated_at ?? null,
+        wbs_number: item.wbs_number ?? null,
+        budget: item.budget ?? null,
+        scope: item.scope ?? null,
+        location: item.location ?? null,
+        coordinates_wkt: item.coordinates_wkt ?? null,
         session_id: item.session_id ?? null,
-        budget: 0,
-        coordinates: null,
-        location: '',
-        scope: '',
-        wbs_number: '',
       })) : [];
       setWbsItems(wbsRows);
 
       // Fetch Line Items using RPC
       const { data: lineItemsData, error: lineItemsError } = await supabase
-        .rpc('get_line_items_with_wkt', { contract_id_param: contractId });
+        .rpc('get_line_items_with_wkt', { _contract_id: contractId, _session_id: '' });
       if (lineItemsError) throw lineItemsError;
-      const lineItemsRows: LineItemsWithWktRow[] = Array.isArray(lineItemsData) ? lineItemsData.map(item => ({
-        id: item.id,
-        contract_id: item.contract_id,
-        wbs_id: item.wbs_id,
-        description: item.description,
-        quantity: item.quantity,
-        unit: item.unit,
-        unit_price: item.unit_price,
-        created_at: item.created_at ?? null,
-        updated_at: item.updated_at ?? null,
-        session_id: item.session_id ?? null,
-        coordinates: null,
-        line_code: '',
-        map_id: null,
-        reference_doc: null,
-        template_id: null,
-        unit_measure: 'Feet (FT)',
-        coordinates_wkt: null,
-      })) : [];
+      const lineItemsRows: LineItemsWithWktRow[] = Array.isArray(lineItemsData) ? lineItemsData.map(item => {
+        // Validate unit_measure against enum
+        const validUnitMeasures = Object.values(UnitMeasureType);
+        let safeUnit: UnitMeasureType | null = null;
+        if (typeof item.unit_measure === 'string' && validUnitMeasures.includes(item.unit_measure as UnitMeasureType)) {
+          safeUnit = item.unit_measure as UnitMeasureType;
+        }
+        return {
+          id: item.id,
+          contract_id: item.contract_id,
+          wbs_id: item.wbs_id,
+          map_id: item.map_id ?? null,
+          item_code: item.line_code ?? null,
+          description: item.description ?? null,
+          quantity: item.quantity ?? null,
+          unit_price: item.unit_price ?? null,
+          unit_measure: safeUnit,
+          reference_doc: item.reference_doc ?? null,
+          template_id: item.template_id ?? null,
+          coordinates_wkt: item.coordinates_wkt ?? null,
+          session_id: item.session_id ?? null,
+        };
+      }) : [];
       setLineItems(lineItemsRows);
 
       // Fetch counts

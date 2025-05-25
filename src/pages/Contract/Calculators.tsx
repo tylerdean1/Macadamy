@@ -29,7 +29,7 @@ export default function Calculators() {
   const fetchTemplates = async () => {
     if (typeof currentSessionId !== 'string' || currentSessionId.length === 0) return;
     try {
-      const data = await rpcClient.getAllLineItemTemplates({ p_session_id: currentSessionId });
+      const data = await rpcClient.getAllLineItemTemplates({ session_id: currentSessionId });
       interface FormulaJson {
         variables?: { name: string; value: string | number }[];
       }

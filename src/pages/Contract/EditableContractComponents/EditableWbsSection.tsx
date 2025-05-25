@@ -47,7 +47,14 @@ export function EditableWbsSection({
       };
 
       // Use the Supabase RPC call
-      const { error } = await supabase.rpc('insert_wbs', { _data: wbsData });
+      const { error } = await supabase.rpc('insert_wbs', {
+        _contract_id: contractId,
+        _wbs_number: newWbsNumber.trim(),
+        _scope: newWbsScope.trim() ? newWbsScope.trim() : undefined,
+        _budget: parseFloat(newWbsBudget) || 0,
+        _location: '',
+        ...(demoSession ? { _session_id: demoSession.sessionId } : {}),
+      });
 
       if (error) throw error;
 

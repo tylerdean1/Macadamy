@@ -14,7 +14,7 @@ export function useLoadProfile(userId: string | null): EnrichedProfile | null {
   const [profile, setProfile] = useState<EnrichedProfile | null>(null);
   useEffect(() => {
     if (userId == null || userId === '') {
-      setProfile(null); // Clear profile if no userId
+      setProfile(null);
       return;
     }
 
@@ -25,14 +25,12 @@ export function useLoadProfile(userId: string | null): EnrichedProfile | null {
         });
 
         if (!data) {
-          console.warn('[useLoadProfile] No profile data found for user ID:', userId);
           setProfile(null);
           return;
         }
 
-        setProfile(data as EnrichedProfile); // Assuming data matches EnrichedProfile
-      } catch (e) {
-        console.error('[useLoadProfile] Unexpected error fetching profile:', e);
+        setProfile(data as EnrichedProfile);
+      } catch {
         setProfile(null);
       }
     };

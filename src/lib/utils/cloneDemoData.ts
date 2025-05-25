@@ -81,7 +81,7 @@ export async function cloneDemoData(): Promise<DemoSession> {
   const { created_session_id, created_profile_id } = creationInfo;
 
   // 3️⃣ Call execute_full_demo_clone to populate all other demo data
-  await rpcClient.executeFullDemoClone({ p_session_id: created_session_id }); // Pass the newly created session_id
+  await rpcClient.executeFullDemoClone({ session_id: created_session_id }); // Pass the newly created session_id
 
   // 4️⃣ Build & persist DemoSession
   const session: DemoSession = {

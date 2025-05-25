@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'; // Import Supabase client
 import { useAuthStore } from '@/lib/store'; // Import the auth store for user state management
 import { useParams } from 'react-router-dom'; // Import React Router hooks
 import jsPDF from 'jspdf'; // Import jsPDF for PDF generation
+import type { Database } from '@/lib/database.types';
 
 /** 
  * Interface representing an issue in the system.
@@ -13,7 +14,7 @@ interface Issue {
   contract_id: string; // ID of the associated contract
   title: string; // Title of the issue
   description: string; // Description of the issue
-  priority: string; // Priority level of the issue
+  priority: Database['public']['Enums']['priority']; // Priority level of the issue
   status: string; // Current status of the issue
   assigned_to?: string; // Optional ID of the user the issue is assigned to
   due_date?: string; // Optional due date for the issue
@@ -40,7 +41,7 @@ interface Option {
 }
 
 // Define priority and status constants
-const PRIORITIES = ['Low', 'Medium', 'High'] as const; // Available priorities
+const PRIORITIES: Database['public']['Enums']['priority'][] = ['Low', 'Medium', 'High', 'Note']; // Available priorities
 const STATUSES = ['Open', 'In Progress', 'Resolved'] as const; // Available statuses
 
 // Function to get CSS color class based on priority
@@ -261,17 +262,17 @@ export default function Issues() {
 
     const uploaded = await uploadFiles(photoFiles); // Upload any photos
     const updated = {
-      assigned_to: form.assigned_to ?? '',
-      contract_id: form.contract_id ?? '',
+      assigned_to: form.assigned_to === '' ? null : form.assigned_to ?? null,
+      contract_id: form.contract_id === '' ? null : form.contract_id ?? null,
       title: form.title ?? '',
       description: form.description ?? '',
-      priority: form.priority ?? 'Medium',
+      priority: (form.priority as Database['public']['Enums']['priority']) ?? 'Medium',
       status: form.status ?? 'Open',
-      due_date: form.due_date ?? new Date().toISOString(),
-      wbs_id: form.wbs_id ?? '',
-      map_id: form.map_id ?? '',
-      line_item_id: form.line_item_id ?? '',
-      equipment_id: form.equipment_id ?? '',
+      due_date: form.due_date === '' ? null : form.due_date ?? null,
+      wbs_id: form.wbs_id === '' ? null : form.wbs_id ?? null,
+      map_id: form.map_id === '' ? null : form.map_id ?? null,
+      line_item_id: form.line_item_id === '' ? null : form.line_item_id ?? null,
+      equipment_id: form.equipment_id === '' ? null : form.equipment_id ?? null,
       photo_urls: [...(form.photo_urls || []), ...uploaded],
       updated_by: user.id,
       updated_at: new Date().toISOString(),
@@ -288,7 +289,11 @@ export default function Issues() {
         alert('Error saving issue'); // Notify user of save error
       }
     } else {
-      const { error } = await supabase.from('issues').insert({ ...updated, created_by: user.id });
+      const insertData = {
+        ...updated,
+        created_by: user.id,
+      };
+      const { error } = await supabase.from('issues').insert(insertData);
       if (!error) {
         // Reset form after successful save
         setForm({
@@ -367,7 +372,7 @@ export default function Issues() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <label htmlFor="prioritySelect" className="sr-only">Priority</label>
             <select id="prioritySelect" className="text-black px-2 py-1 rounded"
-              value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value })}>
+              value={form.priority || ''} onChange={e => setForm({ ...form, priority: e.target.value as Database['public']['Enums']['priority'] })}>
               {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
             <label htmlFor="statusSelect" className="sr-only">Status</label>

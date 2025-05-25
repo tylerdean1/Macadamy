@@ -86,24 +86,19 @@ export const useAuthStore = create<AuthState>()(
         if (!profileId) return;
         try {
           const rpcArgs = {
-            p_id: profileId,
-            // In updateProfile, use rpcClient directly and remove 'as any'
-            p_created_by: get().user?.id ?? '',
-            p_session_id: get().profile?.session_id ?? '',
+            _id: profileId,
+            _full_name: updates.full_name ?? undefined,
+            _username: updates.username ?? undefined,
+            _email: updates.email ?? undefined,
+            _phone: updates.phone ?? undefined,
+            _location: updates.location ?? undefined,
+            _role: updates.role ?? undefined,
+            _job_title_id: updates.job_title_id ?? undefined,
+            _organization_id: updates.organization_id ?? undefined,
+            _avatar_id: updates.avatar_id ?? undefined,
+            _session_id: get().profile?.session_id ?? undefined,
           };
-          const fullRpcArgs = {
-            ...rpcArgs,
-            ...(updates.full_name !== undefined && { p_full_name: updates.full_name ?? undefined }),
-            ...(updates.username !== undefined && { p_username: updates.username ?? undefined }),
-            ...(updates.email !== undefined && { p_email: updates.email ?? undefined }),
-            ...(updates.phone !== undefined && { p_phone: updates.phone ?? undefined }),
-            ...(updates.location !== undefined && { p_location: updates.location ?? undefined }),
-            ...(updates.role !== undefined && { p_role: updates.role ?? undefined }),
-            ...(updates.job_title_id !== undefined && { p_job_title_id: updates.job_title_id ?? undefined }),
-            ...(updates.organization_id !== undefined && { p_organization_id: updates.organization_id ?? undefined }),
-            ...(updates.avatar_id !== undefined && { p_avatar_id: updates.avatar_id ?? undefined }),
-          };
-          await rpcClient.updateProfileFull(fullRpcArgs);
+          await rpcClient.updateProfileFull(rpcArgs);
           const currentProfile = get().profile;
           if (currentProfile && typeof currentProfile === 'object') {
             set((state) => ({

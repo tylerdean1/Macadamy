@@ -6,33 +6,41 @@ import { useRequireProfile } from '@/hooks/useRequireProfile';
 import { useAuthStore } from '@/lib/store';
 import { rpcClient } from '@/lib/rpc.client';
 import { supabase } from '@/lib/supabase'; // Only needed for storage (avatar upload)
-import type { Avatars, Contracts, JobTitles, Profile, Organization, EnrichedUserContract } from '@/lib/types';
+import type {
+  EnrichedUserContract,
+  Profile,
+  JobTitle,
+  Organization,
+  Area,
+  Avatars,
+} from '@/lib/types';
 import type { ContractStatusValue, UserRole } from '@/lib/enums';
 import { validateUserRole } from '@/lib/utils/validate-user-role';
-
+import { getCroppedImg } from '@/utils/cropImage';
+import { PageContainer } from './StandardPageComponents/PageContainer';
 import { ProfileSection } from './StandardPageComponents/ProfileSection';
 import { EditProfileModal } from './StandardPageComponents/EditProfileModal';
 import { DashboardMetrics } from './StandardPageComponents/DashboardMetrics';
 import { ContractsSection } from './StandardPageComponents/ContractsSection';
-import { PageContainer } from './StandardPageComponents/PageContainer';
-import { getCroppedImg } from '@/utils/cropImage';
-import type { Area } from 'react-easy-crop';
 
 // Helper to check if a value is a valid ContractStatusValue
 function isContractStatusValue(val: unknown): val is ContractStatusValue {
-  return typeof val === 'string' && [
-    'Draft',
-    'Awaiting Assignment',
-    'Active',
-    'On Hold',
-    'Final Review',
-    'Closed',
-    'Bidding Solicitation',
-    'Assigned(Partial)',
-    'Assigned(Full)',
-    'Completed',
-    'Cancelled',
-  ].includes(val);
+  return (
+    typeof val === 'string' &&
+    [
+      'Draft',
+      'Awaiting Assignment',
+      'Active',
+      'On Hold',
+      'Final Review',
+      'Closed',
+      'Bidding Solicitation',
+      'Assigned(Partial)',
+      'Assigned(Full)',
+      'Completed',
+      'Cancelled',
+    ].includes(val)
+  );
 }
 
 // Fix unnecessary assertion in isJson
@@ -42,7 +50,8 @@ function isJson(val: unknown): val is import('@/lib/types').Json {
     typeof val === 'string' ||
     typeof val === 'number' ||
     typeof val === 'boolean'
-  ) return true;
+  )
+    return true;
   if (Array.isArray(val)) return val.every(isJson);
   if (typeof val === 'object') {
     return Object.values(val).every(isJson);
@@ -52,7 +61,8 @@ function isJson(val: unknown): val is import('@/lib/types').Json {
 
 // Safe normalization for EnrichedUserContract
 function normalizeEnrichedUserContract(obj: unknown): EnrichedUserContract {
-  const o = typeof obj === 'object' && obj !== null ? obj as Record<string, unknown> : {};
+  const o =
+    typeof obj === 'object' && obj !== null ? obj as Record<string, unknown> : {};
   return {
     id: typeof o.id === 'string' ? o.id : '',
     title: typeof o.title === 'string' ? o.title : null,
@@ -66,7 +76,9 @@ function normalizeEnrichedUserContract(obj: unknown): EnrichedUserContract {
     budget: typeof o.budget === 'number' ? o.budget : null,
     status: isContractStatusValue(o.status) ? o.status : null,
     coordinates: isJson(o.coordinates) ? o.coordinates : null,
-    user_contract_role: validateUserRole(typeof o.user_contract_role === 'string' ? o.user_contract_role : null),
+    user_contract_role: validateUserRole(
+      typeof o.user_contract_role === 'string' ? o.user_contract_role : null
+    ),
     session_id: typeof o.session_id === 'string' ? o.session_id : null,
   };
 }
@@ -79,13 +91,13 @@ interface DashboardMetricsData {
 }
 
 // Custom hook for contract filtering
-function useContractFiltering(contracts: Contracts[]) {
-  const [searchQuery, setSearchQuery] = useState("");
+function useContractFiltering(contracts: EnrichedUserContract[]) {
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Memoize filtered contracts to prevent unnecessary recalculations
   const filteredContracts = useMemo(() => {
     return contracts
-      .map(c => ({
+      .map((c) => ({
         id: c.id,
         title: c.title ?? undefined,
         description: c.description ?? undefined,
@@ -95,7 +107,10 @@ function useContractFiltering(contracts: Contracts[]) {
         budget: c.budget ?? undefined,
         status: c.status ?? undefined,
       }))
-      .filter((c) => typeof c.title === 'string' && c.title.toLowerCase().includes(searchQuery.toLowerCase()));
+      .filter((c) =>
+        typeof c.title === 'string' &&
+        c.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
   }, [contracts, searchQuery]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,10 +131,12 @@ export default function Dashboard() {
   const { user, profile, updateProfile } = useAuthStore();
 
   // ── state for dashboard data ──────────────────────────────
-  const [avatars, setAvatars] = useState<Avatars[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [jobTitles, setJobTitles] = useState<JobTitles[]>([]);
   const [contracts, setContracts] = useState<EnrichedUserContract[]>([]);
+  // Fix avatars state to use Avatars[] type (from database.types)
+  const [avatars, setAvatars] = useState<Avatars[]>([]);
+  // Fix jobTitles state to map JobTitlesRow to JobTitle
+  const [jobTitles, setJobTitles] = useState<JobTitle[]>([]);
   const [metrics, setMetrics] = useState<DashboardMetricsData>({
     activeContracts: 0,
     openIssues: 0,
@@ -138,7 +155,8 @@ export default function Dashboard() {
     phone: '',
     email: '',
     custom_job_title: '',
-  }); const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  });
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
@@ -163,61 +181,67 @@ export default function Dashboard() {
           return;
         }
         // Load avatars (used in modal)
-        const avatarsData = await rpcClient.getAvatarsForProfile({ p_profile_id: user.id });
-        setAvatars(
-          (Array.isArray(avatarsData) ? avatarsData : []).map(a => ({
+        const avatarsData = await rpcClient.getAvatarsForProfile({
+          profile_id: profile.id,
+        });
+        setAvatars(Array.isArray(avatarsData)
+          ? avatarsData.map(a => ({
+            created_at: null, // Not available from RPC, set null
             id: a.id,
-            url: a.url,
             is_preset: a.is_preset,
-            created_at: null,
-            profile_id: null,
-            session_id: null,
-            name: '', // fallback, not present in AvatarsForProfileRow
+            name: '', // Not available from RPC, set empty string
+            session_id: a.session_id ?? null,
+            url: a.url,
           }))
-        );
+          : []);
 
         // Load organizations and job titles for editing
         const sessionId = profile.session_id ?? '';
         const [orgsData, jobsData] = await Promise.all([
-          rpcClient.getOrganizations({ p_session_id: sessionId }),
-          rpcClient.getJobTitles()
+          rpcClient.getOrganizations({ session_id: sessionId }),
+          rpcClient.getJobTitles({
+            organization_id: profile.organization_id ?? '',
+            session_id: sessionId,
+          }),
         ]);
         setOrganizations(Array.isArray(orgsData) ? orgsData : []);
-        setJobTitles(
-          (Array.isArray(jobsData) ? jobsData : []).map(j => ({
-            id: '', // fallback, not present in JobTitlesRow
-            title: j.title ?? '',
-            is_custom: j.is_custom ?? false,
-            session_id: j.session_id ?? null,
-            created_at: null,
-            updated_at: null,
-            created_by: null, // fallback, not present in JobTitlesRow
+        setJobTitles(Array.isArray(jobsData)
+          ? jobsData.map(j => ({
+            id: j.title, // Use title as id if no id field exists
+            title: j.title,
+            is_custom: j.is_custom ?? null,
           }))
-        );
+          : []);
 
         // Get user's contracts using the new enriched RPC
         let fetchedContracts: EnrichedUserContract[] = [];
         try {
-          fetchedContracts = await rpcClient.getEnrichedUserContracts({ _user_id: user.id });
+          fetchedContracts = await rpcClient.getEnrichedUserContracts({
+            _user_id: profile.id,
+          });
         } catch (ucErr) {
-          console.error("Error loading user contracts:", ucErr);
-          toast.error("Failed to load contracts");
+          console.error('Error loading user contracts:', ucErr);
+          toast.error('Failed to load contracts');
         }
-        setContracts(Array.isArray(fetchedContracts)
-          ? fetchedContracts.map(normalizeEnrichedUserContract)
-          : []);
+        setContracts(
+          Array.isArray(fetchedContracts)
+            ? fetchedContracts.map(normalizeEnrichedUserContract)
+            : []
+        );
 
         // Get dashboard metrics using the RPC
         try {
-          const metricsData = await rpcClient.getDashboardMetrics({ p_user_id: user.id });
+          const metricsData = await rpcClient.getDashboardMetrics({
+            user_id: profile.id,
+          });
           setMetrics({
             activeContracts: metricsData.active_contracts || 0,
             openIssues: metricsData.total_issues || 0,
             pendingInspections: metricsData.total_inspections || 0,
           });
         } catch (metricsErr) {
-          console.error("Error loading metrics:", metricsErr);
-          toast.error("Failed to load dashboard metrics");
+          console.error('Error loading metrics:', metricsErr);
+          toast.error('Failed to load dashboard metrics');
           setMetrics({
             activeContracts: 0,
             openIssues: 0,
@@ -225,9 +249,9 @@ export default function Dashboard() {
           });
         }
       } catch (error) {
-        console.error("Error loading dashboard data:", error);
-        toast.error("Failed to load dashboard data");
-        setError("Failed to load dashboard data");
+        console.error('Error loading dashboard data:', error);
+        toast.error('Failed to load dashboard data');
+        setError('Failed to load dashboard data');
       } finally {
         setLoading(false);
       }
@@ -252,14 +276,16 @@ export default function Dashboard() {
   }, [profile]);
 
   // Handle form field changes
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleFormChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
-    setEditForm(prev => ({ ...prev, [name]: value }));
+    setEditForm((prev) => ({ ...prev, [name]: value }));
   };
 
   // Handle custom form changes (e.g., redirecting for new organization creation)
   const handleCustomFormChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     if (name === 'organization_id' && value === 'create-new') {
@@ -271,11 +297,11 @@ export default function Dashboard() {
 
   // Handle avatar selection
   const handleAvatarSelect = (url: string) => {
-    const selectedAvatar = avatars.find(avatar => avatar.url === url);
-    if (selectedAvatar) {
-      setEditForm(prev => ({
+    const selectedAvatar = avatars.find((avatar) => typeof avatar.url === 'string' && avatar.url === url);
+    if (selectedAvatar && typeof selectedAvatar.id === 'string') {
+      setEditForm((prev) => ({
         ...prev,
-        avatar_id: selectedAvatar.id
+        avatar_id: selectedAvatar.id,
       }));
     }
     setSelectedImage(null); // Clear any custom image selection
@@ -288,7 +314,8 @@ export default function Dashboard() {
       setSelectedImage(e.target?.result as string);
     };
     reader.readAsDataURL(file);
-  };  // Handle profile save with RPC
+  };
+  // Handle profile save with RPC
   const handleSaveProfile = async () => {
     if (!profile || !user) return;
 
@@ -321,52 +348,42 @@ export default function Dashboard() {
         email: editForm.email,
         organization_id: editForm.organization_id || null,
         job_title_id: editForm.job_title_id || null,
-        custom_job_title: !editForm.job_title_id && editForm.custom_job_title ? editForm.custom_job_title : null,
+        custom_job_title:
+          !editForm.job_title_id && editForm.custom_job_title
+            ? editForm.custom_job_title
+            : null,
         avatar_id: editForm.avatar_id || null,
-        avatar_url: avatarUrl
+        avatar_url: avatarUrl,
       };
 
       // Use the updateProfile from authStore which calls the RPC
       await updateProfile(profile.id, updates);
 
-      toast.success("Profile updated successfully");
+      toast.success('Profile updated successfully');
       setIsModalOpen(false);
     } catch (error) {
-      console.error("Error updating profile:", error);
-      toast.error("Failed to update profile");
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
     } finally {
       // No need to set state as we're using a local variable
     }
   };
 
   // ── contract filtering ──────────────────────────────────
-  const { searchQuery, filteredContracts, handleSearchChange } =
-    useContractFiltering(contracts as Contracts[]); // Now compatible due to optional session_id
+  const { searchQuery, filteredContracts, handleSearchChange } = useContractFiltering(contracts); // Fix contract filtering usage
 
   // ── guard states ────────────────────────────────────────
   if (loading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading…
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center">Loading…</div>;
   }
 
   if (error != null && error !== '') {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Error: {error}
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center">Error: {error}</div>;
   }
 
   if (!profile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        No profile found
-      </div>
-    );
-  }  // ── main render ─────────────────────────────────────────
+    return <div className="min-h-screen flex items-center justify-center">No profile found</div>;
+  } // ── main render ─────────────────────────────────────────
   const avatarUrl = profile.avatar_url ?? null;
 
   // Create a profile object with the necessary user_role property for ProfileSection
@@ -382,21 +399,30 @@ export default function Dashboard() {
     avatar_url: profile.avatar_url ?? '',
     organization_id: profile.organization_id ?? '',
     job_title_id: profile.job_title_id ?? '',
-    organizations: (profile.organization_name != null && profile.organization_name !== '') ? {
-      name: profile.organization_name,
-      address: null,
-      phone: null,
-      website: null
-    } : null,
-    job_titles: (profile.job_title != null && profile.job_title !== '') ? {
-      title: profile.job_title,
-      is_custom: true
-    } : null
+    organizations:
+      profile.organization_name != null && profile.organization_name !== ''
+        ? {
+          name: profile.organization_name,
+          address: null,
+          phone: null,
+          website: null,
+        }
+        : null,
+    job_titles:
+      profile.job_title != null && profile.job_title !== ''
+        ? {
+          title: profile.job_title,
+          is_custom: true,
+        }
+        : null,
   };
   return (
     <div className="min-h-screen bg-background">
       <PageContainer>
-        <ProfileSection profile={profileForComponent} onEdit={() => setIsModalOpen(true)} />
+        <ProfileSection
+          profile={profileForComponent}
+          onEdit={() => setIsModalOpen(true)}
+        />
 
         <EditProfileModal
           isOpen={isModalOpen}
@@ -417,9 +443,11 @@ export default function Dashboard() {
           onAvatarUpload={handleAvatarUpload}
           onCropChange={setCrop}
           onZoomChange={setZoom}
-          onCropComplete={(_, area) => setCroppedAreaPixels(area)}
+          onCropComplete={(_: Area, area: Area) => setCroppedAreaPixels(area)}
           onFormChange={handleCustomFormChange}
-          onSaveProfile={() => { void handleSaveProfile(); }}
+          onSaveProfile={() => {
+            void handleSaveProfile();
+          }}
         />
 
         <DashboardMetrics

@@ -47,7 +47,7 @@ export default function ContractSettings() {
         }
 
         // Get team members
-        const teamDataResult = await rpcClient.getProfilesByContract({ _contract_id: contractId });
+        const teamDataResult = await rpcClient.getProfilesByContract({ contract_id: contractId, session_id: '' });
         const teamData = Array.isArray(teamDataResult) ? teamDataResult : [];
         setTeamMembers(teamData);
       } catch (error) {
@@ -67,7 +67,7 @@ export default function ContractSettings() {
 
     setIsSaving(true);
     try {
-      await rpcClient.updateContracts({ _id: contractId, _data: { status: selectedStatus } });
+      await rpcClient.updateContracts({ _id: contractId, _status: selectedStatus });
 
       setContract(prev => prev ? { ...prev, status: selectedStatus } : null);
       toast.success('Contract status updated successfully');
@@ -113,7 +113,7 @@ export default function ContractSettings() {
   const handleDeleteContract = async () => {
     if (typeof contractId !== 'string' || contractId.length === 0 || !contract || deleteConfirmation !== contract.title) return;
     try {
-      await rpcClient.deleteContracts({ _id: contractId });
+      await rpcClient.deleteContracts({ id: contractId });
 
       toast.success('Contract deleted successfully');
       navigate('/dashboard');

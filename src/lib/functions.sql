@@ -5,7 +5,7 @@
 -- Dumped from database version 15.8
 -- Dumped by pg_dump version 17.5
 
--- Started on 2025-05-20 21:50:13
+-- Started on 2025-05-24 19:27:22
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -28,7 +28,7 @@ CREATE SCHEMA public;
 
 
 --
--- TOC entry 2305 (class 1247 OID 36552)
+-- TOC entry 2375 (class 1247 OID 36552)
 -- Name: asphalt_type; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -50,7 +50,7 @@ CREATE TYPE public.asphalt_type AS ENUM (
 
 
 --
--- TOC entry 2271 (class 1247 OID 81783)
+-- TOC entry 2341 (class 1247 OID 81783)
 -- Name: change_order_status; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -63,7 +63,7 @@ CREATE TYPE public.change_order_status AS ENUM (
 
 
 --
--- TOC entry 2138 (class 1247 OID 37235)
+-- TOC entry 2202 (class 1247 OID 37235)
 -- Name: contract_status; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -83,7 +83,7 @@ CREATE TYPE public.contract_status AS ENUM (
 
 
 --
--- TOC entry 2083 (class 1247 OID 36580)
+-- TOC entry 2147 (class 1247 OID 36580)
 -- Name: existing_surface; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -98,7 +98,7 @@ CREATE TYPE public.existing_surface AS ENUM (
 
 
 --
--- TOC entry 2177 (class 1247 OID 36485)
+-- TOC entry 2244 (class 1247 OID 36485)
 -- Name: organization_role; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -113,7 +113,7 @@ CREATE TYPE public.organization_role AS ENUM (
 
 
 --
--- TOC entry 2183 (class 1247 OID 45737)
+-- TOC entry 2253 (class 1247 OID 45737)
 -- Name: patch_status; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -127,7 +127,31 @@ CREATE TYPE public.patch_status AS ENUM (
 
 
 --
--- TOC entry 2250 (class 1247 OID 45367)
+-- TOC entry 2238 (class 1247 OID 156248)
+-- Name: pay_rate_unit; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.pay_rate_unit AS ENUM (
+    'day',
+    'hour'
+);
+
+
+--
+-- TOC entry 2250 (class 1247 OID 156264)
+-- Name: priority; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.priority AS ENUM (
+    'High',
+    'Medium',
+    'Low',
+    'Note'
+);
+
+
+--
+-- TOC entry 2320 (class 1247 OID 45367)
 -- Name: road_side; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -138,7 +162,7 @@ CREATE TYPE public.road_side AS ENUM (
 
 
 --
--- TOC entry 2135 (class 1247 OID 35286)
+-- TOC entry 2199 (class 1247 OID 35286)
 -- Name: unit_measure_type; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -171,7 +195,7 @@ CREATE TYPE public.unit_measure_type AS ENUM (
 
 
 --
--- TOC entry 2259 (class 1247 OID 29104)
+-- TOC entry 2329 (class 1247 OID 29104)
 -- Name: user_role; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -185,7 +209,7 @@ CREATE TYPE public.user_role AS ENUM (
 
 
 --
--- TOC entry 601 (class 1255 OID 35754)
+-- TOC entry 868 (class 1255 OID 35754)
 -- Name: calculate_cy(numeric, numeric, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -199,7 +223,7 @@ $$;
 
 
 --
--- TOC entry 600 (class 1255 OID 35733)
+-- TOC entry 760 (class 1255 OID 35733)
 -- Name: calculate_sy(numeric, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -213,7 +237,7 @@ $$;
 
 
 --
--- TOC entry 602 (class 1255 OID 35776)
+-- TOC entry 924 (class 1255 OID 35776)
 -- Name: calculate_tons(numeric, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -227,7 +251,7 @@ $$;
 
 
 --
--- TOC entry 597 (class 1255 OID 30362)
+-- TOC entry 1514 (class 1255 OID 30362)
 -- Name: check_is_admin(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -243,7 +267,7 @@ END;$$;
 
 
 --
--- TOC entry 1335 (class 1255 OID 135794)
+-- TOC entry 1350 (class 1255 OID 135794)
 -- Name: clone_change_orders_for_session(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -338,7 +362,7 @@ $$;
 
 
 --
--- TOC entry 1343 (class 1255 OID 136256)
+-- TOC entry 1376 (class 1255 OID 136256)
 -- Name: clone_contract_organizations(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -408,7 +432,7 @@ $$;
 
 
 --
--- TOC entry 1334 (class 1255 OID 135592)
+-- TOC entry 1342 (class 1255 OID 135592)
 -- Name: clone_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -504,7 +528,7 @@ $$;
 
 
 --
--- TOC entry 1337 (class 1255 OID 135944)
+-- TOC entry 1356 (class 1255 OID 135944)
 -- Name: clone_crew_members(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -571,7 +595,7 @@ $$;
 
 
 --
--- TOC entry 1336 (class 1255 OID 135882)
+-- TOC entry 1354 (class 1255 OID 135882)
 -- Name: clone_crews(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -634,7 +658,7 @@ $$;
 
 
 --
--- TOC entry 1340 (class 1255 OID 136110)
+-- TOC entry 1366 (class 1255 OID 136110)
 -- Name: clone_daily_logs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -700,7 +724,7 @@ $$;
 
 
 --
--- TOC entry 1338 (class 1255 OID 135986)
+-- TOC entry 1357 (class 1255 OID 135986)
 -- Name: clone_equipment(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -768,7 +792,7 @@ $$;
 
 
 --
--- TOC entry 1339 (class 1255 OID 136068)
+-- TOC entry 1362 (class 1255 OID 136068)
 -- Name: clone_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -834,7 +858,7 @@ $$;
 
 
 --
--- TOC entry 1342 (class 1255 OID 136194)
+-- TOC entry 1371 (class 1255 OID 136194)
 -- Name: clone_inspections(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -904,7 +928,7 @@ $$;
 
 
 --
--- TOC entry 1341 (class 1255 OID 136152)
+-- TOC entry 1369 (class 1255 OID 136152)
 -- Name: clone_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -980,7 +1004,7 @@ $$;
 
 
 --
--- TOC entry 1345 (class 1255 OID 136380)
+-- TOC entry 1386 (class 1255 OID 136380)
 -- Name: clone_line_item_crew_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1058,7 +1082,7 @@ $$;
 
 
 --
--- TOC entry 1344 (class 1255 OID 136318)
+-- TOC entry 1381 (class 1255 OID 136318)
 -- Name: clone_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1124,7 +1148,7 @@ $$;
 
 
 --
--- TOC entry 1346 (class 1255 OID 136422)
+-- TOC entry 1390 (class 1255 OID 136422)
 -- Name: clone_line_item_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1202,7 +1226,7 @@ $$;
 
 
 --
--- TOC entry 1347 (class 1255 OID 136464)
+-- TOC entry 1393 (class 1255 OID 136464)
 -- Name: clone_line_item_templates(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1273,7 +1297,7 @@ $$;
 
 
 --
--- TOC entry 1333 (class 1255 OID 135218)
+-- TOC entry 1332 (class 1255 OID 135218)
 -- Name: clone_line_items_for_maps(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1354,7 +1378,7 @@ $$;
 
 
 --
--- TOC entry 1332 (class 1255 OID 135156)
+-- TOC entry 1328 (class 1255 OID 135156)
 -- Name: clone_maps_for_wbs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1427,7 +1451,7 @@ $$;
 
 
 --
--- TOC entry 1331 (class 1255 OID 135094)
+-- TOC entry 1325 (class 1255 OID 135094)
 -- Name: clone_wbs_for_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1497,7 +1521,7 @@ $$;
 
 
 --
--- TOC entry 1441 (class 1255 OID 144864)
+-- TOC entry 379 (class 1255 OID 144864)
 -- Name: create_demo_environment(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1570,7 +1594,7 @@ END;$$;
 
 
 --
--- TOC entry 1443 (class 1255 OID 146118)
+-- TOC entry 1346 (class 1255 OID 146118)
 -- Name: custom_access_token_hook(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1608,19 +1632,22 @@ $$;
 
 
 --
--- TOC entry 1431 (class 1255 OID 141930)
--- Name: delete_asphalt_types(uuid); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1347 (class 1255 OID 154252)
+-- Name: delete_asphalt_type(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.delete_asphalt_types(_id uuid) RETURNS void
-    LANGUAGE sql
+CREATE FUNCTION public.delete_asphalt_type(_id uuid) RETURNS void
+    LANGUAGE plpgsql
     AS $$
-  delete from asphalt_types where id = _id;
+begin
+  delete from asphalt_types
+  where id = _id;
+end;
 $$;
 
 
 --
--- TOC entry 1404 (class 1255 OID 141783)
+-- TOC entry 1401 (class 1255 OID 141783)
 -- Name: delete_avatars(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1632,43 +1659,82 @@ $$;
 
 
 --
--- TOC entry 1392 (class 1255 OID 141701)
--- Name: delete_change_orders(uuid); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1375 (class 1255 OID 154824)
+-- Name: delete_change_order(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.delete_change_orders(_id uuid) RETURNS void
-    LANGUAGE sql
+CREATE FUNCTION public.delete_change_order(_id uuid) RETURNS void
+    LANGUAGE plpgsql
     AS $$
-  delete from change_orders where id = _id;
+begin
+  delete from change_orders
+  where id = _id;
+end;
 $$;
 
 
 --
--- TOC entry 1371 (class 1255 OID 141620)
--- Name: delete_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 399 (class 1255 OID 155402)
+-- Name: delete_contract(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.delete_contracts(_id uuid) RETURNS void
-    LANGUAGE sql
+CREATE FUNCTION public.delete_contract(_id uuid) RETURNS void
+    LANGUAGE plpgsql
     AS $$
-  delete from contracts where id = _id;
+begin
+  delete from contracts
+  where id = _id;
+end;
 $$;
 
 
 --
--- TOC entry 1419 (class 1255 OID 141878)
--- Name: delete_crew_members(uuid); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1391 (class 1255 OID 155032)
+-- Name: delete_contract_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.delete_crew_members(_id uuid) RETURNS void
-    LANGUAGE sql
+CREATE FUNCTION public.delete_contract_organization(_id uuid) RETURNS void
+    LANGUAGE plpgsql
     AS $$
-  delete from crew_members where id = _id;
+begin
+  delete from contract_organizations
+  where id = _id;
+end;
 $$;
 
 
 --
--- TOC entry 1416 (class 1255 OID 141835)
+-- TOC entry 1322 (class 1255 OID 155798)
+-- Name: delete_crew(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.delete_crew(_id uuid) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+begin
+  delete from crews
+  where id = _id;
+end;
+$$;
+
+
+--
+-- TOC entry 1316 (class 1255 OID 155610)
+-- Name: delete_crew_member(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.delete_crew_member(_id uuid) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+begin
+  delete from crew_members
+  where id = _id;
+end;
+$$;
+
+
+--
+-- TOC entry 1403 (class 1255 OID 141835)
 -- Name: delete_crews(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1680,79 +1746,127 @@ $$;
 
 
 --
--- TOC entry 1422 (class 1255 OID 141881)
--- Name: delete_daily_logs(uuid); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1331 (class 1255 OID 155986)
+-- Name: delete_daily_log(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.delete_daily_logs(_id uuid) RETURNS void
-    LANGUAGE sql
+CREATE FUNCTION public.delete_daily_log(_id uuid) RETURNS void
+    LANGUAGE plpgsql
     AS $$
-  delete from daily_logs where id = _id;
+begin
+  delete from daily_logs
+  where id = _id;
+end;
 $$;
 
 
 --
--- TOC entry 1434 (class 1255 OID 141933)
--- Name: delete_dump_trucks(uuid); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1338 (class 1255 OID 156180)
+-- Name: delete_demo_mapping(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.delete_dump_trucks(_id uuid) RETURNS void
-    LANGUAGE sql
+CREATE FUNCTION public.delete_demo_mapping(_session_id uuid) RETURNS void
+    LANGUAGE plpgsql
     AS $$
-  delete from dump_trucks where id = _id;
+begin
+  delete from demo_mappings
+  where session_id = _session_id;
+end;
 $$;
 
 
 --
--- TOC entry 1407 (class 1255 OID 141826)
+-- TOC entry 1367 (class 1255 OID 156942)
+-- Name: delete_dump_truck(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.delete_dump_truck(_id uuid) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+begin
+  delete from dump_trucks
+  where id = _id;
+end;
+$$;
+
+
+--
+-- TOC entry 1398 (class 1255 OID 157420)
 -- Name: delete_equipment(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.delete_equipment(_id uuid) RETURNS void
-    LANGUAGE sql
+    LANGUAGE plpgsql
     AS $$
-  delete from equipment where id = _id;
+begin
+  delete from equipment
+  where id = _id;
+end;
 $$;
 
 
 --
--- TOC entry 1410 (class 1255 OID 141829)
--- Name: delete_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1413 (class 1255 OID 157776)
+-- Name: delete_equipment_assignment(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.delete_equipment_assignments(_id uuid) RETURNS void
-    LANGUAGE sql
+CREATE FUNCTION public.delete_equipment_assignment(_id uuid) RETURNS void
+    LANGUAGE plpgsql
     AS $$
-  delete from equipment_assignments where id = _id;
+begin
+  delete from equipment_assignments
+  where id = _id;
+end;
 $$;
 
 
 --
--- TOC entry 1413 (class 1255 OID 141832)
+-- TOC entry 1422 (class 1255 OID 158132)
 -- Name: delete_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.delete_equipment_usage(_id uuid) RETURNS void
-    LANGUAGE sql
+    LANGUAGE plpgsql
     AS $$
-  delete from equipment_usage where id = _id;
+begin
+  delete from equipment_usage
+  where id = _id;
+end;
 $$;
 
 
 --
--- TOC entry 1389 (class 1255 OID 141698)
--- Name: delete_inspections(uuid); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1430 (class 1255 OID 158488)
+-- Name: delete_inspection(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.delete_inspections(_id uuid) RETURNS void
-    LANGUAGE sql
+CREATE FUNCTION public.delete_inspection(_id uuid) RETURNS void
+    LANGUAGE plpgsql
     AS $$
-  delete from inspections where id = _id;
+begin
+  delete from inspections
+  where id = _id;
+end;
 $$;
 
 
 --
--- TOC entry 1428 (class 1255 OID 141887)
+-- TOC entry 1438 (class 1255 OID 158850)
+-- Name: delete_issue(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.delete_issue(_id uuid) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+begin
+  delete from issues
+  where id = _id;
+end;
+$$;
+
+
+--
+-- TOC entry 1405 (class 1255 OID 141887)
 -- Name: delete_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1764,91 +1878,112 @@ $$;
 
 
 --
--- TOC entry 1425 (class 1255 OID 141884)
--- Name: delete_job_titles(uuid); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1442 (class 1255 OID 159038)
+-- Name: delete_job_title(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.delete_job_titles(_id uuid) RETURNS void
-    LANGUAGE sql
+CREATE FUNCTION public.delete_job_title(_id uuid) RETURNS void
+    LANGUAGE plpgsql
     AS $$
-  delete from job_titles where id = _id;
+begin
+  delete from job_titles
+  where id = _id;
+end;
 $$;
 
 
 --
--- TOC entry 1386 (class 1255 OID 141695)
--- Name: delete_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1459 (class 1255 OID 159938)
+-- Name: delete_line_item(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.delete_line_item_entries(_id uuid) RETURNS void
-    LANGUAGE sql
+CREATE FUNCTION public.delete_line_item(_id uuid) RETURNS void
+    LANGUAGE plpgsql
     AS $$
-  delete from line_item_entries where id = _id;
+begin
+  delete from line_items
+  where id = _id;
+end;
 $$;
 
 
 --
--- TOC entry 1383 (class 1255 OID 141692)
--- Name: delete_line_item_templates(uuid); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1444 (class 1255 OID 159142)
+-- Name: delete_line_item_entry(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.delete_line_item_templates(_id uuid) RETURNS void
-    LANGUAGE sql
+CREATE FUNCTION public.delete_line_item_entry(_id uuid) RETURNS void
+    LANGUAGE plpgsql
     AS $$
-  delete from line_item_templates where id = _id;
+begin
+  delete from line_item_entries
+  where id = _id;
+end;
 $$;
 
 
 --
--- TOC entry 1380 (class 1255 OID 141629)
--- Name: delete_line_items(uuid); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1453 (class 1255 OID 159540)
+-- Name: delete_line_item_template(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.delete_line_items(_id uuid) RETURNS void
-    LANGUAGE sql
+CREATE FUNCTION public.delete_line_item_template(_id uuid) RETURNS void
+    LANGUAGE plpgsql
     AS $$
-  delete from line_items where id = _id;
+begin
+  delete from line_item_templates
+  where id = _id;
+end;
 $$;
 
 
 --
--- TOC entry 1377 (class 1255 OID 141626)
--- Name: delete_maps(uuid); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1463 (class 1255 OID 160230)
+-- Name: delete_map(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.delete_maps(_id uuid) RETURNS void
-    LANGUAGE sql
+CREATE FUNCTION public.delete_map(_id uuid) RETURNS void
+    LANGUAGE plpgsql
     AS $$
-  delete from maps where id = _id;
+begin
+  delete from maps
+  where id = _id;
+end;
 $$;
 
 
 --
--- TOC entry 1398 (class 1255 OID 141777)
--- Name: delete_organizations(uuid); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1466 (class 1255 OID 160376)
+-- Name: delete_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.delete_organizations(_id uuid) RETURNS void
-    LANGUAGE sql
+CREATE FUNCTION public.delete_organization(_id uuid) RETURNS void
+    LANGUAGE plpgsql
     AS $$
-  delete from organizations where id = _id;
+begin
+  delete from organizations
+  where id = _id;
+end;
 $$;
 
 
 --
--- TOC entry 1395 (class 1255 OID 141774)
--- Name: delete_profiles(uuid); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1471 (class 1255 OID 160606)
+-- Name: delete_profile(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.delete_profiles(_id uuid) RETURNS void
-    LANGUAGE sql
+CREATE FUNCTION public.delete_profile(_id uuid) RETURNS void
+    LANGUAGE plpgsql
     AS $$
-  delete from profiles where id = _id;
+begin
+  delete from profiles
+  where id = _id;
+end;
 $$;
 
 
 --
--- TOC entry 1437 (class 1255 OID 141936)
+-- TOC entry 1407 (class 1255 OID 141936)
 -- Name: delete_tack_rates(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1860,108 +1995,38 @@ $$;
 
 
 --
--- TOC entry 1401 (class 1255 OID 141780)
--- Name: delete_user_contracts(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1477 (class 1255 OID 160878)
+-- Name: delete_user_contract(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.delete_user_contracts(_user_id uuid, _contract_id uuid) RETURNS void
-    LANGUAGE sql
+CREATE FUNCTION public.delete_user_contract(_user_id uuid, _contract_id uuid) RETURNS void
+    LANGUAGE plpgsql
     AS $$
+begin
   delete from user_contracts
   where user_id = _user_id
     and contract_id = _contract_id;
+end;
 $$;
 
 
 --
--- TOC entry 1374 (class 1255 OID 141623)
+-- TOC entry 1480 (class 1255 OID 161072)
 -- Name: delete_wbs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.delete_wbs(_id uuid) RETURNS void
-    LANGUAGE sql
+    LANGUAGE plpgsql
     AS $$
-  delete from wbs where id = _id;
+begin
+  delete from wbs
+  where id = _id;
+end;
 $$;
 
 
 --
--- TOC entry 605 (class 1255 OID 63563)
--- Name: ensure_test_user_organization(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.ensure_test_user_organization() RETURNS uuid
-    LANGUAGE plpgsql SECURITY DEFINER
-    AS $$
-DECLARE
-  user_id uuid;
-  profile_exists boolean;
-  org_id uuid;
-BEGIN
-  -- Store user ID
-  user_id := auth.uid();
-  
-  -- Check if profile exists
-  SELECT EXISTS (SELECT 1 FROM profiles WHERE id = user_id) INTO profile_exists;
-
-  -- Create organization
-  INSERT INTO organizations (
-    name,
-    address,
-    phone,
-    website,
-    created_by
-  )
-  VALUES (
-    'Demo Organization',
-    '123 Demo Street, Demo City, DC 12345',
-    '(555) 123-4567',
-    'https://demo-org.example.com',
-    user_id
-  )
-  RETURNING id INTO org_id;
-
-  -- If profile doesn't exist, create it
-  IF NOT profile_exists THEN
-    INSERT INTO profiles (
-      id,
-      email,
-      role,
-      full_name,
-      organization_id,
-      username,
-      phone,
-      location
-    )
-    VALUES (
-      user_id,
-      (SELECT email FROM auth.users WHERE id = user_id),
-      'Admin',
-      'Demo User',
-      org_id,
-      'demo_user_' || substr(md5(random()::text), 1, 8),
-      '(555) 123-4567',
-      'Demo City, DC'
-    );
-  ELSE
-    -- Update existing profile
-    UPDATE profiles
-    SET 
-      organization_id = org_id,
-      role = 'Admin',
-      full_name = 'Demo User',
-      phone = '(555) 123-4567',
-      location = 'Demo City, DC'
-    WHERE id = user_id;
-  END IF;
-
-  RETURN org_id;
-END;
-$$;
-
-
---
--- TOC entry 1442 (class 1255 OID 144865)
+-- TOC entry 378 (class 1255 OID 144865)
 -- Name: execute_full_demo_clone(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2001,8 +2066,1227 @@ END;
 $$;
 
 
+SET default_table_access_method = heap;
+
 --
--- TOC entry 1362 (class 1255 OID 141204)
+-- TOC entry 333 (class 1259 OID 43500)
+-- Name: dump_trucks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.dump_trucks (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    contract_id uuid,
+    equipment_id uuid,
+    truck_identifier text NOT NULL,
+    payload_capacity_tons numeric NOT NULL,
+    notes text,
+    created_at timestamp with time zone DEFAULT now(),
+    bed_length numeric,
+    bed_width numeric,
+    bed_height numeric,
+    bed_volume numeric GENERATED ALWAYS AS (((bed_length * bed_width) * bed_height)) STORED,
+    axle_count integer,
+    hoist_top numeric,
+    hoist_bottom numeric,
+    hoist_width numeric
+);
+
+
+--
+-- TOC entry 1382 (class 1255 OID 157148)
+-- Name: filtered_by_axle_count_dump_trucks(numeric); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_axle_count_dump_trucks(_axle_count numeric) RETURNS SETOF public.dump_trucks
+    LANGUAGE sql
+    AS $$
+  select *
+  from dump_trucks
+  where axle_count = _axle_count
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 346 (class 1259 OID 81852)
+-- Name: daily_logs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.daily_logs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    contract_id uuid NOT NULL,
+    log_date date DEFAULT CURRENT_DATE NOT NULL,
+    weather_conditions text,
+    temperature numeric,
+    work_performed text,
+    delays_encountered text,
+    visitors text,
+    safety_incidents text,
+    created_by uuid,
+    updated_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now(),
+    session_id uuid
+);
+
+
+--
+-- TOC entry 1324 (class 1255 OID 155860)
+-- Name: filtered_by_contract_daily_logs(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_contract_daily_logs(_contract_id uuid) RETURNS SETOF public.daily_logs
+    LANGUAGE sql
+    AS $$
+  select * from daily_logs
+  where contract_id = _contract_id
+  order by log_date desc, created_at desc;
+$$;
+
+
+--
+-- TOC entry 1358 (class 1255 OID 156816)
+-- Name: filtered_by_contract_dump_trucks(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_contract_dump_trucks(_contract_id uuid) RETURNS SETOF public.dump_trucks
+    LANGUAGE sql
+    AS $$
+  select * from dump_trucks
+  where contract_id = _contract_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 330 (class 1259 OID 29702)
+-- Name: equipment_assignments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.equipment_assignments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    equipment_id uuid NOT NULL,
+    contract_id uuid NOT NULL,
+    operator_id uuid,
+    start_date date NOT NULL,
+    end_date date,
+    status text DEFAULT 'active'::text,
+    notes text,
+    created_by uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    session_id uuid,
+    bid_rate numeric,
+    line_item_id uuid,
+    map_id uuid,
+    wbs_id uuid
+);
+
+ALTER TABLE ONLY public.equipment_assignments REPLICA IDENTITY FULL;
+
+
+--
+-- TOC entry 1400 (class 1255 OID 157482)
+-- Name: filtered_by_contract_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_contract_equipment_assignments(_contract_id uuid) RETURNS SETOF public.equipment_assignments
+    LANGUAGE sql
+    AS $$
+  select * from equipment_assignments
+  where contract_id = _contract_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 347 (class 1259 OID 81960)
+-- Name: equipment_usage; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.equipment_usage (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    equipment_id uuid,
+    map_id uuid,
+    line_item_id uuid,
+    usage_date date DEFAULT CURRENT_DATE NOT NULL,
+    hours_used numeric NOT NULL,
+    operator_id uuid,
+    notes text,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_by uuid,
+    updated_at timestamp with time zone,
+    contract_id uuid,
+    session_id uuid,
+    wbs_id uuid,
+    CONSTRAINT equipment_usage_hours_used_check CHECK ((hours_used >= (0)::numeric))
+);
+
+
+--
+-- TOC entry 1414 (class 1255 OID 157838)
+-- Name: filtered_by_contract_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_contract_equipment_usage(_contract_id uuid) RETURNS SETOF public.equipment_usage
+    LANGUAGE sql
+    AS $$
+  select * from equipment_usage
+  where contract_id = _contract_id
+  order by usage_date desc, created_at desc;
+$$;
+
+
+--
+-- TOC entry 349 (class 1259 OID 82124)
+-- Name: inspections; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inspections (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    contract_id uuid NOT NULL,
+    wbs_id uuid,
+    map_id uuid,
+    line_item_id uuid,
+    name text NOT NULL,
+    description text,
+    pdf_url text,
+    photo_urls text[],
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_by uuid,
+    updated_at timestamp with time zone,
+    session_id uuid
+);
+
+
+--
+-- TOC entry 1424 (class 1255 OID 158236)
+-- Name: filtered_by_contract_inspections(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_contract_inspections(_contract_id uuid) RETURNS SETOF public.inspections
+    LANGUAGE sql
+    AS $$
+  select * from inspections
+  where contract_id = _contract_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 350 (class 1259 OID 82204)
+-- Name: issues; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.issues (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    contract_id uuid,
+    wbs_id uuid,
+    map_id uuid,
+    line_item_id uuid,
+    equipment_id uuid,
+    title text NOT NULL,
+    description text NOT NULL,
+    status text NOT NULL,
+    due_date date,
+    resolution text,
+    assigned_to uuid,
+    created_by uuid,
+    updated_by uuid,
+    photo_urls text[] DEFAULT '{}'::text[],
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    session_id uuid,
+    priority public.priority DEFAULT 'Note'::public.priority,
+    CONSTRAINT issues_status_check CHECK ((status = ANY (ARRAY['Open'::text, 'In Progress'::text, 'Resolved'::text])))
+);
+
+
+--
+-- TOC entry 1431 (class 1255 OID 158556)
+-- Name: filtered_by_contract_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_contract_issues(_contract_id uuid) RETURNS SETOF public.issues
+    LANGUAGE sql
+    AS $$
+  select * from issues
+  where contract_id = _contract_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 336 (class 1259 OID 47812)
+-- Name: line_item_entries; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.line_item_entries (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    map_id uuid NOT NULL,
+    contract_id uuid NOT NULL,
+    wbs_id uuid NOT NULL,
+    line_item_id uuid NOT NULL,
+    entered_by uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    input_variables jsonb NOT NULL,
+    computed_output numeric,
+    notes text,
+    session_id uuid,
+    output_unit public.unit_measure_type
+);
+
+
+--
+-- TOC entry 1446 (class 1255 OID 159226)
+-- Name: filtered_by_contract_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_contract_line_item_entries(_contract_id uuid) RETURNS SETOF public.line_item_entries
+    LANGUAGE sql
+    AS $$
+  select * from line_item_entries
+  where contract_id = _contract_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1487 (class 1255 OID 161386)
+-- Name: filtered_by_contract_line_items(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_contract_line_items(_contract_id uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_id uuid, map_id uuid, description text, line_code text, quantity numeric, reference_doc text, template_id uuid, unit_measure public.unit_measure_type, unit_price numeric, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text)
+    LANGUAGE sql
+    AS $$
+  select
+    li.id,
+    li.contract_id,
+    li.wbs_id,
+    li.map_id,
+    li.description,
+    li.line_code,
+    li.quantity,
+    li.reference_doc,
+    li.template_id,
+    li.unit_measure,
+    li.unit_price,
+    li.created_at,
+    li.updated_at,
+    li.session_id,
+    ST_AsText(li.coordinates) as coordinates_wkt
+  from line_items li
+  where li.contract_id = _contract_id
+  order by li.created_at desc
+$$;
+
+
+--
+-- TOC entry 1484 (class 1255 OID 161260)
+-- Name: filtered_by_contract_maps(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_contract_maps(_contract_id uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_id uuid, map_number text, location text, scope text, budget numeric, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text)
+    LANGUAGE sql
+    AS $$
+  select
+    m.id,
+    m.contract_id,
+    m.wbs_id,
+    m.map_number,
+    m.location,
+    m.scope,
+    m.budget,
+    m.created_at,
+    m.updated_at,
+    m.session_id,
+    ST_AsText(m.coordinates) as coordinates_wkt
+  from maps m
+  where m.contract_id = _contract_id
+  order by m.created_at desc
+$$;
+
+
+--
+-- TOC entry 337 (class 1259 OID 48860)
+-- Name: user_contracts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_contracts (
+    user_id uuid NOT NULL,
+    contract_id uuid NOT NULL,
+    role public.user_role DEFAULT 'Admin'::public.user_role,
+    session_id uuid
+);
+
+
+--
+-- TOC entry 1472 (class 1255 OID 160668)
+-- Name: filtered_by_contract_user_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_contract_user_contracts(_contract_id uuid) RETURNS SETOF public.user_contracts
+    LANGUAGE sql
+    AS $$
+  select * from user_contracts
+  where contract_id = _contract_id;
+$$;
+
+
+--
+-- TOC entry 1482 (class 1255 OID 161176)
+-- Name: filtered_by_contract_wbs(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_contract_wbs(_contract_id uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_number text, location text, budget numeric, scope text, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text)
+    LANGUAGE sql
+    AS $$
+  select
+    w.id,
+    w.contract_id,
+    w.wbs_number,
+    w.location,
+    w.budget,
+    w.scope,
+    w.created_at,
+    w.updated_at,
+    w.session_id,
+    ST_AsText(w.coordinates) as coordinates_wkt
+  from wbs w
+  where w.contract_id = _contract_id
+  order by w.created_at desc
+$$;
+
+
+--
+-- TOC entry 329 (class 1259 OID 29674)
+-- Name: crew_members; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.crew_members (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    crew_id uuid NOT NULL,
+    profile_id uuid NOT NULL,
+    role text,
+    assigned_at timestamp with time zone DEFAULT now(),
+    created_by uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    map_location_id uuid,
+    location_notes text,
+    session_id uuid,
+    organization_id uuid
+);
+
+ALTER TABLE ONLY public.crew_members REPLICA IDENTITY FULL;
+
+
+--
+-- TOC entry 1309 (class 1255 OID 155484)
+-- Name: filtered_by_crew_crew_members(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_crew_crew_members(_crew_id uuid) RETURNS SETOF public.crew_members
+    LANGUAGE sql
+    AS $$
+  select * from crew_members
+  where crew_id = _crew_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1450 (class 1255 OID 159394)
+-- Name: filtered_by_entered_by_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_entered_by_line_item_entries(_entered_by uuid) RETURNS SETOF public.line_item_entries
+    LANGUAGE sql
+    AS $$
+  select * from line_item_entries
+  where entered_by = _entered_by
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1402 (class 1255 OID 157524)
+-- Name: filtered_by_equipment_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_equipment_equipment_assignments(_equipment_id uuid) RETURNS SETOF public.equipment_assignments
+    LANGUAGE sql
+    AS $$
+  select * from equipment_assignments
+  where equipment_id = _equipment_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1415 (class 1255 OID 157880)
+-- Name: filtered_by_equipment_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_equipment_equipment_usage(_equipment_id uuid) RETURNS SETOF public.equipment_usage
+    LANGUAGE sql
+    AS $$
+  select * from equipment_usage
+  where equipment_id = _equipment_id
+  order by usage_date desc, created_at desc;
+$$;
+
+
+--
+-- TOC entry 1435 (class 1255 OID 158724)
+-- Name: filtered_by_equipment_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_equipment_issues(_equipment_id uuid) RETURNS SETOF public.issues
+    LANGUAGE sql
+    AS $$
+  select * from issues
+  where equipment_id = _equipment_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 318 (class 1259 OID 29189)
+-- Name: line_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.line_items (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    wbs_id uuid NOT NULL,
+    line_code text NOT NULL,
+    description text NOT NULL,
+    unit_measure public.unit_measure_type NOT NULL,
+    quantity numeric NOT NULL,
+    unit_price numeric NOT NULL,
+    reference_doc text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    template_id uuid,
+    map_id uuid,
+    contract_id uuid,
+    coordinates public.geometry,
+    session_id uuid
+);
+
+ALTER TABLE ONLY public.line_items REPLICA IDENTITY FULL;
+
+
+--
+-- TOC entry 1456 (class 1255 OID 159812)
+-- Name: filtered_by_line_code_line_items(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_line_code_line_items(_line_code text) RETURNS SETOF public.line_items
+    LANGUAGE sql
+    AS $$
+  select * from line_items
+  where line_code = _line_code
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1404 (class 1255 OID 157566)
+-- Name: filtered_by_line_item_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_line_item_equipment_assignments(_line_item_id uuid) RETURNS SETOF public.equipment_assignments
+    LANGUAGE sql
+    AS $$
+  select * from equipment_assignments
+  where line_item_id = _line_item_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1416 (class 1255 OID 157922)
+-- Name: filtered_by_line_item_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_line_item_equipment_usage(_line_item_id uuid) RETURNS SETOF public.equipment_usage
+    LANGUAGE sql
+    AS $$
+  select * from equipment_usage
+  where line_item_id = _line_item_id
+  order by usage_date desc, created_at desc;
+$$;
+
+
+--
+-- TOC entry 1427 (class 1255 OID 158362)
+-- Name: filtered_by_line_item_inspections(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_line_item_inspections(_line_item_id uuid) RETURNS SETOF public.inspections
+    LANGUAGE sql
+    AS $$
+  select * from inspections
+  where line_item_id = _line_item_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1434 (class 1255 OID 158682)
+-- Name: filtered_by_line_item_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_line_item_issues(_line_item_id uuid) RETURNS SETOF public.issues
+    LANGUAGE sql
+    AS $$
+  select * from issues
+  where line_item_id = _line_item_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1447 (class 1255 OID 159268)
+-- Name: filtered_by_line_item_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_line_item_line_item_entries(_line_item_id uuid) RETURNS SETOF public.line_item_entries
+    LANGUAGE sql
+    AS $$
+  select * from line_item_entries
+  where line_item_id = _line_item_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1406 (class 1255 OID 157608)
+-- Name: filtered_by_map_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_map_equipment_assignments(_map_id uuid) RETURNS SETOF public.equipment_assignments
+    LANGUAGE sql
+    AS $$
+  select * from equipment_assignments
+  where map_id = _map_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1417 (class 1255 OID 157964)
+-- Name: filtered_by_map_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_map_equipment_usage(_map_id uuid) RETURNS SETOF public.equipment_usage
+    LANGUAGE sql
+    AS $$
+  select * from equipment_usage
+  where map_id = _map_id
+  order by usage_date desc, created_at desc;
+$$;
+
+
+--
+-- TOC entry 1426 (class 1255 OID 158320)
+-- Name: filtered_by_map_inspections(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_map_inspections(_map_id uuid) RETURNS SETOF public.inspections
+    LANGUAGE sql
+    AS $$
+  select * from inspections
+  where map_id = _map_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1433 (class 1255 OID 158640)
+-- Name: filtered_by_map_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_map_issues(_map_id uuid) RETURNS SETOF public.issues
+    LANGUAGE sql
+    AS $$
+  select * from issues
+  where map_id = _map_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1448 (class 1255 OID 159310)
+-- Name: filtered_by_map_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_map_line_item_entries(_map_id uuid) RETURNS SETOF public.line_item_entries
+    LANGUAGE sql
+    AS $$
+  select * from line_item_entries
+  where map_id = _map_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1489 (class 1255 OID 161470)
+-- Name: filtered_by_map_line_items(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_map_line_items(_map_id uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_id uuid, map_id uuid, description text, line_code text, quantity numeric, reference_doc text, template_id uuid, unit_measure public.unit_measure_type, unit_price numeric, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text)
+    LANGUAGE sql
+    AS $$
+  select
+    li.id,
+    li.contract_id,
+    li.wbs_id,
+    li.map_id,
+    li.description,
+    li.line_code,
+    li.quantity,
+    li.reference_doc,
+    li.template_id,
+    li.unit_measure,
+    li.unit_price,
+    li.created_at,
+    li.updated_at,
+    li.session_id,
+    ST_AsText(li.coordinates) as coordinates_wkt
+  from line_items li
+  where li.map_id = _map_id
+  order by li.created_at desc
+$$;
+
+
+--
+-- TOC entry 1385 (class 1255 OID 157190)
+-- Name: filtered_by_max_volume_dump_trucks(numeric); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_max_volume_dump_trucks(_max_volume numeric) RETURNS SETOF public.dump_trucks
+    LANGUAGE sql
+    AS $$
+  select *
+  from dump_trucks
+  where bed_volume <= _max_volume
+  order by bed_volume, created_at desc;
+$$;
+
+
+--
+-- TOC entry 1408 (class 1255 OID 157650)
+-- Name: filtered_by_operator_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_operator_equipment_assignments(_operator_id uuid) RETURNS SETOF public.equipment_assignments
+    LANGUAGE sql
+    AS $$
+  select * from equipment_assignments
+  where operator_id = _operator_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1418 (class 1255 OID 158006)
+-- Name: filtered_by_operator_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_operator_equipment_usage(_operator_id uuid) RETURNS SETOF public.equipment_usage
+    LANGUAGE sql
+    AS $$
+  select * from equipment_usage
+  where operator_id = _operator_id
+  order by usage_date desc, created_at desc;
+$$;
+
+
+--
+-- TOC entry 315 (class 1259 OID 29139)
+-- Name: contracts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.contracts (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    title text NOT NULL,
+    description text,
+    location text NOT NULL,
+    start_date date NOT NULL,
+    end_date date NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    budget numeric,
+    status public.contract_status DEFAULT 'Draft'::public.contract_status NOT NULL,
+    coordinates public.geometry,
+    session_id uuid
+);
+
+ALTER TABLE ONLY public.contracts REPLICA IDENTITY FULL;
+
+
+--
+-- TOC entry 1397 (class 1255 OID 155174)
+-- Name: filtered_by_organization_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_organization_contracts(_organization_id uuid) RETURNS SETOF public.contracts
+    LANGUAGE sql
+    AS $$
+  select c.*
+  from contracts c
+  join contract_organizations co on co.contract_id = c.id
+  where co.organization_id = _organization_id
+  order by c.created_at desc;
+$$;
+
+
+--
+-- TOC entry 328 (class 1259 OID 29649)
+-- Name: crews; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.crews (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    organization_id uuid NOT NULL,
+    name text NOT NULL,
+    description text,
+    foreman_id uuid,
+    created_by uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    session_id uuid
+);
+
+ALTER TABLE ONLY public.crews REPLICA IDENTITY FULL;
+
+
+--
+-- TOC entry 1318 (class 1255 OID 155672)
+-- Name: filtered_by_organization_crews(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_organization_crews(_organization_id uuid) RETURNS SETOF public.crews
+    LANGUAGE sql
+    AS $$
+  select * from crews
+  where organization_id = _organization_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 348 (class 1259 OID 82062)
+-- Name: equipment; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.equipment (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_defined_id text,
+    name text NOT NULL,
+    description text,
+    operator_id uuid,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    session_id uuid,
+    organization_id uuid,
+    standard_pay_rate numeric,
+    standard_pay_unit public.pay_rate_unit
+);
+
+
+--
+-- TOC entry 1392 (class 1255 OID 157294)
+-- Name: filtered_by_organization_equipment(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_organization_equipment(_organization_id uuid) RETURNS SETOF public.equipment
+    LANGUAGE sql
+    AS $$
+  select * from equipment
+  where organization_id = _organization_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 332 (class 1259 OID 35668)
+-- Name: line_item_templates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.line_item_templates (
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    name text,
+    output_unit public.unit_measure_type,
+    description text,
+    id uuid NOT NULL,
+    formula jsonb,
+    instructions text,
+    organization_id uuid,
+    created_by uuid,
+    session_id uuid
+);
+
+
+--
+-- TOC entry 1454 (class 1255 OID 159582)
+-- Name: filtered_by_organization_line_item_templates(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_organization_line_item_templates(_organization_id uuid) RETURNS SETOF public.line_item_templates
+    LANGUAGE sql
+    AS $$
+  select * from line_item_templates
+  where organization_id = _organization_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 314 (class 1259 OID 29126)
+-- Name: profiles; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.profiles (
+    id uuid NOT NULL,
+    role public.user_role DEFAULT 'Contractor'::public.user_role NOT NULL,
+    full_name text NOT NULL,
+    email text,
+    username text,
+    phone text,
+    location text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    job_title_id uuid,
+    organization_id uuid,
+    avatar_id uuid,
+    session_id uuid
+);
+
+ALTER TABLE ONLY public.profiles REPLICA IDENTITY FULL;
+
+
+--
+-- TOC entry 1467 (class 1255 OID 160438)
+-- Name: filtered_by_organization_profiles(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_organization_profiles(_organization_id uuid) RETURNS SETOF public.profiles
+    LANGUAGE sql
+    AS $$
+  select * from profiles
+  where organization_id = _organization_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1455 (class 1255 OID 159624)
+-- Name: filtered_by_output_unit_line_item_templates(public.unit_measure_type); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_output_unit_line_item_templates(_output_unit public.unit_measure_type) RETURNS SETOF public.line_item_templates
+    LANGUAGE sql
+    AS $$
+  select * from line_item_templates
+  where output_unit = _output_unit
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1389 (class 1255 OID 157232)
+-- Name: filtered_by_payload_capacity_dump_trucks(numeric); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_payload_capacity_dump_trucks(_payload_capacity_tons numeric) RETURNS SETOF public.dump_trucks
+    LANGUAGE sql
+    AS $$
+  select *
+  from dump_trucks
+  where payload_capacity_tons = _payload_capacity_tons
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1436 (class 1255 OID 158766)
+-- Name: filtered_by_priority_issues(public.priority); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_priority_issues(_priority public.priority) RETURNS SETOF public.issues
+    LANGUAGE sql
+    AS $$
+  select * from issues
+  where priority = _priority
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1468 (class 1255 OID 160480)
+-- Name: filtered_by_role_profiles(public.user_role); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_role_profiles(_role public.user_role) RETURNS SETOF public.profiles
+    LANGUAGE sql
+    AS $$
+  select * from profiles
+  where role = _role
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1474 (class 1255 OID 160752)
+-- Name: filtered_by_role_user_contracts(public.user_role); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_role_user_contracts(_role public.user_role) RETURNS SETOF public.user_contracts
+    LANGUAGE sql
+    AS $$
+  select * from user_contracts
+  where role = _role;
+$$;
+
+
+--
+-- TOC entry 351 (class 1259 OID 135320)
+-- Name: demo_mappings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.demo_mappings (
+    session_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    old_profile_id uuid,
+    new_profile_id uuid,
+    old_organization_ids uuid[],
+    new_organization_ids uuid[],
+    old_contract_ids uuid[],
+    new_contract_ids uuid[],
+    old_wbs_ids uuid[],
+    new_wbs_ids uuid[],
+    old_map_ids uuid[],
+    new_map_ids uuid[],
+    old_line_item_ids uuid[],
+    new_line_item_ids uuid[],
+    old_template_ids uuid[],
+    new_template_ids uuid[],
+    old_contract_org_ids uuid[],
+    new_contract_org_ids uuid[],
+    old_change_order_ids uuid[],
+    new_change_order_ids uuid[],
+    old_issue_ids uuid[],
+    new_issue_ids uuid[],
+    old_inspection_ids uuid[],
+    new_inspection_ids uuid[],
+    old_crew_ids uuid[],
+    new_crew_ids uuid[],
+    old_crew_member_ids uuid[],
+    new_crew_member_ids uuid[],
+    old_equipment_ids uuid[],
+    new_equipment_ids uuid[],
+    old_equipment_assignment_ids uuid[],
+    new_equipment_assignment_ids uuid[],
+    old_entry_ids uuid[],
+    new_entry_ids uuid[],
+    old_li_crew_ids uuid[],
+    new_li_crew_ids uuid[],
+    old_li_equipment_ids uuid[],
+    new_li_equipment_ids uuid[],
+    old_daily_log_ids uuid[],
+    new_daily_log_ids uuid[]
+);
+
+
+--
+-- TOC entry 1333 (class 1255 OID 156048)
+-- Name: filtered_by_session_demo_mappings(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_session_demo_mappings(_session_id uuid) RETURNS SETOF public.demo_mappings
+    LANGUAGE sql
+    AS $$
+  select * from demo_mappings
+  where session_id = _session_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1399 (class 1255 OID 155216)
+-- Name: filtered_by_status_contracts(public.contract_status); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_status_contracts(_status public.contract_status) RETURNS SETOF public.contracts
+    LANGUAGE sql
+    AS $$
+  select * from contracts
+  where status = _status
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1457 (class 1255 OID 159854)
+-- Name: filtered_by_unit_measure_line_items(public.unit_measure_type); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_unit_measure_line_items(_unit_measure public.unit_measure_type) RETURNS SETOF public.line_items
+    LANGUAGE sql
+    AS $$
+  select * from line_items
+  where unit_measure = _unit_measure
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1473 (class 1255 OID 160710)
+-- Name: filtered_by_user_user_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_user_user_contracts(_user_id uuid) RETURNS SETOF public.user_contracts
+    LANGUAGE sql
+    AS $$
+  select * from user_contracts
+  where user_id = _user_id;
+$$;
+
+
+--
+-- TOC entry 1409 (class 1255 OID 157692)
+-- Name: filtered_by_wbs_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_wbs_equipment_assignments(_wbs_id uuid) RETURNS SETOF public.equipment_assignments
+    LANGUAGE sql
+    AS $$
+  select * from equipment_assignments
+  where wbs_id = _wbs_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1420 (class 1255 OID 158048)
+-- Name: filtered_by_wbs_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_wbs_equipment_usage(_wbs_id uuid) RETURNS SETOF public.equipment_usage
+    LANGUAGE sql
+    AS $$
+  select * from equipment_usage
+  where wbs_id = _wbs_id
+  order by usage_date desc, created_at desc;
+$$;
+
+
+--
+-- TOC entry 1425 (class 1255 OID 158278)
+-- Name: filtered_by_wbs_inspections(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_wbs_inspections(_wbs_id uuid) RETURNS SETOF public.inspections
+    LANGUAGE sql
+    AS $$
+  select * from inspections
+  where wbs_id = _wbs_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1432 (class 1255 OID 158598)
+-- Name: filtered_by_wbs_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_wbs_issues(_wbs_id uuid) RETURNS SETOF public.issues
+    LANGUAGE sql
+    AS $$
+  select * from issues
+  where wbs_id = _wbs_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1449 (class 1255 OID 159352)
+-- Name: filtered_by_wbs_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_wbs_line_item_entries(_wbs_id uuid) RETURNS SETOF public.line_item_entries
+    LANGUAGE sql
+    AS $$
+  select * from line_item_entries
+  where wbs_id = _wbs_id
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1488 (class 1255 OID 161428)
+-- Name: filtered_by_wbs_line_items(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_wbs_line_items(_wbs_id uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_id uuid, map_id uuid, description text, line_code text, quantity numeric, reference_doc text, template_id uuid, unit_measure public.unit_measure_type, unit_price numeric, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text)
+    LANGUAGE sql
+    AS $$
+  select
+    li.id,
+    li.contract_id,
+    li.wbs_id,
+    li.map_id,
+    li.description,
+    li.line_code,
+    li.quantity,
+    li.reference_doc,
+    li.template_id,
+    li.unit_measure,
+    li.unit_price,
+    li.created_at,
+    li.updated_at,
+    li.session_id,
+    ST_AsText(li.coordinates) as coordinates_wkt
+  from line_items li
+  where li.wbs_id = _wbs_id
+  order by li.created_at desc
+$$;
+
+
+--
+-- TOC entry 1485 (class 1255 OID 161302)
+-- Name: filtered_by_wbs_maps(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filtered_by_wbs_maps(_wbs_id uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_id uuid, map_number text, location text, scope text, budget numeric, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text)
+    LANGUAGE sql
+    AS $$
+  select
+    m.id,
+    m.contract_id,
+    m.wbs_id,
+    m.map_number,
+    m.location,
+    m.scope,
+    m.budget,
+    m.created_at,
+    m.updated_at,
+    m.session_id,
+    ST_AsText(m.coordinates) as coordinates_wkt
+  from maps m
+  where m.wbs_id = _wbs_id
+  order by m.created_at desc
+$$;
+
+
+--
+-- TOC entry 1368 (class 1255 OID 141204)
 -- Name: get_all_line_item_templates(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2022,7 +3306,7 @@ $$;
 
 
 --
--- TOC entry 1365 (class 1255 OID 141370)
+-- TOC entry 1380 (class 1255 OID 141370)
 -- Name: get_all_profiles(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2048,7 +3332,38 @@ $$;
 
 
 --
--- TOC entry 1367 (class 1255 OID 141474)
+-- TOC entry 334 (class 1259 OID 45512)
+-- Name: asphalt_types; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.asphalt_types (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    lift_depth_inches numeric,
+    target_spread_rate_lbs_per_sy numeric,
+    jmf_temp_min numeric,
+    jmf_temp_max numeric,
+    compaction_min numeric,
+    notes text,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+--
+-- TOC entry 1340 (class 1255 OID 154106)
+-- Name: get_asphalt_types(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_asphalt_types() RETURNS SETOF public.asphalt_types
+    LANGUAGE sql
+    AS $$
+  select * from asphalt_types
+  order by name;
+$$;
+
+
+--
+-- TOC entry 1388 (class 1255 OID 141474)
 -- Name: get_avatars_for_profile(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2066,7 +3381,7 @@ $$;
 
 
 --
--- TOC entry 1350 (class 1255 OID 140288)
+-- TOC entry 1326 (class 1255 OID 140288)
 -- Name: get_change_orders(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2093,7 +3408,51 @@ $$;
 
 
 --
--- TOC entry 1445 (class 1255 OID 146242)
+-- TOC entry 345 (class 1259 OID 81791)
+-- Name: change_orders; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.change_orders (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    contract_id uuid,
+    line_item_id uuid,
+    new_quantity numeric NOT NULL,
+    new_unit_price numeric,
+    title text NOT NULL,
+    description text,
+    status public.change_order_status DEFAULT 'draft'::public.change_order_status NOT NULL,
+    submitted_date timestamp with time zone DEFAULT now() NOT NULL,
+    approved_date timestamp with time zone,
+    approved_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    updated_at timestamp with time zone,
+    updated_by uuid,
+    attachments text[],
+    session_id uuid
+);
+
+
+--
+-- TOC entry 1379 (class 1255 OID 154866)
+-- Name: get_change_orders(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_change_orders(_contract_id uuid DEFAULT NULL::uuid, _line_item_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid) RETURNS SETOF public.change_orders
+    LANGUAGE sql
+    AS $$
+  select *
+  from change_orders
+  where
+    (_contract_id is null or contract_id = _contract_id)
+    and (_line_item_id is null or line_item_id = _line_item_id)
+    and (_session_id is null or session_id = _session_id)
+  order by created_at desc;
+$$;
+
+
+--
+-- TOC entry 1352 (class 1255 OID 146242)
 -- Name: get_change_orders_count_for_contract(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2116,7 +3475,7 @@ $$;
 
 
 --
--- TOC entry 1351 (class 1255 OID 140370)
+-- TOC entry 1330 (class 1255 OID 140370)
 -- Name: get_contract_organizations(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2133,7 +3492,7 @@ $$;
 
 
 --
--- TOC entry 1348 (class 1255 OID 139934)
+-- TOC entry 1315 (class 1255 OID 139934)
 -- Name: get_contract_with_wkt(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2157,7 +3516,7 @@ $$;
 
 
 --
--- TOC entry 1352 (class 1255 OID 140460)
+-- TOC entry 1334 (class 1255 OID 140460)
 -- Name: get_crew_members_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2180,7 +3539,7 @@ $$;
 
 
 --
--- TOC entry 1353 (class 1255 OID 140522)
+-- TOC entry 1336 (class 1255 OID 140522)
 -- Name: get_crews_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2200,7 +3559,7 @@ $$;
 
 
 --
--- TOC entry 1354 (class 1255 OID 140584)
+-- TOC entry 1339 (class 1255 OID 140584)
 -- Name: get_daily_logs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2224,7 +3583,7 @@ $$;
 
 
 --
--- TOC entry 1438 (class 1255 OID 142020)
+-- TOC entry 1410 (class 1255 OID 142020)
 -- Name: get_dashboard_metrics(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2247,7 +3606,7 @@ $$;
 
 
 --
--- TOC entry 1439 (class 1255 OID 142108)
+-- TOC entry 1412 (class 1255 OID 142108)
 -- Name: get_enriched_profile(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2278,7 +3637,7 @@ $$;
 
 
 --
--- TOC entry 1447 (class 1255 OID 147576)
+-- TOC entry 366 (class 1255 OID 147576)
 -- Name: get_enriched_profile_by_username(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2310,7 +3669,7 @@ $$;
 
 
 --
--- TOC entry 1450 (class 1255 OID 148002)
+-- TOC entry 1317 (class 1255 OID 148002)
 -- Name: get_enriched_user_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2348,7 +3707,7 @@ $$;
 
 
 --
--- TOC entry 1330 (class 1255 OID 118266)
+-- TOC entry 1314 (class 1255 OID 118266)
 -- Name: get_enum_values(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2364,7 +3723,7 @@ $$;
 
 
 --
--- TOC entry 1356 (class 1255 OID 140716)
+-- TOC entry 1344 (class 1255 OID 140716)
 -- Name: get_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2386,7 +3745,7 @@ $$;
 
 
 --
--- TOC entry 1355 (class 1255 OID 140654)
+-- TOC entry 1341 (class 1255 OID 140654)
 -- Name: get_equipment_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2406,7 +3765,7 @@ $$;
 
 
 --
--- TOC entry 1357 (class 1255 OID 140804)
+-- TOC entry 1348 (class 1255 OID 140804)
 -- Name: get_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2428,7 +3787,7 @@ $$;
 
 
 --
--- TOC entry 1446 (class 1255 OID 146284)
+-- TOC entry 1353 (class 1255 OID 146284)
 -- Name: get_inspections_count_for_contract(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2451,7 +3810,7 @@ $$;
 
 
 --
--- TOC entry 1358 (class 1255 OID 140886)
+-- TOC entry 1351 (class 1255 OID 140886)
 -- Name: get_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2480,7 +3839,7 @@ $$;
 
 
 --
--- TOC entry 1444 (class 1255 OID 146200)
+-- TOC entry 1349 (class 1255 OID 146200)
 -- Name: get_issues_count_for_contract(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2503,7 +3862,7 @@ $$;
 
 
 --
--- TOC entry 1359 (class 1255 OID 140948)
+-- TOC entry 1355 (class 1255 OID 140948)
 -- Name: get_job_titles(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2543,7 +3902,7 @@ $$;
 
 
 --
--- TOC entry 1361 (class 1255 OID 141162)
+-- TOC entry 1365 (class 1255 OID 141162)
 -- Name: get_line_item_templates_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2564,7 +3923,7 @@ $$;
 
 
 --
--- TOC entry 1448 (class 1255 OID 147778)
+-- TOC entry 1307 (class 1255 OID 147778)
 -- Name: get_line_items_with_wkt(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2611,7 +3970,37 @@ $$;
 
 
 --
--- TOC entry 1349 (class 1255 OID 140144)
+-- TOC entry 1486 (class 1255 OID 161344)
+-- Name: get_line_items_with_wkt(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_line_items_with_wkt(_contract_id uuid, _session_id uuid DEFAULT NULL::uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_id uuid, map_id uuid, description text, line_code text, quantity numeric, reference_doc text, template_id uuid, unit_measure public.unit_measure_type, unit_price numeric, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text)
+    LANGUAGE sql
+    AS $$
+  select
+    li.id,
+    li.contract_id,
+    li.wbs_id,
+    li.map_id,
+    li.description,
+    li.line_code,
+    li.quantity,
+    li.reference_doc,
+    li.template_id,
+    li.unit_measure,
+    li.unit_price,
+    li.created_at,
+    li.updated_at,
+    li.session_id,
+    ST_AsText(li.coordinates) as coordinates_wkt
+  from line_items li
+  where li.contract_id = _contract_id
+    and (_session_id is null or li.session_id = _session_id)
+$$;
+
+
+--
+-- TOC entry 1321 (class 1255 OID 140144)
 -- Name: get_maps_with_wkt(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2633,7 +4022,33 @@ $$;
 
 
 --
--- TOC entry 1363 (class 1255 OID 141266)
+-- TOC entry 1483 (class 1255 OID 161218)
+-- Name: get_maps_with_wkt(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_maps_with_wkt(_contract_id uuid, _session_id uuid DEFAULT NULL::uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_id uuid, map_number text, location text, scope text, budget numeric, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text)
+    LANGUAGE sql
+    AS $$
+  select
+    m.id,
+    m.contract_id,
+    m.wbs_id,
+    m.map_number,
+    m.location,
+    m.scope,
+    m.budget,
+    m.created_at,
+    m.updated_at,
+    m.session_id,
+    ST_AsText(m.coordinates) as coordinates_wkt
+  from maps m
+  where m.contract_id = _contract_id
+    and (_session_id is null or m.session_id = _session_id)
+$$;
+
+
+--
+-- TOC entry 1372 (class 1255 OID 141266)
 -- Name: get_organizations(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2652,7 +4067,7 @@ $$;
 
 
 --
--- TOC entry 1366 (class 1255 OID 141412)
+-- TOC entry 1383 (class 1255 OID 141412)
 -- Name: get_profiles_by_contract(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2680,7 +4095,7 @@ $$;
 
 
 --
--- TOC entry 1364 (class 1255 OID 141328)
+-- TOC entry 1377 (class 1255 OID 141328)
 -- Name: get_profiles_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2707,7 +4122,7 @@ $$;
 
 
 --
--- TOC entry 1368 (class 1255 OID 141536)
+-- TOC entry 1394 (class 1255 OID 141536)
 -- Name: get_user_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2724,7 +4139,7 @@ $$;
 
 
 --
--- TOC entry 1449 (class 1255 OID 147860)
+-- TOC entry 1311 (class 1255 OID 147860)
 -- Name: get_wbs_with_wkt(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2762,7 +4177,32 @@ $$;
 
 
 --
--- TOC entry 584 (class 1255 OID 29125)
+-- TOC entry 1481 (class 1255 OID 161134)
+-- Name: get_wbs_with_wkt(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_wbs_with_wkt(_contract_id uuid, _session_id uuid DEFAULT NULL::uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_number text, location text, budget numeric, scope text, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text)
+    LANGUAGE sql
+    AS $$
+  select
+    w.id,
+    w.contract_id,
+    w.wbs_number,
+    w.location,
+    w.budget,
+    w.scope,
+    w.created_at,
+    w.updated_at,
+    w.session_id,
+    ST_AsText(w.coordinates) as coordinates_wkt
+  from wbs w
+  where w.contract_id = _contract_id
+    and (_session_id is null or w.session_id = _session_id)
+$$;
+
+
+--
+-- TOC entry 1501 (class 1255 OID 29125)
 -- Name: handle_updated_at(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2777,24 +4217,38 @@ $$;
 
 
 --
--- TOC entry 1429 (class 1255 OID 141928)
--- Name: insert_asphalt_types(jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1343 (class 1255 OID 154168)
+-- Name: insert_asphalt_type(text, numeric, numeric, numeric, numeric, text, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_asphalt_types(_data jsonb) RETURNS uuid
+CREATE FUNCTION public.insert_asphalt_type(_name text, _compaction_min numeric DEFAULT NULL::numeric, _jmf_temp_max numeric DEFAULT NULL::numeric, _jmf_temp_min numeric DEFAULT NULL::numeric, _lift_depth_inches numeric DEFAULT NULL::numeric, _notes text DEFAULT NULL::text, _target_spread_rate_lbs_per_sy numeric DEFAULT NULL::numeric) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into asphalt_types (
-    id, created_at, updated_at, created_by
+    id,
+    name,
+    compaction_min,
+    jmf_temp_max,
+    jmf_temp_min,
+    lift_depth_inches,
+    notes,
+    target_spread_rate_lbs_per_sy,
+    created_at
   )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
+  values (
+    gen_random_uuid(),
+    _name,
+    _compaction_min,
+    _jmf_temp_max,
+    _jmf_temp_min,
+    _lift_depth_inches,
+    _notes,
+    _target_spread_rate_lbs_per_sy,
+    now()
+  )
   returning id into new_id;
 
   return new_id;
@@ -2803,50 +4257,51 @@ $$;
 
 
 --
--- TOC entry 1402 (class 1255 OID 141781)
--- Name: insert_avatars(jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1359 (class 1255 OID 154576)
+-- Name: insert_avatar(uuid, text, text, boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_avatars(_data jsonb) RETURNS uuid
+CREATE FUNCTION public.insert_avatar(_id uuid, _name text, _url text, _is_preset boolean DEFAULT false, _session_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
-declare
-  new_id uuid;
 begin
   insert into avatars (
-    id, created_at, updated_at, created_by
+    id, name, url, is_preset, session_id, created_at
   )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
-  returning id into new_id;
-
-  return new_id;
+  values (
+    _id,
+    _name,
+    _url,
+    _is_preset,
+    _session_id,
+    now()
+  );
+  return _id;
 end;
 $$;
 
 
 --
--- TOC entry 1390 (class 1255 OID 141699)
--- Name: insert_change_orders(jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1370 (class 1255 OID 154740)
+-- Name: insert_change_order(uuid, uuid, text, text, text[], numeric, numeric, public.change_order_status, timestamp with time zone, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_change_orders(_data jsonb) RETURNS uuid
+CREATE FUNCTION public.insert_change_order(_contract_id uuid, _line_item_id uuid DEFAULT NULL::uuid, _title text DEFAULT NULL::text, _description text DEFAULT NULL::text, _attachments text[] DEFAULT NULL::text[], _new_quantity numeric DEFAULT NULL::numeric, _new_unit_price numeric DEFAULT NULL::numeric, _status public.change_order_status DEFAULT 'pending'::public.change_order_status, _submitted_date timestamp with time zone DEFAULT now(), _created_by uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into change_orders (
-    id, created_at, updated_at, created_by
+    id, contract_id, line_item_id, title, description, attachments,
+    new_quantity, new_unit_price, status, submitted_date,
+    created_by, session_id, created_at
   )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
+  values (
+    gen_random_uuid(), _contract_id, _line_item_id, _title, _description, _attachments,
+    _new_quantity, _new_unit_price, _status, _submitted_date,
+    _created_by, _session_id, now()
+  )
   returning id into new_id;
 
   return new_id;
@@ -2855,50 +4310,61 @@ $$;
 
 
 --
--- TOC entry 1369 (class 1255 OID 141618)
--- Name: insert_contracts(jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 370 (class 1255 OID 155298)
+-- Name: insert_contract(text, text, date, date, public.contract_status, numeric, text, jsonb, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_contracts(_data jsonb) RETURNS uuid
+CREATE FUNCTION public.insert_contract(_title text, _location text, _start_date date, _end_date date, _status public.contract_status DEFAULT 'Draft'::public.contract_status, _budget numeric DEFAULT NULL::numeric, _description text DEFAULT NULL::text, _coordinates jsonb DEFAULT NULL::jsonb, _created_by uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into contracts (
-    id, created_at, updated_at, created_by
+    id, title, location, start_date, end_date, status,
+    budget, description, coordinates, created_by, created_at
   )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
+  values (
+    gen_random_uuid(), _title, _location, _start_date, _end_date, _status,
+    _budget, _description, _coordinates, _created_by, now()
+  )
   returning id into new_id;
-
   return new_id;
 end;
 $$;
 
 
 --
--- TOC entry 1417 (class 1255 OID 141876)
--- Name: insert_crew_members(jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1384 (class 1255 OID 154928)
+-- Name: insert_contract_organization(uuid, uuid, uuid, public.organization_role, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_crew_members(_data jsonb) RETURNS uuid
+CREATE FUNCTION public.insert_contract_organization(_contract_id uuid, _organization_id uuid, _created_by uuid, _role public.organization_role DEFAULT NULL::public.organization_role, _notes text DEFAULT NULL::text, _session_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
-  insert into crew_members (
-    id, created_at, updated_at, created_by
+  insert into contract_organizations (
+    id,
+    contract_id,
+    organization_id,
+    role,
+    notes,
+    created_by,
+    session_id,
+    created_at
   )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
+  values (
+    gen_random_uuid(),
+    _contract_id,
+    _organization_id,
+    _role,
+    _notes,
+    _created_by,
+    _session_id,
+    now()
+  )
   returning id into new_id;
 
   return new_id;
@@ -2907,371 +4373,436 @@ $$;
 
 
 --
--- TOC entry 1414 (class 1255 OID 141833)
--- Name: insert_crews(jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1319 (class 1255 OID 155714)
+-- Name: insert_crew(text, uuid, uuid, text, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_crews(_data jsonb) RETURNS uuid
+CREATE FUNCTION public.insert_crew(_name text, _organization_id uuid, _created_by uuid, _description text DEFAULT NULL::text, _foreman_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into crews (
-    id, created_at, updated_at, created_by
+    id, name, organization_id, created_by, description, foreman_id, session_id, created_at
   )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
+  values (
+    gen_random_uuid(), _name, _organization_id, _created_by, _description, _foreman_id, _session_id, now()
+  )
   returning id into new_id;
-
   return new_id;
 end;
 $$;
 
 
 --
--- TOC entry 1420 (class 1255 OID 141879)
--- Name: insert_daily_logs(jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1310 (class 1255 OID 155526)
+-- Name: insert_crew_member(uuid, uuid, uuid, text, text, uuid, uuid, uuid, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_daily_logs(_data jsonb) RETURNS uuid
+CREATE FUNCTION public.insert_crew_member(_created_by uuid, _crew_id uuid, _profile_id uuid, _role text DEFAULT NULL::text, _location_notes text DEFAULT NULL::text, _organization_id uuid DEFAULT NULL::uuid, _map_location_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _assigned_at timestamp with time zone DEFAULT NULL::timestamp with time zone) RETURNS uuid
+    LANGUAGE plpgsql
+    AS $$
+declare
+  new_id uuid;
+begin
+  insert into crew_members (
+    id, created_by, crew_id, profile_id, role,
+    location_notes, organization_id, map_location_id,
+    session_id, assigned_at, created_at
+  )
+  values (
+    gen_random_uuid(), _created_by, _crew_id, _profile_id, _role,
+    _location_notes, _organization_id, _map_location_id,
+    _session_id, _assigned_at, now()
+  )
+  returning id into new_id;
+  return new_id;
+end;
+$$;
+
+
+--
+-- TOC entry 1327 (class 1255 OID 155902)
+-- Name: insert_daily_log(uuid, date, uuid, text, text, numeric, text, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_daily_log(_contract_id uuid, _log_date date, _created_by uuid DEFAULT NULL::uuid, _work_performed text DEFAULT NULL::text, _weather_conditions text DEFAULT NULL::text, _temperature numeric DEFAULT NULL::numeric, _delays_encountered text DEFAULT NULL::text, _safety_incidents text DEFAULT NULL::text, _visitors text DEFAULT NULL::text, _session_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into daily_logs (
-    id, created_at, updated_at, created_by
+    id, contract_id, log_date, created_by, work_performed,
+    weather_conditions, temperature, delays_encountered, safety_incidents,
+    visitors, session_id, created_at
   )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
+  values (
+    gen_random_uuid(), _contract_id, _log_date, _created_by, _work_performed,
+    _weather_conditions, _temperature, _delays_encountered, _safety_incidents,
+    _visitors, _session_id, now()
+  )
   returning id into new_id;
-
   return new_id;
 end;
 $$;
 
 
 --
--- TOC entry 1432 (class 1255 OID 141931)
--- Name: insert_dump_trucks(jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1335 (class 1255 OID 156090)
+-- Name: insert_demo_mapping(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_dump_trucks(_data jsonb) RETURNS uuid
+CREATE FUNCTION public.insert_demo_mapping(_session_id uuid) RETURNS uuid
+    LANGUAGE plpgsql
+    AS $$
+declare
+  new_id uuid;
+begin
+  insert into demo_mappings (
+    session_id, created_at
+  )
+  values (
+    _session_id, now()
+  )
+  returning session_id into new_id;
+  return new_id;
+end;
+$$;
+
+
+--
+-- TOC entry 1374 (class 1255 OID 157044)
+-- Name: insert_dump_truck(numeric, text, numeric, numeric, numeric, numeric, numeric, uuid, uuid, numeric, numeric, numeric, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_dump_truck(_payload_capacity_tons numeric, _truck_identifier text, _axle_count numeric DEFAULT NULL::numeric, _bed_height numeric DEFAULT NULL::numeric, _bed_length numeric DEFAULT NULL::numeric, _bed_volume numeric DEFAULT NULL::numeric, _bed_width numeric DEFAULT NULL::numeric, _contract_id uuid DEFAULT NULL::uuid, _equipment_id uuid DEFAULT NULL::uuid, _hoist_bottom numeric DEFAULT NULL::numeric, _hoist_top numeric DEFAULT NULL::numeric, _hoist_width numeric DEFAULT NULL::numeric, _notes text DEFAULT NULL::text) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into dump_trucks (
-    id, created_at, updated_at, created_by
+    id, payload_capacity_tons, truck_identifier, axle_count,
+    bed_height, bed_length, bed_volume, bed_width,
+    contract_id, equipment_id, hoist_bottom, hoist_top, hoist_width,
+    notes, created_at
   )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
+  values (
+    gen_random_uuid(), _payload_capacity_tons, _truck_identifier, _axle_count,
+    _bed_height, _bed_length, _bed_volume, _bed_width,
+    _contract_id, _equipment_id, _hoist_bottom, _hoist_top, _hoist_width,
+    _notes, now()
+  )
   returning id into new_id;
-
   return new_id;
 end;
 $$;
 
 
 --
--- TOC entry 1405 (class 1255 OID 141824)
--- Name: insert_equipment(jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1361 (class 1255 OID 156858)
+-- Name: insert_dump_truck(numeric, text, numeric, numeric, numeric, numeric, numeric, uuid, uuid, numeric, numeric, numeric, text, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_equipment(_data jsonb) RETURNS uuid
+CREATE FUNCTION public.insert_dump_truck(_payload_capacity_tons numeric, _truck_identifier text, _axle_count numeric DEFAULT NULL::numeric, _bed_height numeric DEFAULT NULL::numeric, _bed_length numeric DEFAULT NULL::numeric, _bed_volume numeric DEFAULT NULL::numeric, _bed_width numeric DEFAULT NULL::numeric, _contract_id uuid DEFAULT NULL::uuid, _equipment_id uuid DEFAULT NULL::uuid, _hoist_bottom numeric DEFAULT NULL::numeric, _hoist_top numeric DEFAULT NULL::numeric, _hoist_width numeric DEFAULT NULL::numeric, _notes text DEFAULT NULL::text, _weight_capacity_tons numeric DEFAULT NULL::numeric) RETURNS uuid
+    LANGUAGE plpgsql
+    AS $$
+declare
+  new_id uuid;
+begin
+  insert into dump_trucks (
+    id, payload_capacity_tons, truck_identifier, axle_count,
+    bed_height, bed_length, bed_volume, bed_width,
+    contract_id, equipment_id, hoist_bottom, hoist_top, hoist_width,
+    notes, weight_capacity_tons, created_at
+  )
+  values (
+    gen_random_uuid(), _payload_capacity_tons, _truck_identifier, _axle_count,
+    _bed_height, _bed_length, _bed_volume, _bed_width,
+    _contract_id, _equipment_id, _hoist_bottom, _hoist_top, _hoist_width,
+    _notes, _weight_capacity_tons, now()
+  )
+  returning id into new_id;
+  return new_id;
+end;
+$$;
+
+
+--
+-- TOC entry 1395 (class 1255 OID 157336)
+-- Name: insert_equipment(text, uuid, uuid, uuid, uuid, numeric, public.pay_rate_unit, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_equipment(_name text, _created_by uuid DEFAULT NULL::uuid, _operator_id uuid DEFAULT NULL::uuid, _organization_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _standard_pay_rate numeric DEFAULT NULL::numeric, _standard_pay_unit public.pay_rate_unit DEFAULT NULL::public.pay_rate_unit, _description text DEFAULT NULL::text, _user_defined_id text DEFAULT NULL::text) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into equipment (
-    id, created_at, updated_at, created_by
+    id, name, created_by, operator_id, organization_id, session_id,
+    standard_pay_rate, standard_pay_unit, description, user_defined_id, created_at
   )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
+  values (
+    gen_random_uuid(), _name, _created_by, _operator_id, _organization_id, _session_id,
+    _standard_pay_rate, _standard_pay_unit, _description, _user_defined_id, now()
+  )
   returning id into new_id;
-
   return new_id;
 end;
 $$;
 
 
 --
--- TOC entry 1408 (class 1255 OID 141827)
--- Name: insert_equipment_assignments(jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1423 (class 1255 OID 158174)
+-- Name: insert_equipment_usage(numeric, uuid, uuid, uuid, uuid, uuid, uuid, uuid, text, uuid, date, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_equipment_assignments(_data jsonb) RETURNS uuid
-    LANGUAGE plpgsql
-    AS $$
-declare
-  new_id uuid;
-begin
-  insert into equipment_assignments (
-    id, created_at, updated_at, created_by
-  )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
-  returning id into new_id;
-
-  return new_id;
-end;
-$$;
-
-
---
--- TOC entry 1411 (class 1255 OID 141830)
--- Name: insert_equipment_usage(jsonb); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.insert_equipment_usage(_data jsonb) RETURNS uuid
+CREATE FUNCTION public.insert_equipment_usage(_hours_used numeric, _contract_id uuid DEFAULT NULL::uuid, _created_by uuid DEFAULT NULL::uuid, _equipment_id uuid DEFAULT NULL::uuid, _line_item_id uuid DEFAULT NULL::uuid, _map_id uuid DEFAULT NULL::uuid, _operator_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _notes text DEFAULT NULL::text, _updated_by uuid DEFAULT NULL::uuid, _usage_date date DEFAULT NULL::date, _wbs_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into equipment_usage (
-    id, created_at, updated_at, created_by
+    id, contract_id, created_by, equipment_id, line_item_id, hours_used,
+    map_id, operator_id, session_id, notes, updated_by, usage_date, wbs_id, created_at
   )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
+  values (
+    gen_random_uuid(), _contract_id, _created_by, _equipment_id, _line_item_id, _hours_used,
+    _map_id, _operator_id, _session_id, _notes, _updated_by, _usage_date, _wbs_id, now()
+  )
   returning id into new_id;
-
   return new_id;
 end;
 $$;
 
 
 --
--- TOC entry 1387 (class 1255 OID 141696)
--- Name: insert_inspections(jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1428 (class 1255 OID 158404)
+-- Name: insert_inspection(uuid, text, text, uuid, uuid, uuid, text, text[], uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_inspections(_data jsonb) RETURNS uuid
+CREATE FUNCTION public.insert_inspection(_contract_id uuid, _name text, _description text DEFAULT NULL::text, _created_by uuid DEFAULT NULL::uuid, _line_item_id uuid DEFAULT NULL::uuid, _map_id uuid DEFAULT NULL::uuid, _pdf_url text DEFAULT NULL::text, _photo_urls text[] DEFAULT NULL::text[], _session_id uuid DEFAULT NULL::uuid, _wbs_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into inspections (
-    id, created_at, updated_at, created_by
+    id, contract_id, name, description, created_by, line_item_id, map_id,
+    pdf_url, photo_urls, session_id, wbs_id, created_at
   )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
+  values (
+    gen_random_uuid(), _contract_id, _name, _description, _created_by, _line_item_id, _map_id,
+    _pdf_url, _photo_urls, _session_id, _wbs_id, now()
+  )
   returning id into new_id;
-
   return new_id;
 end;
 $$;
 
 
 --
--- TOC entry 1426 (class 1255 OID 141885)
--- Name: insert_issues(jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1439 (class 1255 OID 158892)
+-- Name: insert_issue(text, text, text, public.priority, uuid, uuid, uuid, uuid, uuid, uuid, uuid, text[], text, text, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_issues(_data jsonb) RETURNS uuid
+CREATE FUNCTION public.insert_issue(_title text, _description text, _status text, _priority public.priority DEFAULT NULL::public.priority, _assigned_to uuid DEFAULT NULL::uuid, _contract_id uuid DEFAULT NULL::uuid, _created_by uuid DEFAULT NULL::uuid, _equipment_id uuid DEFAULT NULL::uuid, _line_item_id uuid DEFAULT NULL::uuid, _map_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _photo_urls text[] DEFAULT NULL::text[], _resolution text DEFAULT NULL::text, _due_date text DEFAULT NULL::text, _updated_at text DEFAULT NULL::text, _updated_by text DEFAULT NULL::text, _wbs_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into issues (
-    id, created_at, updated_at, created_by
+    id, title, description, status, priority, assigned_to, contract_id,
+    created_by, equipment_id, line_item_id, map_id, session_id, photo_urls,
+    resolution, due_date, updated_at, updated_by, wbs_id, created_at
   )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
+  values (
+    gen_random_uuid(), _title, _description, _status, _priority, _assigned_to, _contract_id,
+    _created_by, _equipment_id, _line_item_id, _map_id, _session_id, _photo_urls,
+    _resolution, _due_date, _updated_at, _updated_by, _wbs_id, now()
+  )
   returning id into new_id;
-
   return new_id;
 end;
 $$;
 
 
 --
--- TOC entry 1423 (class 1255 OID 141882)
--- Name: insert_job_titles(jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1440 (class 1255 OID 158954)
+-- Name: insert_job_title(text, uuid, boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_job_titles(_data jsonb) RETURNS uuid
+CREATE FUNCTION public.insert_job_title(_title text, _created_by uuid DEFAULT NULL::uuid, _is_custom boolean DEFAULT NULL::boolean, _session_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into job_titles (
-    id, created_at, updated_at, created_by
+    id, title, created_by, is_custom, session_id, created_at
   )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
+  values (
+    gen_random_uuid(), _title, _created_by, _is_custom, _session_id, now()
+  )
   returning id into new_id;
-
   return new_id;
 end;
 $$;
 
 
 --
--- TOC entry 1384 (class 1255 OID 141693)
--- Name: insert_line_item_entries(jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1460 (class 1255 OID 160000)
+-- Name: insert_line_item(text, text, uuid, public.unit_measure_type, numeric, numeric, uuid, uuid, text, uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_line_item_entries(_data jsonb) RETURNS uuid
-    LANGUAGE plpgsql
-    AS $$
-declare
-  new_id uuid;
-begin
-  insert into line_item_entries (
-    id, created_at, updated_at, created_by
-  )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
-  returning id into new_id;
-
-  return new_id;
-end;
-$$;
-
-
---
--- TOC entry 1381 (class 1255 OID 141690)
--- Name: insert_line_item_templates(jsonb); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.insert_line_item_templates(_data jsonb) RETURNS uuid
-    LANGUAGE plpgsql
-    AS $$
-declare
-  new_id uuid;
-begin
-  insert into line_item_templates (
-    id, created_at, updated_at, created_by
-  )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
-  returning id into new_id;
-
-  return new_id;
-end;
-$$;
-
-
---
--- TOC entry 1378 (class 1255 OID 141627)
--- Name: insert_line_items(jsonb); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.insert_line_items(_data jsonb) RETURNS uuid
+CREATE FUNCTION public.insert_line_item(_description text, _line_code text, _wbs_id uuid, _unit_measure public.unit_measure_type, _quantity numeric, _unit_price numeric, _contract_id uuid DEFAULT NULL::uuid, _map_id uuid DEFAULT NULL::uuid, _reference_doc text DEFAULT NULL::text, _template_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _coordinates text DEFAULT NULL::text) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into line_items (
-    id, created_at, updated_at, created_by
+    id, description, line_code, wbs_id, unit_measure, quantity, unit_price, contract_id, map_id,
+    reference_doc, template_id, session_id, coordinates, created_at
   )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
+  values (
+    gen_random_uuid(), _description, _line_code, _wbs_id, _unit_measure, _quantity, _unit_price, _contract_id, _map_id,
+    _reference_doc, _template_id, _session_id, _coordinates, now()
+  )
   returning id into new_id;
-
   return new_id;
 end;
 $$;
 
 
 --
--- TOC entry 1375 (class 1255 OID 141624)
--- Name: insert_maps(jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1445 (class 1255 OID 159184)
+-- Name: insert_line_item_entry(uuid, uuid, uuid, jsonb, uuid, numeric, text, public.unit_measure_type, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_maps(_data jsonb) RETURNS uuid
+CREATE FUNCTION public.insert_line_item_entry(_contract_id uuid, _line_item_id uuid, _map_id uuid, _input_variables jsonb, _wbs_id uuid, _computed_output numeric DEFAULT NULL::numeric, _notes text DEFAULT NULL::text, _output_unit public.unit_measure_type DEFAULT NULL::public.unit_measure_type, _entered_by uuid DEFAULT NULL::uuid) RETURNS uuid
+    LANGUAGE plpgsql
+    AS $$
+declare
+  new_id uuid;
+begin
+  insert into line_item_entries (
+    id, contract_id, line_item_id, map_id, input_variables, wbs_id,
+    computed_output, notes, output_unit, entered_by, created_at
+  )
+  values (
+    gen_random_uuid(), _contract_id, _line_item_id, _map_id, _input_variables, _wbs_id,
+    _computed_output, _notes, _output_unit, _entered_by, now()
+  )
+  returning id into new_id;
+  return new_id;
+end;
+$$;
+
+
+--
+-- TOC entry 1451 (class 1255 OID 159456)
+-- Name: insert_line_item_template(uuid, text, text, jsonb, text, uuid, uuid, public.unit_measure_type, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_line_item_template(_id uuid, _name text DEFAULT NULL::text, _description text DEFAULT NULL::text, _formula jsonb DEFAULT NULL::jsonb, _instructions text DEFAULT NULL::text, _created_by uuid DEFAULT NULL::uuid, _organization_id uuid DEFAULT NULL::uuid, _output_unit public.unit_measure_type DEFAULT NULL::public.unit_measure_type, _session_id uuid DEFAULT NULL::uuid) RETURNS uuid
+    LANGUAGE plpgsql
+    AS $$
+declare
+  new_id uuid;
+begin
+  insert into line_item_templates (
+    id, name, description, formula, instructions, created_by,
+    organization_id, output_unit, session_id, created_at
+  )
+  values (
+    _id, _name, _description, _formula, _instructions, _created_by,
+    _organization_id, _output_unit, _session_id, now()
+  )
+  returning id into new_id;
+  return new_id;
+end;
+$$;
+
+
+--
+-- TOC entry 1461 (class 1255 OID 160146)
+-- Name: insert_map(text, uuid, text, numeric, text, text, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_map(_map_number text, _wbs_id uuid, _location text DEFAULT NULL::text, _budget numeric DEFAULT NULL::numeric, _scope text DEFAULT NULL::text, _coordinates text DEFAULT NULL::text, _contract_id uuid DEFAULT NULL::uuid, _session_id text DEFAULT NULL::text) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into maps (
-    id, created_at, updated_at, created_by
+    id, map_number, wbs_id, location, budget, scope, coordinates, contract_id, session_id, created_at
   )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
+  values (
+    gen_random_uuid(), _map_number, _wbs_id, _location, _budget, _scope, _coordinates, _contract_id, _session_id, now()
+  )
   returning id into new_id;
-
   return new_id;
 end;
 $$;
 
 
 --
--- TOC entry 1396 (class 1255 OID 141775)
--- Name: insert_organizations(jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1464 (class 1255 OID 160292)
+-- Name: insert_organization(text, text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_organizations(_data jsonb) RETURNS uuid
+CREATE FUNCTION public.insert_organization(_name text, _created_by text, _address text DEFAULT NULL::text, _phone text DEFAULT NULL::text, _website text DEFAULT NULL::text, _session_id text DEFAULT NULL::text) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into organizations (
-    id, created_at, updated_at, created_by
+    id, name, created_by, address, phone, website, session_id, created_at
   )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
+  values (
+    gen_random_uuid(), _name, _created_by, _address, _phone, _website, _session_id, now()
+  )
   returning id into new_id;
-
   return new_id;
 end;
 $$;
 
 
 --
--- TOC entry 1440 (class 1255 OID 142432)
+-- TOC entry 1469 (class 1255 OID 160522)
+-- Name: insert_profile(uuid, text, text, text, text, uuid, uuid, text, public.user_role, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_profile(_id uuid, _full_name text, _email text DEFAULT NULL::text, _username text DEFAULT NULL::text, _phone text DEFAULT NULL::text, _avatar_id uuid DEFAULT NULL::uuid, _job_title_id uuid DEFAULT NULL::uuid, _location text DEFAULT NULL::text, _role public.user_role DEFAULT NULL::public.user_role, _organization_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid) RETURNS uuid
+    LANGUAGE plpgsql
+    AS $$
+declare
+  new_id uuid;
+begin
+  insert into profiles (
+    id, full_name, email, username, phone, avatar_id, job_title_id,
+    location, role, organization_id, session_id, created_at
+  )
+  values (
+    _id, _full_name, _email, _username, _phone, _avatar_id, _job_title_id,
+    _location, _role, _organization_id, _session_id, now()
+  )
+  returning id into new_id;
+  return new_id;
+end;
+$$;
+
+
+--
+-- TOC entry 1419 (class 1255 OID 142432)
 -- Name: insert_profile_full(public.user_role, text, text, text, uuid, text, text, uuid, text, uuid, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3321,111 +4852,49 @@ $$;
 
 
 --
--- TOC entry 1393 (class 1255 OID 141772)
--- Name: insert_profiles(jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1475 (class 1255 OID 160794)
+-- Name: insert_user_contract(uuid, uuid, public.user_role, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_profiles(_data jsonb) RETURNS uuid
+CREATE FUNCTION public.insert_user_contract(_user_id uuid, _contract_id uuid, _role public.user_role DEFAULT NULL::public.user_role, _session_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
-declare
-  new_id uuid;
-begin
-  insert into profiles (
-    id, created_at, updated_at, created_by
-  )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
-  returning id into new_id;
-
-  return new_id;
-end;
-$$;
-
-
---
--- TOC entry 1435 (class 1255 OID 141934)
--- Name: insert_tack_rates(jsonb); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.insert_tack_rates(_data jsonb) RETURNS uuid
-    LANGUAGE plpgsql
-    AS $$
-declare
-  new_id uuid;
-begin
-  insert into tack_rates (
-    id, created_at, updated_at, created_by
-  )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
-  returning id into new_id;
-
-  return new_id;
-end;
-$$;
-
-
---
--- TOC entry 1399 (class 1255 OID 141778)
--- Name: insert_user_contracts(jsonb); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.insert_user_contracts(_data jsonb) RETURNS uuid
-    LANGUAGE plpgsql
-    AS $$
-declare
-  new_id uuid;
 begin
   insert into user_contracts (
-    id, created_at, updated_at, created_by
+    user_id, contract_id, role, session_id
   )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
-  returning id into new_id;
-
-  return new_id;
+  values (
+    _user_id, _contract_id, _role, _session_id
+  );
 end;
 $$;
 
 
 --
--- TOC entry 1372 (class 1255 OID 141621)
--- Name: insert_wbs(jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1478 (class 1255 OID 160988)
+-- Name: insert_wbs(text, uuid, text, numeric, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_wbs(_data jsonb) RETURNS uuid
+CREATE FUNCTION public.insert_wbs(_wbs_number text, _contract_id uuid, _location text DEFAULT NULL::text, _budget numeric DEFAULT NULL::numeric, _scope text DEFAULT NULL::text, _coordinates text DEFAULT NULL::text, _session_id text DEFAULT NULL::text) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into wbs (
-    id, created_at, updated_at, created_by
+    id, wbs_number, contract_id, location, budget, scope, coordinates, session_id, created_at
   )
-  select
-    coalesce((_data->>'id')::uuid, gen_random_uuid()),
-    now(),
-    now(),
-    _data->>'created_by'
+  values (
+    gen_random_uuid(), _wbs_number, _contract_id, _location, _budget, _scope, _coordinates, _session_id, now()
+  )
   returning id into new_id;
-
   return new_id;
 end;
 $$;
 
 
 --
--- TOC entry 603 (class 1255 OID 36798)
+-- TOC entry 1323 (class 1255 OID 36798)
 -- Name: lock_budget_on_status_change(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3457,7 +4926,7 @@ $$;
 
 
 --
--- TOC entry 1329 (class 1255 OID 81918)
+-- TOC entry 392 (class 1255 OID 81918)
 -- Name: prevent_daily_log_if_inactive(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3480,16 +4949,23 @@ $$;
 
 
 --
--- TOC entry 1430 (class 1255 OID 141929)
--- Name: update_asphalt_types(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1345 (class 1255 OID 154210)
+-- Name: update_asphalt_type(uuid, text, numeric, numeric, numeric, numeric, text, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_asphalt_types(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_asphalt_type(_id uuid, _name text DEFAULT NULL::text, _compaction_min numeric DEFAULT NULL::numeric, _jmf_temp_max numeric DEFAULT NULL::numeric, _jmf_temp_min numeric DEFAULT NULL::numeric, _lift_depth_inches numeric DEFAULT NULL::numeric, _notes text DEFAULT NULL::text, _target_spread_rate_lbs_per_sy numeric DEFAULT NULL::numeric) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   update asphalt_types
   set
+    name = coalesce(_name, name),
+    compaction_min = coalesce(_compaction_min, compaction_min),
+    jmf_temp_max = coalesce(_jmf_temp_max, jmf_temp_max),
+    jmf_temp_min = coalesce(_jmf_temp_min, jmf_temp_min),
+    lift_depth_inches = coalesce(_lift_depth_inches, lift_depth_inches),
+    notes = coalesce(_notes, notes),
+    target_spread_rate_lbs_per_sy = coalesce(_target_spread_rate_lbs_per_sy, target_spread_rate_lbs_per_sy),
     updated_at = now()
   where id = _id;
 end;
@@ -3497,33 +4973,46 @@ $$;
 
 
 --
--- TOC entry 1403 (class 1255 OID 141782)
--- Name: update_avatars(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1363 (class 1255 OID 154638)
+-- Name: update_avatar(uuid, text, text, boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_avatars(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_avatar(_id uuid, _name text DEFAULT NULL::text, _url text DEFAULT NULL::text, _is_preset boolean DEFAULT NULL::boolean, _session_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   update avatars
   set
-    updated_at = now()
+    name = coalesce(_name, name),
+    url = coalesce(_url, url),
+    is_preset = coalesce(_is_preset, is_preset),
+    session_id = coalesce(_session_id, session_id),
+    created_at = now()
   where id = _id;
 end;
 $$;
 
 
 --
--- TOC entry 1391 (class 1255 OID 141700)
--- Name: update_change_orders(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1373 (class 1255 OID 154782)
+-- Name: update_change_order(uuid, text, text, text[], numeric, numeric, public.change_order_status, uuid, timestamp with time zone, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_change_orders(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_change_order(_id uuid, _title text DEFAULT NULL::text, _description text DEFAULT NULL::text, _attachments text[] DEFAULT NULL::text[], _new_quantity numeric DEFAULT NULL::numeric, _new_unit_price numeric DEFAULT NULL::numeric, _status public.change_order_status DEFAULT NULL::public.change_order_status, _approved_by uuid DEFAULT NULL::uuid, _approved_date timestamp with time zone DEFAULT NULL::timestamp with time zone, _updated_by uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   update change_orders
   set
+    title = coalesce(_title, title),
+    description = coalesce(_description, description),
+    attachments = coalesce(_attachments, attachments),
+    new_quantity = coalesce(_new_quantity, new_quantity),
+    new_unit_price = coalesce(_new_unit_price, new_unit_price),
+    status = coalesce(_status, status),
+    approved_by = coalesce(_approved_by, approved_by),
+    approved_date = coalesce(_approved_date, approved_date),
+    updated_by = coalesce(_updated_by, updated_by),
     updated_at = now()
   where id = _id;
 end;
@@ -3531,7 +5020,32 @@ $$;
 
 
 --
--- TOC entry 598 (class 1255 OID 33168)
+-- TOC entry 390 (class 1255 OID 155360)
+-- Name: update_contract(uuid, text, text, date, date, public.contract_status, numeric, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_contract(_id uuid, _title text DEFAULT NULL::text, _location text DEFAULT NULL::text, _start_date date DEFAULT NULL::date, _end_date date DEFAULT NULL::date, _status public.contract_status DEFAULT NULL::public.contract_status, _budget numeric DEFAULT NULL::numeric, _description text DEFAULT NULL::text, _coordinates jsonb DEFAULT NULL::jsonb) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+begin
+  update contracts
+  set
+    title = coalesce(_title, title),
+    location = coalesce(_location, location),
+    start_date = coalesce(_start_date, start_date),
+    end_date = coalesce(_end_date, end_date),
+    status = coalesce(_status, status),
+    budget = coalesce(_budget, budget),
+    description = coalesce(_description, description),
+    coordinates = coalesce(_coordinates, coordinates),
+    updated_at = now()
+  where id = _id;
+end;
+$$;
+
+
+--
+-- TOC entry 428 (class 1255 OID 33168)
 -- Name: update_contract_budget(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3585,84 +5099,171 @@ $$;
 
 
 --
--- TOC entry 1370 (class 1255 OID 141619)
--- Name: update_contracts(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1387 (class 1255 OID 154970)
+-- Name: update_contract_organization(uuid, public.organization_role, text, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_contracts(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_contract_organization(_id uuid, _role public.organization_role DEFAULT NULL::public.organization_role, _notes text DEFAULT NULL::text, _updated_at timestamp with time zone DEFAULT now()) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
-  update contracts
+  update contract_organizations
   set
-    updated_at = now()
+    role = coalesce(_role, role),
+    notes = coalesce(_notes, notes),
+    updated_at = _updated_at
   where id = _id;
 end;
 $$;
 
 
 --
--- TOC entry 1418 (class 1255 OID 141877)
--- Name: update_crew_members(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1320 (class 1255 OID 155756)
+-- Name: update_crew(uuid, text, text, uuid, uuid, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_crew_members(_id uuid, _data jsonb) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-begin
-  update crew_members
-  set
-    updated_at = now()
-  where id = _id;
-end;
-$$;
-
-
---
--- TOC entry 1415 (class 1255 OID 141834)
--- Name: update_crews(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.update_crews(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_crew(_id uuid, _name text DEFAULT NULL::text, _description text DEFAULT NULL::text, _foreman_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _updated_at timestamp with time zone DEFAULT now()) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   update crews
   set
-    updated_at = now()
+    name = coalesce(_name, name),
+    description = coalesce(_description, description),
+    foreman_id = coalesce(_foreman_id, foreman_id),
+    session_id = coalesce(_session_id, session_id),
+    updated_at = _updated_at
   where id = _id;
 end;
 $$;
 
 
 --
--- TOC entry 1421 (class 1255 OID 141880)
--- Name: update_daily_logs(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1313 (class 1255 OID 155568)
+-- Name: update_crew_member(uuid, text, text, uuid, uuid, uuid, timestamp with time zone, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_daily_logs(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_crew_member(_id uuid, _role text DEFAULT NULL::text, _location_notes text DEFAULT NULL::text, _organization_id uuid DEFAULT NULL::uuid, _map_location_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _assigned_at timestamp with time zone DEFAULT NULL::timestamp with time zone, _updated_at timestamp with time zone DEFAULT now()) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+begin
+  update crew_members
+  set
+    role = coalesce(_role, role),
+    location_notes = coalesce(_location_notes, location_notes),
+    organization_id = coalesce(_organization_id, organization_id),
+    map_location_id = coalesce(_map_location_id, map_location_id),
+    session_id = coalesce(_session_id, session_id),
+    assigned_at = coalesce(_assigned_at, assigned_at),
+    updated_at = _updated_at
+  where id = _id;
+end;
+$$;
+
+
+--
+-- TOC entry 1329 (class 1255 OID 155944)
+-- Name: update_daily_log(uuid, text, text, numeric, text, text, text, uuid, uuid, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_daily_log(_id uuid, _work_performed text DEFAULT NULL::text, _weather_conditions text DEFAULT NULL::text, _temperature numeric DEFAULT NULL::numeric, _delays_encountered text DEFAULT NULL::text, _safety_incidents text DEFAULT NULL::text, _visitors text DEFAULT NULL::text, _updated_by uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _updated_at timestamp with time zone DEFAULT now()) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   update daily_logs
   set
-    updated_at = now()
+    work_performed = coalesce(_work_performed, work_performed),
+    weather_conditions = coalesce(_weather_conditions, weather_conditions),
+    temperature = coalesce(_temperature, temperature),
+    delays_encountered = coalesce(_delays_encountered, delays_encountered),
+    safety_incidents = coalesce(_safety_incidents, safety_incidents),
+    visitors = coalesce(_visitors, visitors),
+    updated_by = coalesce(_updated_by, updated_by),
+    session_id = coalesce(_session_id, session_id),
+    updated_at = _updated_at
   where id = _id;
 end;
 $$;
 
 
 --
--- TOC entry 1433 (class 1255 OID 141932)
--- Name: update_dump_trucks(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1337 (class 1255 OID 156138)
+-- Name: update_demo_mapping(uuid, text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text, text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text, text[], text[]); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_dump_trucks(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_demo_mapping(_session_id uuid, _new_change_order_ids text[] DEFAULT NULL::text[], _new_contract_ids text[] DEFAULT NULL::text[], _new_contract_org_ids text[] DEFAULT NULL::text[], _new_crew_ids text[] DEFAULT NULL::text[], _new_crew_member_ids text[] DEFAULT NULL::text[], _new_daily_log_ids text[] DEFAULT NULL::text[], _new_entry_ids text[] DEFAULT NULL::text[], _new_equipment_assignment_ids text[] DEFAULT NULL::text[], _new_equipment_ids text[] DEFAULT NULL::text[], _new_inspection_ids text[] DEFAULT NULL::text[], _new_issue_ids text[] DEFAULT NULL::text[], _new_li_crew_ids text[] DEFAULT NULL::text[], _new_li_equipment_ids text[] DEFAULT NULL::text[], _new_line_item_ids text[] DEFAULT NULL::text[], _new_map_ids text[] DEFAULT NULL::text[], _new_organization_ids text[] DEFAULT NULL::text[], _new_profile_id text DEFAULT NULL::text, _new_template_ids text[] DEFAULT NULL::text[], _new_wbs_ids text[] DEFAULT NULL::text[], _old_change_order_ids text[] DEFAULT NULL::text[], _old_contract_ids text[] DEFAULT NULL::text[], _old_contract_org_ids text[] DEFAULT NULL::text[], _old_crew_ids text[] DEFAULT NULL::text[], _old_crew_member_ids text[] DEFAULT NULL::text[], _old_daily_log_ids text[] DEFAULT NULL::text[], _old_entry_ids text[] DEFAULT NULL::text[], _old_equipment_assignment_ids text[] DEFAULT NULL::text[], _old_equipment_ids text[] DEFAULT NULL::text[], _old_inspection_ids text[] DEFAULT NULL::text[], _old_issue_ids text[] DEFAULT NULL::text[], _old_li_crew_ids text[] DEFAULT NULL::text[], _old_li_equipment_ids text[] DEFAULT NULL::text[], _old_line_item_ids text[] DEFAULT NULL::text[], _old_map_ids text[] DEFAULT NULL::text[], _old_organization_ids text[] DEFAULT NULL::text[], _old_profile_id text DEFAULT NULL::text, _old_template_ids text[] DEFAULT NULL::text[], _old_wbs_ids text[] DEFAULT NULL::text[]) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+begin
+  update demo_mappings
+  set
+    new_change_order_ids = coalesce(_new_change_order_ids, new_change_order_ids),
+    new_contract_ids = coalesce(_new_contract_ids, new_contract_ids),
+    new_contract_org_ids = coalesce(_new_contract_org_ids, new_contract_org_ids),
+    new_crew_ids = coalesce(_new_crew_ids, new_crew_ids),
+    new_crew_member_ids = coalesce(_new_crew_member_ids, new_crew_member_ids),
+    new_daily_log_ids = coalesce(_new_daily_log_ids, new_daily_log_ids),
+    new_entry_ids = coalesce(_new_entry_ids, new_entry_ids),
+    new_equipment_assignment_ids = coalesce(_new_equipment_assignment_ids, new_equipment_assignment_ids),
+    new_equipment_ids = coalesce(_new_equipment_ids, new_equipment_ids),
+    new_inspection_ids = coalesce(_new_inspection_ids, new_inspection_ids),
+    new_issue_ids = coalesce(_new_issue_ids, new_issue_ids),
+    new_li_crew_ids = coalesce(_new_li_crew_ids, new_li_crew_ids),
+    new_li_equipment_ids = coalesce(_new_li_equipment_ids, new_li_equipment_ids),
+    new_line_item_ids = coalesce(_new_line_item_ids, new_line_item_ids),
+    new_map_ids = coalesce(_new_map_ids, new_map_ids),
+    new_organization_ids = coalesce(_new_organization_ids, new_organization_ids),
+    new_profile_id = coalesce(_new_profile_id, new_profile_id),
+    new_template_ids = coalesce(_new_template_ids, new_template_ids),
+    new_wbs_ids = coalesce(_new_wbs_ids, new_wbs_ids),
+    old_change_order_ids = coalesce(_old_change_order_ids, old_change_order_ids),
+    old_contract_ids = coalesce(_old_contract_ids, old_contract_ids),
+    old_contract_org_ids = coalesce(_old_contract_org_ids, old_contract_org_ids),
+    old_crew_ids = coalesce(_old_crew_ids, old_crew_ids),
+    old_crew_member_ids = coalesce(_old_crew_member_ids, old_crew_member_ids),
+    old_daily_log_ids = coalesce(_old_daily_log_ids, old_daily_log_ids),
+    old_entry_ids = coalesce(_old_entry_ids, old_entry_ids),
+    old_equipment_assignment_ids = coalesce(_old_equipment_assignment_ids, old_equipment_assignment_ids),
+    old_equipment_ids = coalesce(_old_equipment_ids, old_equipment_ids),
+    old_inspection_ids = coalesce(_old_inspection_ids, old_inspection_ids),
+    old_issue_ids = coalesce(_old_issue_ids, old_issue_ids),
+    old_li_crew_ids = coalesce(_old_li_crew_ids, old_li_crew_ids),
+    old_li_equipment_ids = coalesce(_old_li_equipment_ids, old_li_equipment_ids),
+    old_line_item_ids = coalesce(_old_line_item_ids, old_line_item_ids),
+    old_map_ids = coalesce(_old_map_ids, old_map_ids),
+    old_organization_ids = coalesce(_old_organization_ids, old_organization_ids),
+    old_profile_id = coalesce(_old_profile_id, old_profile_id),
+    old_template_ids = coalesce(_old_template_ids, old_template_ids),
+    old_wbs_ids = coalesce(_old_wbs_ids, old_wbs_ids)
+  where session_id = _session_id;
+end;
+$$;
+
+
+--
+-- TOC entry 1378 (class 1255 OID 157086)
+-- Name: update_dump_truck(uuid, numeric, text, numeric, numeric, numeric, numeric, numeric, uuid, uuid, numeric, numeric, numeric, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_dump_truck(_id uuid, _payload_capacity_tons numeric DEFAULT NULL::numeric, _truck_identifier text DEFAULT NULL::text, _axle_count numeric DEFAULT NULL::numeric, _bed_height numeric DEFAULT NULL::numeric, _bed_length numeric DEFAULT NULL::numeric, _bed_volume numeric DEFAULT NULL::numeric, _bed_width numeric DEFAULT NULL::numeric, _contract_id uuid DEFAULT NULL::uuid, _equipment_id uuid DEFAULT NULL::uuid, _hoist_bottom numeric DEFAULT NULL::numeric, _hoist_top numeric DEFAULT NULL::numeric, _hoist_width numeric DEFAULT NULL::numeric, _notes text DEFAULT NULL::text) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   update dump_trucks
   set
+    payload_capacity_tons = coalesce(_payload_capacity_tons, payload_capacity_tons),
+    truck_identifier = coalesce(_truck_identifier, truck_identifier),
+    axle_count = coalesce(_axle_count, axle_count),
+    bed_height = coalesce(_bed_height, bed_height),
+    bed_length = coalesce(_bed_length, bed_length),
+    bed_volume = coalesce(_bed_volume, bed_volume),
+    bed_width = coalesce(_bed_width, bed_width),
+    contract_id = coalesce(_contract_id, contract_id),
+    equipment_id = coalesce(_equipment_id, equipment_id),
+    hoist_bottom = coalesce(_hoist_bottom, hoist_bottom),
+    hoist_top = coalesce(_hoist_top, hoist_top),
+    hoist_width = coalesce(_hoist_width, hoist_width),
+    notes = coalesce(_notes, notes),
     updated_at = now()
   where id = _id;
 end;
@@ -3670,16 +5271,56 @@ $$;
 
 
 --
--- TOC entry 1406 (class 1255 OID 141825)
--- Name: update_equipment(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1364 (class 1255 OID 156900)
+-- Name: update_dump_truck(uuid, numeric, text, numeric, numeric, numeric, numeric, numeric, uuid, uuid, numeric, numeric, numeric, text, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_equipment(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_dump_truck(_id uuid, _payload_capacity_tons numeric DEFAULT NULL::numeric, _truck_identifier text DEFAULT NULL::text, _axle_count numeric DEFAULT NULL::numeric, _bed_height numeric DEFAULT NULL::numeric, _bed_length numeric DEFAULT NULL::numeric, _bed_volume numeric DEFAULT NULL::numeric, _bed_width numeric DEFAULT NULL::numeric, _contract_id uuid DEFAULT NULL::uuid, _equipment_id uuid DEFAULT NULL::uuid, _hoist_bottom numeric DEFAULT NULL::numeric, _hoist_top numeric DEFAULT NULL::numeric, _hoist_width numeric DEFAULT NULL::numeric, _notes text DEFAULT NULL::text, _weight_capacity_tons numeric DEFAULT NULL::numeric) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+begin
+  update dump_trucks
+  set
+    payload_capacity_tons = coalesce(_payload_capacity_tons, payload_capacity_tons),
+    truck_identifier = coalesce(_truck_identifier, truck_identifier),
+    axle_count = coalesce(_axle_count, axle_count),
+    bed_height = coalesce(_bed_height, bed_height),
+    bed_length = coalesce(_bed_length, bed_length),
+    bed_volume = coalesce(_bed_volume, bed_volume),
+    bed_width = coalesce(_bed_width, bed_width),
+    contract_id = coalesce(_contract_id, contract_id),
+    equipment_id = coalesce(_equipment_id, equipment_id),
+    hoist_bottom = coalesce(_hoist_bottom, hoist_bottom),
+    hoist_top = coalesce(_hoist_top, hoist_top),
+    hoist_width = coalesce(_hoist_width, hoist_width),
+    notes = coalesce(_notes, notes),
+    weight_capacity_tons = coalesce(_weight_capacity_tons, weight_capacity_tons),
+    updated_at = now()
+  where id = _id;
+end;
+$$;
+
+
+--
+-- TOC entry 1396 (class 1255 OID 157378)
+-- Name: update_equipment(uuid, text, uuid, uuid, uuid, uuid, numeric, public.pay_rate_unit, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_equipment(_id uuid, _name text DEFAULT NULL::text, _created_by uuid DEFAULT NULL::uuid, _operator_id uuid DEFAULT NULL::uuid, _organization_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _standard_pay_rate numeric DEFAULT NULL::numeric, _standard_pay_unit public.pay_rate_unit DEFAULT NULL::public.pay_rate_unit, _description text DEFAULT NULL::text, _user_defined_id text DEFAULT NULL::text) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   update equipment
   set
+    name = coalesce(_name, name),
+    created_by = coalesce(_created_by, created_by),
+    operator_id = coalesce(_operator_id, operator_id),
+    organization_id = coalesce(_organization_id, organization_id),
+    session_id = coalesce(_session_id, session_id),
+    standard_pay_rate = coalesce(_standard_pay_rate, standard_pay_rate),
+    standard_pay_unit = coalesce(_standard_pay_unit, standard_pay_unit),
+    description = coalesce(_description, description),
+    user_defined_id = coalesce(_user_defined_id, user_defined_id),
     updated_at = now()
   where id = _id;
 end;
@@ -3687,33 +5328,58 @@ $$;
 
 
 --
--- TOC entry 1409 (class 1255 OID 141828)
--- Name: update_equipment_assignments(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1411 (class 1255 OID 157734)
+-- Name: update_equipment_assignment(uuid, numeric, uuid, uuid, date, date, uuid, uuid, uuid, text, uuid, uuid, text, timestamp with time zone, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_equipment_assignments(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_equipment_assignment(_id uuid, _bid_rate numeric DEFAULT NULL::numeric, _contract_id uuid DEFAULT NULL::uuid, _created_by uuid DEFAULT NULL::uuid, _start_date date DEFAULT NULL::date, _end_date date DEFAULT NULL::date, _equipment_id uuid DEFAULT NULL::uuid, _line_item_id uuid DEFAULT NULL::uuid, _map_id uuid DEFAULT NULL::uuid, _notes text DEFAULT NULL::text, _operator_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _status text DEFAULT NULL::text, _updated_at timestamp with time zone DEFAULT now(), _wbs_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   update equipment_assignments
   set
-    updated_at = now()
+    bid_rate = coalesce(_bid_rate, bid_rate),
+    contract_id = coalesce(_contract_id, contract_id),
+    created_by = coalesce(_created_by, created_by),
+    start_date = coalesce(_start_date, start_date),
+    end_date = coalesce(_end_date, end_date),
+    equipment_id = coalesce(_equipment_id, equipment_id),
+    line_item_id = coalesce(_line_item_id, line_item_id),
+    map_id = coalesce(_map_id, map_id),
+    notes = coalesce(_notes, notes),
+    operator_id = coalesce(_operator_id, operator_id),
+    session_id = coalesce(_session_id, session_id),
+    status = coalesce(_status, status),
+    updated_at = _updated_at,
+    wbs_id = coalesce(_wbs_id, wbs_id)
   where id = _id;
 end;
 $$;
 
 
 --
--- TOC entry 1412 (class 1255 OID 141831)
--- Name: update_equipment_usage(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1421 (class 1255 OID 158090)
+-- Name: update_equipment_usage(uuid, uuid, uuid, uuid, uuid, numeric, uuid, uuid, uuid, text, uuid, date, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_equipment_usage(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_equipment_usage(_id uuid, _contract_id uuid DEFAULT NULL::uuid, _created_by uuid DEFAULT NULL::uuid, _equipment_id uuid DEFAULT NULL::uuid, _line_item_id uuid DEFAULT NULL::uuid, _hours_used numeric DEFAULT NULL::numeric, _map_id uuid DEFAULT NULL::uuid, _operator_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _notes text DEFAULT NULL::text, _updated_by uuid DEFAULT NULL::uuid, _usage_date date DEFAULT NULL::date, _wbs_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   update equipment_usage
   set
+    contract_id = coalesce(_contract_id, contract_id),
+    created_by = coalesce(_created_by, created_by),
+    equipment_id = coalesce(_equipment_id, equipment_id),
+    line_item_id = coalesce(_line_item_id, line_item_id),
+    hours_used = coalesce(_hours_used, hours_used),
+    map_id = coalesce(_map_id, map_id),
+    operator_id = coalesce(_operator_id, operator_id),
+    session_id = coalesce(_session_id, session_id),
+    notes = coalesce(_notes, notes),
+    updated_by = coalesce(_updated_by, updated_by),
+    usage_date = coalesce(_usage_date, usage_date),
+    wbs_id = coalesce(_wbs_id, wbs_id),
     updated_at = now()
   where id = _id;
 end;
@@ -3721,16 +5387,26 @@ $$;
 
 
 --
--- TOC entry 1388 (class 1255 OID 141697)
--- Name: update_inspections(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1429 (class 1255 OID 158446)
+-- Name: update_inspection(uuid, uuid, text, text, uuid, uuid, uuid, text, text[], uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_inspections(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_inspection(_id uuid, _contract_id uuid DEFAULT NULL::uuid, _name text DEFAULT NULL::text, _description text DEFAULT NULL::text, _created_by uuid DEFAULT NULL::uuid, _line_item_id uuid DEFAULT NULL::uuid, _map_id uuid DEFAULT NULL::uuid, _pdf_url text DEFAULT NULL::text, _photo_urls text[] DEFAULT NULL::text[], _session_id uuid DEFAULT NULL::uuid, _wbs_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   update inspections
   set
+    contract_id = coalesce(_contract_id, contract_id),
+    name = coalesce(_name, name),
+    description = coalesce(_description, description),
+    created_by = coalesce(_created_by, created_by),
+    line_item_id = coalesce(_line_item_id, line_item_id),
+    map_id = coalesce(_map_id, map_id),
+    pdf_url = coalesce(_pdf_url, pdf_url),
+    photo_urls = coalesce(_photo_urls, photo_urls),
+    session_id = coalesce(_session_id, session_id),
+    wbs_id = coalesce(_wbs_id, wbs_id),
     updated_at = now()
   where id = _id;
 end;
@@ -3738,33 +5414,53 @@ $$;
 
 
 --
--- TOC entry 1427 (class 1255 OID 141886)
--- Name: update_issues(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1437 (class 1255 OID 158808)
+-- Name: update_issue(uuid, text, text, public.priority, text, uuid, uuid, uuid, uuid, uuid, uuid, uuid, text[], text, text, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_issues(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_issue(_id uuid, _title text DEFAULT NULL::text, _description text DEFAULT NULL::text, _priority public.priority DEFAULT NULL::public.priority, _status text DEFAULT NULL::text, _assigned_to uuid DEFAULT NULL::uuid, _contract_id uuid DEFAULT NULL::uuid, _created_by uuid DEFAULT NULL::uuid, _equipment_id uuid DEFAULT NULL::uuid, _line_item_id uuid DEFAULT NULL::uuid, _map_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _photo_urls text[] DEFAULT NULL::text[], _resolution text DEFAULT NULL::text, _due_date text DEFAULT NULL::text, _updated_at text DEFAULT NULL::text, _updated_by text DEFAULT NULL::text, _wbs_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   update issues
   set
-    updated_at = now()
+    title = coalesce(_title, title),
+    description = coalesce(_description, description),
+    priority = coalesce(_priority, priority),
+    status = coalesce(_status, status),
+    assigned_to = coalesce(_assigned_to, assigned_to),
+    contract_id = coalesce(_contract_id, contract_id),
+    created_by = coalesce(_created_by, created_by),
+    equipment_id = coalesce(_equipment_id, equipment_id),
+    line_item_id = coalesce(_line_item_id, line_item_id),
+    map_id = coalesce(_map_id, map_id),
+    session_id = coalesce(_session_id, session_id),
+    photo_urls = coalesce(_photo_urls, photo_urls),
+    resolution = coalesce(_resolution, resolution),
+    due_date = coalesce(_due_date, due_date),
+    updated_at = coalesce(_updated_at, updated_at),
+    updated_by = coalesce(_updated_by, updated_by),
+    wbs_id = coalesce(_wbs_id, wbs_id)
   where id = _id;
 end;
 $$;
 
 
 --
--- TOC entry 1424 (class 1255 OID 141883)
--- Name: update_job_titles(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1441 (class 1255 OID 158996)
+-- Name: update_job_title(uuid, text, uuid, boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_job_titles(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_job_title(_id uuid, _title text DEFAULT NULL::text, _created_by uuid DEFAULT NULL::uuid, _is_custom boolean DEFAULT NULL::boolean, _session_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   update job_titles
   set
+    title = coalesce(_title, title),
+    created_by = coalesce(_created_by, created_by),
+    is_custom = coalesce(_is_custom, is_custom),
+    session_id = coalesce(_session_id, session_id),
     updated_at = now()
   where id = _id;
 end;
@@ -3772,50 +5468,28 @@ $$;
 
 
 --
--- TOC entry 1385 (class 1255 OID 141694)
--- Name: update_line_item_entries(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1458 (class 1255 OID 159896)
+-- Name: update_line_item(uuid, text, text, uuid, uuid, uuid, text, uuid, uuid, public.unit_measure_type, numeric, numeric, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_line_item_entries(_id uuid, _data jsonb) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-begin
-  update line_item_entries
-  set
-    updated_at = now()
-  where id = _id;
-end;
-$$;
-
-
---
--- TOC entry 1382 (class 1255 OID 141691)
--- Name: update_line_item_templates(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.update_line_item_templates(_id uuid, _data jsonb) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-begin
-  update line_item_templates
-  set
-    updated_at = now()
-  where id = _id;
-end;
-$$;
-
-
---
--- TOC entry 1379 (class 1255 OID 141628)
--- Name: update_line_items(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.update_line_items(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_line_item(_id uuid, _description text DEFAULT NULL::text, _line_code text DEFAULT NULL::text, _wbs_id uuid DEFAULT NULL::uuid, _contract_id uuid DEFAULT NULL::uuid, _map_id uuid DEFAULT NULL::uuid, _reference_doc text DEFAULT NULL::text, _template_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _unit_measure public.unit_measure_type DEFAULT NULL::public.unit_measure_type, _quantity numeric DEFAULT NULL::numeric, _unit_price numeric DEFAULT NULL::numeric, _coordinates text DEFAULT NULL::text) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   update line_items
   set
+    description = coalesce(_description, description),
+    line_code = coalesce(_line_code, line_code),
+    wbs_id = coalesce(_wbs_id, wbs_id),
+    contract_id = coalesce(_contract_id, contract_id),
+    map_id = coalesce(_map_id, map_id),
+    reference_doc = coalesce(_reference_doc, reference_doc),
+    template_id = coalesce(_template_id, template_id),
+    session_id = coalesce(_session_id, session_id),
+    unit_measure = coalesce(_unit_measure, unit_measure),
+    quantity = coalesce(_quantity, quantity),
+    unit_price = coalesce(_unit_price, unit_price),
+    coordinates = coalesce(_coordinates, coordinates),
     updated_at = now()
   where id = _id;
 end;
@@ -3823,16 +5497,75 @@ $$;
 
 
 --
--- TOC entry 1376 (class 1255 OID 141625)
--- Name: update_maps(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1443 (class 1255 OID 159100)
+-- Name: update_line_item_entry(uuid, numeric, uuid, uuid, uuid, jsonb, text, public.unit_measure_type, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_maps(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_line_item_entry(_id uuid, _computed_output numeric DEFAULT NULL::numeric, _contract_id uuid DEFAULT NULL::uuid, _line_item_id uuid DEFAULT NULL::uuid, _map_id uuid DEFAULT NULL::uuid, _input_variables jsonb DEFAULT NULL::jsonb, _notes text DEFAULT NULL::text, _output_unit public.unit_measure_type DEFAULT NULL::public.unit_measure_type, _entered_by uuid DEFAULT NULL::uuid, _wbs_id uuid DEFAULT NULL::uuid) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+begin
+  update line_item_entries
+  set
+    computed_output = coalesce(_computed_output, computed_output),
+    contract_id = coalesce(_contract_id, contract_id),
+    line_item_id = coalesce(_line_item_id, line_item_id),
+    map_id = coalesce(_map_id, map_id),
+    input_variables = coalesce(_input_variables, input_variables),
+    notes = coalesce(_notes, notes),
+    output_unit = coalesce(_output_unit, output_unit),
+    entered_by = coalesce(_entered_by, entered_by),
+    wbs_id = coalesce(_wbs_id, wbs_id),
+    -- Optionally: updated_at = now()
+    updated_at = now()
+  where id = _id;
+end;
+$$;
+
+
+--
+-- TOC entry 1452 (class 1255 OID 159498)
+-- Name: update_line_item_template(uuid, text, text, jsonb, text, uuid, uuid, public.unit_measure_type, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_line_item_template(_id uuid, _name text DEFAULT NULL::text, _description text DEFAULT NULL::text, _formula jsonb DEFAULT NULL::jsonb, _instructions text DEFAULT NULL::text, _created_by uuid DEFAULT NULL::uuid, _organization_id uuid DEFAULT NULL::uuid, _output_unit public.unit_measure_type DEFAULT NULL::public.unit_measure_type, _session_id uuid DEFAULT NULL::uuid) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+begin
+  update line_item_templates
+  set
+    name = coalesce(_name, name),
+    description = coalesce(_description, description),
+    formula = coalesce(_formula, formula),
+    instructions = coalesce(_instructions, instructions),
+    created_by = coalesce(_created_by, created_by),
+    organization_id = coalesce(_organization_id, organization_id),
+    output_unit = coalesce(_output_unit, output_unit),
+    session_id = coalesce(_session_id, session_id)
+  where id = _id;
+end;
+$$;
+
+
+--
+-- TOC entry 1462 (class 1255 OID 160188)
+-- Name: update_map(uuid, text, uuid, text, numeric, text, text, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_map(_id uuid, _map_number text DEFAULT NULL::text, _wbs_id uuid DEFAULT NULL::uuid, _location text DEFAULT NULL::text, _budget numeric DEFAULT NULL::numeric, _scope text DEFAULT NULL::text, _coordinates text DEFAULT NULL::text, _contract_id uuid DEFAULT NULL::uuid, _session_id text DEFAULT NULL::text) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   update maps
   set
+    map_number = coalesce(_map_number, map_number),
+    wbs_id = coalesce(_wbs_id, wbs_id),
+    location = coalesce(_location, location),
+    budget = coalesce(_budget, budget),
+    scope = coalesce(_scope, scope),
+    coordinates = coalesce(_coordinates, coordinates),
+    contract_id = coalesce(_contract_id, contract_id),
+    session_id = coalesce(_session_id, session_id),
     updated_at = now()
   where id = _id;
 end;
@@ -3840,16 +5573,22 @@ $$;
 
 
 --
--- TOC entry 1397 (class 1255 OID 141776)
--- Name: update_organizations(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1465 (class 1255 OID 160334)
+-- Name: update_organization(uuid, text, text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_organizations(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_organization(_id uuid, _name text DEFAULT NULL::text, _created_by text DEFAULT NULL::text, _address text DEFAULT NULL::text, _phone text DEFAULT NULL::text, _website text DEFAULT NULL::text, _session_id text DEFAULT NULL::text) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   update organizations
   set
+    name = coalesce(_name, name),
+    created_by = coalesce(_created_by, created_by),
+    address = coalesce(_address, address),
+    phone = coalesce(_phone, phone),
+    website = coalesce(_website, website),
+    session_id = coalesce(_session_id, session_id),
     updated_at = now()
   where id = _id;
 end;
@@ -3857,59 +5596,26 @@ $$;
 
 
 --
--- TOC entry 1394 (class 1255 OID 141773)
--- Name: update_profiles(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1470 (class 1255 OID 160564)
+-- Name: update_profile(uuid, text, text, text, text, uuid, uuid, text, public.user_role, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_profiles(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_profile(_id uuid, _full_name text DEFAULT NULL::text, _email text DEFAULT NULL::text, _username text DEFAULT NULL::text, _phone text DEFAULT NULL::text, _avatar_id uuid DEFAULT NULL::uuid, _job_title_id uuid DEFAULT NULL::uuid, _location text DEFAULT NULL::text, _role public.user_role DEFAULT NULL::public.user_role, _organization_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
-declare
-  new_job_title_id uuid;
-  new_avatar_id uuid;
 begin
-  -- Insert custom job title if title provided and is_custom = true
-  if _data ? 'job_title' and (_data->>'is_custom')::boolean is true then
-    insert into job_titles (id, title, is_custom, created_by, updated_at, session_id)
-    values (
-      gen_random_uuid(),
-      _data->>'job_title',
-      true,
-      _data->>'created_by',
-      now(),
-      _data->>'session_id'
-    )
-    returning id into new_job_title_id;
-  end if;
-
-  -- Insert custom avatar if url is provided and is_preset = false
-  if _data ? 'avatar_url' and (_data->>'is_preset')::boolean is false then
-    insert into avatars (id, name, url, created_at, is_preset, profile_id, session_id)
-    values (
-      gen_random_uuid(),
-      _data->>'full_name',
-      _data->>'avatar_url',
-      now(),
-      false,
-      _id,
-      _data->>'session_id'
-    )
-    returning id into new_avatar_id;
-  end if;
-
-  -- Update profile with coalesced fields
   update profiles
   set
-    full_name = coalesce(_data->>'full_name', full_name),
-    email = coalesce(_data->>'email', email),
-    username = coalesce(_data->>'username', username),
-    phone = coalesce(_data->>'phone', phone),
-    location = coalesce(_data->>'location', location),
-    role = coalesce((_data->>'role')::user_role, role),
-    job_title_id = coalesce(new_job_title_id, (_data->>'job_title_id')::uuid, job_title_id),
-    organization_id = coalesce((_data->>'organization_id')::uuid, organization_id),
-    avatar_id = coalesce(new_avatar_id, (_data->>'avatar_id')::uuid, avatar_id),
-    session_id = coalesce((_data->>'session_id')::uuid, session_id),
+    full_name = coalesce(_full_name, full_name),
+    email = coalesce(_email, email),
+    username = coalesce(_username, username),
+    phone = coalesce(_phone, phone),
+    avatar_id = coalesce(_avatar_id, avatar_id),
+    job_title_id = coalesce(_job_title_id, job_title_id),
+    location = coalesce(_location, location),
+    role = coalesce(_role, role),
+    organization_id = coalesce(_organization_id, organization_id),
+    session_id = coalesce(_session_id, session_id),
     updated_at = now()
   where id = _id;
 end;
@@ -3917,50 +5623,42 @@ $$;
 
 
 --
--- TOC entry 1436 (class 1255 OID 141935)
--- Name: update_tack_rates(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1476 (class 1255 OID 160836)
+-- Name: update_user_contract(uuid, uuid, public.user_role, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_tack_rates(_id uuid, _data jsonb) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-begin
-  update tack_rates
-  set
-    updated_at = now()
-  where id = _id;
-end;
-$$;
-
-
---
--- TOC entry 1400 (class 1255 OID 141779)
--- Name: update_user_contracts(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.update_user_contracts(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_user_contract(_user_id uuid, _contract_id uuid, _role public.user_role DEFAULT NULL::public.user_role, _session_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   update user_contracts
   set
-    updated_at = now()
-  where id = _id;
+    role = coalesce(_role, role),
+    session_id = coalesce(_session_id, session_id)
+  where user_id = _user_id
+    and contract_id = _contract_id;
 end;
 $$;
 
 
 --
--- TOC entry 1373 (class 1255 OID 141622)
--- Name: update_wbs(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+-- TOC entry 1479 (class 1255 OID 161030)
+-- Name: update_wbs(uuid, text, uuid, text, numeric, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_wbs(_id uuid, _data jsonb) RETURNS void
+CREATE FUNCTION public.update_wbs(_id uuid, _wbs_number text DEFAULT NULL::text, _contract_id uuid DEFAULT NULL::uuid, _location text DEFAULT NULL::text, _budget numeric DEFAULT NULL::numeric, _scope text DEFAULT NULL::text, _coordinates text DEFAULT NULL::text, _session_id text DEFAULT NULL::text) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   update wbs
   set
+    wbs_number = coalesce(_wbs_number, wbs_number),
+    contract_id = coalesce(_contract_id, contract_id),
+    location = coalesce(_location, location),
+    budget = coalesce(_budget, budget),
+    scope = coalesce(_scope, scope),
+    coordinates = coalesce(_coordinates, coordinates),
+    session_id = coalesce(_session_id, session_id),
     updated_at = now()
   where id = _id;
 end;
@@ -3968,7 +5666,7 @@ $$;
 
 
 --
--- TOC entry 604 (class 1255 OID 42868)
+-- TOC entry 1308 (class 1255 OID 42868)
 -- Name: validate_formula_unit(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3983,7 +5681,7 @@ $$;
 
 
 --
--- TOC entry 599 (class 1255 OID 35347)
+-- TOC entry 447 (class 1255 OID 35347)
 -- Name: validate_formula_units(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3998,26 +5696,6 @@ END;
 $$;
 
 
-SET default_table_access_method = heap;
-
---
--- TOC entry 334 (class 1259 OID 45512)
--- Name: asphalt_types; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.asphalt_types (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    name text NOT NULL,
-    lift_depth_inches numeric,
-    target_spread_rate_lbs_per_sy numeric,
-    jmf_temp_min numeric,
-    jmf_temp_max numeric,
-    compaction_min numeric,
-    notes text,
-    created_at timestamp with time zone DEFAULT now()
-);
-
-
 --
 -- TOC entry 338 (class 1259 OID 65986)
 -- Name: avatars; Type: TABLE; Schema: public; Owner: -
@@ -4029,35 +5707,8 @@ CREATE TABLE public.avatars (
     url text NOT NULL,
     created_at timestamp with time zone DEFAULT now(),
     is_preset boolean DEFAULT false NOT NULL,
-    profile_id uuid DEFAULT auth.uid(),
     session_id uuid,
     CONSTRAINT avatars_url_check CHECK ((url ~* '^https?://.*$'::text))
-);
-
-
---
--- TOC entry 345 (class 1259 OID 81791)
--- Name: change_orders; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.change_orders (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    contract_id uuid,
-    line_item_id uuid,
-    new_quantity numeric NOT NULL,
-    new_unit_price numeric,
-    title text NOT NULL,
-    description text,
-    status public.change_order_status DEFAULT 'draft'::public.change_order_status NOT NULL,
-    submitted_date timestamp with time zone DEFAULT now() NOT NULL,
-    approved_date timestamp with time zone,
-    approved_by uuid,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_by uuid,
-    updated_at timestamp with time zone,
-    updated_by uuid,
-    attachments text[],
-    session_id uuid
 );
 
 
@@ -4082,289 +5733,6 @@ ALTER TABLE ONLY public.contract_organizations REPLICA IDENTITY FULL;
 
 
 --
--- TOC entry 315 (class 1259 OID 29139)
--- Name: contracts; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.contracts (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    title text NOT NULL,
-    description text,
-    location text NOT NULL,
-    start_date date NOT NULL,
-    end_date date NOT NULL,
-    created_by uuid,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    budget numeric,
-    status public.contract_status DEFAULT 'Draft'::public.contract_status NOT NULL,
-    coordinates public.geometry,
-    session_id uuid
-);
-
-ALTER TABLE ONLY public.contracts REPLICA IDENTITY FULL;
-
-
---
--- TOC entry 329 (class 1259 OID 29674)
--- Name: crew_members; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.crew_members (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    crew_id uuid NOT NULL,
-    profile_id uuid NOT NULL,
-    role text,
-    assigned_at timestamp with time zone DEFAULT now(),
-    created_by uuid NOT NULL,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    map_location_id uuid,
-    location_notes text,
-    session_id uuid,
-    organization_id uuid
-);
-
-ALTER TABLE ONLY public.crew_members REPLICA IDENTITY FULL;
-
-
---
--- TOC entry 328 (class 1259 OID 29649)
--- Name: crews; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.crews (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    organization_id uuid NOT NULL,
-    name text NOT NULL,
-    description text,
-    foreman_id uuid,
-    created_by uuid NOT NULL,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    session_id uuid
-);
-
-ALTER TABLE ONLY public.crews REPLICA IDENTITY FULL;
-
-
---
--- TOC entry 346 (class 1259 OID 81852)
--- Name: daily_logs; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.daily_logs (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    contract_id uuid NOT NULL,
-    log_date date DEFAULT CURRENT_DATE NOT NULL,
-    weather_conditions text,
-    temperature numeric,
-    work_performed text,
-    delays_encountered text,
-    visitors text,
-    safety_incidents text,
-    created_by uuid,
-    updated_by uuid,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now(),
-    session_id uuid
-);
-
-
---
--- TOC entry 351 (class 1259 OID 135320)
--- Name: demo_mappings; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.demo_mappings (
-    session_id uuid NOT NULL,
-    created_at timestamp with time zone DEFAULT now(),
-    old_profile_id uuid,
-    new_profile_id uuid,
-    old_organization_ids uuid[],
-    new_organization_ids uuid[],
-    old_contract_ids uuid[],
-    new_contract_ids uuid[],
-    old_wbs_ids uuid[],
-    new_wbs_ids uuid[],
-    old_map_ids uuid[],
-    new_map_ids uuid[],
-    old_line_item_ids uuid[],
-    new_line_item_ids uuid[],
-    old_template_ids uuid[],
-    new_template_ids uuid[],
-    old_contract_org_ids uuid[],
-    new_contract_org_ids uuid[],
-    old_change_order_ids uuid[],
-    new_change_order_ids uuid[],
-    old_issue_ids uuid[],
-    new_issue_ids uuid[],
-    old_inspection_ids uuid[],
-    new_inspection_ids uuid[],
-    old_crew_ids uuid[],
-    new_crew_ids uuid[],
-    old_crew_member_ids uuid[],
-    new_crew_member_ids uuid[],
-    old_equipment_ids uuid[],
-    new_equipment_ids uuid[],
-    old_equipment_assignment_ids uuid[],
-    new_equipment_assignment_ids uuid[],
-    old_entry_ids uuid[],
-    new_entry_ids uuid[],
-    old_li_crew_ids uuid[],
-    new_li_crew_ids uuid[],
-    old_li_equipment_ids uuid[],
-    new_li_equipment_ids uuid[],
-    old_daily_log_ids uuid[],
-    new_daily_log_ids uuid[]
-);
-
-
---
--- TOC entry 333 (class 1259 OID 43500)
--- Name: dump_trucks; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.dump_trucks (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    contract_id uuid,
-    equipment_id uuid,
-    truck_identifier text NOT NULL,
-    payload_capacity_tons numeric NOT NULL,
-    notes text,
-    created_at timestamp with time zone DEFAULT now(),
-    bed_length numeric,
-    bed_width numeric,
-    bed_height numeric,
-    bed_volume numeric GENERATED ALWAYS AS (((bed_length * bed_width) * bed_height)) STORED,
-    axle_count integer,
-    weight_capacity_tons numeric,
-    hoist_top numeric,
-    hoist_bottom numeric,
-    hoist_width numeric
-);
-
-
---
--- TOC entry 348 (class 1259 OID 82062)
--- Name: equipment; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.equipment (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    user_defined_id text NOT NULL,
-    name text NOT NULL,
-    description text,
-    operator_id uuid,
-    created_by uuid,
-    created_at timestamp with time zone DEFAULT now(),
-    session_id uuid,
-    organization_id uuid
-);
-
-
---
--- TOC entry 330 (class 1259 OID 29702)
--- Name: equipment_assignments; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.equipment_assignments (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    equipment_id uuid NOT NULL,
-    contract_id uuid NOT NULL,
-    operator_id uuid,
-    start_date date NOT NULL,
-    end_date date,
-    status text DEFAULT 'active'::text,
-    notes text,
-    created_by uuid NOT NULL,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    session_id uuid
-);
-
-ALTER TABLE ONLY public.equipment_assignments REPLICA IDENTITY FULL;
-
-
---
--- TOC entry 347 (class 1259 OID 81960)
--- Name: equipment_usage; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.equipment_usage (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    equipment_id uuid,
-    map_id uuid,
-    line_item_id uuid,
-    usage_date date DEFAULT CURRENT_DATE NOT NULL,
-    hours_used numeric NOT NULL,
-    operator_id uuid,
-    notes text,
-    created_by uuid,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_by uuid,
-    updated_at timestamp with time zone,
-    contract_id uuid,
-    session_id uuid,
-    wbs_id uuid,
-    CONSTRAINT equipment_usage_hours_used_check CHECK ((hours_used >= (0)::numeric))
-);
-
-
---
--- TOC entry 349 (class 1259 OID 82124)
--- Name: inspections; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.inspections (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    contract_id uuid NOT NULL,
-    wbs_id uuid,
-    map_id uuid,
-    line_item_id uuid,
-    name text NOT NULL,
-    description text,
-    pdf_url text,
-    photo_urls text[],
-    created_by uuid,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_by uuid,
-    updated_at timestamp with time zone,
-    session_id uuid
-);
-
-
---
--- TOC entry 350 (class 1259 OID 82204)
--- Name: issues; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.issues (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    contract_id uuid,
-    wbs_id uuid,
-    map_id uuid,
-    line_item_id uuid,
-    equipment_id uuid,
-    title text NOT NULL,
-    description text NOT NULL,
-    priority text NOT NULL,
-    status text NOT NULL,
-    due_date date,
-    resolution text,
-    assigned_to uuid,
-    created_by uuid,
-    updated_by uuid,
-    photo_urls text[] DEFAULT '{}'::text[],
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    session_id uuid,
-    CONSTRAINT issues_priority_check CHECK ((priority = ANY (ARRAY['Low'::text, 'Medium'::text, 'High'::text]))),
-    CONSTRAINT issues_status_check CHECK ((status = ANY (ARRAY['Open'::text, 'In Progress'::text, 'Resolved'::text])))
-);
-
-
---
 -- TOC entry 326 (class 1259 OID 29471)
 -- Name: job_titles; Type: TABLE; Schema: public; Owner: -
 --
@@ -4380,73 +5748,6 @@ CREATE TABLE public.job_titles (
 );
 
 ALTER TABLE ONLY public.job_titles REPLICA IDENTITY FULL;
-
-
---
--- TOC entry 336 (class 1259 OID 47812)
--- Name: line_item_entries; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.line_item_entries (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    map_id uuid NOT NULL,
-    contract_id uuid NOT NULL,
-    wbs_id uuid NOT NULL,
-    line_item_id uuid NOT NULL,
-    entered_by uuid,
-    created_at timestamp with time zone DEFAULT now(),
-    input_variables jsonb NOT NULL,
-    computed_output numeric,
-    notes text,
-    session_id uuid,
-    output_unit public.unit_measure_type
-);
-
-
---
--- TOC entry 332 (class 1259 OID 35668)
--- Name: line_item_templates; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.line_item_templates (
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    name text,
-    output_unit public.unit_measure_type,
-    description text,
-    id uuid NOT NULL,
-    unit_type public.unit_measure_type,
-    formula jsonb,
-    instructions text,
-    organization_id uuid,
-    created_by uuid,
-    session_id uuid
-);
-
-
---
--- TOC entry 318 (class 1259 OID 29189)
--- Name: line_items; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.line_items (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    wbs_id uuid NOT NULL,
-    line_code text NOT NULL,
-    description text NOT NULL,
-    unit_measure public.unit_measure_type NOT NULL,
-    quantity numeric NOT NULL,
-    unit_price numeric NOT NULL,
-    reference_doc text,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    template_id uuid,
-    map_id uuid,
-    contract_id uuid,
-    coordinates public.geometry,
-    session_id uuid
-);
-
-ALTER TABLE ONLY public.line_items REPLICA IDENTITY FULL;
 
 
 --
@@ -4493,30 +5794,6 @@ ALTER TABLE ONLY public.organizations REPLICA IDENTITY FULL;
 
 
 --
--- TOC entry 314 (class 1259 OID 29126)
--- Name: profiles; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.profiles (
-    id uuid NOT NULL,
-    role public.user_role DEFAULT 'Contractor'::public.user_role NOT NULL,
-    full_name text NOT NULL,
-    email text,
-    username text,
-    phone text,
-    location text,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    job_title_id uuid,
-    organization_id uuid,
-    avatar_id uuid,
-    session_id uuid
-);
-
-ALTER TABLE ONLY public.profiles REPLICA IDENTITY FULL;
-
-
---
 -- TOC entry 335 (class 1259 OID 45566)
 -- Name: tack_rates; Type: TABLE; Schema: public; Owner: -
 --
@@ -4527,19 +5804,6 @@ CREATE TABLE public.tack_rates (
     application_rate numeric NOT NULL,
     notes text,
     created_at timestamp with time zone DEFAULT now()
-);
-
-
---
--- TOC entry 337 (class 1259 OID 48860)
--- Name: user_contracts; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.user_contracts (
-    user_id uuid NOT NULL,
-    contract_id uuid NOT NULL,
-    role public.user_role DEFAULT 'Admin'::public.user_role,
-    session_id uuid
 );
 
 
@@ -4565,7 +5829,7 @@ ALTER TABLE ONLY public.wbs REPLICA IDENTITY FULL;
 
 
 --
--- TOC entry 4972 (class 2606 OID 45522)
+-- TOC entry 5041 (class 2606 OID 45522)
 -- Name: asphalt_types asphalt_types_name_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4574,7 +5838,7 @@ ALTER TABLE ONLY public.asphalt_types
 
 
 --
--- TOC entry 4974 (class 2606 OID 45520)
+-- TOC entry 5043 (class 2606 OID 45520)
 -- Name: asphalt_types asphalt_types_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4583,7 +5847,7 @@ ALTER TABLE ONLY public.asphalt_types
 
 
 --
--- TOC entry 4982 (class 2606 OID 65995)
+-- TOC entry 5051 (class 2606 OID 65995)
 -- Name: avatars avatars_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4592,7 +5856,7 @@ ALTER TABLE ONLY public.avatars
 
 
 --
--- TOC entry 4986 (class 2606 OID 81801)
+-- TOC entry 5055 (class 2606 OID 81801)
 -- Name: change_orders change_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4601,7 +5865,7 @@ ALTER TABLE ONLY public.change_orders
 
 
 --
--- TOC entry 4962 (class 2606 OID 29813)
+-- TOC entry 5031 (class 2606 OID 29813)
 -- Name: contract_organizations contract_organizations_contract_id_organization_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4610,7 +5874,7 @@ ALTER TABLE ONLY public.contract_organizations
 
 
 --
--- TOC entry 4964 (class 2606 OID 29811)
+-- TOC entry 5033 (class 2606 OID 29811)
 -- Name: contract_organizations contract_organizations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4619,7 +5883,7 @@ ALTER TABLE ONLY public.contract_organizations
 
 
 --
--- TOC entry 4921 (class 2606 OID 29149)
+-- TOC entry 4990 (class 2606 OID 29149)
 -- Name: contracts contracts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4628,7 +5892,7 @@ ALTER TABLE ONLY public.contracts
 
 
 --
--- TOC entry 4923 (class 2606 OID 36638)
+-- TOC entry 4992 (class 2606 OID 36638)
 -- Name: contracts contracts_title_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4637,7 +5901,7 @@ ALTER TABLE ONLY public.contracts
 
 
 --
--- TOC entry 4955 (class 2606 OID 29686)
+-- TOC entry 5024 (class 2606 OID 29686)
 -- Name: crew_members crew_members_crew_id_profile_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4646,7 +5910,7 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 4958 (class 2606 OID 29684)
+-- TOC entry 5027 (class 2606 OID 29684)
 -- Name: crew_members crew_members_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4655,7 +5919,7 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 4953 (class 2606 OID 29658)
+-- TOC entry 5022 (class 2606 OID 29658)
 -- Name: crews crews_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4664,7 +5928,7 @@ ALTER TABLE ONLY public.crews
 
 
 --
--- TOC entry 4988 (class 2606 OID 81862)
+-- TOC entry 5057 (class 2606 OID 81862)
 -- Name: daily_logs daily_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4673,7 +5937,7 @@ ALTER TABLE ONLY public.daily_logs
 
 
 --
--- TOC entry 4998 (class 2606 OID 135327)
+-- TOC entry 5067 (class 2606 OID 135327)
 -- Name: demo_mappings demo_mappings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4682,7 +5946,7 @@ ALTER TABLE ONLY public.demo_mappings
 
 
 --
--- TOC entry 4970 (class 2606 OID 43508)
+-- TOC entry 5039 (class 2606 OID 43508)
 -- Name: dump_trucks dump_trucks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4691,7 +5955,7 @@ ALTER TABLE ONLY public.dump_trucks
 
 
 --
--- TOC entry 4960 (class 2606 OID 29712)
+-- TOC entry 5029 (class 2606 OID 29712)
 -- Name: equipment_assignments equipment_assignments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4700,7 +5964,7 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 4992 (class 2606 OID 82070)
+-- TOC entry 5061 (class 2606 OID 82070)
 -- Name: equipment equipment_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4709,7 +5973,7 @@ ALTER TABLE ONLY public.equipment
 
 
 --
--- TOC entry 4990 (class 2606 OID 81970)
+-- TOC entry 5059 (class 2606 OID 81970)
 -- Name: equipment_usage equipment_usage_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4718,7 +5982,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 4994 (class 2606 OID 82132)
+-- TOC entry 5063 (class 2606 OID 82132)
 -- Name: inspections inspections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4727,7 +5991,7 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 4996 (class 2606 OID 82216)
+-- TOC entry 5065 (class 2606 OID 82216)
 -- Name: issues issues_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4736,7 +6000,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 4945 (class 2606 OID 29481)
+-- TOC entry 5014 (class 2606 OID 29481)
 -- Name: job_titles job_titles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4745,7 +6009,7 @@ ALTER TABLE ONLY public.job_titles
 
 
 --
--- TOC entry 4947 (class 2606 OID 29483)
+-- TOC entry 5016 (class 2606 OID 29483)
 -- Name: job_titles job_titles_title_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4754,7 +6018,7 @@ ALTER TABLE ONLY public.job_titles
 
 
 --
--- TOC entry 4978 (class 2606 OID 47820)
+-- TOC entry 5047 (class 2606 OID 47820)
 -- Name: line_item_entries line_item_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4763,7 +6027,7 @@ ALTER TABLE ONLY public.line_item_entries
 
 
 --
--- TOC entry 4966 (class 2606 OID 36099)
+-- TOC entry 5035 (class 2606 OID 36099)
 -- Name: line_item_templates line_item_templates_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4772,7 +6036,7 @@ ALTER TABLE ONLY public.line_item_templates
 
 
 --
--- TOC entry 4968 (class 2606 OID 36101)
+-- TOC entry 5037 (class 2606 OID 36101)
 -- Name: line_item_templates line_item_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4781,7 +6045,7 @@ ALTER TABLE ONLY public.line_item_templates
 
 
 --
--- TOC entry 4941 (class 2606 OID 29201)
+-- TOC entry 5010 (class 2606 OID 29201)
 -- Name: line_items line_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4790,7 +6054,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 4943 (class 2606 OID 61519)
+-- TOC entry 5012 (class 2606 OID 61519)
 -- Name: line_items line_items_wbs_id_map_id_line_code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4799,7 +6063,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 4932 (class 2606 OID 29181)
+-- TOC entry 5001 (class 2606 OID 29181)
 -- Name: maps map_locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4808,7 +6072,7 @@ ALTER TABLE ONLY public.maps
 
 
 --
--- TOC entry 4934 (class 2606 OID 29183)
+-- TOC entry 5003 (class 2606 OID 29183)
 -- Name: maps map_locations_wbs_id_map_number_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4817,7 +6081,7 @@ ALTER TABLE ONLY public.maps
 
 
 --
--- TOC entry 4949 (class 2606 OID 36249)
+-- TOC entry 5018 (class 2606 OID 36249)
 -- Name: organizations organizations_name_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4826,7 +6090,7 @@ ALTER TABLE ONLY public.organizations
 
 
 --
--- TOC entry 4951 (class 2606 OID 29617)
+-- TOC entry 5020 (class 2606 OID 29617)
 -- Name: organizations organizations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4835,7 +6099,7 @@ ALTER TABLE ONLY public.organizations
 
 
 --
--- TOC entry 4912 (class 2606 OID 29136)
+-- TOC entry 4981 (class 2606 OID 29136)
 -- Name: profiles profiles_email_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4844,7 +6108,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 4914 (class 2606 OID 33809)
+-- TOC entry 4983 (class 2606 OID 33809)
 -- Name: profiles profiles_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4853,7 +6117,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 4916 (class 2606 OID 29134)
+-- TOC entry 4985 (class 2606 OID 29134)
 -- Name: profiles profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4862,7 +6126,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 4918 (class 2606 OID 29138)
+-- TOC entry 4987 (class 2606 OID 29138)
 -- Name: profiles profiles_username_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4871,7 +6135,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 4976 (class 2606 OID 45574)
+-- TOC entry 5045 (class 2606 OID 45574)
 -- Name: tack_rates tack_rates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4880,7 +6144,7 @@ ALTER TABLE ONLY public.tack_rates
 
 
 --
--- TOC entry 4937 (class 2606 OID 37025)
+-- TOC entry 5006 (class 2606 OID 37025)
 -- Name: maps unique_map_per_wbs; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4889,7 +6153,7 @@ ALTER TABLE ONLY public.maps
 
 
 --
--- TOC entry 4925 (class 2606 OID 36737)
+-- TOC entry 4994 (class 2606 OID 36737)
 -- Name: wbs unique_wbs_per_contract; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4898,7 +6162,7 @@ ALTER TABLE ONLY public.wbs
 
 
 --
--- TOC entry 4980 (class 2606 OID 48867)
+-- TOC entry 5049 (class 2606 OID 48867)
 -- Name: user_contracts user_contracts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4907,7 +6171,7 @@ ALTER TABLE ONLY public.user_contracts
 
 
 --
--- TOC entry 4927 (class 2606 OID 29166)
+-- TOC entry 4996 (class 2606 OID 29166)
 -- Name: wbs wbs_contract_id_wbs_number_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4916,7 +6180,7 @@ ALTER TABLE ONLY public.wbs
 
 
 --
--- TOC entry 4930 (class 2606 OID 29164)
+-- TOC entry 4999 (class 2606 OID 29164)
 -- Name: wbs wbs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4925,7 +6189,7 @@ ALTER TABLE ONLY public.wbs
 
 
 --
--- TOC entry 4919 (class 1259 OID 119592)
+-- TOC entry 4988 (class 1259 OID 119592)
 -- Name: contracts_coordinates_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4933,7 +6197,7 @@ CREATE INDEX contracts_coordinates_idx ON public.contracts USING gist (coordinat
 
 
 --
--- TOC entry 4956 (class 1259 OID 30237)
+-- TOC entry 5025 (class 1259 OID 30237)
 -- Name: crew_members_map_location_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4941,7 +6205,7 @@ CREATE INDEX crew_members_map_location_id_idx ON public.crew_members USING btree
 
 
 --
--- TOC entry 4938 (class 1259 OID 119594)
+-- TOC entry 5007 (class 1259 OID 119594)
 -- Name: line_items_coordinates_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4949,7 +6213,7 @@ CREATE INDEX line_items_coordinates_idx ON public.line_items USING gist (coordin
 
 
 --
--- TOC entry 4939 (class 1259 OID 33180)
+-- TOC entry 5008 (class 1259 OID 33180)
 -- Name: line_items_map_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4957,7 +6221,7 @@ CREATE INDEX line_items_map_id_idx ON public.line_items USING btree (map_id);
 
 
 --
--- TOC entry 4935 (class 1259 OID 119595)
+-- TOC entry 5004 (class 1259 OID 119595)
 -- Name: maps_coordinates_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4965,7 +6229,7 @@ CREATE INDEX maps_coordinates_idx ON public.maps USING gist (coordinates);
 
 
 --
--- TOC entry 4928 (class 1259 OID 119593)
+-- TOC entry 4997 (class 1259 OID 119593)
 -- Name: wbs_coordinates_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4973,7 +6237,7 @@ CREATE INDEX wbs_coordinates_idx ON public.wbs USING gist (coordinates);
 
 
 --
--- TOC entry 5100 (class 2620 OID 29884)
+-- TOC entry 5171 (class 2620 OID 29884)
 -- Name: contract_organizations handle_contract_organizations_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4981,7 +6245,7 @@ CREATE TRIGGER handle_contract_organizations_updated_at BEFORE UPDATE ON public.
 
 
 --
--- TOC entry 5087 (class 2620 OID 29214)
+-- TOC entry 5158 (class 2620 OID 29214)
 -- Name: contracts handle_contracts_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4989,7 +6253,7 @@ CREATE TRIGGER handle_contracts_updated_at BEFORE UPDATE ON public.contracts FOR
 
 
 --
--- TOC entry 5098 (class 2620 OID 29752)
+-- TOC entry 5169 (class 2620 OID 29752)
 -- Name: crew_members handle_crew_members_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -4997,7 +6261,7 @@ CREATE TRIGGER handle_crew_members_updated_at BEFORE UPDATE ON public.crew_membe
 
 
 --
--- TOC entry 5097 (class 2620 OID 29751)
+-- TOC entry 5168 (class 2620 OID 29751)
 -- Name: crews handle_crews_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -5005,7 +6269,7 @@ CREATE TRIGGER handle_crews_updated_at BEFORE UPDATE ON public.crews FOR EACH RO
 
 
 --
--- TOC entry 5099 (class 2620 OID 29753)
+-- TOC entry 5170 (class 2620 OID 29753)
 -- Name: equipment_assignments handle_equipment_assignments_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -5013,7 +6277,7 @@ CREATE TRIGGER handle_equipment_assignments_updated_at BEFORE UPDATE ON public.e
 
 
 --
--- TOC entry 5090 (class 2620 OID 29217)
+-- TOC entry 5161 (class 2620 OID 29217)
 -- Name: line_items handle_line_items_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -5021,7 +6285,7 @@ CREATE TRIGGER handle_line_items_updated_at BEFORE UPDATE ON public.line_items F
 
 
 --
--- TOC entry 5089 (class 2620 OID 29216)
+-- TOC entry 5160 (class 2620 OID 29216)
 -- Name: maps handle_map_locations_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -5029,7 +6293,7 @@ CREATE TRIGGER handle_map_locations_updated_at BEFORE UPDATE ON public.maps FOR 
 
 
 --
--- TOC entry 5096 (class 2620 OID 29749)
+-- TOC entry 5167 (class 2620 OID 29749)
 -- Name: organizations handle_organizations_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -5037,7 +6301,7 @@ CREATE TRIGGER handle_organizations_updated_at BEFORE UPDATE ON public.organizat
 
 
 --
--- TOC entry 5086 (class 2620 OID 29213)
+-- TOC entry 5157 (class 2620 OID 29213)
 -- Name: profiles handle_profiles_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -5045,7 +6309,7 @@ CREATE TRIGGER handle_profiles_updated_at BEFORE UPDATE ON public.profiles FOR E
 
 
 --
--- TOC entry 5088 (class 2620 OID 29215)
+-- TOC entry 5159 (class 2620 OID 29215)
 -- Name: wbs handle_wbs_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -5053,7 +6317,7 @@ CREATE TRIGGER handle_wbs_updated_at BEFORE UPDATE ON public.wbs FOR EACH ROW EX
 
 
 --
--- TOC entry 5101 (class 2620 OID 81919)
+-- TOC entry 5172 (class 2620 OID 81919)
 -- Name: daily_logs trg_check_active_contract; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -5061,7 +6325,7 @@ CREATE TRIGGER trg_check_active_contract BEFORE INSERT OR UPDATE ON public.daily
 
 
 --
--- TOC entry 5091 (class 2620 OID 33174)
+-- TOC entry 5162 (class 2620 OID 33174)
 -- Name: line_items update_contract_budget_delete; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -5069,7 +6333,7 @@ CREATE TRIGGER update_contract_budget_delete AFTER DELETE ON public.line_items F
 
 
 --
--- TOC entry 5092 (class 2620 OID 33172)
+-- TOC entry 5163 (class 2620 OID 33172)
 -- Name: line_items update_contract_budget_insert; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -5077,7 +6341,7 @@ CREATE TRIGGER update_contract_budget_insert AFTER INSERT ON public.line_items F
 
 
 --
--- TOC entry 5093 (class 2620 OID 43032)
+-- TOC entry 5164 (class 2620 OID 43032)
 -- Name: line_items update_contract_budget_trigger; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -5085,7 +6349,7 @@ CREATE TRIGGER update_contract_budget_trigger AFTER INSERT OR DELETE OR UPDATE O
 
 
 --
--- TOC entry 5094 (class 2620 OID 33173)
+-- TOC entry 5165 (class 2620 OID 33173)
 -- Name: line_items update_contract_budget_update; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -5093,7 +6357,7 @@ CREATE TRIGGER update_contract_budget_update AFTER UPDATE OF quantity, unit_pric
 
 
 --
--- TOC entry 5095 (class 2620 OID 29496)
+-- TOC entry 5166 (class 2620 OID 29496)
 -- Name: job_titles update_job_titles_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -5101,16 +6365,7 @@ CREATE TRIGGER update_job_titles_updated_at BEFORE UPDATE ON public.job_titles F
 
 
 --
--- TOC entry 5049 (class 2606 OID 66811)
--- Name: avatars avatars_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.avatars
-    ADD CONSTRAINT avatars_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES public.profiles(id);
-
-
---
--- TOC entry 5051 (class 2606 OID 81802)
+-- TOC entry 5122 (class 2606 OID 81802)
 -- Name: change_orders change_orders_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5119,7 +6374,7 @@ ALTER TABLE ONLY public.change_orders
 
 
 --
--- TOC entry 5052 (class 2606 OID 81807)
+-- TOC entry 5123 (class 2606 OID 81807)
 -- Name: change_orders change_orders_line_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5128,7 +6383,7 @@ ALTER TABLE ONLY public.change_orders
 
 
 --
--- TOC entry 5033 (class 2606 OID 29814)
+-- TOC entry 5105 (class 2606 OID 29814)
 -- Name: contract_organizations contract_organizations_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5137,7 +6392,7 @@ ALTER TABLE ONLY public.contract_organizations
 
 
 --
--- TOC entry 5034 (class 2606 OID 29824)
+-- TOC entry 5106 (class 2606 OID 29824)
 -- Name: contract_organizations contract_organizations_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5146,7 +6401,7 @@ ALTER TABLE ONLY public.contract_organizations
 
 
 --
--- TOC entry 5035 (class 2606 OID 29819)
+-- TOC entry 5107 (class 2606 OID 29819)
 -- Name: contract_organizations contract_organizations_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5155,7 +6410,7 @@ ALTER TABLE ONLY public.contract_organizations
 
 
 --
--- TOC entry 5003 (class 2606 OID 61266)
+-- TOC entry 5072 (class 2606 OID 61266)
 -- Name: contracts contracts_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5164,7 +6419,7 @@ ALTER TABLE ONLY public.contracts
 
 
 --
--- TOC entry 5023 (class 2606 OID 29697)
+-- TOC entry 5092 (class 2606 OID 29697)
 -- Name: crew_members crew_members_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5173,7 +6428,7 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5024 (class 2606 OID 29687)
+-- TOC entry 5093 (class 2606 OID 29687)
 -- Name: crew_members crew_members_crew_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5182,7 +6437,7 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5025 (class 2606 OID 30232)
+-- TOC entry 5094 (class 2606 OID 30232)
 -- Name: crew_members crew_members_map_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5191,7 +6446,7 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5026 (class 2606 OID 140412)
+-- TOC entry 5095 (class 2606 OID 140412)
 -- Name: crew_members crew_members_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5200,7 +6455,7 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5027 (class 2606 OID 29692)
+-- TOC entry 5096 (class 2606 OID 29692)
 -- Name: crew_members crew_members_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5209,7 +6464,7 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5019 (class 2606 OID 29669)
+-- TOC entry 5088 (class 2606 OID 29669)
 -- Name: crews crews_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5218,7 +6473,7 @@ ALTER TABLE ONLY public.crews
 
 
 --
--- TOC entry 5020 (class 2606 OID 29664)
+-- TOC entry 5089 (class 2606 OID 29664)
 -- Name: crews crews_foreman_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5227,7 +6482,7 @@ ALTER TABLE ONLY public.crews
 
 
 --
--- TOC entry 5021 (class 2606 OID 29659)
+-- TOC entry 5090 (class 2606 OID 29659)
 -- Name: crews crews_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5236,7 +6491,7 @@ ALTER TABLE ONLY public.crews
 
 
 --
--- TOC entry 5054 (class 2606 OID 81863)
+-- TOC entry 5125 (class 2606 OID 81863)
 -- Name: daily_logs daily_logs_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5245,7 +6500,7 @@ ALTER TABLE ONLY public.daily_logs
 
 
 --
--- TOC entry 5055 (class 2606 OID 81868)
+-- TOC entry 5126 (class 2606 OID 81868)
 -- Name: daily_logs daily_logs_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5254,7 +6509,7 @@ ALTER TABLE ONLY public.daily_logs
 
 
 --
--- TOC entry 5056 (class 2606 OID 81873)
+-- TOC entry 5127 (class 2606 OID 81873)
 -- Name: daily_logs daily_logs_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5263,7 +6518,7 @@ ALTER TABLE ONLY public.daily_logs
 
 
 --
--- TOC entry 5040 (class 2606 OID 43509)
+-- TOC entry 5112 (class 2606 OID 43509)
 -- Name: dump_trucks dump_trucks_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5272,7 +6527,7 @@ ALTER TABLE ONLY public.dump_trucks
 
 
 --
--- TOC entry 5029 (class 2606 OID 29718)
+-- TOC entry 5098 (class 2606 OID 29718)
 -- Name: equipment_assignments equipment_assignments_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5281,7 +6536,7 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5030 (class 2606 OID 29728)
+-- TOC entry 5099 (class 2606 OID 29728)
 -- Name: equipment_assignments equipment_assignments_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5290,7 +6545,25 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5031 (class 2606 OID 29723)
+-- TOC entry 5100 (class 2606 OID 156242)
+-- Name: equipment_assignments equipment_assignments_line_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.equipment_assignments
+    ADD CONSTRAINT equipment_assignments_line_item_id_fkey FOREIGN KEY (line_item_id) REFERENCES public.line_items(id);
+
+
+--
+-- TOC entry 5101 (class 2606 OID 156253)
+-- Name: equipment_assignments equipment_assignments_map_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.equipment_assignments
+    ADD CONSTRAINT equipment_assignments_map_id_fkey FOREIGN KEY (map_id) REFERENCES public.maps(id);
+
+
+--
+-- TOC entry 5102 (class 2606 OID 29723)
 -- Name: equipment_assignments equipment_assignments_operator_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5299,7 +6572,16 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5066 (class 2606 OID 82076)
+-- TOC entry 5103 (class 2606 OID 156258)
+-- Name: equipment_assignments equipment_assignments_wbs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.equipment_assignments
+    ADD CONSTRAINT equipment_assignments_wbs_id_fkey FOREIGN KEY (wbs_id) REFERENCES public.wbs(id);
+
+
+--
+-- TOC entry 5137 (class 2606 OID 82076)
 -- Name: equipment equipment_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5308,7 +6590,7 @@ ALTER TABLE ONLY public.equipment
 
 
 --
--- TOC entry 5067 (class 2606 OID 82071)
+-- TOC entry 5138 (class 2606 OID 82071)
 -- Name: equipment equipment_operator_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5317,7 +6599,7 @@ ALTER TABLE ONLY public.equipment
 
 
 --
--- TOC entry 5068 (class 2606 OID 140606)
+-- TOC entry 5139 (class 2606 OID 140606)
 -- Name: equipment equipment_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5326,7 +6608,7 @@ ALTER TABLE ONLY public.equipment
 
 
 --
--- TOC entry 5058 (class 2606 OID 94692)
+-- TOC entry 5129 (class 2606 OID 94692)
 -- Name: equipment_usage equipment_usage_contract_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5335,7 +6617,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5059 (class 2606 OID 81991)
+-- TOC entry 5130 (class 2606 OID 81991)
 -- Name: equipment_usage equipment_usage_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5344,7 +6626,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5060 (class 2606 OID 81981)
+-- TOC entry 5131 (class 2606 OID 81981)
 -- Name: equipment_usage equipment_usage_line_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5353,7 +6635,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5061 (class 2606 OID 81976)
+-- TOC entry 5132 (class 2606 OID 81976)
 -- Name: equipment_usage equipment_usage_map_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5362,7 +6644,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5062 (class 2606 OID 81986)
+-- TOC entry 5133 (class 2606 OID 81986)
 -- Name: equipment_usage equipment_usage_operator_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5371,7 +6653,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5063 (class 2606 OID 81996)
+-- TOC entry 5134 (class 2606 OID 81996)
 -- Name: equipment_usage equipment_usage_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5380,7 +6662,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5064 (class 2606 OID 140778)
+-- TOC entry 5135 (class 2606 OID 140778)
 -- Name: equipment_usage equipment_usage_wbs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5389,7 +6671,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5050 (class 2606 OID 136723)
+-- TOC entry 5121 (class 2606 OID 136723)
 -- Name: avatars fk_avatars_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5398,7 +6680,7 @@ ALTER TABLE ONLY public.avatars
 
 
 --
--- TOC entry 5053 (class 2606 OID 136658)
+-- TOC entry 5124 (class 2606 OID 136658)
 -- Name: change_orders fk_change_orders_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5407,7 +6689,7 @@ ALTER TABLE ONLY public.change_orders
 
 
 --
--- TOC entry 5036 (class 2606 OID 136663)
+-- TOC entry 5108 (class 2606 OID 136663)
 -- Name: contract_organizations fk_contract_organizations_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5416,7 +6698,7 @@ ALTER TABLE ONLY public.contract_organizations
 
 
 --
--- TOC entry 5004 (class 2606 OID 136633)
+-- TOC entry 5073 (class 2606 OID 136633)
 -- Name: contracts fk_contracts_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5425,7 +6707,7 @@ ALTER TABLE ONLY public.contracts
 
 
 --
--- TOC entry 5028 (class 2606 OID 136688)
+-- TOC entry 5097 (class 2606 OID 136688)
 -- Name: crew_members fk_crew_members_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5434,7 +6716,7 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5022 (class 2606 OID 136683)
+-- TOC entry 5091 (class 2606 OID 136683)
 -- Name: crews fk_crews_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5443,7 +6725,7 @@ ALTER TABLE ONLY public.crews
 
 
 --
--- TOC entry 5057 (class 2606 OID 136678)
+-- TOC entry 5128 (class 2606 OID 136678)
 -- Name: daily_logs fk_daily_logs_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5452,7 +6734,7 @@ ALTER TABLE ONLY public.daily_logs
 
 
 --
--- TOC entry 5032 (class 2606 OID 136698)
+-- TOC entry 5104 (class 2606 OID 136698)
 -- Name: equipment_assignments fk_equipment_assignments_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5461,7 +6743,7 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5069 (class 2606 OID 136693)
+-- TOC entry 5140 (class 2606 OID 136693)
 -- Name: equipment fk_equipment_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5470,7 +6752,7 @@ ALTER TABLE ONLY public.equipment
 
 
 --
--- TOC entry 5065 (class 2606 OID 136738)
+-- TOC entry 5136 (class 2606 OID 136738)
 -- Name: equipment_usage fk_equipment_usage_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5479,7 +6761,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5070 (class 2606 OID 136673)
+-- TOC entry 5141 (class 2606 OID 136673)
 -- Name: inspections fk_inspections_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5488,7 +6770,7 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 5077 (class 2606 OID 136668)
+-- TOC entry 5148 (class 2606 OID 136668)
 -- Name: issues fk_issues_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5497,7 +6779,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5015 (class 2606 OID 136728)
+-- TOC entry 5084 (class 2606 OID 136728)
 -- Name: job_titles fk_job_titles_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5506,7 +6788,7 @@ ALTER TABLE ONLY public.job_titles
 
 
 --
--- TOC entry 5041 (class 2606 OID 136703)
+-- TOC entry 5113 (class 2606 OID 136703)
 -- Name: line_item_entries fk_line_item_entries_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5515,7 +6797,7 @@ ALTER TABLE ONLY public.line_item_entries
 
 
 --
--- TOC entry 5037 (class 2606 OID 136653)
+-- TOC entry 5109 (class 2606 OID 136653)
 -- Name: line_item_templates fk_line_item_templates_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5524,7 +6806,7 @@ ALTER TABLE ONLY public.line_item_templates
 
 
 --
--- TOC entry 5010 (class 2606 OID 136648)
+-- TOC entry 5079 (class 2606 OID 136648)
 -- Name: line_items fk_line_items_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5533,7 +6815,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5007 (class 2606 OID 136643)
+-- TOC entry 5076 (class 2606 OID 136643)
 -- Name: maps fk_maps_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5542,7 +6824,7 @@ ALTER TABLE ONLY public.maps
 
 
 --
--- TOC entry 5017 (class 2606 OID 136718)
+-- TOC entry 5086 (class 2606 OID 136718)
 -- Name: organizations fk_organizations_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5551,7 +6833,7 @@ ALTER TABLE ONLY public.organizations
 
 
 --
--- TOC entry 4999 (class 2606 OID 136628)
+-- TOC entry 5068 (class 2606 OID 136628)
 -- Name: profiles fk_profiles_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5560,7 +6842,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5046 (class 2606 OID 136733)
+-- TOC entry 5118 (class 2606 OID 136733)
 -- Name: user_contracts fk_user_contracts_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5569,7 +6851,7 @@ ALTER TABLE ONLY public.user_contracts
 
 
 --
--- TOC entry 5005 (class 2606 OID 136638)
+-- TOC entry 5074 (class 2606 OID 136638)
 -- Name: wbs fk_wbs_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5578,7 +6860,7 @@ ALTER TABLE ONLY public.wbs
 
 
 --
--- TOC entry 5071 (class 2606 OID 82133)
+-- TOC entry 5142 (class 2606 OID 82133)
 -- Name: inspections inspections_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5587,7 +6869,7 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 5072 (class 2606 OID 82153)
+-- TOC entry 5143 (class 2606 OID 82153)
 -- Name: inspections inspections_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5596,7 +6878,7 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 5073 (class 2606 OID 82148)
+-- TOC entry 5144 (class 2606 OID 82148)
 -- Name: inspections inspections_line_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5605,7 +6887,7 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 5074 (class 2606 OID 82143)
+-- TOC entry 5145 (class 2606 OID 82143)
 -- Name: inspections inspections_map_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5614,7 +6896,7 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 5075 (class 2606 OID 82158)
+-- TOC entry 5146 (class 2606 OID 82158)
 -- Name: inspections inspections_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5623,7 +6905,7 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 5076 (class 2606 OID 82138)
+-- TOC entry 5147 (class 2606 OID 82138)
 -- Name: inspections inspections_wbs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5632,7 +6914,7 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 5078 (class 2606 OID 82242)
+-- TOC entry 5149 (class 2606 OID 82242)
 -- Name: issues issues_assigned_to_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5641,7 +6923,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5079 (class 2606 OID 82217)
+-- TOC entry 5150 (class 2606 OID 82217)
 -- Name: issues issues_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5650,7 +6932,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5080 (class 2606 OID 82247)
+-- TOC entry 5151 (class 2606 OID 82247)
 -- Name: issues issues_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5659,7 +6941,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5081 (class 2606 OID 82237)
+-- TOC entry 5152 (class 2606 OID 82237)
 -- Name: issues issues_equipment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5668,7 +6950,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5082 (class 2606 OID 82232)
+-- TOC entry 5153 (class 2606 OID 82232)
 -- Name: issues issues_line_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5677,7 +6959,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5083 (class 2606 OID 82227)
+-- TOC entry 5154 (class 2606 OID 82227)
 -- Name: issues issues_map_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5686,7 +6968,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5084 (class 2606 OID 82252)
+-- TOC entry 5155 (class 2606 OID 82252)
 -- Name: issues issues_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5695,7 +6977,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5085 (class 2606 OID 82222)
+-- TOC entry 5156 (class 2606 OID 82222)
 -- Name: issues issues_wbs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5704,7 +6986,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5016 (class 2606 OID 29489)
+-- TOC entry 5085 (class 2606 OID 29489)
 -- Name: job_titles job_titles_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5713,7 +6995,7 @@ ALTER TABLE ONLY public.job_titles
 
 
 --
--- TOC entry 5042 (class 2606 OID 47826)
+-- TOC entry 5114 (class 2606 OID 47826)
 -- Name: line_item_entries line_item_entries_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5722,7 +7004,7 @@ ALTER TABLE ONLY public.line_item_entries
 
 
 --
--- TOC entry 5043 (class 2606 OID 87294)
+-- TOC entry 5115 (class 2606 OID 87294)
 -- Name: line_item_entries line_item_entries_line_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5731,7 +7013,7 @@ ALTER TABLE ONLY public.line_item_entries
 
 
 --
--- TOC entry 5044 (class 2606 OID 47821)
+-- TOC entry 5116 (class 2606 OID 47821)
 -- Name: line_item_entries line_item_entries_map_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5740,7 +7022,7 @@ ALTER TABLE ONLY public.line_item_entries
 
 
 --
--- TOC entry 5045 (class 2606 OID 47831)
+-- TOC entry 5117 (class 2606 OID 47831)
 -- Name: line_item_entries line_item_entries_wbs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5749,7 +7031,7 @@ ALTER TABLE ONLY public.line_item_entries
 
 
 --
--- TOC entry 5038 (class 2606 OID 78225)
+-- TOC entry 5110 (class 2606 OID 78225)
 -- Name: line_item_templates line_item_templates_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5758,7 +7040,7 @@ ALTER TABLE ONLY public.line_item_templates
 
 
 --
--- TOC entry 5039 (class 2606 OID 78220)
+-- TOC entry 5111 (class 2606 OID 78220)
 -- Name: line_item_templates line_item_templates_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5767,7 +7049,7 @@ ALTER TABLE ONLY public.line_item_templates
 
 
 --
--- TOC entry 5011 (class 2606 OID 60970)
+-- TOC entry 5080 (class 2606 OID 60970)
 -- Name: line_items line_items_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5776,7 +7058,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5012 (class 2606 OID 33175)
+-- TOC entry 5081 (class 2606 OID 33175)
 -- Name: line_items line_items_map_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5785,7 +7067,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5013 (class 2606 OID 106114)
+-- TOC entry 5082 (class 2606 OID 106114)
 -- Name: line_items line_items_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5794,7 +7076,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5014 (class 2606 OID 33027)
+-- TOC entry 5083 (class 2606 OID 33027)
 -- Name: line_items line_items_wbs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5803,7 +7085,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5008 (class 2606 OID 33022)
+-- TOC entry 5077 (class 2606 OID 33022)
 -- Name: maps map_locations_wbs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5812,7 +7094,7 @@ ALTER TABLE ONLY public.maps
 
 
 --
--- TOC entry 5009 (class 2606 OID 61392)
+-- TOC entry 5078 (class 2606 OID 61392)
 -- Name: maps maps_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5821,7 +7103,7 @@ ALTER TABLE ONLY public.maps
 
 
 --
--- TOC entry 5018 (class 2606 OID 29618)
+-- TOC entry 5087 (class 2606 OID 29618)
 -- Name: organizations organizations_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5830,7 +7112,7 @@ ALTER TABLE ONLY public.organizations
 
 
 --
--- TOC entry 5000 (class 2606 OID 65997)
+-- TOC entry 5069 (class 2606 OID 65997)
 -- Name: profiles profiles_avatar_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5839,7 +7121,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5001 (class 2606 OID 29484)
+-- TOC entry 5070 (class 2606 OID 29484)
 -- Name: profiles profiles_job_title_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5848,7 +7130,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5002 (class 2606 OID 29623)
+-- TOC entry 5071 (class 2606 OID 29623)
 -- Name: profiles profiles_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5857,7 +7139,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5047 (class 2606 OID 48873)
+-- TOC entry 5119 (class 2606 OID 48873)
 -- Name: user_contracts user_contracts_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5866,7 +7148,7 @@ ALTER TABLE ONLY public.user_contracts
 
 
 --
--- TOC entry 5048 (class 2606 OID 62000)
+-- TOC entry 5120 (class 2606 OID 62000)
 -- Name: user_contracts user_contracts_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5875,7 +7157,7 @@ ALTER TABLE ONLY public.user_contracts
 
 
 --
--- TOC entry 5006 (class 2606 OID 29167)
+-- TOC entry 5075 (class 2606 OID 29167)
 -- Name: wbs wbs_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5884,7 +7166,7 @@ ALTER TABLE ONLY public.wbs
 
 
 --
--- TOC entry 5321 (class 3256 OID 42704)
+-- TOC entry 5389 (class 3256 OID 42704)
 -- Name: line_item_templates Admins and Engineers can modify formulas; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -5892,7 +7174,7 @@ CREATE POLICY "Admins and Engineers can modify formulas" ON public.line_item_tem
 
 
 --
--- TOC entry 5299 (class 3256 OID 30363)
+-- TOC entry 5367 (class 3256 OID 30363)
 -- Name: contracts Admins and project managers can manage contracts; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -5905,7 +7187,7 @@ CREATE POLICY "Admins and project managers can manage contracts" ON public.contr
 
 
 --
--- TOC entry 5323 (class 3256 OID 42911)
+-- TOC entry 5391 (class 3256 OID 42911)
 -- Name: contracts Admins can manage contracts; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -5913,7 +7195,7 @@ CREATE POLICY "Admins can manage contracts" ON public.contracts USING ((auth.rol
 
 
 --
--- TOC entry 5326 (class 3256 OID 92118)
+-- TOC entry 5394 (class 3256 OID 92118)
 -- Name: contracts Allow access to demo template; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -5921,7 +7203,7 @@ CREATE POLICY "Allow access to demo template" ON public.contracts FOR SELECT USI
 
 
 --
--- TOC entry 5286 (class 3256 OID 63976)
+-- TOC entry 5357 (class 3256 OID 63976)
 -- Name: contracts Allow access to own contracts; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -5931,7 +7213,7 @@ CREATE POLICY "Allow access to own contracts" ON public.contracts FOR SELECT USI
 
 
 --
--- TOC entry 5285 (class 3256 OID 92160)
+-- TOC entry 5356 (class 3256 OID 92160)
 -- Name: contracts Allow all select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -5939,7 +7221,7 @@ CREATE POLICY "Allow all select" ON public.contracts FOR SELECT USING (true);
 
 
 --
--- TOC entry 5331 (class 3256 OID 150455)
+-- TOC entry 5399 (class 3256 OID 150455)
 -- Name: demo_mappings Allow authenticated users to delete their own mappings; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -5947,7 +7229,7 @@ CREATE POLICY "Allow authenticated users to delete their own mappings" ON public
 
 
 --
--- TOC entry 5329 (class 3256 OID 150453)
+-- TOC entry 5397 (class 3256 OID 150453)
 -- Name: demo_mappings Allow authenticated users to insert mappings; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -5955,7 +7237,7 @@ CREATE POLICY "Allow authenticated users to insert mappings" ON public.demo_mapp
 
 
 --
--- TOC entry 5300 (class 3256 OID 150452)
+-- TOC entry 5368 (class 3256 OID 150452)
 -- Name: demo_mappings Allow authenticated users to select their own mappings; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -5963,7 +7245,7 @@ CREATE POLICY "Allow authenticated users to select their own mappings" ON public
 
 
 --
--- TOC entry 5330 (class 3256 OID 150454)
+-- TOC entry 5398 (class 3256 OID 150454)
 -- Name: demo_mappings Allow authenticated users to update their own mappings; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -5971,7 +7253,7 @@ CREATE POLICY "Allow authenticated users to update their own mappings" ON public
 
 
 --
--- TOC entry 5296 (class 3256 OID 94814)
+-- TOC entry 5364 (class 3256 OID 94814)
 -- Name: daily_logs Allow contract or org members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -5984,7 +7266,7 @@ CREATE POLICY "Allow contract or org members" ON public.daily_logs FOR SELECT US
 
 
 --
--- TOC entry 5287 (class 3256 OID 94792)
+-- TOC entry 5358 (class 3256 OID 94792)
 -- Name: equipment_usage Allow contract or org members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -5997,7 +7279,7 @@ CREATE POLICY "Allow contract or org members" ON public.equipment_usage FOR SELE
 
 
 --
--- TOC entry 5281 (class 3256 OID 94748)
+-- TOC entry 5352 (class 3256 OID 94748)
 -- Name: inspections Allow contract or org members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6010,7 +7292,7 @@ CREATE POLICY "Allow contract or org members" ON public.inspections FOR SELECT U
 
 
 --
--- TOC entry 5282 (class 3256 OID 94770)
+-- TOC entry 5353 (class 3256 OID 94770)
 -- Name: issues Allow contract or org members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6023,7 +7305,7 @@ CREATE POLICY "Allow contract or org members" ON public.issues FOR SELECT USING 
 
 
 --
--- TOC entry 5328 (class 3256 OID 133202)
+-- TOC entry 5396 (class 3256 OID 133202)
 -- Name: wbs Allow demo or contract owner access; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6033,7 +7315,7 @@ CREATE POLICY "Allow demo or contract owner access" ON public.wbs FOR SELECT USI
 
 
 --
--- TOC entry 5327 (class 3256 OID 133160)
+-- TOC entry 5395 (class 3256 OID 133160)
 -- Name: contracts Allow demo or owner access; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6041,7 +7323,7 @@ CREATE POLICY "Allow demo or owner access" ON public.contracts FOR SELECT USING 
 
 
 --
--- TOC entry 5288 (class 3256 OID 133094)
+-- TOC entry 5359 (class 3256 OID 133094)
 -- Name: avatars Allow demo session access; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6049,7 +7331,7 @@ CREATE POLICY "Allow demo session access" ON public.avatars FOR SELECT USING ((s
 
 
 --
--- TOC entry 5317 (class 3256 OID 133091)
+-- TOC entry 5385 (class 3256 OID 133091)
 -- Name: crew_members Allow demo session access; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6057,7 +7339,7 @@ CREATE POLICY "Allow demo session access" ON public.crew_members FOR SELECT USIN
 
 
 --
--- TOC entry 5316 (class 3256 OID 133090)
+-- TOC entry 5384 (class 3256 OID 133090)
 -- Name: crews Allow demo session access; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6065,7 +7347,7 @@ CREATE POLICY "Allow demo session access" ON public.crews FOR SELECT USING ((ses
 
 
 --
--- TOC entry 5325 (class 3256 OID 133093)
+-- TOC entry 5393 (class 3256 OID 133093)
 -- Name: job_titles Allow demo session access; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6073,7 +7355,7 @@ CREATE POLICY "Allow demo session access" ON public.job_titles FOR SELECT USING 
 
 
 --
--- TOC entry 5324 (class 3256 OID 133092)
+-- TOC entry 5392 (class 3256 OID 133092)
 -- Name: organizations Allow demo session access; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6081,7 +7363,7 @@ CREATE POLICY "Allow demo session access" ON public.organizations FOR SELECT USI
 
 
 --
--- TOC entry 5298 (class 3256 OID 92282)
+-- TOC entry 5366 (class 3256 OID 92282)
 -- Name: contracts Allow insert for own user_id; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6089,7 +7371,7 @@ CREATE POLICY "Allow insert for own user_id" ON public.contracts FOR INSERT TO a
 
 
 --
--- TOC entry 5284 (class 3256 OID 91274)
+-- TOC entry 5355 (class 3256 OID 91274)
 -- Name: contract_organizations Allow inserts from clone function; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6097,7 +7379,7 @@ CREATE POLICY "Allow inserts from clone function" ON public.contract_organizatio
 
 
 --
--- TOC entry 5283 (class 3256 OID 90940)
+-- TOC entry 5354 (class 3256 OID 90940)
 -- Name: contract_organizations Allow test user inserts; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6105,7 +7387,7 @@ CREATE POLICY "Allow test user inserts" ON public.contract_organizations FOR INS
 
 
 --
--- TOC entry 5295 (class 3256 OID 64498)
+-- TOC entry 5363 (class 3256 OID 64498)
 -- Name: user_contracts Allow users to access their own user_contracts; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6113,7 +7395,7 @@ CREATE POLICY "Allow users to access their own user_contracts" ON public.user_co
 
 
 --
--- TOC entry 5293 (class 3256 OID 29878)
+-- TOC entry 5361 (class 3256 OID 29878)
 -- Name: contract_organizations Contract organizations are viewable by organization members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6123,7 +7405,7 @@ CREATE POLICY "Contract organizations are viewable by organization members" ON p
 
 
 --
--- TOC entry 5294 (class 3256 OID 29881)
+-- TOC entry 5362 (class 3256 OID 29881)
 -- Name: contracts Contracts are viewable by organization members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6135,7 +7417,7 @@ CREATE POLICY "Contracts are viewable by organization members" ON public.contrac
 
 
 --
--- TOC entry 5312 (class 3256 OID 33008)
+-- TOC entry 5380 (class 3256 OID 33008)
 -- Name: crew_members Crew members are viewable by organization members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6147,7 +7429,7 @@ CREATE POLICY "Crew members are viewable by organization members" ON public.crew
 
 
 --
--- TOC entry 5314 (class 3256 OID 33012)
+-- TOC entry 5382 (class 3256 OID 33012)
 -- Name: crews Crews are viewable by organization members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6157,15 +7439,7 @@ CREATE POLICY "Crews are viewable by organization members" ON public.crews FOR S
 
 
 --
--- TOC entry 5292 (class 3256 OID 66906)
--- Name: avatars Delete own avatar; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Delete own avatar" ON public.avatars FOR DELETE TO authenticated USING (((profile_id = auth.uid()) AND (NOT is_preset)));
-
-
---
--- TOC entry 5303 (class 3256 OID 30389)
+-- TOC entry 5371 (class 3256 OID 30389)
 -- Name: profiles Enable delete for admins only; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6173,7 +7447,7 @@ CREATE POLICY "Enable delete for admins only" ON public.profiles FOR DELETE TO a
 
 
 --
--- TOC entry 5301 (class 3256 OID 30386)
+-- TOC entry 5369 (class 3256 OID 30386)
 -- Name: profiles Enable insert for authenticated users; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6181,7 +7455,7 @@ CREATE POLICY "Enable insert for authenticated users" ON public.profiles FOR INS
 
 
 --
--- TOC entry 5311 (class 3256 OID 93770)
+-- TOC entry 5379 (class 3256 OID 93770)
 -- Name: profiles Enable select for authenticated users; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6189,7 +7463,7 @@ CREATE POLICY "Enable select for authenticated users" ON public.profiles FOR SEL
 
 
 --
--- TOC entry 5302 (class 3256 OID 30388)
+-- TOC entry 5370 (class 3256 OID 30388)
 -- Name: profiles Enable update for users on their own profile; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6197,15 +7471,7 @@ CREATE POLICY "Enable update for users on their own profile" ON public.profiles 
 
 
 --
--- TOC entry 5290 (class 3256 OID 66904)
--- Name: avatars Insert own avatar; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Insert own avatar" ON public.avatars FOR INSERT TO authenticated WITH CHECK (((profile_id = auth.uid()) AND (NOT is_preset)));
-
-
---
--- TOC entry 5320 (class 3256 OID 33020)
+-- TOC entry 5388 (class 3256 OID 33020)
 -- Name: job_titles Job titles are viewable by authenticated users; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6213,7 +7479,7 @@ CREATE POLICY "Job titles are viewable by authenticated users" ON public.job_tit
 
 
 --
--- TOC entry 5309 (class 3256 OID 32982)
+-- TOC entry 5377 (class 3256 OID 32982)
 -- Name: line_items Line items are viewable by organization members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6227,7 +7493,7 @@ CREATE POLICY "Line items are viewable by organization members" ON public.line_i
 
 
 --
--- TOC entry 5307 (class 3256 OID 32936)
+-- TOC entry 5375 (class 3256 OID 32936)
 -- Name: maps Map locations are viewable by organization members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6241,7 +7507,7 @@ CREATE POLICY "Map locations are viewable by organization members" ON public.map
 
 
 --
--- TOC entry 5318 (class 3256 OID 33018)
+-- TOC entry 5386 (class 3256 OID 33018)
 -- Name: organizations Organizations are viewable by authenticated users; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6249,7 +7515,7 @@ CREATE POLICY "Organizations are viewable by authenticated users" ON public.orga
 
 
 --
--- TOC entry 5306 (class 3256 OID 32891)
+-- TOC entry 5374 (class 3256 OID 32891)
 -- Name: wbs Project managers and admins can manage WBS sections; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6263,7 +7529,7 @@ CREATE POLICY "Project managers and admins can manage WBS sections" ON public.wb
 
 
 --
--- TOC entry 5310 (class 3256 OID 32984)
+-- TOC entry 5378 (class 3256 OID 32984)
 -- Name: line_items Project managers and admins can manage line items; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6281,7 +7547,7 @@ CREATE POLICY "Project managers and admins can manage line items" ON public.line
 
 
 --
--- TOC entry 5308 (class 3256 OID 32938)
+-- TOC entry 5376 (class 3256 OID 32938)
 -- Name: maps Project managers and admins can manage map locations; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6299,7 +7565,7 @@ CREATE POLICY "Project managers and admins can manage map locations" ON public.m
 
 
 --
--- TOC entry 5297 (class 3256 OID 29879)
+-- TOC entry 5365 (class 3256 OID 29879)
 -- Name: contract_organizations Project managers can manage contract organizations; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6311,7 +7577,7 @@ CREATE POLICY "Project managers can manage contract organizations" ON public.con
 
 
 --
--- TOC entry 5313 (class 3256 OID 33009)
+-- TOC entry 5381 (class 3256 OID 33009)
 -- Name: crew_members Project managers can manage crew members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6325,7 +7591,7 @@ CREATE POLICY "Project managers can manage crew members" ON public.crew_members 
 
 
 --
--- TOC entry 5315 (class 3256 OID 33013)
+-- TOC entry 5383 (class 3256 OID 33013)
 -- Name: crews Project managers can manage crews; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6337,15 +7603,7 @@ CREATE POLICY "Project managers can manage crews" ON public.crews TO authenticat
 
 
 --
--- TOC entry 5291 (class 3256 OID 66905)
--- Name: avatars Update own avatar; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Update own avatar" ON public.avatars FOR UPDATE TO authenticated USING (((profile_id = auth.uid()) AND (NOT is_preset))) WITH CHECK (((profile_id = auth.uid()) AND (NOT is_preset)));
-
-
---
--- TOC entry 5304 (class 3256 OID 33021)
+-- TOC entry 5372 (class 3256 OID 33021)
 -- Name: job_titles Users can create custom job titles; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6353,7 +7611,7 @@ CREATE POLICY "Users can create custom job titles" ON public.job_titles FOR INSE
 
 
 --
--- TOC entry 5319 (class 3256 OID 33019)
+-- TOC entry 5387 (class 3256 OID 33019)
 -- Name: organizations Users can manage their organization; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6361,7 +7619,7 @@ CREATE POLICY "Users can manage their organization" ON public.organizations TO a
 
 
 --
--- TOC entry 5322 (class 3256 OID 42910)
+-- TOC entry 5390 (class 3256 OID 42910)
 -- Name: contracts View Contracts; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6369,7 +7627,7 @@ CREATE POLICY "View Contracts" ON public.contracts FOR SELECT USING (((auth.role
 
 
 --
--- TOC entry 5289 (class 3256 OID 66903)
+-- TOC entry 5360 (class 3256 OID 66903)
 -- Name: avatars View all avatars; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6377,7 +7635,7 @@ CREATE POLICY "View all avatars" ON public.avatars FOR SELECT TO authenticated U
 
 
 --
--- TOC entry 5305 (class 3256 OID 32890)
+-- TOC entry 5373 (class 3256 OID 32890)
 -- Name: wbs WBS sections are viewable by organization members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6389,7 +7647,7 @@ CREATE POLICY "WBS sections are viewable by organization members" ON public.wbs 
 
 
 --
--- TOC entry 5269 (class 0 OID 45512)
+-- TOC entry 5340 (class 0 OID 45512)
 -- Dependencies: 334
 -- Name: asphalt_types; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6397,7 +7655,7 @@ CREATE POLICY "WBS sections are viewable by organization members" ON public.wbs 
 ALTER TABLE public.asphalt_types ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5273 (class 0 OID 65986)
+-- TOC entry 5344 (class 0 OID 65986)
 -- Dependencies: 338
 -- Name: avatars; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6405,7 +7663,7 @@ ALTER TABLE public.asphalt_types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.avatars ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5274 (class 0 OID 81791)
+-- TOC entry 5345 (class 0 OID 81791)
 -- Dependencies: 345
 -- Name: change_orders; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6413,7 +7671,7 @@ ALTER TABLE public.avatars ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.change_orders ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5266 (class 0 OID 29800)
+-- TOC entry 5337 (class 0 OID 29800)
 -- Dependencies: 331
 -- Name: contract_organizations; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6421,7 +7679,7 @@ ALTER TABLE public.change_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contract_organizations ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5257 (class 0 OID 29139)
+-- TOC entry 5328 (class 0 OID 29139)
 -- Dependencies: 315
 -- Name: contracts; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6429,7 +7687,7 @@ ALTER TABLE public.contract_organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contracts ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5264 (class 0 OID 29674)
+-- TOC entry 5335 (class 0 OID 29674)
 -- Dependencies: 329
 -- Name: crew_members; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6437,7 +7695,7 @@ ALTER TABLE public.contracts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crew_members ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5263 (class 0 OID 29649)
+-- TOC entry 5334 (class 0 OID 29649)
 -- Dependencies: 328
 -- Name: crews; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6445,7 +7703,7 @@ ALTER TABLE public.crew_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crews ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5275 (class 0 OID 81852)
+-- TOC entry 5346 (class 0 OID 81852)
 -- Dependencies: 346
 -- Name: daily_logs; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6453,7 +7711,7 @@ ALTER TABLE public.crews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.daily_logs ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5280 (class 0 OID 135320)
+-- TOC entry 5351 (class 0 OID 135320)
 -- Dependencies: 351
 -- Name: demo_mappings; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6461,7 +7719,7 @@ ALTER TABLE public.daily_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.demo_mappings ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5268 (class 0 OID 43500)
+-- TOC entry 5339 (class 0 OID 43500)
 -- Dependencies: 333
 -- Name: dump_trucks; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6469,7 +7727,7 @@ ALTER TABLE public.demo_mappings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dump_trucks ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5277 (class 0 OID 82062)
+-- TOC entry 5348 (class 0 OID 82062)
 -- Dependencies: 348
 -- Name: equipment; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6477,7 +7735,7 @@ ALTER TABLE public.dump_trucks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.equipment ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5265 (class 0 OID 29702)
+-- TOC entry 5336 (class 0 OID 29702)
 -- Dependencies: 330
 -- Name: equipment_assignments; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6485,7 +7743,7 @@ ALTER TABLE public.equipment ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.equipment_assignments ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5276 (class 0 OID 81960)
+-- TOC entry 5347 (class 0 OID 81960)
 -- Dependencies: 347
 -- Name: equipment_usage; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6493,7 +7751,7 @@ ALTER TABLE public.equipment_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.equipment_usage ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5278 (class 0 OID 82124)
+-- TOC entry 5349 (class 0 OID 82124)
 -- Dependencies: 349
 -- Name: inspections; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6501,7 +7759,7 @@ ALTER TABLE public.equipment_usage ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inspections ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5279 (class 0 OID 82204)
+-- TOC entry 5350 (class 0 OID 82204)
 -- Dependencies: 350
 -- Name: issues; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6509,7 +7767,7 @@ ALTER TABLE public.inspections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.issues ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5261 (class 0 OID 29471)
+-- TOC entry 5332 (class 0 OID 29471)
 -- Dependencies: 326
 -- Name: job_titles; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6517,7 +7775,7 @@ ALTER TABLE public.issues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.job_titles ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5271 (class 0 OID 47812)
+-- TOC entry 5342 (class 0 OID 47812)
 -- Dependencies: 336
 -- Name: line_item_entries; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6525,7 +7783,7 @@ ALTER TABLE public.job_titles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.line_item_entries ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5267 (class 0 OID 35668)
+-- TOC entry 5338 (class 0 OID 35668)
 -- Dependencies: 332
 -- Name: line_item_templates; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6533,7 +7791,7 @@ ALTER TABLE public.line_item_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.line_item_templates ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5260 (class 0 OID 29189)
+-- TOC entry 5331 (class 0 OID 29189)
 -- Dependencies: 318
 -- Name: line_items; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6541,7 +7799,7 @@ ALTER TABLE public.line_item_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.line_items ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5259 (class 0 OID 29172)
+-- TOC entry 5330 (class 0 OID 29172)
 -- Dependencies: 317
 -- Name: maps; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6549,7 +7807,7 @@ ALTER TABLE public.line_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.maps ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5262 (class 0 OID 29608)
+-- TOC entry 5333 (class 0 OID 29608)
 -- Dependencies: 327
 -- Name: organizations; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6557,7 +7815,7 @@ ALTER TABLE public.maps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5256 (class 0 OID 29126)
+-- TOC entry 5327 (class 0 OID 29126)
 -- Dependencies: 314
 -- Name: profiles; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6565,7 +7823,7 @@ ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5270 (class 0 OID 45566)
+-- TOC entry 5341 (class 0 OID 45566)
 -- Dependencies: 335
 -- Name: tack_rates; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6573,7 +7831,7 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tack_rates ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5272 (class 0 OID 48860)
+-- TOC entry 5343 (class 0 OID 48860)
 -- Dependencies: 337
 -- Name: user_contracts; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -6581,14 +7839,14 @@ ALTER TABLE public.tack_rates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_contracts ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5258 (class 0 OID 29155)
+-- TOC entry 5329 (class 0 OID 29155)
 -- Dependencies: 316
 -- Name: wbs; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.wbs ENABLE ROW LEVEL SECURITY;
 
--- Completed on 2025-05-20 21:50:20
+-- Completed on 2025-05-24 19:27:31
 
 --
 -- PostgreSQL database dump complete

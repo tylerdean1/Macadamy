@@ -1,24 +1,7 @@
-import { Database } from "./database.types";
+// ========== HAND-WRITTEN RPC ROW TYPES & FUNCTION TYPES ==========
+import type { Database } from './database.types';
 
-/**
- * Remote Procedure Call (RPC) Type Definitions
- *
- * This file defines the TypeScript types for all RPC functions that interact with the Supabase backend.
- * Each RPC is documented with detailed information about:
- *   - Its purpose and functionality
- *   - Input parameters with property-level documentation
- *   - Return types and expected values
- *
- * These type definitions provide type safety for frontend code that calls these RPCs
- * and serve as documentation for developers working with the API.
- *
- * Organization:
- * - Database row types are defined first to represent the data structures from the database
- * - RPC function types are organized by functional area (contracts, WBS, maps, profiles, etc.)
- * - Special RPCs with complex behavior are documented with additional details
- */
-
-// ========== DATABASE ROW TYPES ==========
+// --- Contract/Team Management ---
 export type ContractWithWktRow = {
   id: string;
   title: string | null;
@@ -31,36 +14,55 @@ export type ContractWithWktRow = {
   coordinates_wkt: string | null;
   session_id: string | null;
 };
+export type GetContractWithWktRpcArgs = { contract_id: string };
+export type GetContractWithWktRpc = (args: GetContractWithWktRpcArgs) => Promise<ContractWithWktRow[]>;
 
-export type WbsWithWktRow = Database["public"]["Tables"]["wbs"]["Row"] & {
-  wbs_number?: string | null;
-  budget?: number | null;
-  scope?: string | null;
-  location?: string | null;
-  coordinates_wkt?: string | null;
-  session_id?: string | null;
+export type WbsWithWktRow = {
+  id: string;
+  contract_id: string;
+  wbs_number: string | null;
+  budget: number | null;
+  scope: string | null;
+  location: string | null;
+  coordinates_wkt: string | null;
+  session_id: string | null;
 };
+export type GetWbsWithWktRpcArgs = { contract_id: string; session_id: string };
+export type GetWbsWithWktRpc = (args: GetWbsWithWktRpcArgs) => Promise<WbsWithWktRow[]>;
 
 export type MapsWithWktRow = {
-  id: string | null;
-  wbs_id: string | null;
+  id: string;
+  contract_id: string;
+  wbs_id: string;
   map_number: string | null;
   location: string | null;
   scope: string | null;
   budget: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+  session_id: string | null;
+  coordinates_wkt: string | null;
+};
+export type GetMapsWithWktRpcArgs = { wbs_id: string; session_id: string };
+export type GetMapsWithWktRpc = (args: GetMapsWithWktRpcArgs) => Promise<MapsWithWktRow[]>;
+
+export type LineItemsWithWktRow = {
+  id: string;
+  contract_id: string;
+  wbs_id: string;
+  map_id: string;
+  item_code: string | null;
+  description: string | null;
+  quantity: number | null;
+  unit_price: number | null;
+  unit_measure: Database["public"]["Enums"]["unit_measure_type"] | null;
+  reference_doc: string | null;
+  template_id: string | null;
   coordinates_wkt: string | null;
   session_id: string | null;
 };
-
-export type LineItemsWithWktRow = Database["public"]["Tables"]["line_items"]["Row"] & {
-  line_code?: string | null;
-  map_id?: string | null;
-  unit_measure?:  Database["public"]["Enums"]["unit_measure_type"];
-  reference_doc?: string | null;
-  template_id?: string | null;
-  coordinates_wkt?: string | null;
-  session_id?: string | null;
-};
+export type GetLineItemsWithWktRpcArgs = { contract_id: string; session_id: string };
+export type GetLineItemsWithWktRpc = (args: GetLineItemsWithWktRpcArgs) => Promise<LineItemsWithWktRow[]>;
 
 export type ChangeOrdersRow = {
   id: string;
@@ -77,6 +79,8 @@ export type ChangeOrdersRow = {
   attachments: string[] | null;
   session_id: string | null;
 };
+export type GetChangeOrdersForLineItemRpcArgs = { line_item_id: string; session_id: string };
+export type GetChangeOrdersForLineItemRpc = (args: GetChangeOrdersForLineItemRpcArgs) => Promise<ChangeOrdersRow[]>;
 
 export type ContractOrganizationsRow = {
   organization_id: string;
@@ -84,6 +88,8 @@ export type ContractOrganizationsRow = {
   role: Database["public"]["Enums"]["organization_role"];
   session_id: string | null;
 };
+export type GetContractOrganizationsRpcArgs = { contract_id: string; session_id: string };
+export type GetContractOrganizationsRpc = (args: GetContractOrganizationsRpcArgs) => Promise<ContractOrganizationsRow[]>;
 
 export type CrewMembersByOrganizationRow = {
   crew_id: string;
@@ -95,6 +101,8 @@ export type CrewMembersByOrganizationRow = {
   location_notes: string | null;
   session_id: string | null;
 };
+export type GetCrewMembersByOrganizationRpcArgs = { organization_id: string; session_id: string };
+export type GetCrewMembersByOrganizationRpc = (args: GetCrewMembersByOrganizationRpcArgs) => Promise<CrewMembersByOrganizationRow[]>;
 
 export type CrewsByOrganizationRow = {
   id: string;
@@ -104,6 +112,8 @@ export type CrewsByOrganizationRow = {
   created_by: string;
   session_id: string | null;
 };
+export type GetCrewsByOrganizationRpcArgs = { organization_id: string; session_id: string };
+export type GetCrewsByOrganizationRpc = (args: GetCrewsByOrganizationRpcArgs) => Promise<CrewsByOrganizationRow[]>;
 
 export type DailyLogsRow = {
   id: string;
@@ -117,6 +127,8 @@ export type DailyLogsRow = {
   created_by: string;
   session_id: string | null;
 };
+export type GetDailyLogsForContractRpcArgs = { contract_id: string; session_id: string };
+export type GetDailyLogsForContractRpc = (args: GetDailyLogsForContractRpcArgs) => Promise<DailyLogsRow[]>;
 
 export type EquipmentByOrganizationRow = {
   id: string;
@@ -126,6 +138,8 @@ export type EquipmentByOrganizationRow = {
   operator_id: string | null;
   session_id: string | null;
 };
+export type GetEquipmentByOrganizationRpcArgs = { organization_id: string; session_id: string };
+export type GetEquipmentByOrganizationRpc = (args: GetEquipmentByOrganizationRpcArgs) => Promise<EquipmentByOrganizationRow[]>;
 
 export type EquipmentAssignmentsRow = {
   id: string;
@@ -137,6 +151,8 @@ export type EquipmentAssignmentsRow = {
   notes: string | null;
   session_id: string | null;
 };
+export type GetEquipmentAssignmentsRpcArgs = { equipment_id: string; session_id: string };
+export type GetEquipmentAssignmentsRpc = (args: GetEquipmentAssignmentsRpcArgs) => Promise<EquipmentAssignmentsRow[]>;
 
 export type EquipmentUsageRow = {
   equipment_id: string;
@@ -148,6 +164,8 @@ export type EquipmentUsageRow = {
   operator_id: string | null;
   session_id: string | null;
 };
+export type GetEquipmentUsageRpcArgs = { equipment_id: string; session_id: string };
+export type GetEquipmentUsageRpc = (args: GetEquipmentUsageRpcArgs) => Promise<EquipmentUsageRow[]>;
 
 export type InspectionsRow = {
   id: string;
@@ -156,11 +174,14 @@ export type InspectionsRow = {
   line_item_id: string;
   name: string | null;
   description: string | null;
-  pdf_url: string | null;
-  photo_urls: string[] | null;
+  status: string | null;
+  scheduled_date: string | null;
+  completed_date: string | null;
   created_by: string;
   session_id: string | null;
 };
+export type GetInspectionsForContractRpcArgs = { contract_id: string; session_id: string };
+export type GetInspectionsForContractRpc = (args: GetInspectionsForContractRpcArgs) => Promise<InspectionsRow[]>;
 
 export type IssuesRow = {
   id: string;
@@ -179,12 +200,16 @@ export type IssuesRow = {
   photo_urls: string[] | null;
   session_id: string | null;
 };
+export type GetIssuesForContractRpcArgs = { contract_id: string; session_id: string };
+export type GetIssuesForContractRpc = (args: GetIssuesForContractRpcArgs) => Promise<IssuesRow[]>;
 
 export type JobTitlesRow = {
   title: string;
   is_custom: boolean;
   session_id: string | null;
 };
+export type GetJobTitlesByOrganizationRpcArgs = { organization_id: string; session_id: string };
+export type GetJobTitlesByOrganizationRpc = (args: GetJobTitlesByOrganizationRpcArgs) => Promise<JobTitlesRow[]>;
 
 export type LineItemEntriesRow = {
   id: string;
@@ -193,12 +218,13 @@ export type LineItemEntriesRow = {
   line_item_id: string;
   template_id: string;
   entered_by: string;
-  input_variables: Record<string, unknown>;
-  computed_output: number;
+  entry_date: string;
+  value: number;
   notes: string | null;
-  output_unit: Database["public"]["Enums"]["unit_measure_type"];
   session_id: string | null;
 };
+export type GetLineItemEntriesRpcArgs = { line_item_id: string; session_id: string };
+export type GetLineItemEntriesRpc = (args: GetLineItemEntriesRpcArgs) => Promise<LineItemEntriesRow[]>;
 
 export type LineItemTemplatesByOrganizationRow = {
   id: string;
@@ -209,6 +235,8 @@ export type LineItemTemplatesByOrganizationRow = {
   instructions: string | null;
   session_id: string | null;
 };
+export type GetLineItemTemplatesByOrganizationRpcArgs = { organization_id: string; session_id: string };
+export type GetLineItemTemplatesByOrganizationRpc = (args: GetLineItemTemplatesByOrganizationRpcArgs) => Promise<LineItemTemplatesByOrganizationRow[]>;
 
 export type AllLineItemTemplatesRow = {
   id: string;
@@ -219,6 +247,8 @@ export type AllLineItemTemplatesRow = {
   instructions: string;
   session_id: string | null;
 };
+export type GetAllLineItemTemplatesRpcArgs = { session_id: string };
+export type GetAllLineItemTemplatesRpc = (args: GetAllLineItemTemplatesRpcArgs) => Promise<AllLineItemTemplatesRow[]>;
 
 export type OrganizationsRow = {
   id: string;
@@ -228,6 +258,8 @@ export type OrganizationsRow = {
   website: string;
   session_id: string | null;
 };
+export type GetOrganizationsRpcArgs = { session_id: string };
+export type GetOrganizationsRpc = (args: GetOrganizationsRpcArgs) => Promise<OrganizationsRow[]>;
 
 export type ProfilesByOrganizationRow = {
   id: string;
@@ -243,6 +275,8 @@ export type ProfilesByOrganizationRow = {
   avatar_url: string;
   session_id: string | null;
 };
+export type GetProfilesByOrganizationRpcArgs = { organization_id: string; session_id: string };
+export type GetProfilesByOrganizationRpc = (args: GetProfilesByOrganizationRpcArgs) => Promise<ProfilesByOrganizationRow[]>;
 
 export type AllProfilesRow = {
   id: string;
@@ -258,6 +292,8 @@ export type AllProfilesRow = {
   avatar_url: string;
   session_id: string | null;
 };
+export type GetAllProfilesRpcArgs = { session_id: string };
+export type GetAllProfilesRpc = (args: GetAllProfilesRpcArgs) => Promise<AllProfilesRow[]>;
 
 export type ProfilesByContractRow = {
   id: string;
@@ -273,6 +309,8 @@ export type ProfilesByContractRow = {
   avatar_url: string;
   session_id: string | null;
 };
+export type GetProfilesByContractRpcArgs = { contract_id: string; session_id: string };
+export type GetProfilesByContractRpc = (args: GetProfilesByContractRpcArgs) => Promise<ProfilesByContractRow[]>;
 
 export type AvatarsForProfileRow = {
   id: string;
@@ -281,522 +319,383 @@ export type AvatarsForProfileRow = {
   profile_id?: string | null;
   session_id: string | null;
 };
+export type GetAvatarsForProfileRpcArgs = { profile_id: string };
+export type GetAvatarsForProfileRpc = (args: GetAvatarsForProfileRpcArgs) => Promise<AvatarsForProfileRow[]>;
 
 export type UserContractsRow = {
   contract_id: string;
   role: Database["public"]["Enums"]["user_role"];
   session_id: string | null;
 };
+export type GetUserContractsRpcArgs = { user_id: string; session_id: string };
+export type GetUserContractsRpc = (args: GetUserContractsRpcArgs) => Promise<UserContractsRow[]>;
 
-// Generated RPC function types from functions.sql
+// --- Utility/Enum/Other RPCs ---
+export type CheckUsernameAvailableRpcArgs = { username: string };
+export type CheckUsernameAvailableRpc = (args: CheckUsernameAvailableRpcArgs) => Promise<boolean>;
 
-/**
- * Helper function to get user ID from session.
- * @param args Object containing parameters for the RPC.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to the user ID (UUID string).
- */
-export type GetUserIdFromSessionRpcArgs = {
-  p_session_id: string;
+export type GetDashboardMetricsRpcArgs = { user_id: string };
+export type GetDashboardMetricsRpc = (args: GetDashboardMetricsRpcArgs) => Promise<{ active_contracts: number; total_issues: number; total_inspections: number }>;
+
+// --- Demo/Clone/Session/Other ---
+export type ExecuteFullDemoCloneRpcArgs = { session_id: string };
+export type ExecuteFullDemoCloneRpc = (args: ExecuteFullDemoCloneRpcArgs) => Promise<void>;
+
+// --- Delete/Write/Mutate RPCs (all return void) ---
+export type DeleteContractsRpcArgs = { id: string };
+export type DeleteContractsRpc = (args: DeleteContractsRpcArgs) => Promise<void>;
+export type DeleteCrewsRpcArgs = { id: string };
+export type DeleteCrewsRpc = (args: DeleteCrewsRpcArgs) => Promise<void>;
+export type DeleteDailyLogsRpcArgs = { id: string };
+export type DeleteDailyLogsRpc = (args: DeleteDailyLogsRpcArgs) => Promise<void>;
+export type DeleteEquipmentRpcArgs = { id: string };
+export type DeleteEquipmentRpc = (args: DeleteEquipmentRpcArgs) => Promise<void>;
+export type DeleteEquipmentAssignmentsRpcArgs = { id: string };
+export type DeleteEquipmentAssignmentsRpc = (args: DeleteEquipmentAssignmentsRpcArgs) => Promise<void>;
+export type DeleteEquipmentUsageRpcArgs = { id: string };
+export type DeleteEquipmentUsageRpc = (args: DeleteEquipmentUsageRpcArgs) => Promise<void>;
+export type DeleteInspectionsRpcArgs = { id: string };
+export type DeleteInspectionsRpc = (args: DeleteInspectionsRpcArgs) => Promise<void>;
+export type DeleteIssuesRpcArgs = { id: string };
+export type DeleteIssuesRpc = (args: DeleteIssuesRpcArgs) => Promise<void>;
+export type DeleteJobTitlesRpcArgs = { id: string };
+export type DeleteJobTitlesRpc = (args: DeleteJobTitlesRpcArgs) => Promise<void>;
+export type DeleteLineItemEntriesRpcArgs = { id: string };
+export type DeleteLineItemEntriesRpc = (args: DeleteLineItemEntriesRpcArgs) => Promise<void>;
+export type DeleteLineItemTemplatesRpcArgs = { id: string };
+export type DeleteLineItemTemplatesRpc = (args: DeleteLineItemTemplatesRpcArgs) => Promise<void>;
+export type DeleteLineItemsRpcArgs = { id: string };
+export type DeleteLineItemsRpc = (args: DeleteLineItemsRpcArgs) => Promise<void>;
+export type DeleteMapsRpcArgs = { id: string };
+export type DeleteMapsRpc = (args: DeleteMapsRpcArgs) => Promise<void>;
+export type DeleteOrganizationsRpcArgs = { id: string };
+export type DeleteOrganizationsRpc = (args: DeleteOrganizationsRpcArgs) => Promise<void>;
+export type DeleteProfilesRpcArgs = { id: string };
+export type DeleteProfilesRpc = (args: DeleteProfilesRpcArgs) => Promise<void>;
+export type DeleteUserContractsRpcArgs = { user_id: string; contract_id: string };
+export type DeleteUserContractsRpc = (args: DeleteUserContractsRpcArgs) => Promise<void>;
+export type DeleteWbsRpcArgs = { id: string };
+export type DeleteWbsRpc = (args: DeleteWbsRpcArgs) => Promise<void>;
+
+// --- Additional Delete RPCs ---
+export type DeleteAsphaltTypeRpcArgs = { id: string };
+export type DeleteAsphaltTypeRpc = (args: DeleteAsphaltTypeRpcArgs) => Promise<void>;
+
+export type DeleteAvatarsRpcArgs = { id: string };
+export type DeleteAvatarsRpc = (args: DeleteAvatarsRpcArgs) => Promise<void>;
+
+export type DeleteChangeOrderRpcArgs = { id: string };
+export type DeleteChangeOrderRpc = (args: DeleteChangeOrderRpcArgs) => Promise<void>;
+
+export type DeleteContractOrganizationRpcArgs = { id: string };
+export type DeleteContractOrganizationRpc = (args: DeleteContractOrganizationRpcArgs) => Promise<void>;
+
+export type DeleteCrewRpcArgs = { id: string };
+export type DeleteCrewRpc = (args: DeleteCrewRpcArgs) => Promise<void>;
+
+export type DeleteCrewMemberRpcArgs = { id: string };
+export type DeleteCrewMemberRpc = (args: DeleteCrewMemberRpcArgs) => Promise<void>;
+
+export type DeleteDemoMappingRpcArgs = { session_id: string };
+export type DeleteDemoMappingRpc = (args: DeleteDemoMappingRpcArgs) => Promise<void>;
+
+export type DeleteDumpTruckRpcArgs = { id: string };
+export type DeleteDumpTruckRpc = (args: DeleteDumpTruckRpcArgs) => Promise<void>;
+
+export type DeleteEquipmentAssignmentRpcArgs = { id: string };
+export type DeleteEquipmentAssignmentRpc = (args: DeleteEquipmentAssignmentRpcArgs) => Promise<void>;
+
+export type DeleteTackRatesRpcArgs = { id: string };
+export type DeleteTackRatesRpc = (args: DeleteTackRatesRpcArgs) => Promise<void>;
+
+// --- Insert RPCs ---
+export type InsertAsphaltTypeRpcArgs = {
+  name: string;
+  compaction_min?: number;
+  jmf_temp_max?: number;
+  jmf_temp_min?: number;
+  lift_depth_inches?: number;
+  notes?: string;
+  target_spread_rate_lbs_per_sy?: number;
 };
-export type GetUserIdFromSessionRpc = (
-  args: GetUserIdFromSessionRpcArgs,
-) => Promise<string>;
+export type InsertAsphaltTypeRpc = (args: InsertAsphaltTypeRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all contracts with WKT coordinates for the current session.
- * @param args Object containing parameters for the RPC.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of contract rows with WKT coordinates.
- */
-export type GetContractsWithWktRpcArgs = {
-  p_session_id: string;
+export type InsertAvatarRpcArgs = {
+  id: string;
+  name: string;
+  url: string;
+  is_preset?: boolean;
+  session_id?: string;
 };
-export type GetContractsWithWktRpc = (
-  args: GetContractsWithWktRpcArgs,
-) => Promise<ContractWithWktRow[]>;
+export type InsertAvatarRpc = (args: InsertAvatarRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all WBS with WKT coordinates for a given contract_id and session_id.
- * @param args Object containing parameters for the RPC.
- * @param args.p_contract_id The contract ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of WBS rows with WKT coordinates.
- */
-export type GetWbsWithWktRpcArgs = {
-  p_contract_id: string;
-  p_session_id: string;
+export type InsertChangeOrderRpcArgs = {
+  contract_id: string;
+  line_item_id?: string;
+  title?: string;
+  description?: string;
+  attachments?: string[];
+  new_quantity?: number;
+  new_unit_price?: number;
+  status?: Database["public"]["Enums"]["change_order_status"];
+  submitted_date?: string;
+  created_by?: string;
+  session_id?: string;
 };
-export type GetWbsWithWktRpc = (
-  args: GetWbsWithWktRpcArgs,
-) => Promise<WbsWithWktRow[]>;
+export type InsertChangeOrderRpc = (args: InsertChangeOrderRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all maps with WKT coordinates for a given wbs_id and session_id.
- * @param args Object containing parameters for the RPC.
- * @param args.p_wbs_id The WBS ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of map rows with WKT coordinates.
- */
-export type GetMapsWithWktRpcArgs = {
-  p_wbs_id: string;
-  p_session_id: string;
+export type InsertContractOrganizationRpcArgs = {
+  contract_id: string;
+  organization_id: string;
+  created_by: string;
+  role?: Database["public"]["Enums"]["organization_role"];
+  notes?: string;
+  session_id?: string;
 };
-export type GetMapsWithWktRpc = (
-  args: GetMapsWithWktRpcArgs,
-) => Promise<MapsWithWktRow[]>;
+export type InsertContractOrganizationRpc = (args: InsertContractOrganizationRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all line items for a given contract_id and session_id.
- * @param args Object containing parameters for the RPC.
- * @param args.p_contract_id The contract ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of line item rows.
- */
-export type GetLineItemsWithWktRpcArgs = {
-  p_contract_id: string;
-  p_session_id: string;
+export type InsertCrewRpcArgs = {
+  name: string;
+  organization_id: string;
+  created_by: string;
+  description?: string;
+  foreman_id?: string;
+  session_id?: string;
 };
-export type GetLineItemsWithWktRpc = (
-  args: GetLineItemsWithWktRpcArgs,
-) => Promise<LineItemsWithWktRow[]>;
+export type InsertCrewRpc = (args: InsertCrewRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all change orders for a given line_item_id and session_id.
- * @param args Object containing parameters for the RPC.
- * @param args.p_line_item_id The line item ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of change order rows.
- */
-export type GetChangeOrdersForLineItemRpcArgs = {
-  p_line_item_id: string;
-  p_session_id: string;
+export type InsertCrewMemberRpcArgs = {
+  created_by: string;
+  crew_id: string;
+  profile_id: string;
+  role?: string;
+  location_notes?: string;
+  organization_id?: string;
+  map_location_id?: string;
+  session_id?: string;
+  assigned_at?: string;
 };
-export type GetChangeOrdersForLineItemRpc = (
-  args: GetChangeOrdersForLineItemRpcArgs,
-) => Promise<ChangeOrdersRow[]>;
+export type InsertCrewMemberRpc = (args: InsertCrewMemberRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all organizations associated with a contract.
- * @param args Object containing parameters for the RPC.
- * @param args.p_contract_id The contract ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of contract organization rows.
- */
-export type GetContractOrganizationsRpcArgs = {
-  p_contract_id: string;
-  p_session_id: string;
+export type InsertDailyLogRpcArgs = {
+  contract_id: string;
+  log_date: string;
+  created_by?: string;
+  work_performed?: string;
+  weather_conditions?: string;
+  temperature?: number;
+  delays_encountered?: string;
+  safety_incidents?: string;
+  visitors?: string;
+  session_id?: string;
 };
-export type GetContractOrganizationsRpc = (
-  args: GetContractOrganizationsRpcArgs,
-) => Promise<ContractOrganizationsRow[]>;
+export type InsertDailyLogRpc = (args: InsertDailyLogRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all crew members for a given organization_id and session_id.
- * @param args Object containing parameters for the RPC.
- * @param args.p_organization_id The organization ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of crew member rows for the organization.
- */
-export type GetCrewMembersByOrganizationRpcArgs = {
-  p_organization_id: string;
-  p_session_id: string;
+export type InsertDumpTruckRpcArgs = {
+  payload_capacity_tons: number;
+  truck_identifier: string;
+  axle_count?: number;
+  bed_height?: number;
+  bed_length?: number;
+  bed_volume?: number;
+  bed_width?: number;
+  contract_id?: string;
+  equipment_id?: string;
+  hoist_bottom?: number;
+  hoist_top?: number;
+  hoist_width?: number;
+  notes?: string;
+  weight_capacity_tons?: number;
 };
-export type GetCrewMembersByOrganizationRpc = (
-  args: GetCrewMembersByOrganizationRpcArgs,
-) => Promise<CrewMembersByOrganizationRow[]>;
+export type InsertDumpTruckRpc = (args: InsertDumpTruckRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all crews for a given organization_id and session_id.
- * @param args Object containing parameters for the RPC.
- * @param args.p_organization_id The organization ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of crew rows for the organization.
- */
-export type GetCrewsByOrganizationRpcArgs = {
-  p_organization_id: string;
-  p_session_id: string;
+export type InsertEquipmentRpcArgs = {
+  name: string;
+  created_by?: string;
+  operator_id?: string;
+  organization_id?: string;
+  session_id?: string;
+  standard_pay_rate?: number;
+  standard_pay_unit?: Database["public"]["Enums"]["pay_rate_unit"];
+  description?: string;
+  user_defined_id?: string;
 };
-export type GetCrewsByOrganizationRpc = (
-  args: GetCrewsByOrganizationRpcArgs,
-) => Promise<CrewsByOrganizationRow[]>;
+export type InsertEquipmentRpc = (args: InsertEquipmentRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all daily logs for a given contract_id and session_id.
- * @param args Object containing parameters for the RPC.
- * @param args.p_contract_id The contract ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of daily log rows for the contract.
- */
-export type GetDailyLogsForContractRpcArgs = {
-  p_contract_id: string;
-  p_session_id: string;
+export type InsertEquipmentUsageRpcArgs = {
+  hours_used: number;
+  contract_id?: string;
+  created_by?: string;
+  equipment_id?: string;
+  line_item_id?: string;
+  map_id?: string;
+  operator_id?: string;
+  session_id?: string;
+  notes?: string;
+  updated_by?: string;
+  usage_date?: string;
+  wbs_id?: string;
 };
-export type GetDailyLogsForContractRpc = (
-  args: GetDailyLogsForContractRpcArgs,
-) => Promise<DailyLogsRow[]>;
+export type InsertEquipmentUsageRpc = (args: InsertEquipmentUsageRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all equipment for a given organization_id and session_id.
- * @param args Object containing parameters for the RPC.
- * @param args.p_organization_id The organization ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of equipment rows for the organization.
- */
-export type GetEquipmentByOrganizationRpcArgs = {
-  p_organization_id: string;
-  p_session_id: string;
+export type InsertInspectionRpcArgs = {
+  contract_id: string;
+  name: string;
+  description?: string;
+  created_by?: string;
+  line_item_id?: string;
+  map_id?: string;
+  pdf_url?: string;
+  photo_urls?: string[];
+  session_id?: string;
+  wbs_id?: string;
 };
-export type GetEquipmentByOrganizationRpc = (
-  args: GetEquipmentByOrganizationRpcArgs,
-) => Promise<EquipmentByOrganizationRow[]>;
+export type InsertInspectionRpc = (args: InsertInspectionRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all equipment assignments for a given equipment_id and session_id.
- * @param args Object containing parameters for the RPC.
- * @param args.p_equipment_id The equipment ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of equipment assignment rows.
- */
-export type GetEquipmentAssignmentsRpcArgs = {
-  p_equipment_id: string;
-  p_session_id: string;
+export type InsertIssueRpcArgs = {
+  title: string;
+  description: string;
+  status: string;
+  priority?: Database["public"]["Enums"]["priority"];
+  assigned_to?: string;
+  contract_id?: string;
+  created_by?: string;
+  equipment_id?: string;
+  line_item_id?: string;
+  map_id?: string;
+  session_id?: string;
+  photo_urls?: string[];
+  resolution?: string;
+  due_date?: string;
+  updated_at?: string;
+  updated_by?: string;
+  wbs_id?: string;
 };
-export type GetEquipmentAssignmentsRpc = (
-  args: GetEquipmentAssignmentsRpcArgs,
-) => Promise<EquipmentAssignmentsRow[]>;
+export type InsertIssueRpc = (args: InsertIssueRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all equipment usage records for a given equipment_id and session_id.
- * @param args Object containing parameters for the RPC.
- * @param args.p_equipment_id The equipment ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of equipment usage rows.
- */
-export type GetEquipmentUsageRpcArgs = {
-  p_equipment_id: string;
-  p_session_id: string;
+export type InsertJobTitleRpcArgs = {
+  title: string;
+  created_by?: string;
+  is_custom?: boolean;
+  session_id?: string;
 };
-export type GetEquipmentUsageRpc = (
-  args: GetEquipmentUsageRpcArgs,
-) => Promise<EquipmentUsageRow[]>;
+export type InsertJobTitleRpc = (args: InsertJobTitleRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all inspections for a given contract_id and session_id.
- * @param args Object containing parameters for the RPC.
- * @param args.p_contract_id The contract ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of inspection rows for the contract.
- */
-export type GetInspectionsForContractRpcArgs = {
-  p_contract_id: string;
-  p_session_id: string;
+export type InsertLineItemRpcArgs = {
+  description: string;
+  line_code: string;
+  wbs_id: string;
+  unit_measure: Database["public"]["Enums"]["unit_measure_type"];
+  quantity: number;
+  unit_price: number;
+  contract_id?: string;
+  map_id?: string;
+  reference_doc?: string;
+  template_id?: string;
+  session_id?: string;
+  coordinates?: string;
 };
-export type GetInspectionsForContractRpc = (
-  args: GetInspectionsForContractRpcArgs,
-) => Promise<InspectionsRow[]>;
+export type InsertLineItemRpc = (args: InsertLineItemRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all issues for a given contract_id and session_id.
- * @param args Object containing parameters for the RPC.
- * @param args.p_contract_id The contract ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of issue rows for the contract.
- */
-export type GetIssuesForContractRpcArgs = {
-  p_contract_id: string;
-  p_session_id: string;
+export type InsertLineItemEntryRpcArgs = {
+  contract_id: string;
+  line_item_id: string;
+  map_id: string;
+  input_variables: Record<string, unknown>;
+  wbs_id: string;
+  computed_output?: number;
+  notes?: string;
+  output_unit?: Database["public"]["Enums"]["unit_measure_type"];
+  entered_by?: string;
 };
-export type GetIssuesForContractRpc = (
-  args: GetIssuesForContractRpcArgs,
-) => Promise<IssuesRow[]>;
+export type InsertLineItemEntryRpc = (args: InsertLineItemEntryRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all job titles for a given organization_id and session_id.
- * @param args Object containing parameters for the RPC.
- * @param args.p_organization_id The organization ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of job title rows for the organization.
- */
-export type GetJobTitlesByOrganizationRpcArgs = {
-  p_organization_id: string;
-  p_session_id: string;
+export type InsertLineItemTemplateRpcArgs = {
+  id: string;
+  name?: string;
+  description?: string;
+  formula?: Record<string, unknown>;
+  instructions?: string;
+  created_by?: string;
+  organization_id?: string;
+  output_unit?: Database["public"]["Enums"]["unit_measure_type"];
+  session_id?: string;
 };
-export type GetJobTitlesByOrganizationRpc = (
-  args: GetJobTitlesByOrganizationRpcArgs,
-) => Promise<JobTitlesRow[]>;
+export type InsertLineItemTemplateRpc = (args: InsertLineItemTemplateRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all line item entries for a given line_item_id and session_id.
- * @param args Object containing parameters for the RPC.
- * @param args.p_line_item_id The line item ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of line item entry rows.
- */
-export type GetLineItemEntriesRpcArgs = {
-  p_line_item_id: string;
-  p_session_id: string;
+export type InsertMapRpcArgs = {
+  map_number: string;
+  wbs_id: string;
+  location?: string;
+  budget?: number;
+  scope?: string;
+  coordinates?: string;
+  contract_id?: string;
+  session_id?: string;
 };
-export type GetLineItemEntriesRpc = (
-  args: GetLineItemEntriesRpcArgs,
-) => Promise<LineItemEntriesRow[]>;
+export type InsertMapRpc = (args: InsertMapRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all line item templates for a given organization_id and session_id.
- * @param args Object containing parameters for the RPC.
- * @param args.p_organization_id The organization ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of line item template rows for the organization.
- */
-export type GetLineItemTemplatesByOrganizationRpcArgs = {
-  p_organization_id: string;
-  p_session_id: string;
+export type InsertOrganizationRpcArgs = {
+  name: string;
+  created_by: string;
+  address?: string;
+  phone?: string;
+  website?: string;
+  session_id?: string;
 };
-export type GetLineItemTemplatesByOrganizationRpc = (
-  args: GetLineItemTemplatesByOrganizationRpcArgs,
-) => Promise<LineItemTemplatesByOrganizationRow[]>;
+export type InsertOrganizationRpc = (args: InsertOrganizationRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all line item templates (global) for the current session.
- * @param args Object containing parameters for the RPC.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of all global line item template rows.
- */
-export type GetAllLineItemTemplatesRpcArgs = {
-  p_session_id: string;
+export type InsertProfileRpcArgs = {
+  id: string;
+  full_name: string;
+  email?: string;
+  username?: string;
+  phone?: string;
+  avatar_id?: string;
+  job_title_id?: string;
+  location?: string;
+  role?: Database["public"]["Enums"]["user_role"];
+  organization_id?: string;
+  session_id?: string;
 };
-export type GetAllLineItemTemplatesRpc = (
-  args: GetAllLineItemTemplatesRpcArgs,
-) => Promise<AllLineItemTemplatesRow[]>;
+export type InsertProfileRpc = (args: InsertProfileRpcArgs) => Promise<string>;
 
-/**
- * RPC to get all organizations for the current session.
- * @param args Object containing parameters for the RPC.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of organization rows.
- */
-export type GetOrganizationsRpcArgs = {
-  p_session_id: string;
-};
-export type GetOrganizationsRpc = (
-  args: GetOrganizationsRpcArgs,
-) => Promise<OrganizationsRow[]>;
-
-/**
- * RPC to get all profiles for a given organization_id and session_id.
- * @param args Object containing parameters for the RPC.
- * @param args.p_organization_id The organization ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of profile rows for the organization.
- */
-export type GetProfilesByOrganizationRpcArgs = {
-  p_organization_id: string;
-  p_session_id: string;
-};
-export type GetProfilesByOrganizationRpc = (
-  args: GetProfilesByOrganizationRpcArgs,
-) => Promise<ProfilesByOrganizationRow[]>;
-
-/**
- * RPC to get all profiles (global) for the current session.
- * @param args Object containing parameters for the RPC.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of all profile rows.
- */
-export type GetAllProfilesRpcArgs = {
-  p_session_id: string;
-};
-export type GetAllProfilesRpc = (
-  args: GetAllProfilesRpcArgs,
-) => Promise<AllProfilesRow[]>;
-
-/**
- * RPC to get all profiles associated with a contract.
- * @param args Object containing parameters for the RPC.
- * @param args.p_contract_id The contract ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of profile rows associated with the contract.
- */
-export type GetProfilesByContractRpcArgs = {
-  p_contract_id: string;
-  p_session_id: string;
-};
-export type GetProfilesByContractRpc = (
-  args: GetProfilesByContractRpcArgs,
-) => Promise<ProfilesByContractRow[]>;
-
-/**
- * RPC to get all avatars for a given profile_id.
- * @param args Object containing parameters for the RPC.
- * @param args.p_profile_id The profile ID.
- * @returns A promise that resolves to an array of avatar rows for the profile.
- */
-export type GetAvatarsForProfileRpcArgs = {
-  p_profile_id: string;
-};
-export type GetAvatarsForProfileRpc = (
-  args: GetAvatarsForProfileRpcArgs,
-) => Promise<AvatarsForProfileRow[]>;
-
-/**
- * RPC to get all contracts associated with a user.
- * @param args Object containing parameters for the RPC.
- * @param args.p_user_id The user ID.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves to an array of user contract rows.
- */
-export type GetUserContractsRpcArgs = {
-  p_user_id: string;
-  p_session_id: string;
-};
-export type GetUserContractsRpc = (
-  args: GetUserContractsRpcArgs,
-) => Promise<UserContractsRow[]>;
-
-/**
- * RPC to get dashboard metrics for a user.
- * @param args Object containing parameters for the RPC.
- * @param args.p_user_id The user ID.
- * @returns A promise that resolves to an object containing dashboard metrics.
- */
-export type GetDashboardMetricsRpcArgs = {
-  p_user_id: string;
-};
-export type GetDashboardMetricsRpc = (
-  args: GetDashboardMetricsRpcArgs,
-) => Promise<{
-  active_contracts: number;
-  total_issues: number;
-  total_inspections: number;
-}>;
-
-/**
- * RPC to update a profile and its related job title and avatar.
- * @param args Object containing parameters for the RPC.
- * @param args.p_id The ID of the profile to update.
- * @param args.p_full_name Optional new full name.
- * @param args.p_username Optional new username.
- * @param args.p_email Optional new email.
- * @param args.p_phone Optional new phone number.
- * @param args.p_location Optional new location.
- * @param args.p_role Optional new user role.
- * @param args.p_job_title Optional new job title text.
- * @param args.p_is_custom Optional flag if the job title is custom.
- * @param args.p_job_title_id Optional ID of an existing job title.
- * @param args.p_organization_id Optional organization ID.
- * @param args.p_avatar_url Optional new avatar URL.
- * @param args.p_is_preset Optional flag if the avatar is a preset.
- * @param args.p_avatar_id Optional ID of an existing avatar.
- * @param args.p_created_by The user ID of the person making the update.
- * @param args.p_session_id The session ID.
- * @returns A promise that resolves when the update is complete.
- */
-export type UpdateProfileFullRpcArgs = {
-  p_id: string;
-  p_full_name?: string;
-  p_username?: string;
-  p_email?: string;
-  p_phone?: string;
-  p_location?: string;
-  p_role?: Database["public"]["Enums"]["user_role"];
-  p_job_title?: string;
-  p_is_custom?: boolean;
-  p_job_title_id?: string;
-  p_organization_id?: string;
-  p_avatar_url?: string;
-  p_is_preset?: boolean;
-  p_avatar_id?: string;
-  p_created_by: string;
-  p_session_id: string;
-};
-export type UpdateProfileFullRpc = (
-  args: UpdateProfileFullRpcArgs,
-) => Promise<void>;
-
-/**
- * RPC to insert a new profile with all the provided fields.
- *
- * @param args._id The user ID for the profile.
- * @param args._role The role of the user.
- * @param args._full_name The full name of the user.
- * @param args._email The email of the user.
- * @param args._username The username of the user.
- * @param args._phone The phone number of the user.
- * @param args._location The location of the user.
- * @param args._job_title_id The job title ID of the user.
- * @param args._custom_job_title The custom job title if not using a preset.
- * @param args._organization_id The organization ID of the user.
- * @param args._custom_organization_name The custom organization name if not using a preset.
- * @param args._avatar_id The avatar ID of the user.
- * @returns A promise that resolves when the insert is complete.
- */
 export type InsertProfileFullRpcArgs = {
-  _id: string;
-  _role: Database["public"]["Enums"]["user_role"];
-  _full_name: string;
-  _email: string;
-  _username: string;
-  _phone?: string;
-  _location?: string;
-  _job_title_id?: string;
-  _custom_job_title?: string;
-  _organization_id?: string;
-  _custom_organization_name?: string;
-  _avatar_id?: string;
+  role: Database["public"]["Enums"]["user_role"];
+  full_name: string;
+  email: string;
+  username: string;
+  id?: string;
+  phone?: string;
+  location?: string;
+  job_title_id?: string;
+  custom_job_title?: string;
+  organization_id?: string;
+  custom_organization_name?: string;
+  avatar_id?: string;
 };
-export type InsertProfileFullRpc = (
-  args: InsertProfileFullRpcArgs,
-) => Promise<void>;
+export type InsertProfileFullRpc = (args: InsertProfileFullRpcArgs) => Promise<string>;
 
-/**
- * RPC to check if a username is available (not taken).
- * @param args._username The username to check (case-insensitive).
- * @returns A promise that resolves to a boolean: true if available, false if taken.
- */
-export type CheckUsernameAvailableRpcArgs = {
-  _username: string;
+export type InsertUserContractRpcArgs = {
+  user_id: string;
+  contract_id: string;
+  role?: Database["public"]["Enums"]["user_role"];
+  session_id?: string;
 };
-export type CheckUsernameAvailableRpc = (
-  args: CheckUsernameAvailableRpcArgs,
-) => Promise<boolean>;
+export type InsertUserContractRpc = (args: InsertUserContractRpcArgs) => Promise<void>;
 
-/**
- * RPC to get an enriched profile by username (case-insensitive).
- * @param args._username The username to look up.
- * @returns A promise that resolves to an enriched profile row or null.
- */
-export type GetEnrichedProfileByUsernameRpcArgs = {
-  _username: string;
+export type InsertWbsRpcArgs = {
+  wbs_number: string;
+  contract_id: string;
+  location?: string;
+  budget?: number;
+  scope?: string;
+  coordinates?: string;
+  session_id?: string;
 };
-export type GetEnrichedProfileByUsernameRpc = (
-  args: GetEnrichedProfileByUsernameRpcArgs,
-) => Promise<AllProfilesRow | null>;
+export type InsertWbsRpc = (args: InsertWbsRpcArgs) => Promise<string>;
 
-/**
- * ========== AUTO-GENERATED RPC TYPES FROM database.types.ts & functions.sql ==========
- * These types are generated to match every RPC/function in the database schema.
- * Each type is named as <FunctionName>RpcArgs and <FunctionName>Rpc.
- *
- * NOTE: If a function returns void/undefined, the Promise resolves to void.
- *       If a function returns a single value, the Promise resolves to that value.
- *       If a function returns a row or array of rows, the Promise resolves to the row type(s).
- */
-
-// --- Calculation Functions ---
-export type CalculateCyRpcArgs = { length: number; width: number; depth: number };
-export type CalculateCyRpc = (args: CalculateCyRpcArgs) => Promise<number>;
-
-export type CalculateSyRpcArgs = { length: number; width: number };
-export type CalculateSyRpc = (args: CalculateSyRpcArgs) => Promise<number>;
-
-export type CalculateTonsRpcArgs = { volume: number; density: number };
-export type CalculateTonsRpc = (args: CalculateTonsRpcArgs) => Promise<number>;
-
-// --- Admin/Utility Functions ---
-export type CheckIsAdminRpcArgs = object;
-export type CheckIsAdminRpc = (args: CheckIsAdminRpcArgs) => Promise<boolean>;
-
-// --- Demo Clone/Session Functions ---
+// --- Clone/Demo/Utility RPCs ---
 export type CloneChangeOrdersForSessionRpcArgs = { session_id: string };
 export type CloneChangeOrdersForSessionRpc = (args: CloneChangeOrdersForSessionRpcArgs) => Promise<void>;
 
@@ -848,53 +747,34 @@ export type CloneMapsForWbsRpc = (args: CloneMapsForWbsRpcArgs) => Promise<void>
 export type CloneWbsForContractsRpcArgs = { session_id: string };
 export type CloneWbsForContractsRpc = (args: CloneWbsForContractsRpcArgs) => Promise<void>;
 
-export type ExecuteFullDemoCloneRpcArgs = { p_session_id: string };
-export type ExecuteFullDemoCloneRpc = (args: ExecuteFullDemoCloneRpcArgs) => Promise<void>;
+export type CreateDemoEnvironmentRpcArgs = { base_profile_email: string };
+export type CreateDemoEnvironmentRpc = (args: CreateDemoEnvironmentRpcArgs) => Promise<{ created_session_id: string; created_profile_id: string }>
 
-// --- Delete Functions (all return void) ---
-export type DeleteAsphaltTypesRpcArgs = { _id: string };
-export type DeleteAsphaltTypesRpc = (args: DeleteAsphaltTypesRpcArgs) => Promise<void>;
-export type DeleteAvatarsRpcArgs = { _id: string };
-export type DeleteAvatarsRpc = (args: DeleteAvatarsRpcArgs) => Promise<void>;
-export type DeleteChangeOrdersRpcArgs = { _id: string };
-export type DeleteChangeOrdersRpc = (args: DeleteChangeOrdersRpcArgs) => Promise<void>;
-export type DeleteContractsRpcArgs = { _id: string };
-export type DeleteContractsRpc = (args: DeleteContractsRpcArgs) => Promise<void>;
-export type DeleteCrewMembersRpcArgs = { _id: string };
-export type DeleteCrewMembersRpc = (args: DeleteCrewMembersRpcArgs) => Promise<void>;
-export type DeleteCrewsRpcArgs = { _id: string };
-export type DeleteCrewsRpc = (args: DeleteCrewsRpcArgs) => Promise<void>;
-export type DeleteDailyLogsRpcArgs = { _id: string };
-export type DeleteDailyLogsRpc = (args: DeleteDailyLogsRpcArgs) => Promise<void>;
-export type DeleteDumpTrucksRpcArgs = { _id: string };
-export type DeleteDumpTrucksRpc = (args: DeleteDumpTrucksRpcArgs) => Promise<void>;
-export type DeleteEquipmentRpcArgs = { _id: string };
-export type DeleteEquipmentRpc = (args: DeleteEquipmentRpcArgs) => Promise<void>;
-export type DeleteEquipmentAssignmentsRpcArgs = { _id: string };
-export type DeleteEquipmentAssignmentsRpc = (args: DeleteEquipmentAssignmentsRpcArgs) => Promise<void>;
-export type DeleteEquipmentUsageRpcArgs = { _id: string };
-export type DeleteEquipmentUsageRpc = (args: DeleteEquipmentUsageRpcArgs) => Promise<void>;
-export type DeleteInspectionsRpcArgs = { _id: string };
-export type DeleteInspectionsRpc = (args: DeleteInspectionsRpcArgs) => Promise<void>;
-export type DeleteIssuesRpcArgs = { _id: string };
-export type DeleteIssuesRpc = (args: DeleteIssuesRpcArgs) => Promise<void>;
-export type DeleteJobTitlesRpcArgs = { _id: string };
-export type DeleteJobTitlesRpc = (args: DeleteJobTitlesRpcArgs) => Promise<void>;
-export type DeleteLineItemEntriesRpcArgs = { _id: string };
-export type DeleteLineItemEntriesRpc = (args: DeleteLineItemEntriesRpcArgs) => Promise<void>;
-export type DeleteLineItemTemplatesRpcArgs = { _id: string };
-export type DeleteLineItemTemplatesRpc = (args: DeleteLineItemTemplatesRpcArgs) => Promise<void>;
-export type DeleteLineItemsRpcArgs = { _id: string };
-export type DeleteLineItemsRpc = (args: DeleteLineItemsRpcArgs) => Promise<void>;
-export type DeleteMapsRpcArgs = { _id: string };
-export type DeleteMapsRpc = (args: DeleteMapsRpcArgs) => Promise<void>;
-export type DeleteOrganizationsRpcArgs = { _id: string };
-export type DeleteOrganizationsRpc = (args: DeleteOrganizationsRpcArgs) => Promise<void>;
-export type DeleteProfilesRpcArgs = { _id: string };
-export type DeleteProfilesRpc = (args: DeleteProfilesRpcArgs) => Promise<void>;
-export type DeleteTackRatesRpcArgs = { _id: string };
-export type DeleteTackRatesRpc = (args: DeleteTackRatesRpcArgs) => Promise<void>;
-export type DeleteUserContractsRpcArgs = { _user_id: string; _contract_id: string };
-export type DeleteUserContractsRpc = (args: DeleteUserContractsRpcArgs) => Promise<void>;
-export type DeleteWbsRpcArgs = { _id: string };
-export type DeleteWbsRpc = (args: DeleteWbsRpcArgs) => Promise<void>;
+// --- Update RPCs ---
+export type UpdateContractRpcArgs = {
+  _id: string;
+  _title?: string;
+  _location?: string;
+  _start_date?: string;
+  _end_date?: string;
+  _status?: Database["public"]["Enums"]["contract_status"];
+  _budget?: number;
+  _description?: string;
+  _coordinates?: unknown;
+};
+export type UpdateContractRpc = (args: UpdateContractRpcArgs) => Promise<void>;
+
+export type UpdateProfileRpcArgs = {
+  _id: string;
+  _full_name?: string;
+  _email?: string;
+  _username?: string;
+  _phone?: string;
+  _avatar_id?: string;
+  _job_title_id?: string;
+  _location?: string;
+  _role?: Database["public"]["Enums"]["user_role"];
+  _organization_id?: string;
+  _session_id?: string;
+};
+export type UpdateProfileRpc = (args: UpdateProfileRpcArgs) => Promise<void>;

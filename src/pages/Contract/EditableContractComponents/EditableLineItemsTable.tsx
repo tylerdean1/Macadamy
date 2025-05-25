@@ -4,14 +4,9 @@ import { toast } from 'react-hot-toast';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { supabase } from '@/lib/supabase';
-import { useAuthStore } from '@/lib/store';
 import { UnitMeasureType } from '@/lib/enums';
 import { getDemoSession } from '@/lib/utils/cloneDemoData';
-import type {
-  LineItemsWithWktRow,
-  WbsWithWktRow,
-  MapsWithWktRow
-} from '@/lib/rpc.types';
+import { LineItemsWithWktRow, WbsWithWktRow, MapsWithWktRow } from '../../../lib/rpc.types';
 
 interface EditableLineItemsTableProps {
   lineItems: LineItemsWithWktRow[];
@@ -28,13 +23,12 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
   contractId,
   onLineItemCreate
 }) => {
-  const { profile } = useAuthStore();
   const [isCreating, setIsCreating] = useState(false);
   const [unitOptions, setUnitOptions] = useState<UnitMeasureType[]>([]);
   const [newItem, setNewItem] = useState({
     wbs_id: '',
     map_id: '',
-    line_code: '',
+    item_code: '',
     description: '',
     unit_measure: 'Feet (FT)' as UnitMeasureType, // Fix: Use a valid default value for unit_measure, e.g., the first enum value or a required value
     quantity: 1,
@@ -70,8 +64,8 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
       toast.error('Please select a WBS');
       return;
     }
-    if (!newItem.line_code) {
-      toast.error('Line code is required');
+    if (!newItem.item_code) {
+      toast.error('Item code is required');
       return;
     }
     if (!newItem.description) {
@@ -81,24 +75,27 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
     try {
       const lineItemId = uuidv4();
       const demoSession = getDemoSession();
-      const createdBy = (typeof profile?.id === 'string' && profile.id.trim() !== '') ? profile.id : undefined;
-      const lineItemData = {
-        id: lineItemId,
-        contract_id: contractId,
-        ...newItem,
-        created_by: createdBy,
-        ...(demoSession ? { session_id: demoSession.sessionId } : {}),
-      };
-      // Use direct RPC call without casting
-      const { error } = await supabase.rpc('insert_line_items', {
-        _data: lineItemData
+      // Use direct RPC call with correct argument structure
+      const { error } = await supabase.rpc('insert_line_item', {
+        _contract_id: contractId,
+        _wbs_id: newItem.wbs_id,
+        _map_id: newItem.map_id ? newItem.map_id : undefined,
+        _line_code: newItem.item_code, // Use _line_code for backend
+        _description: newItem.description,
+        _unit_measure: newItem.unit_measure,
+        _quantity: newItem.quantity,
+        _unit_price: newItem.unit_price,
+        _reference_doc: newItem.reference_doc ? newItem.reference_doc : undefined,
+        ...(demoSession ? { _session_id: demoSession.sessionId } : {})
       });
       if (error) throw error;
       // Get the created line item to ensure we have all fields
       const { data: lineItemsData, error: fetchError } = await supabase
         .rpc('get_line_items_with_wkt', { contract_id_param: contractId });
       if (fetchError) throw fetchError;
-      const createdLineItem = lineItemsData.find(item => item.id === lineItemId);
+      // The backend returns line_code, not item_code
+      type BackendLineItem = Omit<LineItemsWithWktRow, 'item_code' | 'unit_measure'> & { line_code: string; unit_measure?: string; unit?: string };
+      const createdLineItem = (lineItemsData as BackendLineItem[]).find(item => item.id === lineItemId);
       if (createdLineItem && createdLineItem.id) {
         const validUnitMeasures = Object.values(UnitMeasureType) as string[];
         const fallbackUnit = UnitMeasureType.Feet;
@@ -108,17 +105,12 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
         } else if (typeof createdLineItem.unit === 'string' && validUnitMeasures.includes(createdLineItem.unit)) {
           safeUnit = createdLineItem.unit as UnitMeasureType;
         }
-        const safeLineItem = {
+        const safeLineItem: LineItemsWithWktRow = {
           ...createdLineItem,
-          coordinates: 'coordinates' in createdLineItem ? createdLineItem.coordinates : null,
-          line_code: createdLineItem.line_code ?? '',
-          map_id: createdLineItem.map_id ?? null,
           unit_measure: safeUnit,
-          reference_doc: createdLineItem.reference_doc ?? null,
-          template_id: createdLineItem.template_id ?? '',
-          coordinates_wkt: createdLineItem.coordinates_wkt ?? null,
+          item_code: createdLineItem.line_code ?? '', // Map line_code to item_code
         };
-        onLineItemCreate(safeLineItem as LineItemsWithWktRow);
+        onLineItemCreate(safeLineItem);
         toast.success('Line item created successfully');
         setIsCreating(false);
       }
@@ -170,7 +162,6 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
                     value={newItem.wbs_id}
                     onChange={(e) => {
                       handleInputChange('wbs_id', e.target.value);
-                      // Reset map selection when WBS changes
                       handleInputChange('map_id', '');
                     }}
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
@@ -178,7 +169,7 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
                     title="Select a WBS item"
                   >
                     <option value="">Select WBS</option>
-                    {wbsItems.map(wbs => (
+                    {wbsItems.map((wbs: WbsWithWktRow) => (
                       <option key={wbs.id} value={wbs.id}>
                         {wbs.wbs_number}
                       </option>
@@ -198,7 +189,7 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
                     title="Select a map for this line item"
                   >
                     <option value="">No Map</option>
-                    {filteredMaps.filter(map => map.id !== null && map.id !== undefined).map(map => (
+                    {filteredMaps.filter((map: MapsWithWktRow) => map.id != null && map.id !== undefined).map((map: MapsWithWktRow) => (
                       <option key={String(map.id)} value={String(map.id)}>
                         {map.map_number}
                       </option>
@@ -209,12 +200,12 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Line Code *
+                  Item Code *
                 </label>
                 <input
                   type="text"
-                  value={newItem.line_code}
-                  onChange={(e) => handleInputChange('line_code', e.target.value)}
+                  value={newItem.item_code}
+                  onChange={(e) => handleInputChange('item_code', e.target.value)}
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="e.g. ITEM-001"
                 />
@@ -318,7 +309,7 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
                     setNewItem({
                       wbs_id: '',
                       map_id: '',
-                      line_code: '',
+                      item_code: '',
                       description: '',
                       unit_measure: 'Each (EA)' as UnitMeasureType,
                       quantity: 1,
@@ -375,7 +366,7 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
                 {lineItems.map(item => (
                   <tr key={item.id}>
                     <td className="px-3 py-4 text-sm font-medium text-gray-200 whitespace-nowrap">
-                      {item.line_code}
+                      {item.item_code}
                     </td>
                     <td className="px-3 py-4 text-sm text-gray-300 whitespace-nowrap">
                       {item.description}
@@ -387,19 +378,19 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
                       {item.map_id}
                     </td>
                     <td className="px-3 py-4 text-sm text-gray-300 whitespace-nowrap text-right">
-                      {item.quantity}
+                      {(item.quantity ?? 0).toFixed(2)} {item.unit_measure}
                     </td>
                     <td className="px-3 py-4 text-sm text-gray-300 whitespace-nowrap text-right">
-                      {formatCurrency(item.unit_price)}
+                      {formatCurrency(item.unit_price ?? 0)}
                     </td>
                     <td className="px-3 py-4 text-sm text-gray-300 whitespace-nowrap text-right">
-                      {formatCurrency(item.quantity * item.unit_price)}
+                      {formatCurrency((item.quantity ?? 0) * (item.unit_price ?? 0))}
                     </td>
                     <td className="px-3 py-4 text-sm text-gray-300 whitespace-nowrap text-center">
-                      {/* Budget cell, content not specified */}
+                      {/* Budget/Progress bar can be added here if needed */}
                     </td>
                     <td className="px-3 py-4 text-sm text-gray-300 whitespace-nowrap text-center">
-                      {/* Actions cell, content not specified */}
+                      {/* Actions column */}
                     </td>
                   </tr>
                 ))}
@@ -409,7 +400,7 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
                   <td colSpan={6} className="px-3 py-3 text-right text-sm font-medium">Total:</td>
                   <td className="px-3 py-3 text-right text-sm font-medium">
                     {formatCurrency(
-                      lineItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0)
+                      lineItems.reduce((sum, item) => sum + ((item.quantity ?? 0) * (item.unit_price ?? 0)), 0)
                     )}
                   </td>
                   <td colSpan={2}></td>

@@ -71,18 +71,17 @@ export const ContractCreation = () => {
 
       // Insert the contract
       const { error: contractError } = await supabase.rpc('insert_contracts', {
-        _data: newContract
+        ...newContract
       });
 
       if (contractError) throw contractError;
 
       // Assign the contract to the user
-      const { error: assignError } = await supabase.rpc('insert_user_contracts', {
-        _data: {
-          user_id: user.id,
-          contract_id: contractId,
-          role: 'Project Manager'
-        }
+      const { error: assignError } = await supabase.rpc('insert_user_contract', {
+        _user_id: user.id,
+        _contract_id: contractId,
+        _role: 'Project Manager',
+        ...(demoSession ? { _session_id: demoSession.sessionId } : {})
       });
 
       if (assignError) throw assignError;

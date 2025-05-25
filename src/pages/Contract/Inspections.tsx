@@ -247,7 +247,7 @@ export default function Inspections() {
     return urlData?.publicUrl || null;
   }
 
-  // Save inspection (create or update) using RPCs
+  // Save inspection (create or update) using correct backend functions
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!user || !newInspection.name || !newInspection.contract_id || !pdfFile) return;
@@ -268,31 +268,45 @@ export default function Inspections() {
         name: newInspection.name,
         description: newInspection.description,
         contract_id: newInspection.contract_id,
-        wbs_id: newInspection.wbs_id || null,
-        map_id: newInspection.map_id || null,
-        line_item_id: newInspection.line_item_id || null,
+        wbs_id: newInspection.wbs_id || undefined,
+        map_id: newInspection.map_id || undefined,
+        line_item_id: newInspection.line_item_id || undefined,
         pdf_url: pdfUrl,
-        photo_urls: photoUrls.length > 0 ? photoUrls : null,
+        photo_urls: photoUrls.length > 0 ? photoUrls : undefined,
         created_by: user.id,
         ...(getDemoSession() ? { session_id: getDemoSession()!.sessionId } : {}),
       };
 
       let error;
       if (typeof editingId === 'string' && editingId.length > 0) {
-        // Use RPC for updating inspection
-        const result = await supabase.rpc('update_inspections', {
+        // Use correct backend function for updating inspection
+        const result = await supabase.rpc('update_inspection', {
           _id: editingId,
-          _data: {
-            ...insertData,
-            updated_by: user.id,
-            updated_at: new Date().toISOString(),
-          }
+          _contract_id: insertData.contract_id,
+          _name: insertData.name,
+          _description: insertData.description,
+          _created_by: insertData.created_by,
+          _line_item_id: insertData.line_item_id,
+          _map_id: insertData.map_id,
+          _pdf_url: insertData.pdf_url,
+          _photo_urls: insertData.photo_urls,
+          _session_id: insertData.session_id,
+          _wbs_id: insertData.wbs_id,
         });
         error = result.error;
       } else {
-        // Use RPC for inserting inspection
-        const result = await supabase.rpc('insert_inspections', {
-          _data: insertData
+        // Use correct backend function for inserting inspection
+        const result = await supabase.rpc('insert_inspection', {
+          _contract_id: insertData.contract_id,
+          _name: insertData.name,
+          _description: insertData.description,
+          _created_by: insertData.created_by,
+          _line_item_id: insertData.line_item_id,
+          _map_id: insertData.map_id,
+          _pdf_url: insertData.pdf_url,
+          _photo_urls: insertData.photo_urls,
+          _session_id: insertData.session_id,
+          _wbs_id: insertData.wbs_id,
         });
         error = result.error;
       }

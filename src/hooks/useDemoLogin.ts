@@ -94,7 +94,7 @@ export function useDemoLogin(): {
             } catch (err) {
                 const errorMessage = err instanceof Error ? err.message : String(err);
                 setError(errorMessage);
-                if (currentToastId) {
+                if (currentToastId !== undefined) {
                     toast.error(errorMessage, { id: currentToastId });
                 } else {
                     // This case would be rare, e.g. if toast.loading itself failed initially

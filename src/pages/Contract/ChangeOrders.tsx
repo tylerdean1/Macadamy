@@ -122,19 +122,21 @@ export default function ChangeOrders() {
     if (typeof newOrder.title !== 'string' || newOrder.title.length === 0 || typeof newOrder.line_item_id !== 'string' || newOrder.line_item_id.length === 0) return; // Ensure necessary fields are filled
 
     const demoSession = getDemoSession();
-    // Use the insert_change_orders RPC function instead of direct table access
-    const { error } = await supabase.rpc('insert_change_orders', {
-      _data: {
-        contract_id,
-        title: newOrder.title,
-        description: newOrder.description,
-        line_item_id: newOrder.line_item_id,
-        new_quantity: newOrder.new_quantity,
-        new_unit_price: newOrder.new_unit_price,
-        status: typeof newOrder.status === 'string' && newOrder.status.length > 0 ? newOrder.status : 'draft',
-        created_by: user?.id,
-        ...(demoSession ? { session_id: demoSession.sessionId } : {}),
-      }
+    // Use the insert_change_order RPC function with correct backend mapping
+    const safeContractId = typeof contract_id === 'string' ? contract_id : '';
+    const safeStatus = (['draft', 'approved', 'rejected', 'pending'].includes(newOrder.status as string)
+      ? newOrder.status
+      : 'draft') as 'draft' | 'approved' | 'rejected' | 'pending';
+    const { error } = await supabase.rpc('insert_change_order', {
+      _contract_id: safeContractId,
+      _title: newOrder.title,
+      _description: newOrder.description,
+      _line_item_id: newOrder.line_item_id,
+      _new_quantity: newOrder.new_quantity,
+      _new_unit_price: newOrder.new_unit_price,
+      _status: safeStatus,
+      _created_by: user?.id,
+      ...(demoSession ? { _session_id: demoSession.sessionId } : {}),
     });
 
     if (error) {

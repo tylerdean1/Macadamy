@@ -1,22 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Clipboard,
-  Truck,
-  Users,
-  AlertTriangle,
-  FileWarning,
-  ClipboardList,
-  Calculator,
-  Settings,
-} from 'lucide-react';
-import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
-// import { useAuthStore } from '@/lib/store'; // Removed useAuthStore
-// import { supabase } from '@/lib/supabase'; // Removed supabase
-import { Tooltip } from '../../../components/Tooltip';
-// import type { Database } from '@/lib/database.types'; // Removed Database type
-
-// type UserRole = Database['public']['Enums']['user_role']; // Removed UserRole type
 
 interface ContractToolsProps {
   contractId: string;
@@ -49,7 +32,6 @@ export const ContractTools: React.FC<ContractToolsProps> = ({
   inspectionsCount = 0 // Default to 0
 }) => {
   const navigate = useNavigate();
-  // const { profile } = useAuthStore(); // Removed profile
   const [isSticky, setIsSticky] = useState<boolean>(false);
 
   // Handle scroll event to make toolbar sticky
@@ -63,102 +45,48 @@ export const ContractTools: React.FC<ContractToolsProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const buttons: ToolButton[] = [
+  // Example tool buttons (replace with actual navigation logic as needed)
+  const tools: ToolButton[] = [
     {
-      icon: <Clipboard className="w-5 h-5" />,
-      label: 'Daily Reports',
-      onClick: () => navigate(`/contracts/${contractId}/daily-reports`),
-      color: 'bg-blue-500/30 text-blue-500 hover:bg-blue-500/40',
-    },
-    {
-      icon: <Truck className="w-5 h-5" />,
-      label: 'Equipment Log',
-      onClick: () => navigate(`/contracts/${contractId}/equipment`),
-      color: 'bg-green-500/30 text-green-500 hover:bg-green-500/40',
-      // requiresPermission: true, // Removed
-      // permissionRoles: ['Admin', 'Project Manager', 'Contractor'], // Removed
-    },
-    {
-      icon: <Users className="w-5 h-5" />,
-      label: 'Labor Records',
-      onClick: () => navigate(`/contracts/${contractId}/labor`),
-      color: 'bg-purple-500/30 text-purple-500 hover:bg-purple-500/40',
-      // requiresPermission: true, // Removed
-      // permissionRoles: ['Admin', 'Project Manager', 'Contractor'], // Removed
-    },
-    {
-      icon: <AlertTriangle className="w-5 h-5" />,
+      icon: <span role="img" aria-label="Issues">⚠️</span>,
       label: 'Issues',
-      onClick: () => navigate(`/contracts/${contractId}/issues`),
-      color: 'bg-amber-500/30 text-amber-500 hover:bg-amber-500/40',
-      badgeCount: issuesCount, // Kept for display
+      onClick: () => navigate(`/contract/${contractId}/issues`),
+      color: 'bg-yellow-600',
+      badgeCount: issuesCount,
     },
     {
-      icon: <FileWarning className="w-5 h-5" />,
+      icon: <span role="img" aria-label="Change Orders">📝</span>,
       label: 'Change Orders',
-      onClick: () => navigate(`/contracts/${contractId}/change-orders`),
-      color: 'bg-red-500/30 text-red-500 hover:bg-red-500/40',
-      badgeCount: changeOrdersCount, // Kept for display
-      // requiresPermission: true, // Removed
-      // permissionRoles: ['Admin', 'Project Manager', 'Engineer'], // Removed
+      onClick: () => navigate(`/contract/${contractId}/change-orders`),
+      color: 'bg-blue-600',
+      badgeCount: changeOrdersCount,
     },
     {
-      icon: <ClipboardList className="w-5 h-5" />,
+      icon: <span role="img" aria-label="Inspections">🔍</span>,
       label: 'Inspections',
-      onClick: () => navigate(`/contracts/${contractId}/inspections`),
-      color: 'bg-cyan-500/30 text-cyan-500 hover:bg-cyan-500/40',
-      badgeCount: inspectionsCount, // Kept for display
-    },
-    {
-      icon: <Calculator className="w-5 h-5" />,
-      label: 'Calculators',
-      onClick: () => navigate(`/contracts/${contractId}/calculators`),
-      color: 'bg-indigo-500/30 text-indigo-500 hover:bg-indigo-500/40',
-    },
-    {
-      icon: <Settings className="w-5 h-5" />,
-      label: 'Settings',
-      onClick: () => navigate(`/contracts/${contractId}/contractsettings`),
-      color: 'bg-gray-500/30 text-gray-500 hover:bg-gray-500/40',
-      // requiresPermission: true, // Removed
-      // permissionRoles: ['Admin', 'Project Manager'], // Removed
+      onClick: () => navigate(`/contract/${contractId}/inspections`),
+      color: 'bg-green-600',
+      badgeCount: inspectionsCount,
     },
   ];
 
-  // Filter buttons based on user permissions - REMOVED (all buttons are shown in view-only)
-  // const allowedButtons = buttons.filter(btn => 
-  //   !btn.requiresPermission || hasPermission(btn.permissionRoles)
-  // );
-  const allowedButtons = buttons; // All buttons are allowed
-
   return (
-    <div className={`transition-all duration-300 ${isSticky ? 'sticky top-0 z-10' : ''}`}>
-      <Card
-        className={`mb-6 ${isSticky ? 'shadow-lg' : ''}`}
-        title="Contract Tools"
-        subtitle="Quick access to contract management features"
-      >
-        <div className="flex flex-wrap justify-center gap-2 p-3">
-          {allowedButtons.map((btn, index) => (
-            <Tooltip key={index} content={btn.label}>
-              <button
-                onClick={btn.onClick}
-                className={`relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm rounded-md transition-colors ${btn.color} p-2 min-w-[80px] sm:min-w-[120px]`}
-                aria-label={btn.label}
-              >
-                <div className="relative">
-                  {btn.icon}
-                  {typeof btn.badgeCount === 'number' && btn.badgeCount > 0 && (
-                    <span className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
-                      {btn.badgeCount > 99 ? '99+' : btn.badgeCount}
-                    </span>
-                  )}
-                </div>
-                <span className="text-center hidden sm:inline-block">{btn.label}</span>
-              </button>
-            </Tooltip>
-          ))}
-        </div>
-      </Card>    </div>
+    <div className={`flex gap-4 p-2 bg-background-light rounded shadow ${isSticky ? 'sticky top-0 z-10' : ''}`}>
+      {tools.map((tool) => (
+        <button
+          key={tool.label}
+          onClick={tool.onClick}
+          className={`flex items-center gap-2 px-4 py-2 rounded text-white ${tool.color} relative`}
+        >
+          {tool.icon}
+          <span>{tool.label}</span>
+          {typeof tool.badgeCount === 'number' && tool.badgeCount > 0 && (
+            <span className="ml-2 bg-red-600 text-xs rounded-full px-2 py-0.5 absolute -top-2 -right-2">
+              {tool.badgeCount}
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
   );
 };

@@ -51,7 +51,6 @@ export type Database = {
           id: string
           is_preset: boolean
           name: string
-          profile_id: string | null
           session_id: string | null
           url: string
         }
@@ -60,7 +59,6 @@ export type Database = {
           id?: string
           is_preset?: boolean
           name: string
-          profile_id?: string | null
           session_id?: string | null
           url: string
         }
@@ -69,18 +67,10 @@ export type Database = {
           id?: string
           is_preset?: boolean
           name?: string
-          profile_id?: string | null
           session_id?: string | null
           url?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "avatars_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "fk_avatars_session"
             columns: ["session_id"]
@@ -679,7 +669,6 @@ export type Database = {
           notes: string | null
           payload_capacity_tons: number
           truck_identifier: string
-          weight_capacity_tons: number | null
         }
         Insert: {
           axle_count?: number | null
@@ -697,7 +686,6 @@ export type Database = {
           notes?: string | null
           payload_capacity_tons: number
           truck_identifier: string
-          weight_capacity_tons?: number | null
         }
         Update: {
           axle_count?: number | null
@@ -715,7 +703,6 @@ export type Database = {
           notes?: string | null
           payload_capacity_tons?: number
           truck_identifier?: string
-          weight_capacity_tons?: number | null
         }
         Relationships: [
           {
@@ -737,7 +724,9 @@ export type Database = {
           operator_id: string | null
           organization_id: string | null
           session_id: string | null
-          user_defined_id: string
+          standard_pay_rate: number | null
+          standard_pay_unit: Database["public"]["Enums"]["pay_rate_unit"] | null
+          user_defined_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -748,7 +737,11 @@ export type Database = {
           operator_id?: string | null
           organization_id?: string | null
           session_id?: string | null
-          user_defined_id: string
+          standard_pay_rate?: number | null
+          standard_pay_unit?:
+            | Database["public"]["Enums"]["pay_rate_unit"]
+            | null
+          user_defined_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -759,7 +752,11 @@ export type Database = {
           operator_id?: string | null
           organization_id?: string | null
           session_id?: string | null
-          user_defined_id?: string
+          standard_pay_rate?: number | null
+          standard_pay_unit?:
+            | Database["public"]["Enums"]["pay_rate_unit"]
+            | null
+          user_defined_id?: string | null
         }
         Relationships: [
           {
@@ -794,46 +791,58 @@ export type Database = {
       }
       equipment_assignments: {
         Row: {
+          bid_rate: number | null
           contract_id: string
           created_at: string | null
           created_by: string
           end_date: string | null
           equipment_id: string
           id: string
+          line_item_id: string | null
+          map_id: string | null
           notes: string | null
           operator_id: string | null
           session_id: string | null
           start_date: string
           status: string | null
           updated_at: string | null
+          wbs_id: string | null
         }
         Insert: {
+          bid_rate?: number | null
           contract_id: string
           created_at?: string | null
           created_by: string
           end_date?: string | null
           equipment_id: string
           id?: string
+          line_item_id?: string | null
+          map_id?: string | null
           notes?: string | null
           operator_id?: string | null
           session_id?: string | null
           start_date: string
           status?: string | null
           updated_at?: string | null
+          wbs_id?: string | null
         }
         Update: {
+          bid_rate?: number | null
           contract_id?: string
           created_at?: string | null
           created_by?: string
           end_date?: string | null
           equipment_id?: string
           id?: string
+          line_item_id?: string | null
+          map_id?: string | null
           notes?: string | null
           operator_id?: string | null
           session_id?: string | null
           start_date?: string
           status?: string | null
           updated_at?: string | null
+          wbs_id?: string | null
         }
         Relationships: [
           {
@@ -851,10 +860,31 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "equipment_assignments_line_item_id_fkey"
+            columns: ["line_item_id"]
+            isOneToOne: false
+            referencedRelation: "line_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_assignments_map_id_fkey"
+            columns: ["map_id"]
+            isOneToOne: false
+            referencedRelation: "maps"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "equipment_assignments_operator_id_fkey"
             columns: ["operator_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_assignments_wbs_id_fkey"
+            columns: ["wbs_id"]
+            isOneToOne: false
+            referencedRelation: "wbs"
             referencedColumns: ["id"]
           },
           {
@@ -1091,7 +1121,7 @@ export type Database = {
           line_item_id: string | null
           map_id: string | null
           photo_urls: string[] | null
-          priority: string
+          priority: Database["public"]["Enums"]["priority"] | null
           resolution: string | null
           session_id: string | null
           status: string
@@ -1112,7 +1142,7 @@ export type Database = {
           line_item_id?: string | null
           map_id?: string | null
           photo_urls?: string[] | null
-          priority: string
+          priority?: Database["public"]["Enums"]["priority"] | null
           resolution?: string | null
           session_id?: string | null
           status: string
@@ -1133,7 +1163,7 @@ export type Database = {
           line_item_id?: string | null
           map_id?: string | null
           photo_urls?: string[] | null
-          priority?: string
+          priority?: Database["public"]["Enums"]["priority"] | null
           resolution?: string | null
           session_id?: string | null
           status?: string
@@ -1346,7 +1376,6 @@ export type Database = {
           organization_id: string | null
           output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
           session_id: string | null
-          unit_type: Database["public"]["Enums"]["unit_measure_type"] | null
         }
         Insert: {
           created_at?: string
@@ -1359,7 +1388,6 @@ export type Database = {
           organization_id?: string | null
           output_unit?: Database["public"]["Enums"]["unit_measure_type"] | null
           session_id?: string | null
-          unit_type?: Database["public"]["Enums"]["unit_measure_type"] | null
         }
         Update: {
           created_at?: string
@@ -1372,7 +1400,6 @@ export type Database = {
           organization_id?: string | null
           output_unit?: Database["public"]["Enums"]["unit_measure_type"] | null
           session_id?: string | null
-          unit_type?: Database["public"]["Enums"]["unit_measure_type"] | null
         }
         Relationships: [
           {
@@ -2156,7 +2183,7 @@ export type Database = {
         Args: { claims: Json }
         Returns: Json
       }
-      delete_asphalt_types: {
+      delete_asphalt_type: {
         Args: { _id: string }
         Returns: undefined
       }
@@ -2164,15 +2191,23 @@ export type Database = {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_change_orders: {
+      delete_change_order: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_contracts: {
+      delete_contract: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_crew_members: {
+      delete_contract_organization: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_crew: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_crew_member: {
         Args: { _id: string }
         Returns: undefined
       }
@@ -2180,11 +2215,15 @@ export type Database = {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_daily_logs: {
+      delete_daily_log: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_dump_trucks: {
+      delete_demo_mapping: {
+        Args: { _session_id: string }
+        Returns: undefined
+      }
+      delete_dump_truck: {
         Args: { _id: string }
         Returns: undefined
       }
@@ -2192,7 +2231,7 @@ export type Database = {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_equipment_assignments: {
+      delete_equipment_assignment: {
         Args: { _id: string }
         Returns: undefined
       }
@@ -2200,7 +2239,11 @@ export type Database = {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_inspections: {
+      delete_inspection: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_issue: {
         Args: { _id: string }
         Returns: undefined
       }
@@ -2208,31 +2251,31 @@ export type Database = {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_job_titles: {
+      delete_job_title: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_line_item_entries: {
+      delete_line_item: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_line_item_templates: {
+      delete_line_item_entry: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_line_items: {
+      delete_line_item_template: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_maps: {
+      delete_map: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_organizations: {
+      delete_organization: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_profiles: {
+      delete_profile: {
         Args: { _id: string }
         Returns: undefined
       }
@@ -2240,7 +2283,7 @@ export type Database = {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_user_contracts: {
+      delete_user_contract: {
         Args: { _user_id: string; _contract_id: string }
         Returns: undefined
       }
@@ -2275,10 +2318,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
-      ensure_test_user_organization: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
       equals: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: boolean
@@ -2286,6 +2325,1026 @@ export type Database = {
       execute_full_demo_clone: {
         Args: { p_session_id: string }
         Returns: undefined
+      }
+      filtered_by_axle_count_dump_trucks: {
+        Args: { _axle_count: number }
+        Returns: {
+          axle_count: number | null
+          bed_height: number | null
+          bed_length: number | null
+          bed_volume: number | null
+          bed_width: number | null
+          contract_id: string | null
+          created_at: string | null
+          equipment_id: string | null
+          hoist_bottom: number | null
+          hoist_top: number | null
+          hoist_width: number | null
+          id: string
+          notes: string | null
+          payload_capacity_tons: number
+          truck_identifier: string
+        }[]
+      }
+      filtered_by_contract_daily_logs: {
+        Args: { _contract_id: string }
+        Returns: {
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          delays_encountered: string | null
+          id: string
+          log_date: string
+          safety_incidents: string | null
+          session_id: string | null
+          temperature: number | null
+          updated_at: string | null
+          updated_by: string | null
+          visitors: string | null
+          weather_conditions: string | null
+          work_performed: string | null
+        }[]
+      }
+      filtered_by_contract_dump_trucks: {
+        Args: { _contract_id: string }
+        Returns: {
+          axle_count: number | null
+          bed_height: number | null
+          bed_length: number | null
+          bed_volume: number | null
+          bed_width: number | null
+          contract_id: string | null
+          created_at: string | null
+          equipment_id: string | null
+          hoist_bottom: number | null
+          hoist_top: number | null
+          hoist_width: number | null
+          id: string
+          notes: string | null
+          payload_capacity_tons: number
+          truck_identifier: string
+        }[]
+      }
+      filtered_by_contract_equipment_assignments: {
+        Args: { _contract_id: string }
+        Returns: {
+          bid_rate: number | null
+          contract_id: string
+          created_at: string | null
+          created_by: string
+          end_date: string | null
+          equipment_id: string
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          notes: string | null
+          operator_id: string | null
+          session_id: string | null
+          start_date: string
+          status: string | null
+          updated_at: string | null
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_contract_equipment_usage: {
+        Args: { _contract_id: string }
+        Returns: {
+          contract_id: string | null
+          created_at: string | null
+          created_by: string | null
+          equipment_id: string | null
+          hours_used: number
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          notes: string | null
+          operator_id: string | null
+          session_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          usage_date: string
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_contract_inspections: {
+        Args: { _contract_id: string }
+        Returns: {
+          contract_id: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          name: string
+          pdf_url: string | null
+          photo_urls: string[] | null
+          session_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_contract_issues: {
+        Args: { _contract_id: string }
+        Returns: {
+          assigned_to: string | null
+          contract_id: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string
+          due_date: string | null
+          equipment_id: string | null
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          photo_urls: string[] | null
+          priority: Database["public"]["Enums"]["priority"] | null
+          resolution: string | null
+          session_id: string | null
+          status: string
+          title: string
+          updated_at: string | null
+          updated_by: string | null
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_contract_line_item_entries: {
+        Args: { _contract_id: string }
+        Returns: {
+          computed_output: number | null
+          contract_id: string
+          created_at: string | null
+          entered_by: string | null
+          id: string
+          input_variables: Json
+          line_item_id: string
+          map_id: string
+          notes: string | null
+          output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
+          session_id: string | null
+          wbs_id: string
+        }[]
+      }
+      filtered_by_contract_line_items: {
+        Args: { _contract_id: string }
+        Returns: {
+          id: string
+          contract_id: string
+          wbs_id: string
+          map_id: string
+          description: string
+          line_code: string
+          quantity: number
+          reference_doc: string
+          template_id: string
+          unit_measure: Database["public"]["Enums"]["unit_measure_type"]
+          unit_price: number
+          created_at: string
+          updated_at: string
+          session_id: string
+          coordinates_wkt: string
+        }[]
+      }
+      filtered_by_contract_maps: {
+        Args: { _contract_id: string }
+        Returns: {
+          id: string
+          contract_id: string
+          wbs_id: string
+          map_number: string
+          location: string
+          scope: string
+          budget: number
+          created_at: string
+          updated_at: string
+          session_id: string
+          coordinates_wkt: string
+        }[]
+      }
+      filtered_by_contract_user_contracts: {
+        Args: { _contract_id: string }
+        Returns: {
+          contract_id: string
+          role: Database["public"]["Enums"]["user_role"] | null
+          session_id: string | null
+          user_id: string
+        }[]
+      }
+      filtered_by_contract_wbs: {
+        Args: { _contract_id: string }
+        Returns: {
+          id: string
+          contract_id: string
+          wbs_number: string
+          location: string
+          budget: number
+          scope: string
+          created_at: string
+          updated_at: string
+          session_id: string
+          coordinates_wkt: string
+        }[]
+      }
+      filtered_by_crew_crew_members: {
+        Args: { _crew_id: string }
+        Returns: {
+          assigned_at: string | null
+          created_at: string | null
+          created_by: string
+          crew_id: string
+          id: string
+          location_notes: string | null
+          map_location_id: string | null
+          organization_id: string | null
+          profile_id: string
+          role: string | null
+          session_id: string | null
+          updated_at: string | null
+        }[]
+      }
+      filtered_by_entered_by_line_item_entries: {
+        Args: { _entered_by: string }
+        Returns: {
+          computed_output: number | null
+          contract_id: string
+          created_at: string | null
+          entered_by: string | null
+          id: string
+          input_variables: Json
+          line_item_id: string
+          map_id: string
+          notes: string | null
+          output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
+          session_id: string | null
+          wbs_id: string
+        }[]
+      }
+      filtered_by_equipment_equipment_assignments: {
+        Args: { _equipment_id: string }
+        Returns: {
+          bid_rate: number | null
+          contract_id: string
+          created_at: string | null
+          created_by: string
+          end_date: string | null
+          equipment_id: string
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          notes: string | null
+          operator_id: string | null
+          session_id: string | null
+          start_date: string
+          status: string | null
+          updated_at: string | null
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_equipment_equipment_usage: {
+        Args: { _equipment_id: string }
+        Returns: {
+          contract_id: string | null
+          created_at: string | null
+          created_by: string | null
+          equipment_id: string | null
+          hours_used: number
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          notes: string | null
+          operator_id: string | null
+          session_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          usage_date: string
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_equipment_issues: {
+        Args: { _equipment_id: string }
+        Returns: {
+          assigned_to: string | null
+          contract_id: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string
+          due_date: string | null
+          equipment_id: string | null
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          photo_urls: string[] | null
+          priority: Database["public"]["Enums"]["priority"] | null
+          resolution: string | null
+          session_id: string | null
+          status: string
+          title: string
+          updated_at: string | null
+          updated_by: string | null
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_line_code_line_items: {
+        Args: { _line_code: string }
+        Returns: {
+          contract_id: string | null
+          coordinates: unknown | null
+          created_at: string | null
+          description: string
+          id: string
+          line_code: string
+          map_id: string | null
+          quantity: number
+          reference_doc: string | null
+          session_id: string | null
+          template_id: string | null
+          unit_measure: Database["public"]["Enums"]["unit_measure_type"]
+          unit_price: number
+          updated_at: string | null
+          wbs_id: string
+        }[]
+      }
+      filtered_by_line_item_equipment_assignments: {
+        Args: { _line_item_id: string }
+        Returns: {
+          bid_rate: number | null
+          contract_id: string
+          created_at: string | null
+          created_by: string
+          end_date: string | null
+          equipment_id: string
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          notes: string | null
+          operator_id: string | null
+          session_id: string | null
+          start_date: string
+          status: string | null
+          updated_at: string | null
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_line_item_equipment_usage: {
+        Args: { _line_item_id: string }
+        Returns: {
+          contract_id: string | null
+          created_at: string | null
+          created_by: string | null
+          equipment_id: string | null
+          hours_used: number
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          notes: string | null
+          operator_id: string | null
+          session_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          usage_date: string
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_line_item_inspections: {
+        Args: { _line_item_id: string }
+        Returns: {
+          contract_id: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          name: string
+          pdf_url: string | null
+          photo_urls: string[] | null
+          session_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_line_item_issues: {
+        Args: { _line_item_id: string }
+        Returns: {
+          assigned_to: string | null
+          contract_id: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string
+          due_date: string | null
+          equipment_id: string | null
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          photo_urls: string[] | null
+          priority: Database["public"]["Enums"]["priority"] | null
+          resolution: string | null
+          session_id: string | null
+          status: string
+          title: string
+          updated_at: string | null
+          updated_by: string | null
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_line_item_line_item_entries: {
+        Args: { _line_item_id: string }
+        Returns: {
+          computed_output: number | null
+          contract_id: string
+          created_at: string | null
+          entered_by: string | null
+          id: string
+          input_variables: Json
+          line_item_id: string
+          map_id: string
+          notes: string | null
+          output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
+          session_id: string | null
+          wbs_id: string
+        }[]
+      }
+      filtered_by_map_equipment_assignments: {
+        Args: { _map_id: string }
+        Returns: {
+          bid_rate: number | null
+          contract_id: string
+          created_at: string | null
+          created_by: string
+          end_date: string | null
+          equipment_id: string
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          notes: string | null
+          operator_id: string | null
+          session_id: string | null
+          start_date: string
+          status: string | null
+          updated_at: string | null
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_map_equipment_usage: {
+        Args: { _map_id: string }
+        Returns: {
+          contract_id: string | null
+          created_at: string | null
+          created_by: string | null
+          equipment_id: string | null
+          hours_used: number
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          notes: string | null
+          operator_id: string | null
+          session_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          usage_date: string
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_map_inspections: {
+        Args: { _map_id: string }
+        Returns: {
+          contract_id: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          name: string
+          pdf_url: string | null
+          photo_urls: string[] | null
+          session_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_map_issues: {
+        Args: { _map_id: string }
+        Returns: {
+          assigned_to: string | null
+          contract_id: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string
+          due_date: string | null
+          equipment_id: string | null
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          photo_urls: string[] | null
+          priority: Database["public"]["Enums"]["priority"] | null
+          resolution: string | null
+          session_id: string | null
+          status: string
+          title: string
+          updated_at: string | null
+          updated_by: string | null
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_map_line_item_entries: {
+        Args: { _map_id: string }
+        Returns: {
+          computed_output: number | null
+          contract_id: string
+          created_at: string | null
+          entered_by: string | null
+          id: string
+          input_variables: Json
+          line_item_id: string
+          map_id: string
+          notes: string | null
+          output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
+          session_id: string | null
+          wbs_id: string
+        }[]
+      }
+      filtered_by_map_line_items: {
+        Args: { _map_id: string }
+        Returns: {
+          id: string
+          contract_id: string
+          wbs_id: string
+          map_id: string
+          description: string
+          line_code: string
+          quantity: number
+          reference_doc: string
+          template_id: string
+          unit_measure: Database["public"]["Enums"]["unit_measure_type"]
+          unit_price: number
+          created_at: string
+          updated_at: string
+          session_id: string
+          coordinates_wkt: string
+        }[]
+      }
+      filtered_by_max_volume_dump_trucks: {
+        Args: { _max_volume: number }
+        Returns: {
+          axle_count: number | null
+          bed_height: number | null
+          bed_length: number | null
+          bed_volume: number | null
+          bed_width: number | null
+          contract_id: string | null
+          created_at: string | null
+          equipment_id: string | null
+          hoist_bottom: number | null
+          hoist_top: number | null
+          hoist_width: number | null
+          id: string
+          notes: string | null
+          payload_capacity_tons: number
+          truck_identifier: string
+        }[]
+      }
+      filtered_by_operator_equipment_assignments: {
+        Args: { _operator_id: string }
+        Returns: {
+          bid_rate: number | null
+          contract_id: string
+          created_at: string | null
+          created_by: string
+          end_date: string | null
+          equipment_id: string
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          notes: string | null
+          operator_id: string | null
+          session_id: string | null
+          start_date: string
+          status: string | null
+          updated_at: string | null
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_operator_equipment_usage: {
+        Args: { _operator_id: string }
+        Returns: {
+          contract_id: string | null
+          created_at: string | null
+          created_by: string | null
+          equipment_id: string | null
+          hours_used: number
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          notes: string | null
+          operator_id: string | null
+          session_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          usage_date: string
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_organization_contracts: {
+        Args: { _organization_id: string }
+        Returns: {
+          budget: number | null
+          coordinates: unknown | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          end_date: string
+          id: string
+          location: string
+          session_id: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["contract_status"]
+          title: string
+          updated_at: string | null
+        }[]
+      }
+      filtered_by_organization_crews: {
+        Args: { _organization_id: string }
+        Returns: {
+          created_at: string | null
+          created_by: string
+          description: string | null
+          foreman_id: string | null
+          id: string
+          name: string
+          organization_id: string
+          session_id: string | null
+          updated_at: string | null
+        }[]
+      }
+      filtered_by_organization_equipment: {
+        Args: { _organization_id: string }
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          operator_id: string | null
+          organization_id: string | null
+          session_id: string | null
+          standard_pay_rate: number | null
+          standard_pay_unit: Database["public"]["Enums"]["pay_rate_unit"] | null
+          user_defined_id: string | null
+        }[]
+      }
+      filtered_by_organization_line_item_templates: {
+        Args: { _organization_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          formula: Json | null
+          id: string
+          instructions: string | null
+          name: string | null
+          organization_id: string | null
+          output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
+          session_id: string | null
+        }[]
+      }
+      filtered_by_organization_profiles: {
+        Args: { _organization_id: string }
+        Returns: {
+          avatar_id: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string
+          id: string
+          job_title_id: string | null
+          location: string | null
+          organization_id: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          session_id: string | null
+          updated_at: string | null
+          username: string | null
+        }[]
+      }
+      filtered_by_output_unit_line_item_templates: {
+        Args: { _output_unit: Database["public"]["Enums"]["unit_measure_type"] }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          formula: Json | null
+          id: string
+          instructions: string | null
+          name: string | null
+          organization_id: string | null
+          output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
+          session_id: string | null
+        }[]
+      }
+      filtered_by_payload_capacity_dump_trucks: {
+        Args: { _payload_capacity_tons: number }
+        Returns: {
+          axle_count: number | null
+          bed_height: number | null
+          bed_length: number | null
+          bed_volume: number | null
+          bed_width: number | null
+          contract_id: string | null
+          created_at: string | null
+          equipment_id: string | null
+          hoist_bottom: number | null
+          hoist_top: number | null
+          hoist_width: number | null
+          id: string
+          notes: string | null
+          payload_capacity_tons: number
+          truck_identifier: string
+        }[]
+      }
+      filtered_by_priority_issues: {
+        Args: { _priority: Database["public"]["Enums"]["priority"] }
+        Returns: {
+          assigned_to: string | null
+          contract_id: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string
+          due_date: string | null
+          equipment_id: string | null
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          photo_urls: string[] | null
+          priority: Database["public"]["Enums"]["priority"] | null
+          resolution: string | null
+          session_id: string | null
+          status: string
+          title: string
+          updated_at: string | null
+          updated_by: string | null
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_role_profiles: {
+        Args: { _role: Database["public"]["Enums"]["user_role"] }
+        Returns: {
+          avatar_id: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string
+          id: string
+          job_title_id: string | null
+          location: string | null
+          organization_id: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          session_id: string | null
+          updated_at: string | null
+          username: string | null
+        }[]
+      }
+      filtered_by_role_user_contracts: {
+        Args: { _role: Database["public"]["Enums"]["user_role"] }
+        Returns: {
+          contract_id: string
+          role: Database["public"]["Enums"]["user_role"] | null
+          session_id: string | null
+          user_id: string
+        }[]
+      }
+      filtered_by_session_demo_mappings: {
+        Args: { _session_id: string }
+        Returns: {
+          created_at: string | null
+          new_change_order_ids: string[] | null
+          new_contract_ids: string[] | null
+          new_contract_org_ids: string[] | null
+          new_crew_ids: string[] | null
+          new_crew_member_ids: string[] | null
+          new_daily_log_ids: string[] | null
+          new_entry_ids: string[] | null
+          new_equipment_assignment_ids: string[] | null
+          new_equipment_ids: string[] | null
+          new_inspection_ids: string[] | null
+          new_issue_ids: string[] | null
+          new_li_crew_ids: string[] | null
+          new_li_equipment_ids: string[] | null
+          new_line_item_ids: string[] | null
+          new_map_ids: string[] | null
+          new_organization_ids: string[] | null
+          new_profile_id: string | null
+          new_template_ids: string[] | null
+          new_wbs_ids: string[] | null
+          old_change_order_ids: string[] | null
+          old_contract_ids: string[] | null
+          old_contract_org_ids: string[] | null
+          old_crew_ids: string[] | null
+          old_crew_member_ids: string[] | null
+          old_daily_log_ids: string[] | null
+          old_entry_ids: string[] | null
+          old_equipment_assignment_ids: string[] | null
+          old_equipment_ids: string[] | null
+          old_inspection_ids: string[] | null
+          old_issue_ids: string[] | null
+          old_li_crew_ids: string[] | null
+          old_li_equipment_ids: string[] | null
+          old_line_item_ids: string[] | null
+          old_map_ids: string[] | null
+          old_organization_ids: string[] | null
+          old_profile_id: string | null
+          old_template_ids: string[] | null
+          old_wbs_ids: string[] | null
+          session_id: string
+        }[]
+      }
+      filtered_by_status_contracts: {
+        Args: { _status: Database["public"]["Enums"]["contract_status"] }
+        Returns: {
+          budget: number | null
+          coordinates: unknown | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          end_date: string
+          id: string
+          location: string
+          session_id: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["contract_status"]
+          title: string
+          updated_at: string | null
+        }[]
+      }
+      filtered_by_unit_measure_line_items: {
+        Args: {
+          _unit_measure: Database["public"]["Enums"]["unit_measure_type"]
+        }
+        Returns: {
+          contract_id: string | null
+          coordinates: unknown | null
+          created_at: string | null
+          description: string
+          id: string
+          line_code: string
+          map_id: string | null
+          quantity: number
+          reference_doc: string | null
+          session_id: string | null
+          template_id: string | null
+          unit_measure: Database["public"]["Enums"]["unit_measure_type"]
+          unit_price: number
+          updated_at: string | null
+          wbs_id: string
+        }[]
+      }
+      filtered_by_user_user_contracts: {
+        Args: { _user_id: string }
+        Returns: {
+          contract_id: string
+          role: Database["public"]["Enums"]["user_role"] | null
+          session_id: string | null
+          user_id: string
+        }[]
+      }
+      filtered_by_wbs_equipment_assignments: {
+        Args: { _wbs_id: string }
+        Returns: {
+          bid_rate: number | null
+          contract_id: string
+          created_at: string | null
+          created_by: string
+          end_date: string | null
+          equipment_id: string
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          notes: string | null
+          operator_id: string | null
+          session_id: string | null
+          start_date: string
+          status: string | null
+          updated_at: string | null
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_wbs_equipment_usage: {
+        Args: { _wbs_id: string }
+        Returns: {
+          contract_id: string | null
+          created_at: string | null
+          created_by: string | null
+          equipment_id: string | null
+          hours_used: number
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          notes: string | null
+          operator_id: string | null
+          session_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          usage_date: string
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_wbs_inspections: {
+        Args: { _wbs_id: string }
+        Returns: {
+          contract_id: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          name: string
+          pdf_url: string | null
+          photo_urls: string[] | null
+          session_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_wbs_issues: {
+        Args: { _wbs_id: string }
+        Returns: {
+          assigned_to: string | null
+          contract_id: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string
+          due_date: string | null
+          equipment_id: string | null
+          id: string
+          line_item_id: string | null
+          map_id: string | null
+          photo_urls: string[] | null
+          priority: Database["public"]["Enums"]["priority"] | null
+          resolution: string | null
+          session_id: string | null
+          status: string
+          title: string
+          updated_at: string | null
+          updated_by: string | null
+          wbs_id: string | null
+        }[]
+      }
+      filtered_by_wbs_line_item_entries: {
+        Args: { _wbs_id: string }
+        Returns: {
+          computed_output: number | null
+          contract_id: string
+          created_at: string | null
+          entered_by: string | null
+          id: string
+          input_variables: Json
+          line_item_id: string
+          map_id: string
+          notes: string | null
+          output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
+          session_id: string | null
+          wbs_id: string
+        }[]
+      }
+      filtered_by_wbs_line_items: {
+        Args: { _wbs_id: string }
+        Returns: {
+          id: string
+          contract_id: string
+          wbs_id: string
+          map_id: string
+          description: string
+          line_code: string
+          quantity: number
+          reference_doc: string
+          template_id: string
+          unit_measure: Database["public"]["Enums"]["unit_measure_type"]
+          unit_price: number
+          created_at: string
+          updated_at: string
+          session_id: string
+          coordinates_wkt: string
+        }[]
+      }
+      filtered_by_wbs_maps: {
+        Args: { _wbs_id: string }
+        Returns: {
+          id: string
+          contract_id: string
+          wbs_id: string
+          map_number: string
+          location: string
+          scope: string
+          budget: number
+          created_at: string
+          updated_at: string
+          session_id: string
+          coordinates_wkt: string
+        }[]
       }
       geography: {
         Args: { "": string } | { "": unknown }
@@ -2540,6 +3599,20 @@ export type Database = {
           session_id: string
         }[]
       }
+      get_asphalt_types: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          compaction_min: number | null
+          created_at: string | null
+          id: string
+          jmf_temp_max: number | null
+          jmf_temp_min: number | null
+          lift_depth_inches: number | null
+          name: string
+          notes: string | null
+          target_spread_rate_lbs_per_sy: number | null
+        }[]
+      }
       get_avatars_for_profile: {
         Args: { _profile_id: string }
         Returns: {
@@ -2549,7 +3622,13 @@ export type Database = {
         }[]
       }
       get_change_orders: {
-        Args: { contract_id: string }
+        Args:
+          | {
+              _contract_id?: string
+              _line_item_id?: string
+              _session_id?: string
+            }
+          | { contract_id: string }
         Returns: {
           id: string
           line_item_id: string
@@ -2803,7 +3882,9 @@ export type Database = {
         }[]
       }
       get_line_items_with_wkt: {
-        Args: { contract_id_param: string }
+        Args:
+          | { _contract_id: string; _session_id?: string }
+          | { contract_id_param: string }
         Returns: {
           id: string
           contract_id: string
@@ -2831,7 +3912,9 @@ export type Database = {
         }[]
       }
       get_maps_with_wkt: {
-        Args: { contract_id: string }
+        Args:
+          | { _contract_id: string; _session_id?: string }
+          | { contract_id: string }
         Returns: {
           id: string
           wbs_id: string
@@ -2901,7 +3984,9 @@ export type Database = {
         }[]
       }
       get_wbs_with_wkt: {
-        Args: { contract_id_param: string }
+        Args:
+          | { _contract_id: string; _session_id?: string }
+          | { contract_id_param: string }
         Returns: {
           id: string
           contract_id: string
@@ -2931,80 +4016,308 @@ export type Database = {
         Args: { "": unknown }
         Returns: unknown
       }
-      insert_asphalt_types: {
-        Args: { _data: Json }
+      insert_asphalt_type: {
+        Args: {
+          _name: string
+          _compaction_min?: number
+          _jmf_temp_max?: number
+          _jmf_temp_min?: number
+          _lift_depth_inches?: number
+          _notes?: string
+          _target_spread_rate_lbs_per_sy?: number
+        }
         Returns: string
       }
-      insert_avatars: {
-        Args: { _data: Json }
+      insert_avatar: {
+        Args: {
+          _id: string
+          _name: string
+          _url: string
+          _is_preset?: boolean
+          _session_id?: string
+        }
         Returns: string
       }
-      insert_change_orders: {
-        Args: { _data: Json }
+      insert_change_order: {
+        Args: {
+          _contract_id: string
+          _line_item_id?: string
+          _title?: string
+          _description?: string
+          _attachments?: string[]
+          _new_quantity?: number
+          _new_unit_price?: number
+          _status?: Database["public"]["Enums"]["change_order_status"]
+          _submitted_date?: string
+          _created_by?: string
+          _session_id?: string
+        }
         Returns: string
       }
-      insert_contracts: {
-        Args: { _data: Json }
+      insert_contract: {
+        Args: {
+          _title: string
+          _location: string
+          _start_date: string
+          _end_date: string
+          _status?: Database["public"]["Enums"]["contract_status"]
+          _budget?: number
+          _description?: string
+          _coordinates?: Json
+          _created_by?: string
+        }
         Returns: string
       }
-      insert_crew_members: {
-        Args: { _data: Json }
+      insert_contract_organization: {
+        Args: {
+          _contract_id: string
+          _organization_id: string
+          _created_by: string
+          _role?: Database["public"]["Enums"]["organization_role"]
+          _notes?: string
+          _session_id?: string
+        }
         Returns: string
       }
-      insert_crews: {
-        Args: { _data: Json }
+      insert_crew: {
+        Args: {
+          _name: string
+          _organization_id: string
+          _created_by: string
+          _description?: string
+          _foreman_id?: string
+          _session_id?: string
+        }
         Returns: string
       }
-      insert_daily_logs: {
-        Args: { _data: Json }
+      insert_crew_member: {
+        Args: {
+          _created_by: string
+          _crew_id: string
+          _profile_id: string
+          _role?: string
+          _location_notes?: string
+          _organization_id?: string
+          _map_location_id?: string
+          _session_id?: string
+          _assigned_at?: string
+        }
         Returns: string
       }
-      insert_dump_trucks: {
-        Args: { _data: Json }
+      insert_daily_log: {
+        Args: {
+          _contract_id: string
+          _log_date: string
+          _created_by?: string
+          _work_performed?: string
+          _weather_conditions?: string
+          _temperature?: number
+          _delays_encountered?: string
+          _safety_incidents?: string
+          _visitors?: string
+          _session_id?: string
+        }
+        Returns: string
+      }
+      insert_demo_mapping: {
+        Args: { _session_id: string }
+        Returns: string
+      }
+      insert_dump_truck: {
+        Args:
+          | {
+              _payload_capacity_tons: number
+              _truck_identifier: string
+              _axle_count?: number
+              _bed_height?: number
+              _bed_length?: number
+              _bed_volume?: number
+              _bed_width?: number
+              _contract_id?: string
+              _equipment_id?: string
+              _hoist_bottom?: number
+              _hoist_top?: number
+              _hoist_width?: number
+              _notes?: string
+            }
+          | {
+              _payload_capacity_tons: number
+              _truck_identifier: string
+              _axle_count?: number
+              _bed_height?: number
+              _bed_length?: number
+              _bed_volume?: number
+              _bed_width?: number
+              _contract_id?: string
+              _equipment_id?: string
+              _hoist_bottom?: number
+              _hoist_top?: number
+              _hoist_width?: number
+              _notes?: string
+              _weight_capacity_tons?: number
+            }
         Returns: string
       }
       insert_equipment: {
-        Args: { _data: Json }
-        Returns: string
-      }
-      insert_equipment_assignments: {
-        Args: { _data: Json }
+        Args: {
+          _name: string
+          _created_by?: string
+          _operator_id?: string
+          _organization_id?: string
+          _session_id?: string
+          _standard_pay_rate?: number
+          _standard_pay_unit?: Database["public"]["Enums"]["pay_rate_unit"]
+          _description?: string
+          _user_defined_id?: string
+        }
         Returns: string
       }
       insert_equipment_usage: {
-        Args: { _data: Json }
+        Args: {
+          _hours_used: number
+          _contract_id?: string
+          _created_by?: string
+          _equipment_id?: string
+          _line_item_id?: string
+          _map_id?: string
+          _operator_id?: string
+          _session_id?: string
+          _notes?: string
+          _updated_by?: string
+          _usage_date?: string
+          _wbs_id?: string
+        }
         Returns: string
       }
-      insert_inspections: {
-        Args: { _data: Json }
+      insert_inspection: {
+        Args: {
+          _contract_id: string
+          _name: string
+          _description?: string
+          _created_by?: string
+          _line_item_id?: string
+          _map_id?: string
+          _pdf_url?: string
+          _photo_urls?: string[]
+          _session_id?: string
+          _wbs_id?: string
+        }
         Returns: string
       }
-      insert_issues: {
-        Args: { _data: Json }
+      insert_issue: {
+        Args: {
+          _title: string
+          _description: string
+          _status: string
+          _priority?: Database["public"]["Enums"]["priority"]
+          _assigned_to?: string
+          _contract_id?: string
+          _created_by?: string
+          _equipment_id?: string
+          _line_item_id?: string
+          _map_id?: string
+          _session_id?: string
+          _photo_urls?: string[]
+          _resolution?: string
+          _due_date?: string
+          _updated_at?: string
+          _updated_by?: string
+          _wbs_id?: string
+        }
         Returns: string
       }
-      insert_job_titles: {
-        Args: { _data: Json }
+      insert_job_title: {
+        Args: {
+          _title: string
+          _created_by?: string
+          _is_custom?: boolean
+          _session_id?: string
+        }
         Returns: string
       }
-      insert_line_item_entries: {
-        Args: { _data: Json }
+      insert_line_item: {
+        Args: {
+          _description: string
+          _line_code: string
+          _wbs_id: string
+          _unit_measure: Database["public"]["Enums"]["unit_measure_type"]
+          _quantity: number
+          _unit_price: number
+          _contract_id?: string
+          _map_id?: string
+          _reference_doc?: string
+          _template_id?: string
+          _session_id?: string
+          _coordinates?: string
+        }
         Returns: string
       }
-      insert_line_item_templates: {
-        Args: { _data: Json }
+      insert_line_item_entry: {
+        Args: {
+          _contract_id: string
+          _line_item_id: string
+          _map_id: string
+          _input_variables: Json
+          _wbs_id: string
+          _computed_output?: number
+          _notes?: string
+          _output_unit?: Database["public"]["Enums"]["unit_measure_type"]
+          _entered_by?: string
+        }
         Returns: string
       }
-      insert_line_items: {
-        Args: { _data: Json }
+      insert_line_item_template: {
+        Args: {
+          _id: string
+          _name?: string
+          _description?: string
+          _formula?: Json
+          _instructions?: string
+          _created_by?: string
+          _organization_id?: string
+          _output_unit?: Database["public"]["Enums"]["unit_measure_type"]
+          _session_id?: string
+        }
         Returns: string
       }
-      insert_maps: {
-        Args: { _data: Json }
+      insert_map: {
+        Args: {
+          _map_number: string
+          _wbs_id: string
+          _location?: string
+          _budget?: number
+          _scope?: string
+          _coordinates?: string
+          _contract_id?: string
+          _session_id?: string
+        }
         Returns: string
       }
-      insert_organizations: {
-        Args: { _data: Json }
+      insert_organization: {
+        Args: {
+          _name: string
+          _created_by: string
+          _address?: string
+          _phone?: string
+          _website?: string
+          _session_id?: string
+        }
+        Returns: string
+      }
+      insert_profile: {
+        Args: {
+          _id: string
+          _full_name: string
+          _email?: string
+          _username?: string
+          _phone?: string
+          _avatar_id?: string
+          _job_title_id?: string
+          _location?: string
+          _role?: Database["public"]["Enums"]["user_role"]
+          _organization_id?: string
+          _session_id?: string
+        }
         Returns: string
       }
       insert_profile_full: {
@@ -3024,20 +4337,25 @@ export type Database = {
         }
         Returns: string
       }
-      insert_profiles: {
-        Args: { _data: Json }
-        Returns: string
-      }
-      insert_tack_rates: {
-        Args: { _data: Json }
-        Returns: string
-      }
-      insert_user_contracts: {
-        Args: { _data: Json }
-        Returns: string
+      insert_user_contract: {
+        Args: {
+          _user_id: string
+          _contract_id: string
+          _role?: Database["public"]["Enums"]["user_role"]
+          _session_id?: string
+        }
+        Returns: undefined
       }
       insert_wbs: {
-        Args: { _data: Json }
+        Args: {
+          _wbs_number: string
+          _contract_id: string
+          _location?: string
+          _budget?: number
+          _scope?: string
+          _coordinates?: string
+          _session_id?: string
+        }
         Returns: string
       }
       json: {
@@ -4319,96 +5637,398 @@ export type Database = {
         Args: { "": string }
         Returns: number
       }
-      update_asphalt_types: {
-        Args: { _id: string; _data: Json }
+      update_asphalt_type: {
+        Args: {
+          _id: string
+          _name?: string
+          _compaction_min?: number
+          _jmf_temp_max?: number
+          _jmf_temp_min?: number
+          _lift_depth_inches?: number
+          _notes?: string
+          _target_spread_rate_lbs_per_sy?: number
+        }
         Returns: undefined
       }
-      update_avatars: {
-        Args: { _id: string; _data: Json }
+      update_avatar: {
+        Args: {
+          _id: string
+          _name?: string
+          _url?: string
+          _is_preset?: boolean
+          _session_id?: string
+        }
         Returns: undefined
       }
-      update_change_orders: {
-        Args: { _id: string; _data: Json }
+      update_change_order: {
+        Args: {
+          _id: string
+          _title?: string
+          _description?: string
+          _attachments?: string[]
+          _new_quantity?: number
+          _new_unit_price?: number
+          _status?: Database["public"]["Enums"]["change_order_status"]
+          _approved_by?: string
+          _approved_date?: string
+          _updated_by?: string
+        }
         Returns: undefined
       }
-      update_contracts: {
-        Args: { _id: string; _data: Json }
+      update_contract: {
+        Args: {
+          _id: string
+          _title?: string
+          _location?: string
+          _start_date?: string
+          _end_date?: string
+          _status?: Database["public"]["Enums"]["contract_status"]
+          _budget?: number
+          _description?: string
+          _coordinates?: Json
+        }
         Returns: undefined
       }
-      update_crew_members: {
-        Args: { _id: string; _data: Json }
+      update_contract_organization: {
+        Args: {
+          _id: string
+          _role?: Database["public"]["Enums"]["organization_role"]
+          _notes?: string
+          _updated_at?: string
+        }
         Returns: undefined
       }
-      update_crews: {
-        Args: { _id: string; _data: Json }
+      update_crew: {
+        Args: {
+          _id: string
+          _name?: string
+          _description?: string
+          _foreman_id?: string
+          _session_id?: string
+          _updated_at?: string
+        }
         Returns: undefined
       }
-      update_daily_logs: {
-        Args: { _id: string; _data: Json }
+      update_crew_member: {
+        Args: {
+          _id: string
+          _role?: string
+          _location_notes?: string
+          _organization_id?: string
+          _map_location_id?: string
+          _session_id?: string
+          _assigned_at?: string
+          _updated_at?: string
+        }
         Returns: undefined
       }
-      update_dump_trucks: {
-        Args: { _id: string; _data: Json }
+      update_daily_log: {
+        Args: {
+          _id: string
+          _work_performed?: string
+          _weather_conditions?: string
+          _temperature?: number
+          _delays_encountered?: string
+          _safety_incidents?: string
+          _visitors?: string
+          _updated_by?: string
+          _session_id?: string
+          _updated_at?: string
+        }
+        Returns: undefined
+      }
+      update_demo_mapping: {
+        Args: {
+          _session_id: string
+          _new_change_order_ids?: string[]
+          _new_contract_ids?: string[]
+          _new_contract_org_ids?: string[]
+          _new_crew_ids?: string[]
+          _new_crew_member_ids?: string[]
+          _new_daily_log_ids?: string[]
+          _new_entry_ids?: string[]
+          _new_equipment_assignment_ids?: string[]
+          _new_equipment_ids?: string[]
+          _new_inspection_ids?: string[]
+          _new_issue_ids?: string[]
+          _new_li_crew_ids?: string[]
+          _new_li_equipment_ids?: string[]
+          _new_line_item_ids?: string[]
+          _new_map_ids?: string[]
+          _new_organization_ids?: string[]
+          _new_profile_id?: string
+          _new_template_ids?: string[]
+          _new_wbs_ids?: string[]
+          _old_change_order_ids?: string[]
+          _old_contract_ids?: string[]
+          _old_contract_org_ids?: string[]
+          _old_crew_ids?: string[]
+          _old_crew_member_ids?: string[]
+          _old_daily_log_ids?: string[]
+          _old_entry_ids?: string[]
+          _old_equipment_assignment_ids?: string[]
+          _old_equipment_ids?: string[]
+          _old_inspection_ids?: string[]
+          _old_issue_ids?: string[]
+          _old_li_crew_ids?: string[]
+          _old_li_equipment_ids?: string[]
+          _old_line_item_ids?: string[]
+          _old_map_ids?: string[]
+          _old_organization_ids?: string[]
+          _old_profile_id?: string
+          _old_template_ids?: string[]
+          _old_wbs_ids?: string[]
+        }
+        Returns: undefined
+      }
+      update_dump_truck: {
+        Args:
+          | {
+              _id: string
+              _payload_capacity_tons?: number
+              _truck_identifier?: string
+              _axle_count?: number
+              _bed_height?: number
+              _bed_length?: number
+              _bed_volume?: number
+              _bed_width?: number
+              _contract_id?: string
+              _equipment_id?: string
+              _hoist_bottom?: number
+              _hoist_top?: number
+              _hoist_width?: number
+              _notes?: string
+            }
+          | {
+              _id: string
+              _payload_capacity_tons?: number
+              _truck_identifier?: string
+              _axle_count?: number
+              _bed_height?: number
+              _bed_length?: number
+              _bed_volume?: number
+              _bed_width?: number
+              _contract_id?: string
+              _equipment_id?: string
+              _hoist_bottom?: number
+              _hoist_top?: number
+              _hoist_width?: number
+              _notes?: string
+              _weight_capacity_tons?: number
+            }
         Returns: undefined
       }
       update_equipment: {
-        Args: { _id: string; _data: Json }
+        Args: {
+          _id: string
+          _name?: string
+          _created_by?: string
+          _operator_id?: string
+          _organization_id?: string
+          _session_id?: string
+          _standard_pay_rate?: number
+          _standard_pay_unit?: Database["public"]["Enums"]["pay_rate_unit"]
+          _description?: string
+          _user_defined_id?: string
+        }
         Returns: undefined
       }
-      update_equipment_assignments: {
-        Args: { _id: string; _data: Json }
+      update_equipment_assignment: {
+        Args: {
+          _id: string
+          _bid_rate?: number
+          _contract_id?: string
+          _created_by?: string
+          _start_date?: string
+          _end_date?: string
+          _equipment_id?: string
+          _line_item_id?: string
+          _map_id?: string
+          _notes?: string
+          _operator_id?: string
+          _session_id?: string
+          _status?: string
+          _updated_at?: string
+          _wbs_id?: string
+        }
         Returns: undefined
       }
       update_equipment_usage: {
-        Args: { _id: string; _data: Json }
+        Args: {
+          _id: string
+          _contract_id?: string
+          _created_by?: string
+          _equipment_id?: string
+          _line_item_id?: string
+          _hours_used?: number
+          _map_id?: string
+          _operator_id?: string
+          _session_id?: string
+          _notes?: string
+          _updated_by?: string
+          _usage_date?: string
+          _wbs_id?: string
+        }
         Returns: undefined
       }
-      update_inspections: {
-        Args: { _id: string; _data: Json }
+      update_inspection: {
+        Args: {
+          _id: string
+          _contract_id?: string
+          _name?: string
+          _description?: string
+          _created_by?: string
+          _line_item_id?: string
+          _map_id?: string
+          _pdf_url?: string
+          _photo_urls?: string[]
+          _session_id?: string
+          _wbs_id?: string
+        }
         Returns: undefined
       }
-      update_issues: {
-        Args: { _id: string; _data: Json }
+      update_issue: {
+        Args: {
+          _id: string
+          _title?: string
+          _description?: string
+          _priority?: Database["public"]["Enums"]["priority"]
+          _status?: string
+          _assigned_to?: string
+          _contract_id?: string
+          _created_by?: string
+          _equipment_id?: string
+          _line_item_id?: string
+          _map_id?: string
+          _session_id?: string
+          _photo_urls?: string[]
+          _resolution?: string
+          _due_date?: string
+          _updated_at?: string
+          _updated_by?: string
+          _wbs_id?: string
+        }
         Returns: undefined
       }
-      update_job_titles: {
-        Args: { _id: string; _data: Json }
+      update_job_title: {
+        Args: {
+          _id: string
+          _title?: string
+          _created_by?: string
+          _is_custom?: boolean
+          _session_id?: string
+        }
         Returns: undefined
       }
-      update_line_item_entries: {
-        Args: { _id: string; _data: Json }
+      update_line_item: {
+        Args: {
+          _id: string
+          _description?: string
+          _line_code?: string
+          _wbs_id?: string
+          _contract_id?: string
+          _map_id?: string
+          _reference_doc?: string
+          _template_id?: string
+          _session_id?: string
+          _unit_measure?: Database["public"]["Enums"]["unit_measure_type"]
+          _quantity?: number
+          _unit_price?: number
+          _coordinates?: string
+        }
         Returns: undefined
       }
-      update_line_item_templates: {
-        Args: { _id: string; _data: Json }
+      update_line_item_entry: {
+        Args: {
+          _id: string
+          _computed_output?: number
+          _contract_id?: string
+          _line_item_id?: string
+          _map_id?: string
+          _input_variables?: Json
+          _notes?: string
+          _output_unit?: Database["public"]["Enums"]["unit_measure_type"]
+          _entered_by?: string
+          _wbs_id?: string
+        }
         Returns: undefined
       }
-      update_line_items: {
-        Args: { _id: string; _data: Json }
+      update_line_item_template: {
+        Args: {
+          _id: string
+          _name?: string
+          _description?: string
+          _formula?: Json
+          _instructions?: string
+          _created_by?: string
+          _organization_id?: string
+          _output_unit?: Database["public"]["Enums"]["unit_measure_type"]
+          _session_id?: string
+        }
         Returns: undefined
       }
-      update_maps: {
-        Args: { _id: string; _data: Json }
+      update_map: {
+        Args: {
+          _id: string
+          _map_number?: string
+          _wbs_id?: string
+          _location?: string
+          _budget?: number
+          _scope?: string
+          _coordinates?: string
+          _contract_id?: string
+          _session_id?: string
+        }
         Returns: undefined
       }
-      update_organizations: {
-        Args: { _id: string; _data: Json }
+      update_organization: {
+        Args: {
+          _id: string
+          _name?: string
+          _created_by?: string
+          _address?: string
+          _phone?: string
+          _website?: string
+          _session_id?: string
+        }
         Returns: undefined
       }
-      update_profiles: {
-        Args: { _id: string; _data: Json }
+      update_profile: {
+        Args: {
+          _id: string
+          _full_name?: string
+          _email?: string
+          _username?: string
+          _phone?: string
+          _avatar_id?: string
+          _job_title_id?: string
+          _location?: string
+          _role?: Database["public"]["Enums"]["user_role"]
+          _organization_id?: string
+          _session_id?: string
+        }
         Returns: undefined
       }
-      update_tack_rates: {
-        Args: { _id: string; _data: Json }
-        Returns: undefined
-      }
-      update_user_contracts: {
-        Args: { _id: string; _data: Json }
+      update_user_contract: {
+        Args: {
+          _user_id: string
+          _contract_id: string
+          _role?: Database["public"]["Enums"]["user_role"]
+          _session_id?: string
+        }
         Returns: undefined
       }
       update_wbs: {
-        Args: { _id: string; _data: Json }
+        Args: {
+          _id: string
+          _wbs_number?: string
+          _contract_id?: string
+          _location?: string
+          _budget?: number
+          _scope?: string
+          _coordinates?: string
+          _session_id?: string
+        }
         Returns: undefined
       }
       updategeometrysrid: {
@@ -4465,6 +6085,8 @@ export type Database = {
         | "Inspection"
         | "Other"
       patch_status: "Proposed" | "Marked" | "Milled" | "Patched" | "Deleted"
+      pay_rate_unit: "day" | "hour"
+      priority: "High" | "Medium" | "Low" | "Note"
       road_side: "Left" | "Right"
       unit_measure_type:
         | "Feet (FT)"
@@ -4666,6 +6288,8 @@ export const Constants = {
         "Other",
       ],
       patch_status: ["Proposed", "Marked", "Milled", "Patched", "Deleted"],
+      pay_rate_unit: ["day", "hour"],
+      priority: ["High", "Medium", "Low", "Note"],
       road_side: ["Left", "Right"],
       unit_measure_type: [
         "Feet (FT)",

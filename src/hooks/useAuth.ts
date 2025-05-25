@@ -109,7 +109,8 @@ export function useAuth(): Record<string, unknown> {
         window.sessionStorage.removeItem("lastLoginAttempt");
 
         toast.success("Welcome back!");
-        navigate(currentProfile.role === "Admin" ? "/admin/dashboard" : "/dashboard");
+        // Navigate all users to the main dashboard
+        navigate("/dashboard");
         return currentProfile;
 
       } catch (err) {
@@ -177,19 +178,18 @@ export function useAuth(): Record<string, unknown> {
         // Insert profile using RPC client
         try {
           await rpcClient.insertProfileFull({
-            _id: signUpData.user.id,
-            _role: profileInput.role,
-            _full_name: profileInput.full_name,
-            _email: profileInput.email, // Ensure this matches the auth email
-            _username: profileInput.username,
-            _phone: profileInput.phone ?? undefined,
-            _location: profileInput.location ?? undefined,
-            _job_title_id: profileInput.job_title_id ?? undefined,
-            _custom_job_title: profileInput.custom_job_title ?? undefined,
-            _organization_id: profileInput.organization_id ?? undefined,
-            _custom_organization_name: profileInput.custom_organization_name ??
-              undefined,
-            _avatar_id: profileInput.avatar_id ?? undefined,
+            role: profileInput.role,
+            full_name: profileInput.full_name,
+            email: profileInput.email, // Ensure this matches the auth email
+            username: profileInput.username,
+            id: signUpData.user.id,
+            phone: profileInput.phone ?? undefined,
+            location: profileInput.location ?? undefined,
+            job_title_id: profileInput.job_title_id ?? undefined,
+            custom_job_title: profileInput.custom_job_title ?? undefined,
+            organization_id: profileInput.organization_id ?? undefined,
+            custom_organization_name: profileInput.custom_organization_name ?? undefined,
+            avatar_id: profileInput.avatar_id ?? undefined,
           });
         } catch (insertProfileError) {
           setError(
@@ -372,9 +372,8 @@ export function useAuth(): Record<string, unknown> {
         }
 
         toast.success("Welcome to the Demo Environment!");
-        navigate(
-          demoProfile.role === "Admin" ? "/admin/dashboard" : "/dashboard",
-        );
+        // Navigate all demo users to the main dashboard
+        navigate("/dashboard");
         return demoProfile;
       } catch (err) {
         console.error("[ERROR] Demo login error:", err);

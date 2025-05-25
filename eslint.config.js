@@ -15,6 +15,8 @@ export default defineConfig([
       "postcss.config.js",
       "open-all-files.js",
       "scripts/typegen.cjs",
+      "scripts/open-all-files.js",
+      "src/index.css" // Added this line to ignore the CSS file
     ]
   },
 

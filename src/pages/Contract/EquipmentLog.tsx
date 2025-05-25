@@ -100,11 +100,13 @@ export default function EquipmentLog() {
     try {
       const demoSession = getDemoSession();
       const { error } = await supabase.rpc('insert_equipment_usage', {
-        _data: {
-          ...newLog,
-          created_by: user.id,
-          ...(demoSession ? { session_id: demoSession.sessionId } : {}),
-        }
+        _equipment_id: newLog.equipment_id,
+        _usage_date: newLog.usage_date,
+        _hours_used: newLog.hours_used,
+        _operator_id: newLog.operator_id ?? undefined,
+        _notes: newLog.notes || undefined,
+        _created_by: user.id,
+        ...(demoSession ? { _session_id: demoSession.sessionId } : {}),
       });
 
       if (error) throw error;
@@ -130,11 +132,11 @@ export default function EquipmentLog() {
     try {
       const demoSession = getDemoSession();
       const { error } = await supabase.rpc('insert_equipment', {
-        _data: {
-          ...newEquipment,
-          created_by: user.id,
-          ...(demoSession ? { session_id: demoSession.sessionId } : {}),
-        }
+        _user_defined_id: newEquipment.user_defined_id,
+        _name: newEquipment.name,
+        _description: newEquipment.description,
+        _created_by: user.id,
+        ...(demoSession ? { _session_id: demoSession.sessionId } : {}),
       });
 
       if (error) throw error;

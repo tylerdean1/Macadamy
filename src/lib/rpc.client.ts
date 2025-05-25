@@ -34,12 +34,12 @@ class RpcClient {
     return this.callRpc<RPC.AllProfilesRow[]>("get_all_profiles", args);
   }
 
-  async updateProfileFull(args: RPC.UpdateProfileFullRpcArgs): Promise<void> {
-    await this.callRpc("update_profile_full", args);
+  async updateProfileFull(args: RPC.UpdateProfileRpcArgs): Promise<void> {
+    await this.callRpc<void>("update_profile", args);
   }
 
-  async insertProfileFull(args: RPC.InsertProfileFullRpcArgs): Promise<void> {
-    await this.callRpc("insert_profile_full", args);
+  async insertProfileFull(args: RPC.InsertProfileFullRpcArgs): Promise<string> {
+    return this.callRpc<string>("insert_profile_full", args);
   }
 
   // Enum RPCs
@@ -48,7 +48,7 @@ class RpcClient {
   }
 
   // Demo Data RPCs
-  async createDemoEnvironment(args: { base_profile_email: string }): Promise<{ created_session_id: string; created_profile_id: string }> {
+  async createDemoEnvironment(args: RPC.CreateDemoEnvironmentRpcArgs): Promise<{ created_session_id: string; created_profile_id: string }> {
     return this.callRpc<{ created_session_id: string; created_profile_id: string }>(
       "create_demo_environment",
       args,
@@ -56,15 +56,15 @@ class RpcClient {
     );
   }
 
-  async executeFullDemoClone(args: { p_session_id: string }): Promise<void> {
-    await this.callRpc("execute_full_demo_clone", args);
+  async executeFullDemoClone(args: RPC.ExecuteFullDemoCloneRpcArgs): Promise<void> {
+    await this.callRpc<void>("execute_full_demo_clone", args);
   }
 
   async checkUsernameAvailable(args: RPC.CheckUsernameAvailableRpcArgs): Promise<boolean> {
     return this.callRpc<boolean>("check_username_available", args, { single: true });
   }
 
-  async getEnrichedProfileByUsername(args: RPC.GetEnrichedProfileByUsernameRpcArgs): Promise<RPC.AllProfilesRow | null> {
+  async getEnrichedProfileByUsername(args: { username: string }): Promise<RPC.AllProfilesRow | null> {
     const data = await this.callRpc<RPC.AllProfilesRow[]>("get_enriched_profile_by_username", args);
     return data != null && data.length > 0 ? data[0] : null;
   }
@@ -77,8 +77,8 @@ class RpcClient {
     return this.callRpc<RPC.OrganizationsRow[]>("get_organizations", args);
   }
 
-  async getJobTitles(): Promise<RPC.JobTitlesRow[]> {
-    return this.callRpc<RPC.JobTitlesRow[]>("get_job_titles", {});
+  async getJobTitles(args: RPC.GetJobTitlesByOrganizationRpcArgs): Promise<RPC.JobTitlesRow[]> {
+    return this.callRpc<RPC.JobTitlesRow[]>("get_job_titles", args);
   }
 
   async getEnrichedUserContracts(args: { _user_id: string }): Promise<EnrichedUserContract[]> {
@@ -89,30 +89,30 @@ class RpcClient {
     return this.callRpc<{ active_contracts: number; total_issues: number; total_inspections: number; }>("get_dashboard_metrics", args);
   }
 
-  async getAllLineItemTemplates(args: import('./rpc.types').GetAllLineItemTemplatesRpcArgs): Promise<import('./rpc.types').AllLineItemTemplatesRow[]> {
-    return this.callRpc<import('./rpc.types').AllLineItemTemplatesRow[]>(
+  async getAllLineItemTemplates(args: RPC.GetAllLineItemTemplatesRpcArgs): Promise<RPC.AllLineItemTemplatesRow[]> {
+    return this.callRpc<RPC.AllLineItemTemplatesRow[]>(
       'get_all_line_item_templates',
       args
     );
   }
 
   // Contract/Team Management RPCs
-  async getContractWithWkt(args: { contract_id: string }): Promise<import('./rpc.types').ContractWithWktRow[]> {
-    return this.callRpc<import('./rpc.types').ContractWithWktRow[]>(
+  async getContractWithWkt(args: RPC.GetContractWithWktRpcArgs): Promise<RPC.ContractWithWktRow[]> {
+    return this.callRpc<RPC.ContractWithWktRow[]>(
       'get_contract_with_wkt',
       args
     );
   }
 
-  async getProfilesByContract(args: { _contract_id: string }): Promise<import('./rpc.types').ProfilesByContractRow[]> {
-    return this.callRpc<import('./rpc.types').ProfilesByContractRow[]>(
+  async getProfilesByContract(args: RPC.GetProfilesByContractRpcArgs): Promise<RPC.ProfilesByContractRow[]> {
+    return this.callRpc<RPC.ProfilesByContractRow[]>(
       'get_profiles_by_contract',
       args
     );
   }
 
-  async updateContracts(args: { _id: string; _data: { status: string } }): Promise<void> {
-    return this.callRpc<void>('update_contracts', args);
+  async updateContracts(args: RPC.UpdateContractRpcArgs): Promise<void> {
+    return this.callRpc<void>('update_contract', args);
   }
 
   async removeProfileFromContract(args: { _contract_id: string; _profile_id: string }): Promise<void> {
@@ -123,7 +123,7 @@ class RpcClient {
     return this.callRpc<void>('update_profile_contract_role', args);
   }
 
-  async deleteContracts(args: { _id: string }): Promise<void> {
+  async deleteContracts(args: RPC.DeleteContractsRpcArgs): Promise<void> {
     return this.callRpc<void>('delete_contract', args);
   }
 }

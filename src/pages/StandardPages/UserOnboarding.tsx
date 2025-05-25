@@ -48,7 +48,9 @@ export default function UserOnboarding() {
     if (step === 2 && typeof form.username === 'string' && form.username.trim().length >= 3) {
       const checkUsername = async () => {
         try {
-          const profile = await rpcClient.getEnrichedProfileByUsername({ _username: form.username.toUpperCase() });
+          // Fix: use 'username' instead of '_username' in the object literal
+          const userObj = { username: form.username.toUpperCase() };
+          const profile = await rpcClient.getEnrichedProfileByUsername(userObj);
           setUsernameAvailable(!profile);
         } catch {
           setUsernameAvailable(null);
