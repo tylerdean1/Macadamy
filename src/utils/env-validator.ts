@@ -1,47 +1,40 @@
+// <start env-validator.ts>
 /**
- * Environment variables validation utility 
+ * Runtime helpers for validating Vite-style `import.meta.env` variables.
+ *
+ * All functions throw a plain `Error` so CI/dev fail fast when a required
+ * variable is missing.  Returns are always `string` (never undefined).
  */
 
 /**
- * Validates that required environment variables are present
- * @param variables - Array of required environment variable names
- * @throws Error if any required variable is missing
+ * Throws if ANY name in `vars` is unset or empty.
  */
-export function validateEnvVariables(variables: string[]): void {
-  const missing = variables.filter(variable => {
-    const value = import.meta.env[variable] as string | undefined;
-    return value === undefined || value === '';
+export function validateEnvVariables(vars: readonly string[]): void {
+  const missing = vars.filter((v) => {
+    const value = import.meta.env[v] as unknown as string | undefined;
+    return value == null || value === '';
   });
-
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
 }
 
 /**
- * Gets a required environment variable
- * @param name - The name of the environment variable
- * @returns The value of the environment variable
- * @throws Error if the environment variable is missing
+ * Returns a single required env var (never undefined).
  */
 export function getRequiredEnv(name: string): string {
-  const value = import.meta.env[name] as string | undefined;
-  if (value === undefined || value === '') {
+  const value = import.meta.env[name] as unknown as string | undefined;
+  if (value == null || value === '') {
     throw new Error(`Missing required environment variable: ${name}`);
   }
   return value;
 }
 
 /**
- * Gets an optional environment variable with a default value
- * @param name - The name of the environment variable
- * @param defaultValue - The default value to return if the variable is missing
- * @returns The value of the environment variable or the default value
+ * Returns an optional env var, falling back to `defaultValue`.
  */
 export function getOptionalEnv(name: string, defaultValue: string): string {
-  const value = import.meta.env[name] as string | undefined;
-  if (value === undefined || value === '') {
-    return defaultValue;
-  }
-  return value;
+  const value = import.meta.env[name] as unknown as string | undefined;
+  return value == null || value === '' ? defaultValue : value;
 }
+// <end env-validator.ts>

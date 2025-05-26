@@ -11,9 +11,10 @@ type UserRole = AuthEnrichedProfileInput['role'];
 
 export default function UserOnboarding() {
   const navigate = useNavigate();
-  const { signup: signupRaw, error, loading: isLoadingRaw } = useAuth();
+  const { signup: signupRaw, error } = useAuth();
+  const { loading } = useAuthStore();
   const signup = signupRaw as ((email: string, password: string, profileInput: AuthEnrichedProfileInput) => Promise<unknown>);
-  const isLoading = Boolean(isLoadingRaw);
+  const isLoading = loading.auth || loading.profile;
   const roleOptions = useEnumOptions('user_role');
   const { user, profile } = useAuthStore();
 

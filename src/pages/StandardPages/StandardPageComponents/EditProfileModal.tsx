@@ -14,10 +14,11 @@ interface EditProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   avatars: Avatars[];
-  profileAvatarUrl?: string | null;
   organizations: Organization[];
   jobTitles: JobTitle[];
   editForm: {
+    username: string; // Added username
+    full_name: string; // Added full_name
     avatar_id?: string;
     organization_id?: string;
     job_title_id?: string;
@@ -26,12 +27,15 @@ interface EditProfileModalProps {
     email?: string;
     custom_job_title?: string;
   };
-  selectedImage: string | null;
+  selectedImage: string | null; // Image data URL for the cropper
   crop: { x: number; y: number };
   zoom: number;
   croppedAreaPixels: Area | null;
   onAvatarSelect: (url: string) => void;
-  onAvatarUpload: (file: File) => void;
+  // Renamed from onAvatarUpload
+  onRawImageSelected: (file: File) => void;
+  // New prop for when "Crop & Upload" is clicked, now directly handles upload
+  onImageCroppedAndUpload: (croppedFile: File) => Promise<void>;
   onCropChange: (crop: { x: number; y: number }) => void;
   onZoomChange: (zoom: number) => void;
   onCropComplete: (area: Area, areaPixels: Area) => void;
@@ -43,7 +47,6 @@ export function EditProfileModal({
   isOpen,
   onClose,
   avatars,
-  profileAvatarUrl,
   organizations,
   jobTitles,
   editForm,
@@ -52,7 +55,8 @@ export function EditProfileModal({
   zoom,
   croppedAreaPixels,
   onAvatarSelect,
-  onAvatarUpload,
+  onRawImageSelected,
+  onImageCroppedAndUpload, // Updated prop name
   onCropChange,
   onZoomChange,
   onCropComplete,
@@ -60,14 +64,17 @@ export function EditProfileModal({
   onSaveProfile,
 }: EditProfileModalProps) {
   // Crop & Upload handler using croppedAreaPixels
-  const handleCropAndUpload = async () => {
+  const handleInternalCropAndUpload = async () => {
     if (typeof selectedImage !== 'string' || !croppedAreaPixels) return;
     try {
       const blob = await getCroppedImg(selectedImage, croppedAreaPixels);
-      const file = new File([blob], 'avatar.png', { type: 'image/png' });
-      onAvatarUpload(file);
+      // Ensure the file name is unique or matches Supabase expectations if replacing
+      const fileName = `avatar-${Date.now()}.png`;
+      const file = new File([blob], fileName, { type: 'image/png' });
+      await onImageCroppedAndUpload(file); // Call the updated prop
     } catch (err) {
-      console.error('Failed to crop image', err);
+      console.error('Failed to crop and upload image', err);
+      // Potentially show a toast error to the user here
     }
   };
 
@@ -80,7 +87,7 @@ export function EditProfileModal({
               <button
                 key={avatar.id}
                 onClick={() => onAvatarSelect(avatar.url)}
-                className={`rounded-lg overflow-hidden border-2 ${profileAvatarUrl === avatar.url ? 'border-primary' : 'border-background-lighter'}`}
+                className={`rounded-lg overflow-hidden border-2 ${editForm.avatar_id === avatar.id ? 'border-primary' : 'border-background-lighter'}`}
               >
                 <img src={avatar.url} alt={avatar.name} className="w-full h-24 object-cover" />
               </button>
@@ -95,29 +102,53 @@ export function EditProfileModal({
                 type="file"
                 className="hidden"
                 accept="image/*"
-                onChange={e => e.target.files?.[0] && onAvatarUpload(e.target.files[0])}
+                // Call onRawImageSelected when a file is chosen
+                onChange={e => e.target.files?.[0] && onRawImageSelected(e.target.files[0])}
               />
             </label>
           </div>
           {typeof selectedImage === 'string' && selectedImage !== '' && (
-            <div className="relative w-full h-64 mb-4">
-              <Cropper
-                image={selectedImage}
-                crop={crop}
-                zoom={zoom}
-                aspect={1}
-                onCropChange={onCropChange}
-                onZoomChange={onZoomChange}
-                onCropComplete={onCropComplete}
-              />
-              <Button onClick={() => { void handleCropAndUpload(); }} className="mt-2 w-full">
+            <>
+              <div className="relative w-full h-64 mb-4"> {/* Container for the Cropper */}
+                <Cropper
+                  image={selectedImage}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={1}
+                  onCropChange={onCropChange}
+                  onZoomChange={onZoomChange}
+                  onCropComplete={onCropComplete}
+                />
+              </div>
+              {/* Button calls the renamed internal handler */}
+              <Button onClick={() => { void handleInternalCropAndUpload(); }} className="mt-2 w-full">
                 Crop & Upload
               </Button>
-            </div>
+            </>
           )}
         </FormSection>
 
         <FormSection title="Profile Info">
+          <FormField label="Username" htmlFor="username" className="mb-4">
+            <Input
+              type="text"
+              id="username"
+              name="username"
+              value={editForm.username || ''} // Ensure value is not null/undefined
+              onChange={onFormChange}
+            />
+          </FormField>
+
+          <FormField label="Full Name" htmlFor="full_name" className="mb-4">
+            <Input
+              type="text"
+              id="full_name"
+              name="full_name"
+              value={editForm.full_name || ''} // Ensure value is not null/undefined
+              onChange={onFormChange}
+            />
+          </FormField>
+
           <FormField label="Organization" htmlFor="organization_id" className="mb-4">
             <Select
               name="organization_id"

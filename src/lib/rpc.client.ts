@@ -73,12 +73,16 @@ class RpcClient {
     return this.callRpc<RPC.AvatarsForProfileRow[]>("get_avatars_for_profile", args);
   }
 
-  async getOrganizations(args: RPC.GetOrganizationsRpcArgs): Promise<RPC.OrganizationsRow[]> {
-    return this.callRpc<RPC.OrganizationsRow[]>("get_organizations", args);
+  async getOrganizations(): Promise<RPC.OrganizationsRow[]> {
+    return this.callRpc<RPC.OrganizationsRow[]>("get_organizations", {});
   }
 
-  async getJobTitles(args: RPC.GetJobTitlesByOrganizationRpcArgs): Promise<RPC.JobTitlesRow[]> {
-    return this.callRpc<RPC.JobTitlesRow[]>("get_job_titles", args);
+  async getJobTitles(): Promise<RPC.JobTitlesRow[]> {
+    return this.callRpc<RPC.JobTitlesRow[]>("get_job_titles", {});
+  }
+
+  async insert_job_title(args: RPC.InsertJobTitleRpcArgs): Promise<RPC.JobTitlesRow[]> {
+    return this.callRpc<RPC.JobTitlesRow[]>("insert_job_title", args);
   }
 
   async getEnrichedUserContracts(args: { _user_id: string }): Promise<EnrichedUserContract[]> {
@@ -86,7 +90,7 @@ class RpcClient {
   }
 
   async getDashboardMetrics(args: RPC.GetDashboardMetricsRpcArgs): Promise<{ active_contracts: number; total_issues: number; total_inspections: number; }> {
-    return this.callRpc<{ active_contracts: number; total_issues: number; total_inspections: number; }>("get_dashboard_metrics", args);
+    return this.callRpc<{ active_contracts: number; total_issues: number; total_inspections: number; }>("get_dashboard_metrics", { _user_id: args._user_id });
   }
 
   async getAllLineItemTemplates(args: RPC.GetAllLineItemTemplatesRpcArgs): Promise<RPC.AllLineItemTemplatesRow[]> {

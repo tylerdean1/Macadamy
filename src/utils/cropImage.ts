@@ -31,7 +31,7 @@ export async function getCroppedImg(
         if (blob) resolve(blob);
         else reject(new Error('Canvas is empty'));
       },
-      'image/jpeg'
+      'image/png' // Changed from image/jpeg to image/png
     );
   });
 }

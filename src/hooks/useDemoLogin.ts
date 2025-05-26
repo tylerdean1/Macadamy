@@ -1,22 +1,31 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/lib/store";
 import type { EnrichedProfile } from "@/lib/store";
 import { cloneDemoData, DemoSession } from "@/lib/utils/cloneDemoData";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export function useDemoLogin(): {
     loading: boolean;
     error: string | null;
     loginAsDemoUser: () => Promise<EnrichedProfile | null>;
 } {
-    const { setUser, setProfile } = useAuthStore();
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    // Use the loading and error state from the auth store
+    const {
+        setUser,
+        setProfile,
+        loading,
+        error,
+        setLoading,
+        setError
+    } = useAuthStore();
+    const navigate = useNavigate();
 
     const loginAsDemoUser = useCallback(
         async (): Promise<EnrichedProfile | null> => {
-            setLoading(true);
+            // Set the demo loading state to true
+            setLoading({ demo: true });
             setError(null);
             let currentToastId: string | number | undefined = undefined;
 
@@ -40,6 +49,7 @@ export function useDemoLogin(): {
                     );
                     const errMsg = "Demo user credentials are not configured. Please set VITE_DEMO_USER_EMAIL and VITE_DEMO_USER_PASSWORD in your .env file.";
                     toast.error(errMsg, { id: currentToastId });
+                    setError(errMsg);
                     throw new Error(errMsg);
                 }
 
@@ -49,11 +59,15 @@ export function useDemoLogin(): {
                     );
                 }
 
+                // Set auth loading state to true during login
+                setLoading({ demo: true, auth: true });
                 const { data: authData, error: authError } = await supabase.auth
                     .signInWithPassword({
                         email: demoEmail,
                         password: demoPassword,
                     });
+                // Reset auth loading state
+                setLoading({ auth: false });
 
                 let authErrorMsg = '';
                 if (authError && typeof authError.message === 'string' && authError.message.length > 0) {
@@ -72,7 +86,8 @@ export function useDemoLogin(): {
 
                 setUser(authData.user);
 
-                // Assuming loadProfile itself doesn't manage global loading state in a way that conflicts
+                // Profile loading is managed by loadProfile itself
+                console.log("[useDemoLogin] Loading demo profile for user ID:", demoSessionData.userId);
                 await useAuthStore.getState().loadProfile(demoSessionData.userId);
 
                 const demoProfile = useAuthStore.getState().profile;
@@ -88,8 +103,13 @@ export function useDemoLogin(): {
                 }
 
                 setProfile(demoProfile);
-                // Update the current toast to success, or dismiss it if a global login success toast will appear.
+
+                // Update the current toast to success
                 toast.success("Logged into demo account successfully!", { id: currentToastId });
+
+                // Navigate to dashboard
+                navigate("/dashboard");
+
                 return demoProfile;
             } catch (err) {
                 const errorMessage = err instanceof Error ? err.message : String(err);
@@ -97,16 +117,20 @@ export function useDemoLogin(): {
                 if (currentToastId !== undefined) {
                     toast.error(errorMessage, { id: currentToastId });
                 } else {
-                    // This case would be rare, e.g. if toast.loading itself failed initially
                     toast.error(errorMessage);
                 }
                 return null;
             } finally {
-                setLoading(false);
+                setLoading({ demo: false });
             }
         },
-        [setUser, setProfile],
+        [setUser, setProfile, setLoading, setError, navigate],
     );
 
-    return { loading, error, loginAsDemoUser };
+    // Return the loading and error states from the auth store
+    return {
+        loading: loading.demo,
+        error,
+        loginAsDemoUser
+    };
 }

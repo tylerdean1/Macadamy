@@ -5,7 +5,7 @@
 -- Dumped from database version 15.8
 -- Dumped by pg_dump version 17.5
 
--- Started on 2025-05-24 19:27:22
+-- Started on 2025-05-25 13:14:19
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -209,7 +209,7 @@ CREATE TYPE public.user_role AS ENUM (
 
 
 --
--- TOC entry 868 (class 1255 OID 35754)
+-- TOC entry 869 (class 1255 OID 35754)
 -- Name: calculate_cy(numeric, numeric, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -223,7 +223,7 @@ $$;
 
 
 --
--- TOC entry 760 (class 1255 OID 35733)
+-- TOC entry 761 (class 1255 OID 35733)
 -- Name: calculate_sy(numeric, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -237,7 +237,7 @@ $$;
 
 
 --
--- TOC entry 924 (class 1255 OID 35776)
+-- TOC entry 925 (class 1255 OID 35776)
 -- Name: calculate_tons(numeric, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -267,7 +267,7 @@ END;$$;
 
 
 --
--- TOC entry 1350 (class 1255 OID 135794)
+-- TOC entry 1351 (class 1255 OID 135794)
 -- Name: clone_change_orders_for_session(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -362,7 +362,7 @@ $$;
 
 
 --
--- TOC entry 1376 (class 1255 OID 136256)
+-- TOC entry 1377 (class 1255 OID 136256)
 -- Name: clone_contract_organizations(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -432,7 +432,7 @@ $$;
 
 
 --
--- TOC entry 1342 (class 1255 OID 135592)
+-- TOC entry 1343 (class 1255 OID 135592)
 -- Name: clone_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -528,7 +528,7 @@ $$;
 
 
 --
--- TOC entry 1356 (class 1255 OID 135944)
+-- TOC entry 1357 (class 1255 OID 135944)
 -- Name: clone_crew_members(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -595,7 +595,7 @@ $$;
 
 
 --
--- TOC entry 1354 (class 1255 OID 135882)
+-- TOC entry 1355 (class 1255 OID 135882)
 -- Name: clone_crews(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -658,7 +658,7 @@ $$;
 
 
 --
--- TOC entry 1366 (class 1255 OID 136110)
+-- TOC entry 1367 (class 1255 OID 136110)
 -- Name: clone_daily_logs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -724,7 +724,7 @@ $$;
 
 
 --
--- TOC entry 1357 (class 1255 OID 135986)
+-- TOC entry 1358 (class 1255 OID 135986)
 -- Name: clone_equipment(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -792,7 +792,7 @@ $$;
 
 
 --
--- TOC entry 1362 (class 1255 OID 136068)
+-- TOC entry 1363 (class 1255 OID 136068)
 -- Name: clone_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -858,7 +858,7 @@ $$;
 
 
 --
--- TOC entry 1371 (class 1255 OID 136194)
+-- TOC entry 1372 (class 1255 OID 136194)
 -- Name: clone_inspections(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -928,7 +928,7 @@ $$;
 
 
 --
--- TOC entry 1369 (class 1255 OID 136152)
+-- TOC entry 1370 (class 1255 OID 136152)
 -- Name: clone_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1004,7 +1004,7 @@ $$;
 
 
 --
--- TOC entry 1386 (class 1255 OID 136380)
+-- TOC entry 1387 (class 1255 OID 136380)
 -- Name: clone_line_item_crew_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1082,7 +1082,7 @@ $$;
 
 
 --
--- TOC entry 1381 (class 1255 OID 136318)
+-- TOC entry 1382 (class 1255 OID 136318)
 -- Name: clone_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1297,7 +1297,7 @@ $$;
 
 
 --
--- TOC entry 1332 (class 1255 OID 135218)
+-- TOC entry 1333 (class 1255 OID 135218)
 -- Name: clone_line_items_for_maps(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1378,7 +1378,7 @@ $$;
 
 
 --
--- TOC entry 1328 (class 1255 OID 135156)
+-- TOC entry 1329 (class 1255 OID 135156)
 -- Name: clone_maps_for_wbs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1451,7 +1451,7 @@ $$;
 
 
 --
--- TOC entry 1325 (class 1255 OID 135094)
+-- TOC entry 1326 (class 1255 OID 135094)
 -- Name: clone_wbs_for_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1594,7 +1594,7 @@ END;$$;
 
 
 --
--- TOC entry 1346 (class 1255 OID 146118)
+-- TOC entry 1347 (class 1255 OID 146118)
 -- Name: custom_access_token_hook(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1632,7 +1632,7 @@ $$;
 
 
 --
--- TOC entry 1347 (class 1255 OID 154252)
+-- TOC entry 1348 (class 1255 OID 154252)
 -- Name: delete_asphalt_type(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1659,7 +1659,7 @@ $$;
 
 
 --
--- TOC entry 1375 (class 1255 OID 154824)
+-- TOC entry 1376 (class 1255 OID 154824)
 -- Name: delete_change_order(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1704,7 +1704,7 @@ $$;
 
 
 --
--- TOC entry 1322 (class 1255 OID 155798)
+-- TOC entry 1323 (class 1255 OID 155798)
 -- Name: delete_crew(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1719,7 +1719,7 @@ $$;
 
 
 --
--- TOC entry 1316 (class 1255 OID 155610)
+-- TOC entry 1317 (class 1255 OID 155610)
 -- Name: delete_crew_member(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1746,7 +1746,7 @@ $$;
 
 
 --
--- TOC entry 1331 (class 1255 OID 155986)
+-- TOC entry 1332 (class 1255 OID 155986)
 -- Name: delete_daily_log(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1761,7 +1761,7 @@ $$;
 
 
 --
--- TOC entry 1338 (class 1255 OID 156180)
+-- TOC entry 1339 (class 1255 OID 156180)
 -- Name: delete_demo_mapping(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1776,7 +1776,7 @@ $$;
 
 
 --
--- TOC entry 1367 (class 1255 OID 156942)
+-- TOC entry 1368 (class 1255 OID 156942)
 -- Name: delete_dump_truck(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2093,7 +2093,7 @@ CREATE TABLE public.dump_trucks (
 
 
 --
--- TOC entry 1382 (class 1255 OID 157148)
+-- TOC entry 1383 (class 1255 OID 157148)
 -- Name: filtered_by_axle_count_dump_trucks(numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2131,7 +2131,7 @@ CREATE TABLE public.daily_logs (
 
 
 --
--- TOC entry 1324 (class 1255 OID 155860)
+-- TOC entry 1325 (class 1255 OID 155860)
 -- Name: filtered_by_contract_daily_logs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2145,7 +2145,7 @@ $$;
 
 
 --
--- TOC entry 1358 (class 1255 OID 156816)
+-- TOC entry 1359 (class 1255 OID 156816)
 -- Name: filtered_by_contract_dump_trucks(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2484,7 +2484,7 @@ ALTER TABLE ONLY public.crew_members REPLICA IDENTITY FULL;
 
 
 --
--- TOC entry 1309 (class 1255 OID 155484)
+-- TOC entry 1310 (class 1255 OID 155484)
 -- Name: filtered_by_crew_crew_members(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2764,7 +2764,7 @@ $$;
 
 
 --
--- TOC entry 1385 (class 1255 OID 157190)
+-- TOC entry 1386 (class 1255 OID 157190)
 -- Name: filtered_by_max_volume_dump_trucks(numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2867,7 +2867,7 @@ ALTER TABLE ONLY public.crews REPLICA IDENTITY FULL;
 
 
 --
--- TOC entry 1318 (class 1255 OID 155672)
+-- TOC entry 1319 (class 1255 OID 155672)
 -- Name: filtered_by_organization_crews(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3105,7 +3105,7 @@ CREATE TABLE public.demo_mappings (
 
 
 --
--- TOC entry 1333 (class 1255 OID 156048)
+-- TOC entry 1334 (class 1255 OID 156048)
 -- Name: filtered_by_session_demo_mappings(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3286,7 +3286,7 @@ $$;
 
 
 --
--- TOC entry 1368 (class 1255 OID 141204)
+-- TOC entry 1369 (class 1255 OID 141204)
 -- Name: get_all_line_item_templates(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3306,7 +3306,7 @@ $$;
 
 
 --
--- TOC entry 1380 (class 1255 OID 141370)
+-- TOC entry 1381 (class 1255 OID 141370)
 -- Name: get_all_profiles(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3350,7 +3350,7 @@ CREATE TABLE public.asphalt_types (
 
 
 --
--- TOC entry 1340 (class 1255 OID 154106)
+-- TOC entry 1341 (class 1255 OID 154106)
 -- Name: get_asphalt_types(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3363,25 +3363,29 @@ $$;
 
 
 --
--- TOC entry 1388 (class 1255 OID 141474)
+-- TOC entry 593 (class 1255 OID 163022)
 -- Name: get_avatars_for_profile(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_avatars_for_profile(_profile_id uuid) RETURNS TABLE(id uuid, url text, is_preset boolean)
+CREATE FUNCTION public.get_avatars_for_profile(_profile_id uuid) RETURNS TABLE(id uuid, url text, is_preset boolean, session_id uuid)
     LANGUAGE sql
     AS $$
-select
-  a.id,
-  a.url,
-  a.is_preset
-from avatars a
-where a.profile_id = _profile_id
-   or a.is_preset = true;
+  -- Get all preset avatars
+  SELECT a.id, a.url, a.is_preset, a.session_id
+  FROM avatars a
+  WHERE a.is_preset = true
+  
+  UNION
+  
+  -- Get the profile's dedicated avatar (if it exists)
+  SELECT a.id, a.url, a.is_preset, a.session_id
+  FROM avatars a
+  WHERE a.id = _profile_id
 $$;
 
 
 --
--- TOC entry 1326 (class 1255 OID 140288)
+-- TOC entry 1327 (class 1255 OID 140288)
 -- Name: get_change_orders(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3434,7 +3438,7 @@ CREATE TABLE public.change_orders (
 
 
 --
--- TOC entry 1379 (class 1255 OID 154866)
+-- TOC entry 1380 (class 1255 OID 154866)
 -- Name: get_change_orders(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3452,7 +3456,7 @@ $$;
 
 
 --
--- TOC entry 1352 (class 1255 OID 146242)
+-- TOC entry 1353 (class 1255 OID 146242)
 -- Name: get_change_orders_count_for_contract(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3475,7 +3479,7 @@ $$;
 
 
 --
--- TOC entry 1330 (class 1255 OID 140370)
+-- TOC entry 1331 (class 1255 OID 140370)
 -- Name: get_contract_organizations(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3492,7 +3496,7 @@ $$;
 
 
 --
--- TOC entry 1315 (class 1255 OID 139934)
+-- TOC entry 1316 (class 1255 OID 139934)
 -- Name: get_contract_with_wkt(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3516,7 +3520,7 @@ $$;
 
 
 --
--- TOC entry 1334 (class 1255 OID 140460)
+-- TOC entry 1335 (class 1255 OID 140460)
 -- Name: get_crew_members_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3539,7 +3543,7 @@ $$;
 
 
 --
--- TOC entry 1336 (class 1255 OID 140522)
+-- TOC entry 1337 (class 1255 OID 140522)
 -- Name: get_crews_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3559,7 +3563,7 @@ $$;
 
 
 --
--- TOC entry 1339 (class 1255 OID 140584)
+-- TOC entry 1340 (class 1255 OID 140584)
 -- Name: get_daily_logs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3669,7 +3673,7 @@ $$;
 
 
 --
--- TOC entry 1317 (class 1255 OID 148002)
+-- TOC entry 1318 (class 1255 OID 148002)
 -- Name: get_enriched_user_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3707,7 +3711,7 @@ $$;
 
 
 --
--- TOC entry 1314 (class 1255 OID 118266)
+-- TOC entry 1315 (class 1255 OID 118266)
 -- Name: get_enum_values(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3723,7 +3727,7 @@ $$;
 
 
 --
--- TOC entry 1344 (class 1255 OID 140716)
+-- TOC entry 1345 (class 1255 OID 140716)
 -- Name: get_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3745,7 +3749,7 @@ $$;
 
 
 --
--- TOC entry 1341 (class 1255 OID 140654)
+-- TOC entry 1342 (class 1255 OID 140654)
 -- Name: get_equipment_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3765,7 +3769,7 @@ $$;
 
 
 --
--- TOC entry 1348 (class 1255 OID 140804)
+-- TOC entry 1349 (class 1255 OID 140804)
 -- Name: get_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3787,7 +3791,7 @@ $$;
 
 
 --
--- TOC entry 1353 (class 1255 OID 146284)
+-- TOC entry 1354 (class 1255 OID 146284)
 -- Name: get_inspections_count_for_contract(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3810,7 +3814,7 @@ $$;
 
 
 --
--- TOC entry 1351 (class 1255 OID 140886)
+-- TOC entry 1352 (class 1255 OID 140886)
 -- Name: get_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3839,7 +3843,7 @@ $$;
 
 
 --
--- TOC entry 1349 (class 1255 OID 146200)
+-- TOC entry 1350 (class 1255 OID 146200)
 -- Name: get_issues_count_for_contract(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3862,7 +3866,7 @@ $$;
 
 
 --
--- TOC entry 1355 (class 1255 OID 140948)
+-- TOC entry 1356 (class 1255 OID 140948)
 -- Name: get_job_titles(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3878,7 +3882,7 @@ $$;
 
 
 --
--- TOC entry 1360 (class 1255 OID 141098)
+-- TOC entry 1361 (class 1255 OID 141098)
 -- Name: get_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3902,7 +3906,7 @@ $$;
 
 
 --
--- TOC entry 1365 (class 1255 OID 141162)
+-- TOC entry 1366 (class 1255 OID 141162)
 -- Name: get_line_item_templates_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3923,7 +3927,7 @@ $$;
 
 
 --
--- TOC entry 1307 (class 1255 OID 147778)
+-- TOC entry 1308 (class 1255 OID 147778)
 -- Name: get_line_items_with_wkt(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4000,7 +4004,7 @@ $$;
 
 
 --
--- TOC entry 1321 (class 1255 OID 140144)
+-- TOC entry 1322 (class 1255 OID 140144)
 -- Name: get_maps_with_wkt(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4048,7 +4052,7 @@ $$;
 
 
 --
--- TOC entry 1372 (class 1255 OID 141266)
+-- TOC entry 1373 (class 1255 OID 141266)
 -- Name: get_organizations(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4067,7 +4071,7 @@ $$;
 
 
 --
--- TOC entry 1383 (class 1255 OID 141412)
+-- TOC entry 1384 (class 1255 OID 141412)
 -- Name: get_profiles_by_contract(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4095,7 +4099,7 @@ $$;
 
 
 --
--- TOC entry 1377 (class 1255 OID 141328)
+-- TOC entry 1378 (class 1255 OID 141328)
 -- Name: get_profiles_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4139,7 +4143,7 @@ $$;
 
 
 --
--- TOC entry 1311 (class 1255 OID 147860)
+-- TOC entry 1312 (class 1255 OID 147860)
 -- Name: get_wbs_with_wkt(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4217,7 +4221,7 @@ $$;
 
 
 --
--- TOC entry 1343 (class 1255 OID 154168)
+-- TOC entry 1344 (class 1255 OID 154168)
 -- Name: insert_asphalt_type(text, numeric, numeric, numeric, numeric, text, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4257,7 +4261,7 @@ $$;
 
 
 --
--- TOC entry 1359 (class 1255 OID 154576)
+-- TOC entry 1360 (class 1255 OID 154576)
 -- Name: insert_avatar(uuid, text, text, boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4282,7 +4286,7 @@ $$;
 
 
 --
--- TOC entry 1370 (class 1255 OID 154740)
+-- TOC entry 1371 (class 1255 OID 154740)
 -- Name: insert_change_order(uuid, uuid, text, text, text[], numeric, numeric, public.change_order_status, timestamp with time zone, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4335,7 +4339,7 @@ $$;
 
 
 --
--- TOC entry 1384 (class 1255 OID 154928)
+-- TOC entry 1385 (class 1255 OID 154928)
 -- Name: insert_contract_organization(uuid, uuid, uuid, public.organization_role, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4373,7 +4377,7 @@ $$;
 
 
 --
--- TOC entry 1319 (class 1255 OID 155714)
+-- TOC entry 1320 (class 1255 OID 155714)
 -- Name: insert_crew(text, uuid, uuid, text, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4396,7 +4400,7 @@ $$;
 
 
 --
--- TOC entry 1310 (class 1255 OID 155526)
+-- TOC entry 1311 (class 1255 OID 155526)
 -- Name: insert_crew_member(uuid, uuid, uuid, text, text, uuid, uuid, uuid, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4423,7 +4427,7 @@ $$;
 
 
 --
--- TOC entry 1327 (class 1255 OID 155902)
+-- TOC entry 1328 (class 1255 OID 155902)
 -- Name: insert_daily_log(uuid, date, uuid, text, text, numeric, text, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4450,7 +4454,7 @@ $$;
 
 
 --
--- TOC entry 1335 (class 1255 OID 156090)
+-- TOC entry 1336 (class 1255 OID 156090)
 -- Name: insert_demo_mapping(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4473,7 +4477,7 @@ $$;
 
 
 --
--- TOC entry 1374 (class 1255 OID 157044)
+-- TOC entry 1375 (class 1255 OID 157044)
 -- Name: insert_dump_truck(numeric, text, numeric, numeric, numeric, numeric, numeric, uuid, uuid, numeric, numeric, numeric, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4502,7 +4506,7 @@ $$;
 
 
 --
--- TOC entry 1361 (class 1255 OID 156858)
+-- TOC entry 1362 (class 1255 OID 156858)
 -- Name: insert_dump_truck(numeric, text, numeric, numeric, numeric, numeric, numeric, uuid, uuid, numeric, numeric, numeric, text, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4894,7 +4898,7 @@ $$;
 
 
 --
--- TOC entry 1323 (class 1255 OID 36798)
+-- TOC entry 1324 (class 1255 OID 36798)
 -- Name: lock_budget_on_status_change(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4949,7 +4953,7 @@ $$;
 
 
 --
--- TOC entry 1345 (class 1255 OID 154210)
+-- TOC entry 1346 (class 1255 OID 154210)
 -- Name: update_asphalt_type(uuid, text, numeric, numeric, numeric, numeric, text, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4973,7 +4977,7 @@ $$;
 
 
 --
--- TOC entry 1363 (class 1255 OID 154638)
+-- TOC entry 1364 (class 1255 OID 154638)
 -- Name: update_avatar(uuid, text, text, boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4994,7 +4998,7 @@ $$;
 
 
 --
--- TOC entry 1373 (class 1255 OID 154782)
+-- TOC entry 1374 (class 1255 OID 154782)
 -- Name: update_change_order(uuid, text, text, text[], numeric, numeric, public.change_order_status, uuid, timestamp with time zone, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5099,7 +5103,7 @@ $$;
 
 
 --
--- TOC entry 1387 (class 1255 OID 154970)
+-- TOC entry 1388 (class 1255 OID 154970)
 -- Name: update_contract_organization(uuid, public.organization_role, text, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5118,7 +5122,7 @@ $$;
 
 
 --
--- TOC entry 1320 (class 1255 OID 155756)
+-- TOC entry 1321 (class 1255 OID 155756)
 -- Name: update_crew(uuid, text, text, uuid, uuid, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5139,7 +5143,7 @@ $$;
 
 
 --
--- TOC entry 1313 (class 1255 OID 155568)
+-- TOC entry 1314 (class 1255 OID 155568)
 -- Name: update_crew_member(uuid, text, text, uuid, uuid, uuid, timestamp with time zone, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5162,7 +5166,7 @@ $$;
 
 
 --
--- TOC entry 1329 (class 1255 OID 155944)
+-- TOC entry 1330 (class 1255 OID 155944)
 -- Name: update_daily_log(uuid, text, text, numeric, text, text, text, uuid, uuid, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5187,7 +5191,7 @@ $$;
 
 
 --
--- TOC entry 1337 (class 1255 OID 156138)
+-- TOC entry 1338 (class 1255 OID 156138)
 -- Name: update_demo_mapping(uuid, text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text, text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text, text[], text[]); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5241,7 +5245,7 @@ $$;
 
 
 --
--- TOC entry 1378 (class 1255 OID 157086)
+-- TOC entry 1379 (class 1255 OID 157086)
 -- Name: update_dump_truck(uuid, numeric, text, numeric, numeric, numeric, numeric, numeric, uuid, uuid, numeric, numeric, numeric, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5271,7 +5275,7 @@ $$;
 
 
 --
--- TOC entry 1364 (class 1255 OID 156900)
+-- TOC entry 1365 (class 1255 OID 156900)
 -- Name: update_dump_truck(uuid, numeric, text, numeric, numeric, numeric, numeric, numeric, uuid, uuid, numeric, numeric, numeric, text, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5666,7 +5670,7 @@ $$;
 
 
 --
--- TOC entry 1308 (class 1255 OID 42868)
+-- TOC entry 1309 (class 1255 OID 42868)
 -- Name: validate_formula_unit(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -7846,7 +7850,7 @@ ALTER TABLE public.user_contracts ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.wbs ENABLE ROW LEVEL SECURITY;
 
--- Completed on 2025-05-24 19:27:31
+-- Completed on 2025-05-25 13:14:29
 
 --
 -- PostgreSQL database dump complete

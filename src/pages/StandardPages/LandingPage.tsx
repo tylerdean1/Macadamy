@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Logo } from '@/pages/StandardPages/StandardPageComponents/Logo';
-import { DemoButton } from '@/pages/StandardPages/StandardPageComponents/DemoButton';
 import { FeatureSection } from '@/pages/StandardPages/StandardPageComponents/FeatureSection';
 import { FEATURE_SECTIONS } from '@/pages/StandardPages/StandardPageComponents/LandingPage.features';
 import { AuthForm } from '@/pages/StandardPages/StandardPageComponents/AuthForm';
@@ -40,22 +39,24 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background">
       {/* Hero + Auth */}
       <div className="bg-background-light border-b border-background-lighter">
-        <div className="container mx-auto px-4 py-16 flex flex-col lg:flex-row items-center gap-12">
+        <div className="container mx-auto px-4 py-16 flex flex-col xl:flex-row items-start gap-16 xl:gap-24 min-w-0">
           {/* Left column */}
-          <div className="lg:w-1/2 space-y-10">
-            <Logo />
-            <h1 className="text-4xl font-bold text-white leading-tight">
+          <div className="flex-grow shrink min-w-0 space-y-8">
+            <div className="scale-90 sm:scale-100 md:scale-100 lg:scale-100 xl:scale-110 origin-left transition-transform">
+              <Logo />
+            </div>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight">
               End-to-End
               <br />
               <span className="text-primary">Construction Intelligence</span>
             </h1>
-            <p className="text-xl text-gray-400">
+            <p className="text-lg sm:text-xl text-gray-400 max-w-xl">
               Streamline your construction projects with our comprehensive platform.
             </p>
-            <DemoButton />
           </div>
+
           {/* Right column: Auth form */}
-          <div className="lg:w-1/2 w-full max-w-md">
+          <div className="w-full max-w-md shrink-0 lg:ml-auto">
             <AuthForm
               onNavigateToSignup={() => navigate('/onboarding')}
               onNavigateToResetPassword={() => navigate('/reset-password')}
@@ -63,6 +64,7 @@ export default function LandingPage() {
           </div>
         </div>
       </div>
+
       {/* Main Feature Grid */}
       <section className="container mx-auto px-4 py-16">
         <h2 className="text-3xl font-bold text-center mb-12 text-white">
@@ -74,6 +76,7 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
+
       {/* Why Choose Our Platform */}
       <section className="bg-background-light py-16">
         <div className="container mx-auto px-4">

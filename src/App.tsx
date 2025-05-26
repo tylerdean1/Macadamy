@@ -1,101 +1,128 @@
+// <start App.tsx>
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/react';
+
 import { supabase } from '@/lib/supabase';
 import { useBootstrapAuth } from '@/hooks/useBootstrapAuth';
-
-// Lazy load main pages
-const LandingPage = lazy(() => import('@/pages/StandardPages/LandingPage'));
-const ResetPassword = lazy(() => import('@/pages/StandardPages/ResetPassword'));
-const UserOnboarding = lazy(() => import('@/pages/StandardPages/UserOnboarding'));
-const Dashboard = lazy(() => import('@/pages/StandardPages/Dashboard'));
-const ContractDashboard = lazy(() => import('@/pages/Contract/ContractDashboard'));
-const ContractSettings = lazy(() => import('@/pages/Contract/ContractSettings'));
-const Calculators = lazy(() => import('@/pages/Contract/Calculators'));
-const CalculatorUsage = lazy(() => import('@/pages/Contract/CalculatorUsage'));
-const CalculatorCreation = lazy(() => import('@/pages/Contract/CalculatorCreation'));
-const ChangeOrders = lazy(() => import('@/pages/Contract/ChangeOrders'));
-const EquipmentLog = lazy(() => import('@/pages/Contract/EquipmentLog'));
-const Inspections = lazy(() => import('@/pages/Contract/Inspections'));
-const Issues = lazy(() => import('@/pages/Contract/Issues'));
-const DailyReports = lazy(() => import('@/pages/Contract/DailyReports'));
-const DemoRedirect = lazy(() => import('@/pages/StandardPages/DemoRedirect'));
-const NotFoundPage = lazy(() => import('@/pages/StandardPages/NotFoundPage'));
-const UpdatePassword = lazy(() => import('@/pages/StandardPages/UpdatePassword'));
+import { useAuthStore } from '@/lib/store';
 
 import { ProtectedRoute } from '@/pages/StandardPages/StandardPageComponents/ProtectedRoute';
 import { Navbar } from '@/pages/StandardPages/StandardPageComponents/Navbar';
 import { ScrollToTop } from '@/pages/StandardPages/StandardPageComponents/ScrollToTop';
 
+/* ── lazy-loaded pages ─────────────────────────────────────────── */
+const LandingPage        = lazy(() => import('@/pages/StandardPages/LandingPage'));
+const ResetPassword      = lazy(() => import('@/pages/StandardPages/ResetPassword'));
+const UpdatePassword     = lazy(() => import('@/pages/StandardPages/UpdatePassword'));
+const UserOnboarding     = lazy(() => import('@/pages/StandardPages/UserOnboarding'));
+const DemoRedirect       = lazy(() => import('@/pages/StandardPages/DemoRedirect'));
+const Dashboard          = lazy(() => import('@/pages/StandardPages/Dashboard'));
+
+const ContractDashboard  = lazy(() => import('@/pages/Contract/ContractDashboard'));
+const ContractSettings   = lazy(() => import('@/pages/Contract/ContractSettings'));
+const Calculators        = lazy(() => import('@/pages/Contract/Calculators'));
+const CalculatorUsage    = lazy(() => import('@/pages/Contract/CalculatorUsage'));
+const CalculatorCreation = lazy(() => import('@/pages/Contract/CalculatorCreation'));
+const ChangeOrders       = lazy(() => import('@/pages/Contract/ChangeOrders'));
+const EquipmentLog       = lazy(() => import('@/pages/Contract/EquipmentLog'));
+const Inspections        = lazy(() => import('@/pages/Contract/Inspections'));
+const Issues             = lazy(() => import('@/pages/Contract/Issues'));
+const DailyReports       = lazy(() => import('@/pages/Contract/DailyReports'));
+
+const NotFoundPage       = lazy(() => import('@/pages/StandardPages/NotFoundPage'));
+
+/* ── component ─────────────────────────────────────────────────── */
 export default function App(): JSX.Element {
-  const isLoading = Boolean(useBootstrapAuth());
+  /* bootstraps auth → sets store, returns nothing we need here */
+  useBootstrapAuth();
+
+  const { loading, user } = useAuthStore();
+
+  /* block UI only while we’re restoring a stored session */
+  const isLoading: boolean = loading.initialization && user !== null;
+
+  /* page-transition “mini progress bar” */
   const location = useLocation();
   const [pageLoading, setPageLoading] = useState<boolean>(false);
 
-  // Hide navbar on these public routes
-  const hideNavbarRoutes: string[] = ['/', '/demo', '/reset-password', '/onboarding'];
-  const shouldShowNavbar: boolean = !hideNavbarRoutes.includes(location.pathname);
-
-  // Debug current session/user
-  useEffect((): void => {
-    const debugSession = async (): Promise<void> => {
-      if (import.meta.env.DEV === true && typeof supabase.auth?.getSession === 'function' && typeof supabase.auth?.getUser === 'function') {
-        const sessionResult = await supabase.auth.getSession();
-        if ('data' in sessionResult && !('error' in sessionResult)) {
-          // @ts-expect-error: Supabase type may be incorrect, but data is present at runtime
-          console.log('[App Debug] Session:', sessionResult.data);
-        } else {
-          console.warn('[App Debug] Could not get session:', sessionResult);
-        }
-        const userResult = await supabase.auth.getUser();
-        if ('data' in userResult && !('error' in userResult)) {
-          // @ts-expect-error: Supabase type may be incorrect, but data is present at runtime
-          console.log('[App Debug] User:', userResult.data);
-        } else {
-          console.warn('[App Debug] Could not get user:', userResult);
-        }
-      }
-    };
-    void debugSession();
-  }, []);
-
-  // Page transition loader
   useEffect(() => {
     setPageLoading(true);
-    const timeout = setTimeout(() => setPageLoading(false), 500);
-    return () => { clearTimeout(timeout); };
+    const t = setTimeout(() => setPageLoading(false), 500);
+    return () => clearTimeout(t);
   }, [location.pathname]);
 
-  if (isLoading === true) {
+  /* dev-only session / user debug */
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      (async () => {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        const { data: userData,    error: userError    } = await supabase.auth.getUser();
+
+        // Narrowing: only log when result objects contain expected keys
+        if (sessionError) {
+          console.warn('[App] session error', sessionError);
+        } else {
+          console.log('[App] session', sessionData);
+        }
+
+        if (userError) {
+          console.warn('[App] user error', userError);
+        } else {
+          console.log('[App] user', userData);
+        }
+      })().catch(console.error);
+    }
+  }, []);
+
+  /* hide navbar on auth-style routes */
+  const hideNavbarRoutes: string[] = ['/', '/demo', '/reset-password', '/onboarding'];
+  const shouldShowNavbar: boolean  = !hideNavbarRoutes.includes(location.pathname);
+
+  /* ── initial bootstrap spinner ──────────────────────────────── */
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-          <p className="text-gray-400 mt-4">Loading Macadamy...</p>
+          <p className="text-gray-400 mt-4">Loading Macadamy…</p>
         </div>
       </div>
     );
   }
 
+  /* ── main app shell ─────────────────────────────────────────── */
   return (
     <>
       <Toaster position="top-right" />
       <ScrollToTop />
+
       {pageLoading && (
         <div className="fixed top-0 left-0 right-0 h-1 bg-primary animate-pulse z-50" />
       )}
-      {shouldShowNavbar && <Navbar />}
-      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><div className="text-center"><div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mx-auto" /><p className="text-gray-400 mt-4">Loading page...</p></div></div>}>
-        <Routes>
-          {/* Public */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/demo" element={<DemoRedirect />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/update-password" element={<UpdatePassword />} />
-          <Route path="/onboarding" element={<UserOnboarding />} />
 
-          {/* Protected */}
+      {shouldShowNavbar && <Navbar />}
+
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-background">
+            <div className="text-center">
+              <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+              <p className="text-gray-400 mt-4">Loading page…</p>
+            </div>
+          </div>
+        }
+      >
+        <Routes>
+          {/* ── public ─────────────────────────────────────────── */}
+          <Route path="/"              element={<LandingPage />}   />
+          <Route path="/demo"          element={<DemoRedirect />}  />
+          <Route path="/reset-password"   element={<ResetPassword />} />
+          <Route path="/update-password"  element={<UpdatePassword />} />
+          <Route path="/onboarding"    element={<UserOnboarding />} />
+
+          {/* ── protected (authenticated) ─────────────────────── */}
           <Route
             path="/dashboard"
             element={
@@ -104,6 +131,8 @@ export default function App(): JSX.Element {
               </ProtectedRoute>
             }
           />
+
+          {/* Contract stack */}
           <Route
             path="/contracts/:id"
             element={
@@ -120,6 +149,8 @@ export default function App(): JSX.Element {
               </ProtectedRoute>
             }
           />
+
+          {/* Calculator stack */}
           <Route
             path="/calculators"
             element={
@@ -144,6 +175,8 @@ export default function App(): JSX.Element {
               </ProtectedRoute>
             }
           />
+
+          {/* Other tools */}
           <Route
             path="/changeorders"
             element={
@@ -189,11 +222,12 @@ export default function App(): JSX.Element {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
+
       <Analytics />
-      {/*
-        // TODO: Add role-based access control via ProtectedRoute props
-        // <ProtectedRoute allowedRoles={['engineer']}><EngineerDashboard /></ProtectedRoute>
-      */}
+
+      {/* Future: role-based ProtectedRoute props
+       * <ProtectedRoute allowedRoles={['engineer']}>…</ProtectedRoute>
+       */}
     </>
   );
 }

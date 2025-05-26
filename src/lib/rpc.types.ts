@@ -204,12 +204,14 @@ export type GetIssuesForContractRpcArgs = { contract_id: string; session_id: str
 export type GetIssuesForContractRpc = (args: GetIssuesForContractRpcArgs) => Promise<IssuesRow[]>;
 
 export type JobTitlesRow = {
+  id: string; // Added id based on database.types.ts, assuming it's primary key and useful
   title: string;
-  is_custom: boolean;
+  is_custom: boolean | null; // Updated to allow null
+  organization_id: string | null; // Added organization_id based on database.types.ts
   session_id: string | null;
 };
-export type GetJobTitlesByOrganizationRpcArgs = { organization_id: string; session_id: string };
-export type GetJobTitlesByOrganizationRpc = (args: GetJobTitlesByOrganizationRpcArgs) => Promise<JobTitlesRow[]>;
+export type GetJobTitlesByOrganizationRpcArgs = Record<string, never>;
+export type GetJobTitlesByOrganizationRpc = () => Promise<JobTitlesRow[]>;
 
 export type LineItemEntriesRow = {
   id: string;
@@ -253,13 +255,13 @@ export type GetAllLineItemTemplatesRpc = (args: GetAllLineItemTemplatesRpcArgs) 
 export type OrganizationsRow = {
   id: string;
   name: string;
-  address: string;
-  phone: string;
-  website: string;
+  address: string | null;
+  phone: string | null;
+  website: string | null;
   session_id: string | null;
 };
-export type GetOrganizationsRpcArgs = { session_id: string };
-export type GetOrganizationsRpc = (args: GetOrganizationsRpcArgs) => Promise<OrganizationsRow[]>;
+export type GetOrganizationsRpcArgs = Record<string, never>;
+export type GetOrganizationsRpc = () => Promise<OrganizationsRow[]>;
 
 export type ProfilesByOrganizationRow = {
   id: string;
@@ -319,7 +321,7 @@ export type AvatarsForProfileRow = {
   profile_id?: string | null;
   session_id: string | null;
 };
-export type GetAvatarsForProfileRpcArgs = { profile_id: string };
+export type GetAvatarsForProfileRpcArgs = { _profile_id: string };
 export type GetAvatarsForProfileRpc = (args: GetAvatarsForProfileRpcArgs) => Promise<AvatarsForProfileRow[]>;
 
 export type UserContractsRow = {
@@ -330,11 +332,32 @@ export type UserContractsRow = {
 export type GetUserContractsRpcArgs = { user_id: string; session_id: string };
 export type GetUserContractsRpc = (args: GetUserContractsRpcArgs) => Promise<UserContractsRow[]>;
 
+// Added for get_enriched_user_contracts RPC
+export type EnrichedUserContractRow = {
+  id: string; // uuid
+  title: string | null; // text
+  description: string | null; // text
+  location: string | null; // text
+  start_date: string | null; // date
+  end_date: string | null; // date
+  created_by: string | null; // uuid
+  created_at: string | null; // timestamp with time zone
+  updated_at: string | null; // timestamp with time zone
+  budget: number | null; // numeric
+  status: Database["public"]["Enums"]["contract_status"] | null;
+  coordinates: Database["public"]["Tables"]["contracts"]["Row"]["coordinates"]; // Json | null
+  user_contract_role: Database["public"]["Enums"]["user_role"] | null;
+  session_id: string | null; // uuid
+};
+
+export type GetEnrichedUserContractsRpcArgs = { _user_id: string };
+export type GetEnrichedUserContractsRpc = (args: GetEnrichedUserContractsRpcArgs) => Promise<EnrichedUserContractRow[]>;
+
 // --- Utility/Enum/Other RPCs ---
 export type CheckUsernameAvailableRpcArgs = { username: string };
 export type CheckUsernameAvailableRpc = (args: CheckUsernameAvailableRpcArgs) => Promise<boolean>;
 
-export type GetDashboardMetricsRpcArgs = { user_id: string };
+export type GetDashboardMetricsRpcArgs = { _user_id: string };
 export type GetDashboardMetricsRpc = (args: GetDashboardMetricsRpcArgs) => Promise<{ active_contracts: number; total_issues: number; total_inspections: number }>;
 
 // --- Demo/Clone/Session/Other ---
@@ -477,16 +500,20 @@ export type InsertCrewMemberRpcArgs = {
 };
 export type InsertCrewMemberRpc = (args: InsertCrewMemberRpcArgs) => Promise<string>;
 
+export type InsertJobTitleRpcArgs = {
+  title: string; // Corrected: Supabase RPC likely expects direct param names, not prefixed with _
+  is_custom?: boolean; // Optional as per typical DB schema defaults
+  organization_id?: string; // Optional
+  session_id?: string; // Optional
+  // Add other fields if your insert_job_title RPC function expects them
+};
+export type InsertJobTitleRpc = (args: InsertJobTitleRpcArgs) => Promise<JobTitlesRow[]>; // Assuming it returns the new/found job title(s)
+
 export type InsertDailyLogRpcArgs = {
   contract_id: string;
+  created_by: string;
   log_date: string;
-  created_by?: string;
-  work_performed?: string;
-  weather_conditions?: string;
-  temperature?: number;
-  delays_encountered?: string;
-  safety_incidents?: string;
-  visitors?: string;
+  // ... other fields for daily log ...
   session_id?: string;
 };
 export type InsertDailyLogRpc = (args: InsertDailyLogRpcArgs) => Promise<string>;
@@ -572,14 +599,6 @@ export type InsertIssueRpcArgs = {
   wbs_id?: string;
 };
 export type InsertIssueRpc = (args: InsertIssueRpcArgs) => Promise<string>;
-
-export type InsertJobTitleRpcArgs = {
-  title: string;
-  created_by?: string;
-  is_custom?: boolean;
-  session_id?: string;
-};
-export type InsertJobTitleRpc = (args: InsertJobTitleRpcArgs) => Promise<string>;
 
 export type InsertLineItemRpcArgs = {
   description: string;

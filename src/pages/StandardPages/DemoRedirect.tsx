@@ -1,65 +1,70 @@
-import { useEffect, useState } from 'react';
+// filepath: c:\Users\tyler\OneDrive\Desktop\Macadamy\public\src\pages\StandardPages\DemoRedirect.tsx
+import { useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/lib/store';
 import { toast } from 'sonner';
 import { Badge } from '@/pages/StandardPages/StandardPageComponents/badge';
 
 export default function DemoRedirect() {
-  // Cast loginAsDemoUser to the correct function type
-  const { loginAsDemoUser: loginAsDemoUserRaw, loading: authLoading, error: authErrorHook, profile } = useAuth();
-  const loginAsDemoUser = loginAsDemoUserRaw as (() => Promise<unknown>);
-  const [isLoadingLocally, setIsLoadingLocally] = useState(true);
-  const [errorLocally, setErrorLocally] = useState<string | null>(null);
+  // Get demo-specific functions from useAuth
+  const { loginAsDemoUser, profile } = useAuth();
+  // Get detailed loading states and errors directly from the auth store
+  const { loading, error } = useAuthStore();
+  const isLoading = loading.demo || loading.auth || loading.profile;
+
+  // Debug logging
+  console.log("[DemoRedirect] Component state:", {
+    hasProfile: !!profile,
+    loading: { ...loading },
+    error,
+    isLoading
+  });
 
   useEffect(() => {
     let isMounted = true;
+
     const attemptDemoLogin = async () => {
       if (!isMounted) return;
-      setIsLoadingLocally(true);
-      setErrorLocally(null);
+
       try {
-        const demoProfile = await loginAsDemoUser();
-        if ((typeof demoProfile !== 'object' || demoProfile === null) && (!(typeof authErrorHook === 'string' && authErrorHook.length > 0))) {
-          const genericMessage = 'Failed to set up demo environment. Please try again.';
-          setErrorLocally(genericMessage);
-          toast.error(genericMessage);
-        }
+        // The loading state is now managed by the demo login function in the store
+        await loginAsDemoUser();
+        // No need to check the result since error handling is now centralized in the auth store
       } catch (err) {
-        if (isMounted) {
+        // This catch block is just a safety net as the main error handling is in useDemoLogin
+        if (isMounted && (error === null || error === '')) {
           const message = err instanceof Error ? err.message : 'An unexpected error occurred during demo setup.';
-          setErrorLocally(message);
           toast.error(message);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingLocally(false);
         }
       }
     };
+
     void attemptDemoLogin();
     return () => {
       isMounted = false;
     };
-  }, [loginAsDemoUser]);
+  }, [loginAsDemoUser, error]);
 
-  if (isLoadingLocally === true || authLoading === true) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4" />
-        <p className="text-gray-300 text-lg">Setting up your demo environment...</p>
+        <p className="text-gray-300 text-lg">
+          {loading.demo ? "Setting up your demo environment..." :
+            loading.auth ? "Authenticating demo user..." :
+              loading.profile ? "Loading your profile..." : "Preparing demo..."}
+        </p>
       </div>
     );
   }
 
-  const displayError = typeof errorLocally === 'string' && errorLocally.length > 0
-    ? errorLocally
-    : (typeof authErrorHook === 'string' && authErrorHook.length > 0 ? authErrorHook : '');
-  if (displayError.length > 0) {
+  if (error !== null && error !== '') {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="bg-background-light p-8 rounded-lg border border-background-lighter max-w-md w-full">
           <h2 className="text-xl font-bold text-white mb-4">Demo Setup Failed</h2>
-          <p className="text-gray-400 mb-6">{displayError}</p>
+          <p className="text-gray-400 mb-6">{error}</p>
           <button
             onClick={() => (window.location.href = '/')}
             className="w-full bg-primary hover:bg-primary-hover text-white py-2 px-4 rounded"

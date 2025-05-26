@@ -22,21 +22,36 @@ export interface EnrichedProfile {
   job_title: string | null;
   organization_name: string | null;
   session_id: string | null;
+  is_demo_user?: boolean; // Added for demo user check
+}
+
+export interface LoadingState {
+  initialization: boolean;
+  auth: boolean;
+  profile: boolean;
+  demo: boolean;
 }
 
 export type AuthState = {
   user: SupabaseUser | null;
   profile: EnrichedProfile | null;
-  isLoading: boolean;
-  setIsLoading: (isLoading: boolean) => void; // Add setIsLoading action
+  loading: LoadingState;
+  error: string | null;
+  setLoading: (loadingState: Partial<LoadingState>) => void;
+  setError: (error: string | null) => void;
   setUser: (user: SupabaseUser | null) => void;
   setProfile: (profile: EnrichedProfile | null) => void;
   clearAuth: () => void;
+  resetLoadingStates: () => void; // New function to clear loading states if they get stuck
   loadProfile: (userId: string) => Promise<void>;
   updateProfile: (
     profileId: string,
     updates: Partial<EnrichedProfile>,
   ) => Promise<void>;
+
+  // Deprecated - for backwards compatibility
+  isLoading: boolean;
+  setIsLoading: (isLoading: boolean) => void;
 };
 
 export const useAuthStore = create<AuthState>()(
@@ -44,9 +59,44 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       profile: null,
-      isLoading: true, // Initialize isLoading to true
+      loading: {
+        initialization: false, // Set to false by default - will be set to true during active initialization
+        auth: false,
+        profile: false,
+        demo: false,
+      },
+      error: null,
+      isLoading: false, // Deprecated but kept for backward compatibility
 
-      setIsLoading: (isLoading: boolean): void => set({ isLoading }), // Implement setIsLoading
+      setLoading: (loadingState: Partial<LoadingState>): void =>
+        set(state => {
+          // Calculate the overall loading state
+          const newLoadingState = { ...state.loading, ...loadingState };
+          const isAnyLoading = Object.values(newLoadingState).some(Boolean);
+
+          return {
+            ...state,
+            loading: newLoadingState,
+            isLoading: isAnyLoading, // Update legacy isLoading based on any loading flags
+          };
+        }),
+
+      setIsLoading: (isLoading: boolean): void =>
+        set(state => {
+          // If setting to true, we assume it's initialization
+          // If setting to false, we clear all loading flags
+          const newLoadingState = isLoading
+            ? { ...state.loading, initialization: true }
+            : { initialization: false, auth: false, profile: false, demo: false };
+
+          return {
+            ...state,
+            loading: newLoadingState,
+            isLoading, // Update legacy isLoading
+          };
+        }),
+
+      setError: (error: string | null): void => set({ error }),
 
       setUser: (user: SupabaseUser | null): void =>
         set((state) => ({
@@ -58,24 +108,72 @@ export const useAuthStore = create<AuthState>()(
         set((state) => ({ ...state, profile })),
 
       clearAuth: (): void =>
-        set({ user: null, profile: null, isLoading: false }),
+        set({
+          user: null,
+          profile: null,
+          loading: { initialization: false, auth: false, profile: false, demo: false },
+          isLoading: false,
+          error: null
+        }),
+
+      // Helper function to force clear loading states if they get stuck
+      resetLoadingStates: (): void =>
+        set(state => ({
+          ...state,
+          loading: { initialization: false, auth: false, profile: false, demo: false },
+          isLoading: false,
+        })),
 
       loadProfile: async (userId: string): Promise<void> => {
         if (typeof userId !== 'string' || userId.length === 0) {
-          set({ profile: null, isLoading: false });
+          set(state => ({
+            ...state,
+            profile: null,
+            loading: { ...state.loading, profile: false },
+            isLoading: state.loading.initialization || state.loading.auth || state.loading.demo,
+            error: "Invalid user ID provided"
+          }));
           return;
         }
-        set((state) => ({ ...state, isLoading: true }));
+
+        // Set profile loading to true
+        set(state => ({
+          ...state,
+          loading: { ...state.loading, profile: true },
+          isLoading: true
+        }));
+
         try {
-          // Use rpcClient directly, remove 'as any'
           const data = await rpcClient.getEnrichedProfile({ _user_id: userId });
+
           if (!data || typeof data !== 'object') {
-            set({ profile: null, isLoading: false });
+            set(state => ({
+              ...state,
+              profile: null,
+              loading: { ...state.loading, profile: false },
+              isLoading: state.loading.initialization || state.loading.auth || state.loading.demo,
+              error: "Failed to load user profile"
+            }));
             return;
           }
-          set({ profile: data as EnrichedProfile, isLoading: false });
-        } catch {
-          set({ profile: null, isLoading: false });
+
+          // Profile loaded successfully
+          set(state => ({
+            ...state,
+            profile: data as EnrichedProfile,
+            loading: { ...state.loading, profile: false },
+            isLoading: state.loading.initialization || state.loading.auth || state.loading.demo,
+            error: null
+          }));
+        } catch (err) {
+          console.error("Error loading profile:", err);
+          set(state => ({
+            ...state,
+            profile: null,
+            loading: { ...state.loading, profile: false },
+            isLoading: state.loading.initialization || state.loading.auth || state.loading.demo,
+            error: err instanceof Error ? err.message : "Error loading profile"
+          }));
         }
       },
 
@@ -83,7 +181,21 @@ export const useAuthStore = create<AuthState>()(
         profileId: string,
         updates: Partial<EnrichedProfile>,
       ): Promise<void> => {
-        if (!profileId) return;
+        if (!profileId) {
+          set(state => ({
+            ...state,
+            error: "Invalid profile ID provided"
+          }));
+          return;
+        }
+
+        // Set profile loading to true for update
+        set(state => ({
+          ...state,
+          loading: { ...state.loading, profile: true },
+          isLoading: true
+        }));
+
         try {
           const rpcArgs = {
             _id: profileId,
@@ -98,16 +210,34 @@ export const useAuthStore = create<AuthState>()(
             _avatar_id: updates.avatar_id ?? undefined,
             _session_id: get().profile?.session_id ?? undefined,
           };
+
           await rpcClient.updateProfileFull(rpcArgs);
           const currentProfile = get().profile;
+
           if (currentProfile && typeof currentProfile === 'object') {
             set((state) => ({
               ...state,
               profile: { ...currentProfile, ...updates },
+              loading: { ...state.loading, profile: false },
+              isLoading: state.loading.initialization || state.loading.auth || state.loading.demo,
+              error: null
+            }));
+          } else {
+            set(state => ({
+              ...state,
+              loading: { ...state.loading, profile: false },
+              isLoading: state.loading.initialization || state.loading.auth || state.loading.demo,
+              error: "Profile not found for update"
             }));
           }
-        } catch {
-          // swallow
+        } catch (err) {
+          console.error("Error updating profile:", err);
+          set(state => ({
+            ...state,
+            loading: { ...state.loading, profile: false },
+            isLoading: state.loading.initialization || state.loading.auth || state.loading.demo,
+            error: err instanceof Error ? err.message : "Error updating profile"
+          }));
         }
       },
     }),
@@ -118,4 +248,20 @@ export const useAuthStore = create<AuthState>()(
   ),
 );
 
-console.log("[DEBUG] useAuthStore initialized.");
+// Add more detailed debug logging
+console.log("[DEBUG] useAuthStore initialized with state:", {
+  user: "Not logged yet",
+  profile: "Not logged yet",
+  loading: useAuthStore.getState().loading,
+  isLoading: useAuthStore.getState().isLoading,
+});
+
+// Set up a state listener to track loading state changes
+if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+  useAuthStore.subscribe((state) => {
+    console.log("[DEBUG] Auth store state changed:", {
+      loading: state.loading,
+      isLoading: state.isLoading
+    });
+  });
+}

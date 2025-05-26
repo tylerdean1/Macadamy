@@ -11,16 +11,19 @@ import { supabase } from "@/lib/supabase";
  */
 export function useRequireProfile(): void {
   const navigate = useNavigate();
-  const { user, profile, isLoading, clearAuth } = useAuthStore((state) => ({
+  const { user, profile, loading, clearAuth } = useAuthStore((state) => ({
     user: state.user,
     profile: state.profile,
-    isLoading: state.isLoading,
+    loading: state.loading,
     clearAuth: state.clearAuth,
   }));
 
+  // Check if any loading process is in progress
+  const isLoading = loading.initialization || loading.auth || loading.profile;
   useEffect(() => {
     // Only proceed if the authentication and profile loading process has finished
-    if (isLoading) {
+    // Skip if we're initializing, as that will be handled by the router
+    if (loading.initialization || loading.profile) {
       console.log("[useRequireProfile] Auth/profile state is loading. Waiting...");
       return;
     }
@@ -28,7 +31,7 @@ export function useRequireProfile(): void {
     console.log("[useRequireProfile] Auth/profile state resolved:", {
       user: !!user,
       profile: !!profile,
-      isLoading,
+      loading,
     });      // If there is an authenticated user but no profile after loading has completed
     if (user && !profile) {
       console.warn(

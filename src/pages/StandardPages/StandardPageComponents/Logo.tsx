@@ -1,15 +1,27 @@
+import MacadamyLogo from '@/images/Logo.png';
+
 export function Logo() {
   return (
-    <div className="flex items-center gap-3">
-      <div className="relative">
+    <div className="flex items-center gap-3 shrink-0">
+      {/* circular logo image */}
+      <div className="relative w-[100px] h-[100px] sm:w-[110px] sm:h-[110px] md:w-[125px] md:h-[125px] shrink-0">
         <img
-          src="/favicon.png" // Use the favicon directly from the public folder
+          src={MacadamyLogo}
           alt="Macadamy Logo"
-          className="w-[125px] h-[125px] rounded-full"
+          className="w-full h-full rounded-full object-cover"
+          width={125}
+          height={125}
         />
-        <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent blur-sm rounded-full" />
+        <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-primary/15 to-transparent blur-sm pointer-events-none" />
       </div>
-      <span className="text-8xl font-bold text-white">Macadamy</span>
+
+      {/* word-mark */}
+      <span
+        className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white leading-none tracking-tight"
+        style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+      >
+        Macadamy
+      </span>
     </div>
   );
 }

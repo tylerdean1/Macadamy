@@ -29,8 +29,7 @@ export default function OrganizationSelect({
     const fetchOrganizations = async () => {
       setLoading(true);
       try {
-        if (typeof currentSessionId !== 'string' || currentSessionId.length === 0) throw new Error('No session ID available');
-        const data = await rpcClient.getOrganizations({ session_id: currentSessionId });
+        const data = await rpcClient.getOrganizations();
         setOrganizations(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error loading organizations:', error);

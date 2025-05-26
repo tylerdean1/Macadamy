@@ -5,12 +5,15 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import type { Database } from "@/lib/database.types";
 import type { EnrichedProfile } from "@/lib/store";
-import { cloneDemoData, DemoSession } from "@/lib/utils/cloneDemoData";
 import { rpcClient } from "@/lib/rpc.client";
+import { useDemoLogin } from "@/hooks/useDemoLogin";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
+/* ------------------------------------------------------------------ */
+/* TYPES ============================================================== */
+/* ------------------------------------------------------------------ */
 type UserRole = Database["public"]["Enums"]["user_role"];
 
-// Input type for signup, similar to what was in useSignup.ts
 export interface AuthEnrichedProfileInput {
   full_name: string;
   username: string;
@@ -25,369 +28,309 @@ export interface AuthEnrichedProfileInput {
   avatar_id?: string;
 }
 
-// Add a minimal explicit return type for useAuth
-export function useAuth(): Record<string, unknown> {
+type UseAuthReturn = {
+  user: SupabaseUser | null;
+  profile: EnrichedProfile | null;
+  login: (identifier: string, password: string) => Promise<EnrichedProfile | null>;
+  signup: (
+    email: string,
+    password: string,
+    profileInput: AuthEnrichedProfileInput
+  ) => Promise<EnrichedProfile | null>;
+  logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<boolean>;
+  loginAsDemoUser: () => Promise<EnrichedProfile | null>;
+  loading: boolean;
+  error: string | null;
+  isLoggedIn: boolean;
+  isProfileLoaded: boolean;
+  currentRole: UserRole | null;
+  currentOrgId: string | null;
+  currentAvatarUrl: string | null;
+  currentSessionId: string | null;
+};
+
+/* ------------------------------------------------------------------ */
+/* HELPERS =========================================================== */
+/* ------------------------------------------------------------------ */
+const validateEmail = (email: string): boolean =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+/* ------------------------------------------------------------------ */
+/* HOOK ============================================================== */
+/* ------------------------------------------------------------------ */
+export function useAuth(): UseAuthReturn {
   const {
     user,
     profile,
     setUser,
-    setProfile,
     clearAuth,
-    isLoading,
+    loading,
+    setLoading,
+    error: storeError,
+    setError,
   } = useAuthStore();
 
-  const [error, setError] = useState<string | null>(null);
   const [loginAttempts, setLoginAttempts] = useState<number>(0);
-
   const navigate = useNavigate();
 
-  const validateEmail = (email: string): boolean => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
+  // Use the demo login hook for demo functionality
+  const { loginAsDemoUser: demoLoginFunction } = useDemoLogin();
 
-  // --- LOGIN FUNCTION ---
+  /* ----------------------------- LOGIN ---------------------------- */
   const login = useCallback(
     async (
       identifier: string,
       password: string,
     ): Promise<EnrichedProfile | null> => {
+      // Set auth loading state
+      setLoading({ auth: true });
       setError(null);
 
-      const trimmedIdentifier = identifier.trim(); // Trim identifier once at the beginning
+      const trimmedIdentifier = identifier.trim();
       const lastAttemptIdentifier = window.sessionStorage.getItem("lastLoginAttempt");
-      if (lastAttemptIdentifier !== trimmedIdentifier) {
-        setLoginAttempts(0);
-      }
+      if (lastAttemptIdentifier !== trimmedIdentifier) setLoginAttempts(0);
       window.sessionStorage.setItem("lastLoginAttempt", trimmedIdentifier);
 
       if (!validateEmail(trimmedIdentifier)) {
-        setError("Please enter a valid email address");
-        toast.error("Please enter a valid email address");
+        const msg = "Please enter a valid email address";
+        setError(msg);
+        toast.error(msg);
+        setLoading({ auth: false });
         return null;
       }
 
       try {
-        const { data, error: authError } = await supabase.auth
-          .signInWithPassword({
-            email: trimmedIdentifier,
-            password,
-          });
+        const { data, error: authErr } = await supabase.auth.signInWithPassword({
+          email: trimmedIdentifier,
+          password,
+        });
 
-        // If there's an authError OR if data is null OR if data.user is null, login failed.
-        if (authError !== null || data === null || data.user === null) {
-          const currentAttempts = loginAttempts + 1;
-          setLoginAttempts(currentAttempts);
-
-          const supabaseErrorMessage = authError?.message; // This can be string or undefined
-          // Display Supabase error message if it's a non-null, non-empty string, otherwise a generic message.
-          const displayMessage = (typeof supabaseErrorMessage === 'string' && supabaseErrorMessage.trim().length > 0)
-            ? supabaseErrorMessage
-            : "Invalid email or password. Please check your credentials.";
-          setError(displayMessage);
-
-          if (currentAttempts >= 3) {
-            toast.error("Too many failed login attempts. Please try resetting your password.");
-          } else {
-            toast.error(displayMessage);
-          }
+        /* ----- error or missing user ----- */
+        if (authErr != null || !data?.user) {
+          const msg =
+            typeof authErr?.message === "string" && authErr.message.trim() !== ""
+              ? authErr.message
+              : "Invalid login credentials";
+          setError(msg);
+          toast.error(msg);
+          setLoginAttempts((prev) => prev + 1);
+          setLoading({ auth: false });
           return null;
         }
 
-        // Login successful, data.user exists
+        /* ----- success ----- */
         setUser(data.user);
         await useAuthStore.getState().loadProfile(data.user.id);
         const currentProfile = useAuthStore.getState().profile;
 
         if (!currentProfile) {
-          setError("Login successful, but failed to load your profile. Please complete onboarding.");
-          toast.warning("Login successful, but your profile is not yet complete. Redirecting to onboarding.");
+          const msg = "User profile not found. Please complete onboarding.";
+          setError(msg);
+          toast.error(msg);
           navigate("/onboarding");
+          setLoading({ auth: false });
           return null;
         }
 
         setLoginAttempts(0);
         window.sessionStorage.removeItem("lastLoginAttempt");
-
         toast.success("Welcome back!");
-        // Navigate all users to the main dashboard
         navigate("/dashboard");
+        setLoading({ auth: false });
         return currentProfile;
-
       } catch (err) {
-        console.error("[ERROR] Login error:", err);
-        const message = err instanceof Error ? err.message : "An unexpected error occurred during login";
-        setError(message);
-        toast.error(message);
+        const msg =
+          err instanceof Error ? err.message : "An unexpected error occurred during login";
+        setError(msg);
+        toast.error(msg);
+        setLoading({ auth: false });
         return null;
       }
     },
-    [navigate, setUser, loginAttempts, setLoginAttempts, setError, validateEmail],
+    [navigate, setUser, loginAttempts, setLoginAttempts, setLoading, setError],
   );
 
-  // --- SIGNUP FUNCTION ---
+  /* ---------------------------- SIGNUP --------------------------- */
   const signup = useCallback(
     async (
       email: string,
       password: string,
       profileInput: AuthEnrichedProfileInput,
     ): Promise<EnrichedProfile | null> => {
-      // setLoading(true);
+      setLoading({ auth: true });
       setError(null);
-      // clearAuth(); // Consider if auth should be cleared before signup attempt
 
       if (!validateEmail(email)) {
-        setError("Please enter a valid email address");
-        toast.error("Please enter a valid email address");
-        // setLoading(false);
+        const msg = "Please enter a valid email address";
+        setError(msg);
+        toast.error(msg);
+        setLoading({ auth: false });
         return null;
       }
 
       try {
-        const { data: existingUser } = await supabase
+        const { data: existing } = await supabase
           .from("profiles")
           .select("id")
           .eq("email", email.toLowerCase())
           .maybeSingle();
 
-        if (existingUser) {
-          setError("An account with this email already exists");
-          toast.error(
-            "An account with this email already exists. Please log in.",
-          );
-          // setLoading(false);
+        if (existing) {
+          const msg = "An account with this email already exists";
+          setError(msg);
+          toast.error(`${msg}. Please log in.`);
+          setLoading({ auth: false });
           return null;
         }
 
-        const { data: signUpData, error: authError } = await supabase.auth
-          .signUp({
-            email,
-            password,
-            options: {
-              // emailRedirectTo: `${window.location.origin}/dashboard`, // Or onboarding
-              // data: profileInput, // Supabase auth metadata for profile is an option
-            },
-          });
+        const { data: signUpData, error: authErr } = await supabase.auth.signUp({
+          email,
+          password,
+        });
 
-        if (Boolean(authError) || !signUpData.user) {
-          setError(authError?.message ?? "Signup failed");
-          toast.error(authError?.message ?? "Signup failed");
-          // setLoading(false);
+        if (authErr != null || !signUpData?.user) {
+          const msg =
+            typeof authErr?.message === "string" && authErr.message.trim() !== ""
+              ? authErr.message
+              : "Signup failed";
+          setError(msg);
+          toast.error(msg);
+          setLoading({ auth: false });
           return null;
-        }        // setUser(signUpData.user); // Set user in store immediately
+        }
 
-        // Insert profile using RPC client
+        /* ---- insert full profile via RPC ---- */
         try {
           await rpcClient.insertProfileFull({
-            role: profileInput.role,
-            full_name: profileInput.full_name,
-            email: profileInput.email, // Ensure this matches the auth email
-            username: profileInput.username,
+            ...profileInput,
             id: signUpData.user.id,
-            phone: profileInput.phone ?? undefined,
-            location: profileInput.location ?? undefined,
-            job_title_id: profileInput.job_title_id ?? undefined,
-            custom_job_title: profileInput.custom_job_title ?? undefined,
-            organization_id: profileInput.organization_id ?? undefined,
-            custom_organization_name: profileInput.custom_organization_name ?? undefined,
-            avatar_id: profileInput.avatar_id ?? undefined,
           });
-        } catch (insertProfileError) {
-          setError(
-            (insertProfileError as Error)?.message ||
-            "Failed to create profile after signup.",
-          );
-          toast.error(
-            (insertProfileError as Error)?.message ||
-            "Failed to create profile. Please contact support.",
-          );
-          // Potentially attempt to clean up the auth user if profile creation fails critically
-          // await supabase.auth.deleteUser(signUpData.user.id); // Requires admin privileges
-          // setLoading(false);
+        } catch (upErr) {
+          const upMsg =
+            upErr instanceof Error
+              ? upErr.message
+              : "Failed to create profile after signup.";
+          setError(upMsg);
+          toast.error(upMsg);
+          setLoading({ auth: false });
           return null;
         }
 
-        // After successful profile insertion, set user and load profile
         setUser(signUpData.user);
         await useAuthStore.getState().loadProfile(signUpData.user.id);
         const newProfile = useAuthStore.getState().profile;
 
         if (!newProfile) {
-          setError(
-            "Profile created but failed to load. Please try logging in.",
-          );
-          toast.error(
-            "Profile created but failed to load. Please try logging in.",
-          ); // Changed from toast.warn
-          // setLoading(false);
-          navigate("/login"); // Or to a page explaining the situation
+          const msg = "Profile creation failed";
+          setError(msg);
+          toast.error(msg);
+          setLoading({ auth: false });
           return null;
         }
 
         toast.success("Signup successful! Redirecting to onboarding...");
-        navigate("/onboarding"); // Redirect to onboarding
+        navigate("/onboarding");
+        setLoading({ auth: false });
         return newProfile;
       } catch (err) {
-        console.error("Signup error:", err);
-        const message = err instanceof Error
-          ? err.message
-          : "An unexpected error occurred during signup";
-        setError(message);
-        toast.error(message);
-        // setLoading(false);
+        const msg =
+          err instanceof Error ? err.message : "An unexpected error occurred during signup";
+        setError(msg);
+        toast.error(msg);
+        setLoading({ auth: false });
         return null;
-      } finally {
-        // setLoading(false);
       }
     },
-    [navigate, setUser, setProfile],
+    [navigate, setUser, setLoading, setError],
   );
 
-  // --- LOGOUT FUNCTION ---
-  const logout = useCallback(
-    async () => {
-      // setLoading(true);
-      setError(null);
-      try {
-        await supabase.auth.signOut();
-        clearAuth();
-        toast.success("Logged out successfully");
-        navigate("/");
-      } catch (err) {
-        console.error("Logout error:", err);
-        const message = err instanceof Error
-          ? err.message
-          : "An unexpected error occurred during logout";
-        setError(message);
-        toast.error("Failed to log out. Please try again.");
-      } finally {
-        // setLoading(false);
-      }
-    },
-    [navigate, clearAuth],
-  );
-  // --- RESET PASSWORD FUNCTION ---
-  const resetPassword = useCallback(
-    async (email: string): Promise<boolean> => {
-      setError(null);
+  /* ---------------------------- LOGOUT --------------------------- */
+  const logout = useCallback(async (): Promise<void> => {
+    setLoading({ auth: true });
+    setError(null);
+    try {
+      await supabase.auth.signOut();
+      clearAuth();
+      toast.success("Logged out successfully");
+      navigate("/", { replace: true });
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "An unexpected error occurred during logout";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setLoading({ auth: false });
+    }
+  }, [navigate, clearAuth, setLoading, setError]);
 
-      if (!validateEmail(email)) {
-        setError("Please enter a valid email address");
-        toast.error("Please enter a valid email address");
+  /* ------------------------- RESET PASSWORD ---------------------- */
+  const resetPassword = useCallback(async (email: string): Promise<boolean> => {
+    setLoading({ auth: true });
+    setError(null);
+
+    if (!validateEmail(email)) {
+      const msg = "Please enter a valid email address";
+      setError(msg);
+      toast.error(msg);
+      setLoading({ auth: false });
+      return false;
+    }
+
+    try {
+      const { data: userExists } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", email.toLowerCase())
+        .maybeSingle();
+
+      if (!userExists) {
+        const msg = "No account found with this email address";
+        setError(msg);
+        toast.error(msg);
+        setLoading({ auth: false });
         return false;
       }
 
-      try {
-        // Use RPC client to check if user exists
-        const { data: userExists } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("email", email.toLowerCase())
-          .maybeSingle();
+      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
 
-        if (!userExists) {
-          setError("No account found with this email");
-          toast.error(
-            "No account found with this email. Please sign up first.",
-          );
-          return false;
-        }
+      if (resetErr) {
+        const msg = resetErr.message || "Password reset failed";
+        setError(msg);
+        toast.error(msg);
+        setLoading({ auth: false });
+        return false;
+      }
 
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-          email,
-          {
-            redirectTo: `${window.location.origin}/reset-password`,
-          },
-        );
-
-        if (resetError) {
-          setError(resetError.message || "Password reset failed");
-          toast.error(resetError.message || "Password reset failed");
-          return false;
-        }
-
-        toast.success("Password reset email sent. Please check your inbox.");
-        return true;
-      } catch (err) {
-        console.error("Password reset error:", err);
-        const message = err instanceof Error
+      toast.success(
+        "Password reset email sent! Check your inbox for further instructions.",
+      );
+      setLoading({ auth: false });
+      return true;
+    } catch (err) {
+      const msg =
+        err instanceof Error
           ? err.message
           : "An unexpected error occurred during password reset";
-        setError(message);
-        toast.error(message);
-        return false;
-      }
-    },
-    [],
-  );
-  // --- LOGIN AS DEMO USER FUNCTION ---
+      setError(msg);
+      toast.error(msg);
+      setLoading({ auth: false });
+      return false;
+    }
+  }, [setLoading, setError]);
+
+  /* ----------------------- LOGIN AS DEMO USER -------------------- */
+  // Delegate to the specialized demo login hook
   const loginAsDemoUser = useCallback(
     async (): Promise<EnrichedProfile | null> => {
-      setError(null);
-
-      try {
-        // Use RPC client to get or create demo session
-        const demoSessionData: DemoSession = await cloneDemoData();
-
-        // Sign in with Supabase Auth
-        const demoEmail = String(import.meta.env.VITE_DEMO_USER_EMAIL ?? "demo@example.com");
-        const demoPassword = String(import.meta.env.VITE_DEMO_USER_PASSWORD ?? "demo123");
-
-        if (demoEmail === "demo@example.com") {
-          console.warn(
-            "Using default demo credentials. Ensure VITE_DEMO_USER_EMAIL and VITE_DEMO_USER_PASSWORD are set in your .env file for a real demo account.",
-          );
-        }
-
-        const { data: authData, error: authError } = await supabase.auth
-          .signInWithPassword({
-            email: demoEmail,
-            password: demoPassword,
-          });
-
-        if (Boolean(authError) || !authData.user) {
-          setError(
-            (typeof authError?.message === 'string' && authError.message.trim() !== '') ? authError.message : "Demo login failed. Check credentials or demo account status.",
-          );
-          toast.error(
-            (typeof authError?.message === 'string' && authError.message.trim() !== '') ? authError.message : "Demo login failed. Please try again later or contact support.",
-          );
-          return null;
-        }
-
-        // Set the authenticated user in the store
-        setUser(authData.user);
-
-        // Load the cloned enriched profile
-        await useAuthStore.getState().loadProfile(demoSessionData.userId);
-        const demoProfile = useAuthStore.getState().profile;
-
-        if (!demoProfile) {
-          setError(
-            "Failed to load demo profile. The demo account might be incomplete.",
-          );
-          toast.error(
-            "Failed to load demo profile. Please try again later or contact support.",
-          );
-          return null;
-        }
-
-        toast.success("Welcome to the Demo Environment!");
-        // Navigate all demo users to the main dashboard
-        navigate("/dashboard");
-        return demoProfile;
-      } catch (err) {
-        console.error("[ERROR] Demo login error:", err);
-        const message = err instanceof Error
-          ? err.message
-          : "An unexpected error occurred during demo login";
-        setError(message);
-        toast.error(message);
-        return null;
-      }
+      return demoLoginFunction();
     },
-    [navigate, setUser],
+    [demoLoginFunction],
   );
 
+  /* --------------------------- RETURN ---------------------------- */
   return {
     user,
     profile,
@@ -396,10 +339,10 @@ export function useAuth(): Record<string, unknown> {
     logout,
     resetPassword,
     loginAsDemoUser,
-    loading: isLoading,
-    error,
-    isLoggedIn: !!user,
-    isProfileLoaded: !!profile,
+    loading: loading.initialization || loading.auth || loading.profile || loading.demo,
+    error: storeError, // Use the centralized error from the auth store
+    isLoggedIn: user != null,
+    isProfileLoaded: profile != null,
     currentRole: profile ? profile.role : null,
     currentOrgId: profile ? profile.organization_id : null,
     currentAvatarUrl: profile ? profile.avatar_url : null,
