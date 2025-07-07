@@ -51,7 +51,6 @@ const useProfileEdit = (): ReturnType => {
         _job_title_id: profileData.job_title_id ?? undefined,
         _organization_id: profileData.organization_id ?? undefined,
         _avatar_id: profileData.avatar_id ?? undefined,
-        _session_id: typeof profile?.session_id === 'string' && profile.session_id.trim() !== '' ? profile.session_id : undefined,
       };
       // Remove undefined properties
       Object.keys(rpcArgs).forEach((key) => {

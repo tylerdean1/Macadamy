@@ -47,7 +47,7 @@ export default function ContractSettings() {
         }
 
         // Get team members
-        const teamDataResult = await rpcClient.getProfilesByContract({ contract_id: contractId, session_id: '' });
+        const teamDataResult = await rpcClient.getProfilesByContract({ contract_id: contractId });
         const teamData = Array.isArray(teamDataResult) ? teamDataResult : [];
         setTeamMembers(teamData);
       } catch (error) {

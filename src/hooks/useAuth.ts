@@ -345,6 +345,6 @@ export function useAuth(): UseAuthReturn {
     currentRole: profile !== null ? profile.role : null,
     currentOrgId: profile !== null ? profile.organization_id : null,
     currentAvatarUrl: profile !== null ? profile.avatar_url : null,
-    currentSessionId: profile !== null ? profile.session_id : null,
+    currentSessionId: null,
   };
 }

@@ -55,7 +55,6 @@ function normalizeEnrichedUserContract(obj: unknown): EnrichedUserContract {
         status: isContractStatusValue(o.status) ? o.status : null,
         coordinates: isJson(o.coordinates) ? o.coordinates : null,
         user_contract_role: validateUserRole(typeof o.user_contract_role === 'string' ? o.user_contract_role : null),
-        session_id: typeof o.session_id === 'string' ? o.session_id : null,
         // Ensure all fields from EnrichedUserContract are present
         // user_id: typeof o.user_id === 'string' ? o.user_id : null, // REMOVE
         // Add any other missing fields from EnrichedUserContract with appropriate defaults

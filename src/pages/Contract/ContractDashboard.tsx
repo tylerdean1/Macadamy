@@ -64,7 +64,7 @@ export default function ContractDashboard() {
 
       // Fetch WBS items using RPC
       const { data: wbsData, error: wbsError } = await supabase
-        .rpc('get_wbs_with_wkt', { _contract_id: contractId, _session_id: '' });
+        .rpc('get_wbs_with_wkt', { _contract_id: contractId });
       if (wbsError) throw wbsError;
       const wbsRows: WbsWithWktRow[] = Array.isArray(wbsData) ? wbsData.map(item => ({
         id: item.id,
@@ -74,13 +74,12 @@ export default function ContractDashboard() {
         scope: item.scope ?? null,
         location: item.location ?? null,
         coordinates_wkt: item.coordinates_wkt ?? null,
-        session_id: item.session_id ?? null,
       })) : [];
       setWbsItems(wbsRows);
 
       // Fetch Line Items using RPC
       const { data: lineItemsData, error: lineItemsError } = await supabase
-        .rpc('get_line_items_with_wkt', { _contract_id: contractId, _session_id: '' });
+        .rpc('get_line_items_with_wkt', { _contract_id: contractId });
       if (lineItemsError) throw lineItemsError;
       const lineItemsRows: LineItemsWithWktRow[] = Array.isArray(lineItemsData) ? lineItemsData.map(item => {
         // Validate unit_measure against enum
@@ -103,7 +102,6 @@ export default function ContractDashboard() {
           reference_doc: item.reference_doc ?? null,
           template_id: item.template_id ?? null,
           coordinates_wkt: item.coordinates_wkt ?? null,
-          session_id: item.session_id ?? null,
         };
       }) : [];
       setLineItems(lineItemsRows);
