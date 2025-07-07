@@ -49,21 +49,20 @@ export function EditProfileModal({
   avatars,
   organizations,
   jobTitles,
-  editForm,
+  editForm, // This now comes directly from useProfileData via Dashboard
   selectedImage,
   crop,
   zoom,
   croppedAreaPixels,
   onAvatarSelect,
   onRawImageSelected,
-  onImageCroppedAndUpload, // Updated prop name
+  onImageCroppedAndUpload,
   onCropChange,
   onZoomChange,
   onCropComplete,
-  onFormChange,
+  onFormChange, // This should be the one from useProfileData (handleCustomFormChange or handleFormChange)
   onSaveProfile,
 }: EditProfileModalProps) {
-  // Crop & Upload handler using croppedAreaPixels
   const handleInternalCropAndUpload = async () => {
     if (typeof selectedImage !== 'string' || !croppedAreaPixels) return;
     try {
@@ -134,7 +133,7 @@ export function EditProfileModal({
               type="text"
               id="username"
               name="username"
-              value={editForm.username || ''} // Ensure value is not null/undefined
+              value={editForm.username ?? ''} // Use nullish coalescing
               onChange={onFormChange}
             />
           </FormField>
@@ -144,7 +143,7 @@ export function EditProfileModal({
               type="text"
               id="full_name"
               name="full_name"
-              value={editForm.full_name || ''} // Ensure value is not null/undefined
+              value={editForm.full_name ?? ''} // Use nullish coalescing
               onChange={onFormChange}
             />
           </FormField>
@@ -153,7 +152,7 @@ export function EditProfileModal({
             <Select
               name="organization_id"
               id="organization_id"
-              value={typeof editForm.organization_id === 'string' ? editForm.organization_id : ''}
+              value={editForm.organization_id ?? ''} // Use nullish coalescing
               onChange={onFormChange}
               options={[
                 { value: '', label: 'Select organization' },
@@ -167,7 +166,7 @@ export function EditProfileModal({
             <Select
               name="job_title_id"
               id="job_title_id"
-              value={typeof editForm.job_title_id === 'string' ? editForm.job_title_id : ''}
+              value={editForm.job_title_id ?? ''} // Use nullish coalescing
               onChange={onFormChange}
               options={[
                 { value: '', label: 'Select job title' },
@@ -180,7 +179,7 @@ export function EditProfileModal({
                 type="text"
                 name="custom_job_title"
                 placeholder="Enter your role"
-                value={typeof editForm.custom_job_title === 'string' ? editForm.custom_job_title : ''}
+                value={editForm.custom_job_title ?? ''} // Use nullish coalescing
                 onChange={onFormChange}
                 className="mt-2"
                 aria-label="Custom job title"
@@ -193,7 +192,7 @@ export function EditProfileModal({
               type="text"
               id="address"
               name="address"
-              value={typeof editForm.address === 'string' ? editForm.address : ''}
+              value={editForm.address ?? ''} // Use nullish coalescing
               onChange={onFormChange}
             />
           </FormField>
@@ -203,7 +202,7 @@ export function EditProfileModal({
               type="text"
               id="phone"
               name="phone"
-              value={typeof editForm.phone === 'string' ? editForm.phone : ''}
+              value={editForm.phone ?? ''} // Use nullish coalescing
               onChange={onFormChange}
             />
           </FormField>
@@ -213,7 +212,7 @@ export function EditProfileModal({
               type="email"
               id="email"
               name="email"
-              value={typeof editForm.email === 'string' ? editForm.email : ''}
+              value={editForm.email ?? ''} // Use nullish coalescing
               onChange={onFormChange}
             />
           </FormField>

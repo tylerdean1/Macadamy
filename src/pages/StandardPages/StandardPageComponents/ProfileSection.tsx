@@ -4,11 +4,13 @@ import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import type { EnrichedProfile } from '@/lib/store';
 
 export interface ProfileSectionProps {
-  profile: EnrichedProfile;
+  profile: EnrichedProfile; // Profile data is now directly passed
   onEdit: () => void;
 }
 
 export function ProfileSection({ profile, onEdit }: ProfileSectionProps) {
+  // No internal state or data fetching needed here anymore
+  // All data comes from the `profile` prop
   return (
     <Card className="mb-8">
       <div className="flex flex-col md:flex-row justify-between items-start gap-6">
@@ -17,7 +19,7 @@ export function ProfileSection({ profile, onEdit }: ProfileSectionProps) {
           <div className="flex items-center gap-4 mb-4">
             {typeof profile.avatar_url === 'string' && profile.avatar_url.trim() !== '' && (
               <img
-                src={profile.avatar_url}
+                src={profile.avatar_url} // Use profile.avatar_url directly
                 alt="Avatar"
                 className="w-[125px] h-[125px] rounded-full"
               />
@@ -61,7 +63,7 @@ export function ProfileSection({ profile, onEdit }: ProfileSectionProps) {
             {typeof profile.location === 'string' && profile.location.trim() !== '' && (
               <p className="flex items-center">
                 <MapPin className="w-4 h-4 mr-2" />
-                {profile.location}
+                {profile.location} {/* Keep original location if distinct from address */}
               </p>
             )}
             {typeof profile.organization_name === 'string' && profile.organization_name.trim() !== '' && (

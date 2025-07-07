@@ -13,51 +13,50 @@ import { Input } from './input';
 import { Button } from './button';
 import { Badge } from './badge';
 import type { Variant } from '@/lib/ui.types';
+import type { ContractWithWktRow } from '@/lib/rpc.types';
 
 import { toast } from 'sonner';
 
 /* ---------- props ---------- */
 // Define a type for a contract (customize as needed)
-interface Contract {
-  id: string;
-  title?: string;
-  description?: string;
-  location?: string;
-  start_date?: string;
-  end_date?: string;
-  budget?: number;
-  status?: string;
-}
-
+// This interface should match the structure of the objects returned by
+// the `filteredContracts` mapping in `useContractsData.ts`
 interface ContractsSectionProps {
-  filteredContracts: Contract[];
-  searchQuery: string;
-  onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  filteredContracts: ContractWithWktRow[]; // Data now comes from useContractsData via Dashboard
+  searchQuery: string; // State managed by useContractsData
+  onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void; // Handler from useContractsData
 }
-
 
 export function ContractsSection({
-  filteredContracts,
+  filteredContracts, // Use this prop directly
   searchQuery,
   onSearchChange,
 }: ContractsSectionProps): JSX.Element {
   const navigate = useNavigate();
 
-  // Use filteredContracts prop directly
-  const contracts = Array.isArray(filteredContracts) ? filteredContracts : [];
+  // Remove local state for contracts, searchQuery, and related useEffects/handlers
+  // as these are now managed by the useContractsData hook and passed as props.
 
-  if (!contracts.length) {
+  // The `filteredContracts` prop is already filtered and mapped by `useContractsData`
+  const contractsToDisplay = filteredContracts;
+
+  if (!contractsToDisplay.length && !searchQuery) { // Adjusted condition for empty state
     return (
-      <div className="text-center py-8">
+      <div className="text-center py-8 bg-card rounded-lg border border-border p-6 mb-8">
         <FileText className="w-12 h-12 text-gray-500 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-white mb-2">
-          No Contracts Found
+          No Contracts Yet
         </h3>
         <p className="text-gray-400 mb-6">
-          {searchQuery
-            ? 'No contracts match your search criteria'
-            : 'Start by creating your first contract'}
+          Start by creating your first contract.
         </p>
+        <Button
+          onClick={() => navigate('/ContractCreation')}
+          className="flex items-center gap-2 mx-auto"
+        >
+          <Plus className="w-5 h-5" />
+          New Contract
+        </Button>
       </div>
     );
   }
@@ -94,7 +93,7 @@ export function ContractsSection({
 
       {/* list */}
       <div className="space-y-4">
-        {filteredContracts.length === 0 ? (
+        {contractsToDisplay.length === 0 ? ( // Use contractsToDisplay
           <div className="text-center py-8">
             <FileText className="w-12 h-12 text-gray-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-white mb-2">
@@ -107,10 +106,11 @@ export function ContractsSection({
             </p>
           </div>
         ) : (
-          filteredContracts.map((contract) => {
+          contractsToDisplay.map((contract) => { // Use contractsToDisplay
             if (typeof contract?.id !== 'string' || contract.id.length === 0)
               return null;
 
+            // Title and demo logic can remain if contract structure from hook supports it
             const title =
               typeof contract.title === 'string'
                 ? contract.title.replace(/\s*\(Demo:.*?\)/i, '').trim()
@@ -130,10 +130,11 @@ export function ContractsSection({
                 contract.end_date.length > 0
                 ? contract.end_date
                 : undefined;
+            // Budget formatting can remain if budget is a number
             const budget =
               typeof contract.budget === 'number'
                 ? contract.budget.toLocaleString()
-                : '';
+                : (typeof contract.budget === 'string' ? contract.budget : ''); // Handle if already string
             const status = contract.status ?? '';
 
             const hasStartDate = typeof startDate === 'string' && startDate.length > 0;
