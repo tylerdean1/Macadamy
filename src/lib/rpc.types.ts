@@ -198,6 +198,21 @@ export type JobTitlesRow = {
 export type GetJobTitlesByOrganizationRpcArgs = Record<string, never>;
 export type GetJobTitlesByOrganizationRpc = () => Promise<JobTitlesRow[]>;
 
+export type LaborRecordsRow = {
+  id: string;
+  line_item_id: string;
+  worker_count: number;
+  hours_worked: number;
+  work_date: string;
+  work_type: string;
+  notes: string | null;
+  created_at: string | null;
+};
+export type GetLaborRecordsRpcArgs = { line_item_id: string };
+export type GetLaborRecordsRpc = (
+  args: GetLaborRecordsRpcArgs
+) => Promise<LaborRecordsRow[]>;
+
 export type LineItemEntriesRow = {
   id: string;
   wbs_id: string;
@@ -355,6 +370,10 @@ export type DeleteIssuesRpcArgs = { id: string };
 export type DeleteIssuesRpc = (args: DeleteIssuesRpcArgs) => Promise<void>;
 export type DeleteJobTitlesRpcArgs = { id: string };
 export type DeleteJobTitlesRpc = (args: DeleteJobTitlesRpcArgs) => Promise<void>;
+export type DeleteLaborRecordRpcArgs = { id: string };
+export type DeleteLaborRecordRpc = (
+  args: DeleteLaborRecordRpcArgs
+) => Promise<void>;
 export type DeleteLineItemEntriesRpcArgs = { id: string };
 export type DeleteLineItemEntriesRpc = (args: DeleteLineItemEntriesRpcArgs) => Promise<void>;
 export type DeleteLineItemTemplatesRpcArgs = { id: string };
@@ -472,6 +491,18 @@ export type InsertJobTitleRpcArgs = {
   // Add other fields if your insert_job_title RPC function expects them
 };
 export type InsertJobTitleRpc = (args: InsertJobTitleRpcArgs) => Promise<JobTitlesRow[]>; // Assuming it returns the new/found job title(s)
+
+export type InsertLaborRecordRpcArgs = {
+  line_item_id: string;
+  worker_count: number;
+  hours_worked: number;
+  work_date: string;
+  work_type: string;
+  notes?: string;
+};
+export type InsertLaborRecordRpc = (
+  args: InsertLaborRecordRpcArgs
+) => Promise<string>;
 
 export type InsertDailyLogRpcArgs = {
   contract_id: string;
@@ -678,6 +709,18 @@ export type UpdateContractRpcArgs = {
   _coordinates?: unknown;
 };
 export type UpdateContractRpc = (args: UpdateContractRpcArgs) => Promise<void>;
+
+export type UpdateLaborRecordRpcArgs = {
+  id: string;
+  worker_count?: number;
+  hours_worked?: number;
+  work_date?: string;
+  work_type?: string;
+  notes?: string;
+};
+export type UpdateLaborRecordRpc = (
+  args: UpdateLaborRecordRpcArgs
+) => Promise<void>;
 
 export type UpdateProfileRpcArgs = {
   _id: string;

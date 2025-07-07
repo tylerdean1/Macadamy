@@ -118,6 +118,13 @@ export type JobTitlesInsert =
 export type JobTitlesUpdate =
   Database["public"]["Tables"]["job_titles"]["Update"];
 
+// Labor Records Table
+export type LaborRecords = Database["public"]["Tables"]["labor_records"]["Row"];
+export type LaborRecordsInsert =
+  Database["public"]["Tables"]["labor_records"]["Insert"];
+export type LaborRecordsUpdate =
+  Database["public"]["Tables"]["labor_records"]["Update"];
+
 // Line Item Entries Table
 export type LineItemEntries =
   Database["public"]["Tables"]["line_item_entries"]["Row"];
