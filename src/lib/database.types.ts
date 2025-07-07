@@ -1148,6 +1148,47 @@ export type Database = {
           },
         ]
       }
+      labor_records: {
+        Row: {
+          id: string
+          line_item_id: string
+          worker_count: number
+          hours_worked: number
+          work_date: string
+          work_type: string
+          notes: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          line_item_id: string
+          worker_count?: number
+          hours_worked?: number
+          work_date?: string
+          work_type?: string
+          notes?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          line_item_id?: string
+          worker_count?: number
+          hours_worked?: number
+          work_date?: string
+          work_type?: string
+          notes?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labor_records_line_item_id_fkey"
+            columns: ["line_item_id"]
+            isOneToOne: false
+            referencedRelation: "line_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       line_item_entries: {
         Row: {
           computed_output: number | null
@@ -1980,6 +2021,10 @@ export type Database = {
         Returns: undefined
       }
       delete_job_title: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_labor_record: {
         Args: { _id: string }
         Returns: undefined
       }
@@ -3516,6 +3561,19 @@ export type Database = {
           is_custom: boolean
         }[]
       }
+      get_labor_records: {
+        Args: { _line_item_id: string }
+        Returns: {
+          id: string
+          line_item_id: string
+          worker_count: number
+          hours_worked: number
+          work_date: string
+          work_type: string
+          notes: string | null
+          created_at: string | null
+        }[]
+      }
       get_line_item_entries: {
         Args: { _contract_id: string }
         Returns: {
@@ -3866,6 +3924,17 @@ export type Database = {
           _title: string
           _created_by?: string
           _is_custom?: boolean
+        }
+        Returns: string
+      }
+      insert_labor_record: {
+        Args: {
+          _line_item_id: string
+          _worker_count: number
+          _hours_worked: number
+          _work_date: string
+          _work_type: string
+          _notes?: string
         }
         Returns: string
       }
@@ -5489,6 +5558,17 @@ export type Database = {
           _title?: string
           _created_by?: string
           _is_custom?: boolean
+        }
+        Returns: undefined
+      }
+      update_labor_record: {
+        Args: {
+          _id: string
+          _worker_count?: number
+          _hours_worked?: number
+          _work_date?: string
+          _work_type?: string
+          _notes?: string
         }
         Returns: undefined
       }

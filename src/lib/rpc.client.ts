@@ -118,6 +118,25 @@ class RpcClient {
   async deleteContracts(args: RPC.DeleteContractsRpcArgs): Promise<void> {
     return this.callRpc<void>('delete_contract', args);
   }
+
+  // Labor record RPCs
+  async getLaborRecords(
+    args: RPC.GetLaborRecordsRpcArgs
+  ): Promise<RPC.LaborRecordsRow[]> {
+    return this.callRpc<RPC.LaborRecordsRow[]>('get_labor_records', args);
+  }
+
+  async insertLaborRecord(args: RPC.InsertLaborRecordRpcArgs): Promise<string> {
+    return this.callRpc<string>('insert_labor_record', args);
+  }
+
+  async updateLaborRecord(args: RPC.UpdateLaborRecordRpcArgs): Promise<void> {
+    return this.callRpc<void>('update_labor_record', args);
+  }
+
+  async deleteLaborRecord(args: RPC.DeleteLaborRecordRpcArgs): Promise<void> {
+    return this.callRpc<void>('delete_labor_record', args);
+  }
 }
 
 export const rpcClient = new RpcClient();

@@ -2,8 +2,7 @@
  * Labor Records Management Page
  * 
  * This component handles creation and viewing of labor records for a contract.
- * Note: Currently using direct table access as no RPC functions exist for labor records yet.
- * TODO: When labor_records RPC functions are created, update this file to use them.
+ * Uses RPC functions for all labor record operations.
  * 
  * -- SPECIAL TYPESCRIPT NOTICE --
  * This file contains @ts-ignore comments to suppress TypeScript errors related to
@@ -14,21 +13,13 @@
  */
 import React, { useCallback, useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Users, Clock, Calendar, HardHat, Save } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { rpcClient } from '@/lib/rpc.client';
+import type { LaborRecords } from '@/lib/types';
 import { useAuthStore } from '@/lib/store';
 import { useNavigate, useParams } from 'react-router-dom';
 
 
 // Define a runtime type for labor records (until added to database.types.ts)
-type LaborRecord = {
-  id: string;
-  line_item_id: string;
-  worker_count: number;
-  hours_worked: number;
-  work_date: string;
-  work_type: string;
-  notes: string;
-};
 
 // Available work types for selection
 const WORK_TYPES = [
@@ -48,10 +39,10 @@ export default function LaborRecords() {
   const navigate = useNavigate();
   const params = useParams();
   const { id } = params; // Get the contract ID from route parameters
-  const [records, setRecords] = useState<LaborRecord[]>([]); // State for storing labor records
+  const [records, setRecords] = useState<LaborRecords[]>([]); // State for storing labor records
   const [loading] = useState(true); // Loading state for fetching records
   const [isCreating, setIsCreating] = useState(false); // State to manage log creation
-  const [newRecord, setNewRecord] = useState<LaborRecord>({ // Initial state for new record form
+  const [newRecord, setNewRecord] = useState<LaborRecords>({ // Initial state for new record form
     id: crypto.randomUUID(), // Generate a unique ID for the new record
     line_item_id: typeof id === 'string' && id.trim() !== '' ? id : '',
     worker_count: 1, // Default to 1 worker
@@ -64,49 +55,18 @@ export default function LaborRecords() {
 
   // Fetch labor records for the current contract when component mounts
   const fetchRecords = useCallback(async () => {
+    if (typeof id !== 'string' || id.trim() === '') {
+      setRecords([]);
+      return;
+    }
     try {
-      // Note: There's no RPC function available for labor_records yet, so we need to use direct table access
-      // TODO: When get_labor_records RPC becomes available, replace this with RPC call
-      // @ts-expect-error labor_records not in database.types.ts
-      const { data, error } = await supabase.from('labor_records')
-        .select('*')
-        .eq('line_item_id', typeof id === 'string' && id.trim() !== '' ? id : '')
-        .order('work_date', { ascending: false });
-
-      if (error) throw error;
-      // --- Fix for type errors and type guards (lines 78-88) ---
-      // Helper to safely extract and cast property
-      function getString(obj: Record<string, unknown>, key: string, fallback = ''): string {
-        const val = obj[key];
-        return typeof val === 'string' ? val : fallback;
-      }
-      function getNumber(obj: Record<string, unknown>, key: string, fallback = 0): number {
-        const val = obj[key];
-        return typeof val === 'number' ? val : fallback;
-      }
-      // Normalize and map data to ensure all required fields are present
-      const validLaborRecords: LaborRecord[] = Array.isArray(data)
-        ? data
-          .filter((item) => typeof item === 'object' && item !== null)
-          .map((item) => {
-            const rec = item as Record<string, unknown>;
-            return {
-              id: getString(rec, 'id', crypto.randomUUID()),
-              line_item_id: getString(rec, 'line_item_id', typeof id === 'string' && id.trim() !== '' ? id : ''),
-              worker_count: getNumber(rec, 'worker_count', 1),
-              hours_worked: getNumber(rec, 'hours_worked', 0),
-              work_date: getString(rec, 'work_date', new Date().toISOString().split('T')[0]),
-              work_type: getString(rec, 'work_type', ''),
-              notes: getString(rec, 'notes', '')
-            };
-          })
-        : [];
-      setRecords(validLaborRecords);
+      const data = await rpcClient.getLaborRecords({ line_item_id: id });
+      setRecords(data);
     } catch (error) {
       console.error('Error fetching labor records:', error);
       setRecords([]);
     }
-  }, [id]); // ✅ dependency: id
+  }, [id]);
 
   useEffect(() => {
     void fetchRecords();
@@ -120,20 +80,15 @@ export default function LaborRecords() {
     const { worker_count, hours_worked, work_date, work_type, notes } = newRecord;
 
     try {
-      // Note: There's no insert_labor_records RPC function available yet, so we need to use direct table access
-      // TODO: When insert_labor_records RPC becomes available, replace this with RPC call
-      // @ts-expect-error labor_records not in database.types.ts
-      const { error: insertError } = await supabase.from('labor_records').insert({
-        id: crypto.randomUUID(), // Generate a unique ID for the new record
-        line_item_id: typeof id === 'string' && id.trim() !== '' ? id : '',
+      if (typeof id !== 'string' || id.trim() === '') return;
+      await rpcClient.insertLaborRecord({
+        line_item_id: id,
         worker_count,
         hours_worked,
         work_date,
         work_type,
-        notes,
-      } as unknown);
-
-      if (insertError) throw insertError; // Handle errors during insertion
+        notes
+      });
 
       setIsCreating(false); // Close the creation form
       // Fix: void fetchRecords()

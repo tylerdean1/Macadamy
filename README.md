@@ -29,6 +29,7 @@ This project uses Supabase with RPC-first design for secure, typed, and scalable
 - `get_equipment_usage`
 - `get_inspections`
 - `get_issues`
+- `get_labor_records`
 - `get_job_titles`
 - `get_line_item_entries`
 - `get_line_item_templates_by_organization`
@@ -64,6 +65,7 @@ This project uses Supabase with RPC-first design for secure, typed, and scalable
 - equipment_usage
 - issues
 - job_titles
+- labor_records
 - organizations
 - profiles
 - user_contracts
