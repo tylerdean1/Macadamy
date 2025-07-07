@@ -5,7 +5,7 @@
 -- Dumped from database version 15.8
 -- Dumped by pg_dump version 17.5
 
--- Started on 2025-05-25 13:14:19
+-- Started on 2025-07-06 22:20:26
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -28,7 +28,7 @@ CREATE SCHEMA public;
 
 
 --
--- TOC entry 2375 (class 1247 OID 36552)
+-- TOC entry 2171 (class 1247 OID 18498)
 -- Name: asphalt_type; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -50,7 +50,7 @@ CREATE TYPE public.asphalt_type AS ENUM (
 
 
 --
--- TOC entry 2341 (class 1247 OID 81783)
+-- TOC entry 2174 (class 1247 OID 18526)
 -- Name: change_order_status; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -63,7 +63,7 @@ CREATE TYPE public.change_order_status AS ENUM (
 
 
 --
--- TOC entry 2202 (class 1247 OID 37235)
+-- TOC entry 2177 (class 1247 OID 18536)
 -- Name: contract_status; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -83,7 +83,7 @@ CREATE TYPE public.contract_status AS ENUM (
 
 
 --
--- TOC entry 2147 (class 1247 OID 36580)
+-- TOC entry 2180 (class 1247 OID 18560)
 -- Name: existing_surface; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -98,7 +98,7 @@ CREATE TYPE public.existing_surface AS ENUM (
 
 
 --
--- TOC entry 2244 (class 1247 OID 36485)
+-- TOC entry 2183 (class 1247 OID 18574)
 -- Name: organization_role; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -113,7 +113,7 @@ CREATE TYPE public.organization_role AS ENUM (
 
 
 --
--- TOC entry 2253 (class 1247 OID 45737)
+-- TOC entry 2186 (class 1247 OID 18588)
 -- Name: patch_status; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -127,7 +127,7 @@ CREATE TYPE public.patch_status AS ENUM (
 
 
 --
--- TOC entry 2238 (class 1247 OID 156248)
+-- TOC entry 2189 (class 1247 OID 18600)
 -- Name: pay_rate_unit; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -138,7 +138,7 @@ CREATE TYPE public.pay_rate_unit AS ENUM (
 
 
 --
--- TOC entry 2250 (class 1247 OID 156264)
+-- TOC entry 2192 (class 1247 OID 18606)
 -- Name: priority; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -151,7 +151,7 @@ CREATE TYPE public.priority AS ENUM (
 
 
 --
--- TOC entry 2320 (class 1247 OID 45367)
+-- TOC entry 2195 (class 1247 OID 18616)
 -- Name: road_side; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -162,7 +162,7 @@ CREATE TYPE public.road_side AS ENUM (
 
 
 --
--- TOC entry 2199 (class 1247 OID 35286)
+-- TOC entry 2198 (class 1247 OID 18622)
 -- Name: unit_measure_type; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -195,7 +195,7 @@ CREATE TYPE public.unit_measure_type AS ENUM (
 
 
 --
--- TOC entry 2329 (class 1247 OID 29104)
+-- TOC entry 2201 (class 1247 OID 18672)
 -- Name: user_role; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -209,7 +209,7 @@ CREATE TYPE public.user_role AS ENUM (
 
 
 --
--- TOC entry 869 (class 1255 OID 35754)
+-- TOC entry 906 (class 1255 OID 18731)
 -- Name: calculate_cy(numeric, numeric, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -223,7 +223,7 @@ $$;
 
 
 --
--- TOC entry 761 (class 1255 OID 35733)
+-- TOC entry 887 (class 1255 OID 18732)
 -- Name: calculate_sy(numeric, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -237,7 +237,7 @@ $$;
 
 
 --
--- TOC entry 925 (class 1255 OID 35776)
+-- TOC entry 886 (class 1255 OID 18733)
 -- Name: calculate_tons(numeric, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -251,7 +251,7 @@ $$;
 
 
 --
--- TOC entry 1514 (class 1255 OID 30362)
+-- TOC entry 885 (class 1255 OID 18734)
 -- Name: check_is_admin(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -267,7 +267,7 @@ END;$$;
 
 
 --
--- TOC entry 1351 (class 1255 OID 135794)
+-- TOC entry 1136 (class 1255 OID 18735)
 -- Name: clone_change_orders_for_session(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -362,7 +362,7 @@ $$;
 
 
 --
--- TOC entry 1377 (class 1255 OID 136256)
+-- TOC entry 1143 (class 1255 OID 18736)
 -- Name: clone_contract_organizations(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -432,7 +432,7 @@ $$;
 
 
 --
--- TOC entry 1343 (class 1255 OID 135592)
+-- TOC entry 1145 (class 1255 OID 18737)
 -- Name: clone_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -528,7 +528,7 @@ $$;
 
 
 --
--- TOC entry 1357 (class 1255 OID 135944)
+-- TOC entry 1157 (class 1255 OID 18738)
 -- Name: clone_crew_members(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -595,7 +595,7 @@ $$;
 
 
 --
--- TOC entry 1355 (class 1255 OID 135882)
+-- TOC entry 1168 (class 1255 OID 18739)
 -- Name: clone_crews(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -658,7 +658,7 @@ $$;
 
 
 --
--- TOC entry 1367 (class 1255 OID 136110)
+-- TOC entry 1169 (class 1255 OID 18740)
 -- Name: clone_daily_logs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -724,7 +724,7 @@ $$;
 
 
 --
--- TOC entry 1358 (class 1255 OID 135986)
+-- TOC entry 1178 (class 1255 OID 18741)
 -- Name: clone_equipment(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -792,7 +792,7 @@ $$;
 
 
 --
--- TOC entry 1363 (class 1255 OID 136068)
+-- TOC entry 1179 (class 1255 OID 18742)
 -- Name: clone_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -858,7 +858,7 @@ $$;
 
 
 --
--- TOC entry 1372 (class 1255 OID 136194)
+-- TOC entry 1185 (class 1255 OID 18743)
 -- Name: clone_inspections(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -928,7 +928,7 @@ $$;
 
 
 --
--- TOC entry 1370 (class 1255 OID 136152)
+-- TOC entry 1186 (class 1255 OID 18744)
 -- Name: clone_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1004,7 +1004,7 @@ $$;
 
 
 --
--- TOC entry 1387 (class 1255 OID 136380)
+-- TOC entry 907 (class 1255 OID 18745)
 -- Name: clone_line_item_crew_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1082,7 +1082,7 @@ $$;
 
 
 --
--- TOC entry 1382 (class 1255 OID 136318)
+-- TOC entry 1189 (class 1255 OID 18746)
 -- Name: clone_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1148,7 +1148,7 @@ $$;
 
 
 --
--- TOC entry 1390 (class 1255 OID 136422)
+-- TOC entry 1190 (class 1255 OID 18747)
 -- Name: clone_line_item_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1226,7 +1226,7 @@ $$;
 
 
 --
--- TOC entry 1393 (class 1255 OID 136464)
+-- TOC entry 1203 (class 1255 OID 18748)
 -- Name: clone_line_item_templates(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1297,7 +1297,7 @@ $$;
 
 
 --
--- TOC entry 1333 (class 1255 OID 135218)
+-- TOC entry 1204 (class 1255 OID 18749)
 -- Name: clone_line_items_for_maps(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1378,7 +1378,7 @@ $$;
 
 
 --
--- TOC entry 1329 (class 1255 OID 135156)
+-- TOC entry 1205 (class 1255 OID 18750)
 -- Name: clone_maps_for_wbs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1451,7 +1451,7 @@ $$;
 
 
 --
--- TOC entry 1326 (class 1255 OID 135094)
+-- TOC entry 1209 (class 1255 OID 18751)
 -- Name: clone_wbs_for_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1521,7 +1521,7 @@ $$;
 
 
 --
--- TOC entry 379 (class 1255 OID 144864)
+-- TOC entry 1213 (class 1255 OID 18752)
 -- Name: create_demo_environment(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1594,7 +1594,7 @@ END;$$;
 
 
 --
--- TOC entry 1347 (class 1255 OID 146118)
+-- TOC entry 1216 (class 1255 OID 18753)
 -- Name: custom_access_token_hook(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1632,7 +1632,7 @@ $$;
 
 
 --
--- TOC entry 1348 (class 1255 OID 154252)
+-- TOC entry 971 (class 1255 OID 18754)
 -- Name: delete_asphalt_type(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1647,7 +1647,7 @@ $$;
 
 
 --
--- TOC entry 1401 (class 1255 OID 141783)
+-- TOC entry 978 (class 1255 OID 18755)
 -- Name: delete_avatars(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1659,7 +1659,7 @@ $$;
 
 
 --
--- TOC entry 1376 (class 1255 OID 154824)
+-- TOC entry 979 (class 1255 OID 18756)
 -- Name: delete_change_order(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1674,7 +1674,7 @@ $$;
 
 
 --
--- TOC entry 399 (class 1255 OID 155402)
+-- TOC entry 981 (class 1255 OID 18757)
 -- Name: delete_contract(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1689,7 +1689,7 @@ $$;
 
 
 --
--- TOC entry 1391 (class 1255 OID 155032)
+-- TOC entry 970 (class 1255 OID 18758)
 -- Name: delete_contract_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1704,7 +1704,7 @@ $$;
 
 
 --
--- TOC entry 1323 (class 1255 OID 155798)
+-- TOC entry 974 (class 1255 OID 18759)
 -- Name: delete_crew(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1719,7 +1719,7 @@ $$;
 
 
 --
--- TOC entry 1317 (class 1255 OID 155610)
+-- TOC entry 977 (class 1255 OID 18760)
 -- Name: delete_crew_member(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1734,7 +1734,7 @@ $$;
 
 
 --
--- TOC entry 1403 (class 1255 OID 141835)
+-- TOC entry 980 (class 1255 OID 18761)
 -- Name: delete_crews(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1746,7 +1746,7 @@ $$;
 
 
 --
--- TOC entry 1332 (class 1255 OID 155986)
+-- TOC entry 973 (class 1255 OID 18762)
 -- Name: delete_daily_log(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1761,7 +1761,7 @@ $$;
 
 
 --
--- TOC entry 1339 (class 1255 OID 156180)
+-- TOC entry 975 (class 1255 OID 18763)
 -- Name: delete_demo_mapping(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1776,7 +1776,7 @@ $$;
 
 
 --
--- TOC entry 1368 (class 1255 OID 156942)
+-- TOC entry 976 (class 1255 OID 18764)
 -- Name: delete_dump_truck(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1791,7 +1791,7 @@ $$;
 
 
 --
--- TOC entry 1398 (class 1255 OID 157420)
+-- TOC entry 972 (class 1255 OID 18765)
 -- Name: delete_equipment(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1806,7 +1806,7 @@ $$;
 
 
 --
--- TOC entry 1413 (class 1255 OID 157776)
+-- TOC entry 932 (class 1255 OID 18766)
 -- Name: delete_equipment_assignment(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1821,7 +1821,7 @@ $$;
 
 
 --
--- TOC entry 1422 (class 1255 OID 158132)
+-- TOC entry 933 (class 1255 OID 18767)
 -- Name: delete_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1836,7 +1836,7 @@ $$;
 
 
 --
--- TOC entry 1430 (class 1255 OID 158488)
+-- TOC entry 935 (class 1255 OID 18768)
 -- Name: delete_inspection(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1851,7 +1851,7 @@ $$;
 
 
 --
--- TOC entry 1438 (class 1255 OID 158850)
+-- TOC entry 922 (class 1255 OID 18769)
 -- Name: delete_issue(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1866,7 +1866,7 @@ $$;
 
 
 --
--- TOC entry 1405 (class 1255 OID 141887)
+-- TOC entry 925 (class 1255 OID 18770)
 -- Name: delete_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1878,7 +1878,7 @@ $$;
 
 
 --
--- TOC entry 1442 (class 1255 OID 159038)
+-- TOC entry 934 (class 1255 OID 18771)
 -- Name: delete_job_title(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1893,7 +1893,7 @@ $$;
 
 
 --
--- TOC entry 1459 (class 1255 OID 159938)
+-- TOC entry 924 (class 1255 OID 18772)
 -- Name: delete_line_item(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1908,7 +1908,7 @@ $$;
 
 
 --
--- TOC entry 1444 (class 1255 OID 159142)
+-- TOC entry 928 (class 1255 OID 18773)
 -- Name: delete_line_item_entry(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1923,7 +1923,7 @@ $$;
 
 
 --
--- TOC entry 1453 (class 1255 OID 159540)
+-- TOC entry 921 (class 1255 OID 18774)
 -- Name: delete_line_item_template(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1938,7 +1938,7 @@ $$;
 
 
 --
--- TOC entry 1463 (class 1255 OID 160230)
+-- TOC entry 927 (class 1255 OID 18775)
 -- Name: delete_map(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1953,7 +1953,7 @@ $$;
 
 
 --
--- TOC entry 1466 (class 1255 OID 160376)
+-- TOC entry 923 (class 1255 OID 18776)
 -- Name: delete_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1968,7 +1968,7 @@ $$;
 
 
 --
--- TOC entry 1471 (class 1255 OID 160606)
+-- TOC entry 930 (class 1255 OID 18777)
 -- Name: delete_profile(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1983,7 +1983,7 @@ $$;
 
 
 --
--- TOC entry 1407 (class 1255 OID 141936)
+-- TOC entry 926 (class 1255 OID 18778)
 -- Name: delete_tack_rates(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1995,7 +1995,7 @@ $$;
 
 
 --
--- TOC entry 1477 (class 1255 OID 160878)
+-- TOC entry 929 (class 1255 OID 18779)
 -- Name: delete_user_contract(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2011,7 +2011,7 @@ $$;
 
 
 --
--- TOC entry 1480 (class 1255 OID 161072)
+-- TOC entry 931 (class 1255 OID 18780)
 -- Name: delete_wbs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2026,7 +2026,7 @@ $$;
 
 
 --
--- TOC entry 378 (class 1255 OID 144865)
+-- TOC entry 1223 (class 1255 OID 18781)
 -- Name: execute_full_demo_clone(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2069,7 +2069,7 @@ $$;
 SET default_table_access_method = heap;
 
 --
--- TOC entry 333 (class 1259 OID 43500)
+-- TOC entry 258 (class 1259 OID 18782)
 -- Name: dump_trucks; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2093,7 +2093,7 @@ CREATE TABLE public.dump_trucks (
 
 
 --
--- TOC entry 1383 (class 1255 OID 157148)
+-- TOC entry 993 (class 1255 OID 18790)
 -- Name: filtered_by_axle_count_dump_trucks(numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2108,7 +2108,7 @@ $$;
 
 
 --
--- TOC entry 346 (class 1259 OID 81852)
+-- TOC entry 259 (class 1259 OID 18791)
 -- Name: daily_logs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2131,7 +2131,7 @@ CREATE TABLE public.daily_logs (
 
 
 --
--- TOC entry 1325 (class 1255 OID 155860)
+-- TOC entry 992 (class 1255 OID 18800)
 -- Name: filtered_by_contract_daily_logs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2145,7 +2145,7 @@ $$;
 
 
 --
--- TOC entry 1359 (class 1255 OID 156816)
+-- TOC entry 991 (class 1255 OID 18801)
 -- Name: filtered_by_contract_dump_trucks(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2159,7 +2159,7 @@ $$;
 
 
 --
--- TOC entry 330 (class 1259 OID 29702)
+-- TOC entry 260 (class 1259 OID 18802)
 -- Name: equipment_assignments; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2186,7 +2186,7 @@ ALTER TABLE ONLY public.equipment_assignments REPLICA IDENTITY FULL;
 
 
 --
--- TOC entry 1400 (class 1255 OID 157482)
+-- TOC entry 983 (class 1255 OID 18811)
 -- Name: filtered_by_contract_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2200,7 +2200,7 @@ $$;
 
 
 --
--- TOC entry 347 (class 1259 OID 81960)
+-- TOC entry 261 (class 1259 OID 18812)
 -- Name: equipment_usage; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2225,7 +2225,7 @@ CREATE TABLE public.equipment_usage (
 
 
 --
--- TOC entry 1414 (class 1255 OID 157838)
+-- TOC entry 984 (class 1255 OID 18821)
 -- Name: filtered_by_contract_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2239,7 +2239,7 @@ $$;
 
 
 --
--- TOC entry 349 (class 1259 OID 82124)
+-- TOC entry 262 (class 1259 OID 18822)
 -- Name: inspections; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2262,7 +2262,7 @@ CREATE TABLE public.inspections (
 
 
 --
--- TOC entry 1424 (class 1255 OID 158236)
+-- TOC entry 985 (class 1255 OID 18829)
 -- Name: filtered_by_contract_inspections(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2276,7 +2276,7 @@ $$;
 
 
 --
--- TOC entry 350 (class 1259 OID 82204)
+-- TOC entry 263 (class 1259 OID 18830)
 -- Name: issues; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2305,7 +2305,7 @@ CREATE TABLE public.issues (
 
 
 --
--- TOC entry 1431 (class 1255 OID 158556)
+-- TOC entry 986 (class 1255 OID 18841)
 -- Name: filtered_by_contract_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2319,7 +2319,7 @@ $$;
 
 
 --
--- TOC entry 336 (class 1259 OID 47812)
+-- TOC entry 264 (class 1259 OID 18842)
 -- Name: line_item_entries; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2340,7 +2340,7 @@ CREATE TABLE public.line_item_entries (
 
 
 --
--- TOC entry 1446 (class 1255 OID 159226)
+-- TOC entry 987 (class 1255 OID 18849)
 -- Name: filtered_by_contract_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2354,7 +2354,7 @@ $$;
 
 
 --
--- TOC entry 1487 (class 1255 OID 161386)
+-- TOC entry 1140 (class 1255 OID 18850)
 -- Name: filtered_by_contract_line_items(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2384,7 +2384,7 @@ $$;
 
 
 --
--- TOC entry 1484 (class 1255 OID 161260)
+-- TOC entry 1141 (class 1255 OID 18851)
 -- Name: filtered_by_contract_maps(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2410,7 +2410,7 @@ $$;
 
 
 --
--- TOC entry 337 (class 1259 OID 48860)
+-- TOC entry 265 (class 1259 OID 18852)
 -- Name: user_contracts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2423,7 +2423,7 @@ CREATE TABLE public.user_contracts (
 
 
 --
--- TOC entry 1472 (class 1255 OID 160668)
+-- TOC entry 988 (class 1255 OID 18856)
 -- Name: filtered_by_contract_user_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2436,7 +2436,7 @@ $$;
 
 
 --
--- TOC entry 1482 (class 1255 OID 161176)
+-- TOC entry 982 (class 1255 OID 18857)
 -- Name: filtered_by_contract_wbs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2461,7 +2461,7 @@ $$;
 
 
 --
--- TOC entry 329 (class 1259 OID 29674)
+-- TOC entry 266 (class 1259 OID 18858)
 -- Name: crew_members; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2484,7 +2484,7 @@ ALTER TABLE ONLY public.crew_members REPLICA IDENTITY FULL;
 
 
 --
--- TOC entry 1310 (class 1255 OID 155484)
+-- TOC entry 989 (class 1255 OID 18867)
 -- Name: filtered_by_crew_crew_members(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2498,7 +2498,7 @@ $$;
 
 
 --
--- TOC entry 1450 (class 1255 OID 159394)
+-- TOC entry 994 (class 1255 OID 18868)
 -- Name: filtered_by_entered_by_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2512,7 +2512,7 @@ $$;
 
 
 --
--- TOC entry 1402 (class 1255 OID 157524)
+-- TOC entry 990 (class 1255 OID 18869)
 -- Name: filtered_by_equipment_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2526,7 +2526,7 @@ $$;
 
 
 --
--- TOC entry 1415 (class 1255 OID 157880)
+-- TOC entry 943 (class 1255 OID 18870)
 -- Name: filtered_by_equipment_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2540,7 +2540,7 @@ $$;
 
 
 --
--- TOC entry 1435 (class 1255 OID 158724)
+-- TOC entry 945 (class 1255 OID 18871)
 -- Name: filtered_by_equipment_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2554,7 +2554,7 @@ $$;
 
 
 --
--- TOC entry 318 (class 1259 OID 29189)
+-- TOC entry 267 (class 1259 OID 18872)
 -- Name: line_items; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2580,7 +2580,7 @@ ALTER TABLE ONLY public.line_items REPLICA IDENTITY FULL;
 
 
 --
--- TOC entry 1456 (class 1255 OID 159812)
+-- TOC entry 947 (class 1255 OID 18880)
 -- Name: filtered_by_line_code_line_items(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2594,7 +2594,7 @@ $$;
 
 
 --
--- TOC entry 1404 (class 1255 OID 157566)
+-- TOC entry 938 (class 1255 OID 18881)
 -- Name: filtered_by_line_item_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2608,7 +2608,7 @@ $$;
 
 
 --
--- TOC entry 1416 (class 1255 OID 157922)
+-- TOC entry 944 (class 1255 OID 18882)
 -- Name: filtered_by_line_item_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2622,7 +2622,7 @@ $$;
 
 
 --
--- TOC entry 1427 (class 1255 OID 158362)
+-- TOC entry 946 (class 1255 OID 18883)
 -- Name: filtered_by_line_item_inspections(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2636,7 +2636,7 @@ $$;
 
 
 --
--- TOC entry 1434 (class 1255 OID 158682)
+-- TOC entry 939 (class 1255 OID 18884)
 -- Name: filtered_by_line_item_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2650,7 +2650,7 @@ $$;
 
 
 --
--- TOC entry 1447 (class 1255 OID 159268)
+-- TOC entry 941 (class 1255 OID 18885)
 -- Name: filtered_by_line_item_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2664,7 +2664,7 @@ $$;
 
 
 --
--- TOC entry 1406 (class 1255 OID 157608)
+-- TOC entry 936 (class 1255 OID 18886)
 -- Name: filtered_by_map_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2678,7 +2678,7 @@ $$;
 
 
 --
--- TOC entry 1417 (class 1255 OID 157964)
+-- TOC entry 940 (class 1255 OID 18887)
 -- Name: filtered_by_map_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2692,7 +2692,7 @@ $$;
 
 
 --
--- TOC entry 1426 (class 1255 OID 158320)
+-- TOC entry 937 (class 1255 OID 18888)
 -- Name: filtered_by_map_inspections(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2706,7 +2706,7 @@ $$;
 
 
 --
--- TOC entry 1433 (class 1255 OID 158640)
+-- TOC entry 942 (class 1255 OID 18889)
 -- Name: filtered_by_map_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2720,7 +2720,7 @@ $$;
 
 
 --
--- TOC entry 1448 (class 1255 OID 159310)
+-- TOC entry 956 (class 1255 OID 18890)
 -- Name: filtered_by_map_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2734,7 +2734,7 @@ $$;
 
 
 --
--- TOC entry 1489 (class 1255 OID 161470)
+-- TOC entry 1158 (class 1255 OID 18891)
 -- Name: filtered_by_map_line_items(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2764,7 +2764,7 @@ $$;
 
 
 --
--- TOC entry 1386 (class 1255 OID 157190)
+-- TOC entry 958 (class 1255 OID 18892)
 -- Name: filtered_by_max_volume_dump_trucks(numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2779,7 +2779,7 @@ $$;
 
 
 --
--- TOC entry 1408 (class 1255 OID 157650)
+-- TOC entry 949 (class 1255 OID 18893)
 -- Name: filtered_by_operator_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2793,7 +2793,7 @@ $$;
 
 
 --
--- TOC entry 1418 (class 1255 OID 158006)
+-- TOC entry 957 (class 1255 OID 18894)
 -- Name: filtered_by_operator_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2807,7 +2807,7 @@ $$;
 
 
 --
--- TOC entry 315 (class 1259 OID 29139)
+-- TOC entry 268 (class 1259 OID 18895)
 -- Name: contracts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2831,7 +2831,7 @@ ALTER TABLE ONLY public.contracts REPLICA IDENTITY FULL;
 
 
 --
--- TOC entry 1397 (class 1255 OID 155174)
+-- TOC entry 948 (class 1255 OID 18904)
 -- Name: filtered_by_organization_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2847,7 +2847,7 @@ $$;
 
 
 --
--- TOC entry 328 (class 1259 OID 29649)
+-- TOC entry 269 (class 1259 OID 18905)
 -- Name: crews; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2867,7 +2867,7 @@ ALTER TABLE ONLY public.crews REPLICA IDENTITY FULL;
 
 
 --
--- TOC entry 1319 (class 1255 OID 155672)
+-- TOC entry 952 (class 1255 OID 18913)
 -- Name: filtered_by_organization_crews(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2881,7 +2881,7 @@ $$;
 
 
 --
--- TOC entry 348 (class 1259 OID 82062)
+-- TOC entry 270 (class 1259 OID 18914)
 -- Name: equipment; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2901,7 +2901,7 @@ CREATE TABLE public.equipment (
 
 
 --
--- TOC entry 1392 (class 1255 OID 157294)
+-- TOC entry 950 (class 1255 OID 18921)
 -- Name: filtered_by_organization_equipment(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2915,7 +2915,7 @@ $$;
 
 
 --
--- TOC entry 332 (class 1259 OID 35668)
+-- TOC entry 271 (class 1259 OID 18922)
 -- Name: line_item_templates; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2934,7 +2934,7 @@ CREATE TABLE public.line_item_templates (
 
 
 --
--- TOC entry 1454 (class 1255 OID 159582)
+-- TOC entry 954 (class 1255 OID 18928)
 -- Name: filtered_by_organization_line_item_templates(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2948,7 +2948,7 @@ $$;
 
 
 --
--- TOC entry 314 (class 1259 OID 29126)
+-- TOC entry 272 (class 1259 OID 18929)
 -- Name: profiles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2972,7 +2972,7 @@ ALTER TABLE ONLY public.profiles REPLICA IDENTITY FULL;
 
 
 --
--- TOC entry 1467 (class 1255 OID 160438)
+-- TOC entry 951 (class 1255 OID 18937)
 -- Name: filtered_by_organization_profiles(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2986,7 +2986,7 @@ $$;
 
 
 --
--- TOC entry 1455 (class 1255 OID 159624)
+-- TOC entry 955 (class 1255 OID 18938)
 -- Name: filtered_by_output_unit_line_item_templates(public.unit_measure_type); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3000,7 +3000,7 @@ $$;
 
 
 --
--- TOC entry 1389 (class 1255 OID 157232)
+-- TOC entry 953 (class 1255 OID 18939)
 -- Name: filtered_by_payload_capacity_dump_trucks(numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3015,7 +3015,7 @@ $$;
 
 
 --
--- TOC entry 1436 (class 1255 OID 158766)
+-- TOC entry 959 (class 1255 OID 18940)
 -- Name: filtered_by_priority_issues(public.priority); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3029,7 +3029,7 @@ $$;
 
 
 --
--- TOC entry 1468 (class 1255 OID 160480)
+-- TOC entry 965 (class 1255 OID 18941)
 -- Name: filtered_by_role_profiles(public.user_role); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3043,7 +3043,7 @@ $$;
 
 
 --
--- TOC entry 1474 (class 1255 OID 160752)
+-- TOC entry 966 (class 1255 OID 18942)
 -- Name: filtered_by_role_user_contracts(public.user_role); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3056,7 +3056,7 @@ $$;
 
 
 --
--- TOC entry 351 (class 1259 OID 135320)
+-- TOC entry 273 (class 1259 OID 18943)
 -- Name: demo_mappings; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3105,7 +3105,7 @@ CREATE TABLE public.demo_mappings (
 
 
 --
--- TOC entry 1334 (class 1255 OID 156048)
+-- TOC entry 968 (class 1255 OID 18949)
 -- Name: filtered_by_session_demo_mappings(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3119,7 +3119,7 @@ $$;
 
 
 --
--- TOC entry 1399 (class 1255 OID 155216)
+-- TOC entry 969 (class 1255 OID 18950)
 -- Name: filtered_by_status_contracts(public.contract_status); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3133,7 +3133,7 @@ $$;
 
 
 --
--- TOC entry 1457 (class 1255 OID 159854)
+-- TOC entry 961 (class 1255 OID 18951)
 -- Name: filtered_by_unit_measure_line_items(public.unit_measure_type); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3147,7 +3147,7 @@ $$;
 
 
 --
--- TOC entry 1473 (class 1255 OID 160710)
+-- TOC entry 963 (class 1255 OID 18952)
 -- Name: filtered_by_user_user_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3160,7 +3160,7 @@ $$;
 
 
 --
--- TOC entry 1409 (class 1255 OID 157692)
+-- TOC entry 967 (class 1255 OID 18953)
 -- Name: filtered_by_wbs_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3174,7 +3174,7 @@ $$;
 
 
 --
--- TOC entry 1420 (class 1255 OID 158048)
+-- TOC entry 960 (class 1255 OID 18954)
 -- Name: filtered_by_wbs_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3188,7 +3188,7 @@ $$;
 
 
 --
--- TOC entry 1425 (class 1255 OID 158278)
+-- TOC entry 962 (class 1255 OID 18955)
 -- Name: filtered_by_wbs_inspections(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3202,7 +3202,7 @@ $$;
 
 
 --
--- TOC entry 1432 (class 1255 OID 158598)
+-- TOC entry 964 (class 1255 OID 18956)
 -- Name: filtered_by_wbs_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3216,7 +3216,7 @@ $$;
 
 
 --
--- TOC entry 1449 (class 1255 OID 159352)
+-- TOC entry 883 (class 1255 OID 18957)
 -- Name: filtered_by_wbs_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3230,7 +3230,7 @@ $$;
 
 
 --
--- TOC entry 1488 (class 1255 OID 161428)
+-- TOC entry 1159 (class 1255 OID 18958)
 -- Name: filtered_by_wbs_line_items(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3260,7 +3260,7 @@ $$;
 
 
 --
--- TOC entry 1485 (class 1255 OID 161302)
+-- TOC entry 913 (class 1255 OID 18959)
 -- Name: filtered_by_wbs_maps(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3286,7 +3286,7 @@ $$;
 
 
 --
--- TOC entry 1369 (class 1255 OID 141204)
+-- TOC entry 908 (class 1255 OID 18960)
 -- Name: get_all_line_item_templates(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3306,7 +3306,7 @@ $$;
 
 
 --
--- TOC entry 1381 (class 1255 OID 141370)
+-- TOC entry 1142 (class 1255 OID 18961)
 -- Name: get_all_profiles(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3332,7 +3332,7 @@ $$;
 
 
 --
--- TOC entry 334 (class 1259 OID 45512)
+-- TOC entry 274 (class 1259 OID 18962)
 -- Name: asphalt_types; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3350,7 +3350,7 @@ CREATE TABLE public.asphalt_types (
 
 
 --
--- TOC entry 1341 (class 1255 OID 154106)
+-- TOC entry 1002 (class 1255 OID 18969)
 -- Name: get_asphalt_types(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3363,7 +3363,7 @@ $$;
 
 
 --
--- TOC entry 593 (class 1255 OID 163022)
+-- TOC entry 995 (class 1255 OID 18970)
 -- Name: get_avatars_for_profile(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3385,7 +3385,7 @@ $$;
 
 
 --
--- TOC entry 1327 (class 1255 OID 140288)
+-- TOC entry 1226 (class 1255 OID 18971)
 -- Name: get_change_orders(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3412,7 +3412,7 @@ $$;
 
 
 --
--- TOC entry 345 (class 1259 OID 81791)
+-- TOC entry 275 (class 1259 OID 18972)
 -- Name: change_orders; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3438,7 +3438,7 @@ CREATE TABLE public.change_orders (
 
 
 --
--- TOC entry 1380 (class 1255 OID 154866)
+-- TOC entry 997 (class 1255 OID 18981)
 -- Name: get_change_orders(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3456,7 +3456,7 @@ $$;
 
 
 --
--- TOC entry 1353 (class 1255 OID 146242)
+-- TOC entry 998 (class 1255 OID 18982)
 -- Name: get_change_orders_count_for_contract(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3479,7 +3479,7 @@ $$;
 
 
 --
--- TOC entry 1331 (class 1255 OID 140370)
+-- TOC entry 999 (class 1255 OID 18983)
 -- Name: get_contract_organizations(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3496,7 +3496,7 @@ $$;
 
 
 --
--- TOC entry 1316 (class 1255 OID 139934)
+-- TOC entry 996 (class 1255 OID 18984)
 -- Name: get_contract_with_wkt(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3520,7 +3520,7 @@ $$;
 
 
 --
--- TOC entry 1335 (class 1255 OID 140460)
+-- TOC entry 1000 (class 1255 OID 18985)
 -- Name: get_crew_members_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3543,7 +3543,7 @@ $$;
 
 
 --
--- TOC entry 1337 (class 1255 OID 140522)
+-- TOC entry 1001 (class 1255 OID 18986)
 -- Name: get_crews_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3563,7 +3563,7 @@ $$;
 
 
 --
--- TOC entry 1340 (class 1255 OID 140584)
+-- TOC entry 1228 (class 1255 OID 18987)
 -- Name: get_daily_logs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3587,7 +3587,7 @@ $$;
 
 
 --
--- TOC entry 1410 (class 1255 OID 142020)
+-- TOC entry 1229 (class 1255 OID 18988)
 -- Name: get_dashboard_metrics(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3610,7 +3610,7 @@ $$;
 
 
 --
--- TOC entry 1412 (class 1255 OID 142108)
+-- TOC entry 1230 (class 1255 OID 18989)
 -- Name: get_enriched_profile(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3641,7 +3641,7 @@ $$;
 
 
 --
--- TOC entry 366 (class 1255 OID 147576)
+-- TOC entry 1231 (class 1255 OID 18990)
 -- Name: get_enriched_profile_by_username(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3673,7 +3673,7 @@ $$;
 
 
 --
--- TOC entry 1318 (class 1255 OID 148002)
+-- TOC entry 1239 (class 1255 OID 18991)
 -- Name: get_enriched_user_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3711,7 +3711,7 @@ $$;
 
 
 --
--- TOC entry 1315 (class 1255 OID 118266)
+-- TOC entry 1017 (class 1255 OID 18992)
 -- Name: get_enum_values(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3727,7 +3727,7 @@ $$;
 
 
 --
--- TOC entry 1345 (class 1255 OID 140716)
+-- TOC entry 1018 (class 1255 OID 18993)
 -- Name: get_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3749,7 +3749,7 @@ $$;
 
 
 --
--- TOC entry 1342 (class 1255 OID 140654)
+-- TOC entry 1013 (class 1255 OID 18994)
 -- Name: get_equipment_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3769,7 +3769,7 @@ $$;
 
 
 --
--- TOC entry 1349 (class 1255 OID 140804)
+-- TOC entry 1012 (class 1255 OID 18995)
 -- Name: get_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3791,7 +3791,7 @@ $$;
 
 
 --
--- TOC entry 1354 (class 1255 OID 146284)
+-- TOC entry 1015 (class 1255 OID 18996)
 -- Name: get_inspections_count_for_contract(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3814,7 +3814,7 @@ $$;
 
 
 --
--- TOC entry 1352 (class 1255 OID 140886)
+-- TOC entry 1014 (class 1255 OID 18997)
 -- Name: get_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3843,7 +3843,7 @@ $$;
 
 
 --
--- TOC entry 1350 (class 1255 OID 146200)
+-- TOC entry 1016 (class 1255 OID 18998)
 -- Name: get_issues_count_for_contract(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3866,7 +3866,7 @@ $$;
 
 
 --
--- TOC entry 1356 (class 1255 OID 140948)
+-- TOC entry 1003 (class 1255 OID 18999)
 -- Name: get_job_titles(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3882,7 +3882,7 @@ $$;
 
 
 --
--- TOC entry 1361 (class 1255 OID 141098)
+-- TOC entry 1011 (class 1255 OID 19000)
 -- Name: get_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3906,7 +3906,7 @@ $$;
 
 
 --
--- TOC entry 1366 (class 1255 OID 141162)
+-- TOC entry 1004 (class 1255 OID 19001)
 -- Name: get_line_item_templates_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3927,7 +3927,7 @@ $$;
 
 
 --
--- TOC entry 1308 (class 1255 OID 147778)
+-- TOC entry 1240 (class 1255 OID 19002)
 -- Name: get_line_items_with_wkt(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3974,7 +3974,7 @@ $$;
 
 
 --
--- TOC entry 1486 (class 1255 OID 161344)
+-- TOC entry 1241 (class 1255 OID 19003)
 -- Name: get_line_items_with_wkt(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4004,7 +4004,7 @@ $$;
 
 
 --
--- TOC entry 1322 (class 1255 OID 140144)
+-- TOC entry 1027 (class 1255 OID 19004)
 -- Name: get_maps_with_wkt(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4026,7 +4026,7 @@ $$;
 
 
 --
--- TOC entry 1483 (class 1255 OID 161218)
+-- TOC entry 1019 (class 1255 OID 19005)
 -- Name: get_maps_with_wkt(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4052,7 +4052,7 @@ $$;
 
 
 --
--- TOC entry 1373 (class 1255 OID 141266)
+-- TOC entry 1021 (class 1255 OID 19006)
 -- Name: get_organizations(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4071,7 +4071,7 @@ $$;
 
 
 --
--- TOC entry 1384 (class 1255 OID 141412)
+-- TOC entry 1020 (class 1255 OID 19007)
 -- Name: get_profiles_by_contract(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4099,7 +4099,7 @@ $$;
 
 
 --
--- TOC entry 1378 (class 1255 OID 141328)
+-- TOC entry 1023 (class 1255 OID 19008)
 -- Name: get_profiles_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4126,7 +4126,7 @@ $$;
 
 
 --
--- TOC entry 1394 (class 1255 OID 141536)
+-- TOC entry 1024 (class 1255 OID 19009)
 -- Name: get_user_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4143,7 +4143,7 @@ $$;
 
 
 --
--- TOC entry 1312 (class 1255 OID 147860)
+-- TOC entry 1242 (class 1255 OID 19010)
 -- Name: get_wbs_with_wkt(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4181,7 +4181,7 @@ $$;
 
 
 --
--- TOC entry 1481 (class 1255 OID 161134)
+-- TOC entry 1031 (class 1255 OID 19011)
 -- Name: get_wbs_with_wkt(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4206,7 +4206,7 @@ $$;
 
 
 --
--- TOC entry 1501 (class 1255 OID 29125)
+-- TOC entry 1029 (class 1255 OID 19012)
 -- Name: handle_updated_at(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4221,7 +4221,7 @@ $$;
 
 
 --
--- TOC entry 1344 (class 1255 OID 154168)
+-- TOC entry 1247 (class 1255 OID 19013)
 -- Name: insert_asphalt_type(text, numeric, numeric, numeric, numeric, text, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4261,7 +4261,7 @@ $$;
 
 
 --
--- TOC entry 1360 (class 1255 OID 154576)
+-- TOC entry 1041 (class 1255 OID 19014)
 -- Name: insert_avatar(uuid, text, text, boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4286,7 +4286,7 @@ $$;
 
 
 --
--- TOC entry 1371 (class 1255 OID 154740)
+-- TOC entry 1248 (class 1255 OID 19015)
 -- Name: insert_change_order(uuid, uuid, text, text, text[], numeric, numeric, public.change_order_status, timestamp with time zone, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4314,7 +4314,7 @@ $$;
 
 
 --
--- TOC entry 370 (class 1255 OID 155298)
+-- TOC entry 1249 (class 1255 OID 19016)
 -- Name: insert_contract(text, text, date, date, public.contract_status, numeric, text, jsonb, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4339,7 +4339,7 @@ $$;
 
 
 --
--- TOC entry 1385 (class 1255 OID 154928)
+-- TOC entry 1030 (class 1255 OID 19017)
 -- Name: insert_contract_organization(uuid, uuid, uuid, public.organization_role, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4377,7 +4377,7 @@ $$;
 
 
 --
--- TOC entry 1320 (class 1255 OID 155714)
+-- TOC entry 1250 (class 1255 OID 19018)
 -- Name: insert_crew(text, uuid, uuid, text, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4400,7 +4400,7 @@ $$;
 
 
 --
--- TOC entry 1311 (class 1255 OID 155526)
+-- TOC entry 1251 (class 1255 OID 19019)
 -- Name: insert_crew_member(uuid, uuid, uuid, text, text, uuid, uuid, uuid, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4427,7 +4427,7 @@ $$;
 
 
 --
--- TOC entry 1328 (class 1255 OID 155902)
+-- TOC entry 1044 (class 1255 OID 19020)
 -- Name: insert_daily_log(uuid, date, uuid, text, text, numeric, text, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4454,7 +4454,7 @@ $$;
 
 
 --
--- TOC entry 1336 (class 1255 OID 156090)
+-- TOC entry 1042 (class 1255 OID 19021)
 -- Name: insert_demo_mapping(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4477,7 +4477,7 @@ $$;
 
 
 --
--- TOC entry 1375 (class 1255 OID 157044)
+-- TOC entry 1252 (class 1255 OID 19022)
 -- Name: insert_dump_truck(numeric, text, numeric, numeric, numeric, numeric, numeric, uuid, uuid, numeric, numeric, numeric, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4506,7 +4506,7 @@ $$;
 
 
 --
--- TOC entry 1362 (class 1255 OID 156858)
+-- TOC entry 1045 (class 1255 OID 19023)
 -- Name: insert_dump_truck(numeric, text, numeric, numeric, numeric, numeric, numeric, uuid, uuid, numeric, numeric, numeric, text, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4535,7 +4535,7 @@ $$;
 
 
 --
--- TOC entry 1395 (class 1255 OID 157336)
+-- TOC entry 1254 (class 1255 OID 19024)
 -- Name: insert_equipment(text, uuid, uuid, uuid, uuid, numeric, public.pay_rate_unit, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4560,7 +4560,7 @@ $$;
 
 
 --
--- TOC entry 1423 (class 1255 OID 158174)
+-- TOC entry 1049 (class 1255 OID 19025)
 -- Name: insert_equipment_usage(numeric, uuid, uuid, uuid, uuid, uuid, uuid, uuid, text, uuid, date, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4585,7 +4585,7 @@ $$;
 
 
 --
--- TOC entry 1428 (class 1255 OID 158404)
+-- TOC entry 1255 (class 1255 OID 19026)
 -- Name: insert_inspection(uuid, text, text, uuid, uuid, uuid, text, text[], uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4610,7 +4610,7 @@ $$;
 
 
 --
--- TOC entry 1439 (class 1255 OID 158892)
+-- TOC entry 1256 (class 1255 OID 19027)
 -- Name: insert_issue(text, text, text, public.priority, uuid, uuid, uuid, uuid, uuid, uuid, uuid, text[], text, text, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4637,7 +4637,7 @@ $$;
 
 
 --
--- TOC entry 1440 (class 1255 OID 158954)
+-- TOC entry 1050 (class 1255 OID 19028)
 -- Name: insert_job_title(text, uuid, boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4660,7 +4660,7 @@ $$;
 
 
 --
--- TOC entry 1460 (class 1255 OID 160000)
+-- TOC entry 1257 (class 1255 OID 19029)
 -- Name: insert_line_item(text, text, uuid, public.unit_measure_type, numeric, numeric, uuid, uuid, text, uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4685,7 +4685,7 @@ $$;
 
 
 --
--- TOC entry 1445 (class 1255 OID 159184)
+-- TOC entry 1259 (class 1255 OID 19030)
 -- Name: insert_line_item_entry(uuid, uuid, uuid, jsonb, uuid, numeric, text, public.unit_measure_type, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4710,7 +4710,7 @@ $$;
 
 
 --
--- TOC entry 1451 (class 1255 OID 159456)
+-- TOC entry 1264 (class 1255 OID 19031)
 -- Name: insert_line_item_template(uuid, text, text, jsonb, text, uuid, uuid, public.unit_measure_type, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4735,7 +4735,7 @@ $$;
 
 
 --
--- TOC entry 1461 (class 1255 OID 160146)
+-- TOC entry 1265 (class 1255 OID 19032)
 -- Name: insert_map(text, uuid, text, numeric, text, text, uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4758,7 +4758,7 @@ $$;
 
 
 --
--- TOC entry 1464 (class 1255 OID 160292)
+-- TOC entry 1051 (class 1255 OID 19033)
 -- Name: insert_organization(text, text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4781,7 +4781,7 @@ $$;
 
 
 --
--- TOC entry 1469 (class 1255 OID 160522)
+-- TOC entry 1267 (class 1255 OID 19034)
 -- Name: insert_profile(uuid, text, text, text, text, uuid, uuid, text, public.user_role, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4806,7 +4806,7 @@ $$;
 
 
 --
--- TOC entry 1419 (class 1255 OID 142432)
+-- TOC entry 1276 (class 1255 OID 19035)
 -- Name: insert_profile_full(public.user_role, text, text, text, uuid, text, text, uuid, text, uuid, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4856,7 +4856,7 @@ $$;
 
 
 --
--- TOC entry 1475 (class 1255 OID 160794)
+-- TOC entry 1053 (class 1255 OID 19036)
 -- Name: insert_user_contract(uuid, uuid, public.user_role, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4875,7 +4875,7 @@ $$;
 
 
 --
--- TOC entry 1478 (class 1255 OID 160988)
+-- TOC entry 1277 (class 1255 OID 19037)
 -- Name: insert_wbs(text, uuid, text, numeric, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4898,7 +4898,7 @@ $$;
 
 
 --
--- TOC entry 1324 (class 1255 OID 36798)
+-- TOC entry 1278 (class 1255 OID 19038)
 -- Name: lock_budget_on_status_change(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4930,7 +4930,7 @@ $$;
 
 
 --
--- TOC entry 392 (class 1255 OID 81918)
+-- TOC entry 1052 (class 1255 OID 19039)
 -- Name: prevent_daily_log_if_inactive(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4953,7 +4953,7 @@ $$;
 
 
 --
--- TOC entry 1346 (class 1255 OID 154210)
+-- TOC entry 1417 (class 1255 OID 19040)
 -- Name: update_asphalt_type(uuid, text, numeric, numeric, numeric, numeric, text, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4977,7 +4977,7 @@ $$;
 
 
 --
--- TOC entry 1364 (class 1255 OID 154638)
+-- TOC entry 1416 (class 1255 OID 19041)
 -- Name: update_avatar(uuid, text, text, boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4998,7 +4998,7 @@ $$;
 
 
 --
--- TOC entry 1374 (class 1255 OID 154782)
+-- TOC entry 1418 (class 1255 OID 19042)
 -- Name: update_change_order(uuid, text, text, text[], numeric, numeric, public.change_order_status, uuid, timestamp with time zone, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5024,7 +5024,7 @@ $$;
 
 
 --
--- TOC entry 390 (class 1255 OID 155360)
+-- TOC entry 1419 (class 1255 OID 19043)
 -- Name: update_contract(uuid, text, text, date, date, public.contract_status, numeric, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5049,7 +5049,7 @@ $$;
 
 
 --
--- TOC entry 428 (class 1255 OID 33168)
+-- TOC entry 1420 (class 1255 OID 19044)
 -- Name: update_contract_budget(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5103,7 +5103,7 @@ $$;
 
 
 --
--- TOC entry 1388 (class 1255 OID 154970)
+-- TOC entry 1064 (class 1255 OID 19045)
 -- Name: update_contract_organization(uuid, public.organization_role, text, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5122,7 +5122,7 @@ $$;
 
 
 --
--- TOC entry 1321 (class 1255 OID 155756)
+-- TOC entry 1421 (class 1255 OID 19046)
 -- Name: update_crew(uuid, text, text, uuid, uuid, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5143,7 +5143,7 @@ $$;
 
 
 --
--- TOC entry 1314 (class 1255 OID 155568)
+-- TOC entry 1422 (class 1255 OID 19047)
 -- Name: update_crew_member(uuid, text, text, uuid, uuid, uuid, timestamp with time zone, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5166,7 +5166,7 @@ $$;
 
 
 --
--- TOC entry 1330 (class 1255 OID 155944)
+-- TOC entry 1069 (class 1255 OID 19048)
 -- Name: update_daily_log(uuid, text, text, numeric, text, text, text, uuid, uuid, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5191,7 +5191,7 @@ $$;
 
 
 --
--- TOC entry 1338 (class 1255 OID 156138)
+-- TOC entry 1423 (class 1255 OID 19049)
 -- Name: update_demo_mapping(uuid, text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text, text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text, text[], text[]); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5245,7 +5245,7 @@ $$;
 
 
 --
--- TOC entry 1379 (class 1255 OID 157086)
+-- TOC entry 1426 (class 1255 OID 19050)
 -- Name: update_dump_truck(uuid, numeric, text, numeric, numeric, numeric, numeric, numeric, uuid, uuid, numeric, numeric, numeric, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5275,7 +5275,7 @@ $$;
 
 
 --
--- TOC entry 1365 (class 1255 OID 156900)
+-- TOC entry 1431 (class 1255 OID 19051)
 -- Name: update_dump_truck(uuid, numeric, text, numeric, numeric, numeric, numeric, numeric, uuid, uuid, numeric, numeric, numeric, text, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5306,7 +5306,7 @@ $$;
 
 
 --
--- TOC entry 1396 (class 1255 OID 157378)
+-- TOC entry 1432 (class 1255 OID 19052)
 -- Name: update_equipment(uuid, text, uuid, uuid, uuid, uuid, numeric, public.pay_rate_unit, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5332,7 +5332,7 @@ $$;
 
 
 --
--- TOC entry 1411 (class 1255 OID 157734)
+-- TOC entry 1433 (class 1255 OID 19053)
 -- Name: update_equipment_assignment(uuid, numeric, uuid, uuid, date, date, uuid, uuid, uuid, text, uuid, uuid, text, timestamp with time zone, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5362,7 +5362,7 @@ $$;
 
 
 --
--- TOC entry 1421 (class 1255 OID 158090)
+-- TOC entry 1434 (class 1255 OID 19054)
 -- Name: update_equipment_usage(uuid, uuid, uuid, uuid, uuid, numeric, uuid, uuid, uuid, text, uuid, date, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5391,7 +5391,7 @@ $$;
 
 
 --
--- TOC entry 1429 (class 1255 OID 158446)
+-- TOC entry 1081 (class 1255 OID 19055)
 -- Name: update_inspection(uuid, uuid, text, text, uuid, uuid, uuid, text, text[], uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5418,7 +5418,7 @@ $$;
 
 
 --
--- TOC entry 1437 (class 1255 OID 158808)
+-- TOC entry 1437 (class 1255 OID 19056)
 -- Name: update_issue(uuid, text, text, public.priority, text, uuid, uuid, uuid, uuid, uuid, uuid, uuid, text[], text, text, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5451,7 +5451,7 @@ $$;
 
 
 --
--- TOC entry 1441 (class 1255 OID 158996)
+-- TOC entry 1438 (class 1255 OID 19057)
 -- Name: update_job_title(uuid, text, uuid, boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5472,7 +5472,7 @@ $$;
 
 
 --
--- TOC entry 1458 (class 1255 OID 159896)
+-- TOC entry 1080 (class 1255 OID 19058)
 -- Name: update_line_item(uuid, text, text, uuid, uuid, uuid, text, uuid, uuid, public.unit_measure_type, numeric, numeric, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5501,7 +5501,7 @@ $$;
 
 
 --
--- TOC entry 1443 (class 1255 OID 159100)
+-- TOC entry 1439 (class 1255 OID 19059)
 -- Name: update_line_item_entry(uuid, numeric, uuid, uuid, uuid, jsonb, text, public.unit_measure_type, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5528,7 +5528,7 @@ $$;
 
 
 --
--- TOC entry 1452 (class 1255 OID 159498)
+-- TOC entry 1440 (class 1255 OID 19060)
 -- Name: update_line_item_template(uuid, text, text, jsonb, text, uuid, uuid, public.unit_measure_type, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5552,7 +5552,7 @@ $$;
 
 
 --
--- TOC entry 1462 (class 1255 OID 160188)
+-- TOC entry 1441 (class 1255 OID 19061)
 -- Name: update_map(uuid, text, uuid, text, numeric, text, text, uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5577,7 +5577,7 @@ $$;
 
 
 --
--- TOC entry 1465 (class 1255 OID 160334)
+-- TOC entry 1425 (class 1255 OID 19062)
 -- Name: update_organization(uuid, text, text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5600,7 +5600,7 @@ $$;
 
 
 --
--- TOC entry 1470 (class 1255 OID 160564)
+-- TOC entry 1103 (class 1255 OID 19063)
 -- Name: update_profile(uuid, text, text, text, text, uuid, uuid, text, public.user_role, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5627,7 +5627,7 @@ $$;
 
 
 --
--- TOC entry 1476 (class 1255 OID 160836)
+-- TOC entry 1101 (class 1255 OID 19064)
 -- Name: update_user_contract(uuid, uuid, public.user_role, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5646,7 +5646,7 @@ $$;
 
 
 --
--- TOC entry 1479 (class 1255 OID 161030)
+-- TOC entry 1442 (class 1255 OID 19065)
 -- Name: update_wbs(uuid, text, uuid, text, numeric, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5670,7 +5670,7 @@ $$;
 
 
 --
--- TOC entry 1309 (class 1255 OID 42868)
+-- TOC entry 1097 (class 1255 OID 19066)
 -- Name: validate_formula_unit(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5685,7 +5685,7 @@ $$;
 
 
 --
--- TOC entry 447 (class 1255 OID 35347)
+-- TOC entry 1100 (class 1255 OID 19067)
 -- Name: validate_formula_units(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5701,7 +5701,7 @@ $$;
 
 
 --
--- TOC entry 338 (class 1259 OID 65986)
+-- TOC entry 293 (class 1259 OID 19193)
 -- Name: avatars; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5717,7 +5717,7 @@ CREATE TABLE public.avatars (
 
 
 --
--- TOC entry 331 (class 1259 OID 29800)
+-- TOC entry 294 (class 1259 OID 19202)
 -- Name: contract_organizations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5737,7 +5737,7 @@ ALTER TABLE ONLY public.contract_organizations REPLICA IDENTITY FULL;
 
 
 --
--- TOC entry 326 (class 1259 OID 29471)
+-- TOC entry 295 (class 1259 OID 19211)
 -- Name: job_titles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5755,7 +5755,7 @@ ALTER TABLE ONLY public.job_titles REPLICA IDENTITY FULL;
 
 
 --
--- TOC entry 317 (class 1259 OID 29172)
+-- TOC entry 296 (class 1259 OID 19220)
 -- Name: maps; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5777,7 +5777,7 @@ ALTER TABLE ONLY public.maps REPLICA IDENTITY FULL;
 
 
 --
--- TOC entry 327 (class 1259 OID 29608)
+-- TOC entry 297 (class 1259 OID 19228)
 -- Name: organizations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5798,7 +5798,7 @@ ALTER TABLE ONLY public.organizations REPLICA IDENTITY FULL;
 
 
 --
--- TOC entry 335 (class 1259 OID 45566)
+-- TOC entry 298 (class 1259 OID 19237)
 -- Name: tack_rates; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5812,7 +5812,7 @@ CREATE TABLE public.tack_rates (
 
 
 --
--- TOC entry 316 (class 1259 OID 29155)
+-- TOC entry 299 (class 1259 OID 19244)
 -- Name: wbs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5833,7 +5833,7 @@ ALTER TABLE ONLY public.wbs REPLICA IDENTITY FULL;
 
 
 --
--- TOC entry 5041 (class 2606 OID 45522)
+-- TOC entry 4996 (class 2606 OID 19365)
 -- Name: asphalt_types asphalt_types_name_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5842,7 +5842,7 @@ ALTER TABLE ONLY public.asphalt_types
 
 
 --
--- TOC entry 5043 (class 2606 OID 45520)
+-- TOC entry 4998 (class 2606 OID 19367)
 -- Name: asphalt_types asphalt_types_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5851,7 +5851,7 @@ ALTER TABLE ONLY public.asphalt_types
 
 
 --
--- TOC entry 5051 (class 2606 OID 65995)
+-- TOC entry 5002 (class 2606 OID 19369)
 -- Name: avatars avatars_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5860,7 +5860,7 @@ ALTER TABLE ONLY public.avatars
 
 
 --
--- TOC entry 5055 (class 2606 OID 81801)
+-- TOC entry 5000 (class 2606 OID 19371)
 -- Name: change_orders change_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5869,7 +5869,7 @@ ALTER TABLE ONLY public.change_orders
 
 
 --
--- TOC entry 5031 (class 2606 OID 29813)
+-- TOC entry 5004 (class 2606 OID 19373)
 -- Name: contract_organizations contract_organizations_contract_id_organization_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5878,7 +5878,7 @@ ALTER TABLE ONLY public.contract_organizations
 
 
 --
--- TOC entry 5033 (class 2606 OID 29811)
+-- TOC entry 5006 (class 2606 OID 19375)
 -- Name: contract_organizations contract_organizations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5887,7 +5887,7 @@ ALTER TABLE ONLY public.contract_organizations
 
 
 --
--- TOC entry 4990 (class 2606 OID 29149)
+-- TOC entry 4974 (class 2606 OID 19377)
 -- Name: contracts contracts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5896,7 +5896,7 @@ ALTER TABLE ONLY public.contracts
 
 
 --
--- TOC entry 4992 (class 2606 OID 36638)
+-- TOC entry 4976 (class 2606 OID 19379)
 -- Name: contracts contracts_title_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5905,7 +5905,7 @@ ALTER TABLE ONLY public.contracts
 
 
 --
--- TOC entry 5024 (class 2606 OID 29686)
+-- TOC entry 4962 (class 2606 OID 19381)
 -- Name: crew_members crew_members_crew_id_profile_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5914,7 +5914,7 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5027 (class 2606 OID 29684)
+-- TOC entry 4965 (class 2606 OID 19383)
 -- Name: crew_members crew_members_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5923,7 +5923,7 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5022 (class 2606 OID 29658)
+-- TOC entry 4978 (class 2606 OID 19385)
 -- Name: crews crews_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5932,7 +5932,7 @@ ALTER TABLE ONLY public.crews
 
 
 --
--- TOC entry 5057 (class 2606 OID 81862)
+-- TOC entry 4948 (class 2606 OID 19387)
 -- Name: daily_logs daily_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5941,7 +5941,7 @@ ALTER TABLE ONLY public.daily_logs
 
 
 --
--- TOC entry 5067 (class 2606 OID 135327)
+-- TOC entry 4994 (class 2606 OID 19389)
 -- Name: demo_mappings demo_mappings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5950,7 +5950,7 @@ ALTER TABLE ONLY public.demo_mappings
 
 
 --
--- TOC entry 5039 (class 2606 OID 43508)
+-- TOC entry 4946 (class 2606 OID 19391)
 -- Name: dump_trucks dump_trucks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5959,7 +5959,7 @@ ALTER TABLE ONLY public.dump_trucks
 
 
 --
--- TOC entry 5029 (class 2606 OID 29712)
+-- TOC entry 4950 (class 2606 OID 19393)
 -- Name: equipment_assignments equipment_assignments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5968,7 +5968,7 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5061 (class 2606 OID 82070)
+-- TOC entry 4980 (class 2606 OID 19395)
 -- Name: equipment equipment_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5977,7 +5977,7 @@ ALTER TABLE ONLY public.equipment
 
 
 --
--- TOC entry 5059 (class 2606 OID 81970)
+-- TOC entry 4952 (class 2606 OID 19397)
 -- Name: equipment_usage equipment_usage_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5986,7 +5986,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5063 (class 2606 OID 82132)
+-- TOC entry 4954 (class 2606 OID 19399)
 -- Name: inspections inspections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5995,7 +5995,7 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 5065 (class 2606 OID 82216)
+-- TOC entry 4956 (class 2606 OID 19401)
 -- Name: issues issues_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6004,7 +6004,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5014 (class 2606 OID 29481)
+-- TOC entry 5008 (class 2606 OID 19403)
 -- Name: job_titles job_titles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6013,7 +6013,7 @@ ALTER TABLE ONLY public.job_titles
 
 
 --
--- TOC entry 5016 (class 2606 OID 29483)
+-- TOC entry 5010 (class 2606 OID 19405)
 -- Name: job_titles job_titles_title_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6022,7 +6022,7 @@ ALTER TABLE ONLY public.job_titles
 
 
 --
--- TOC entry 5047 (class 2606 OID 47820)
+-- TOC entry 4958 (class 2606 OID 19407)
 -- Name: line_item_entries line_item_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6031,7 +6031,7 @@ ALTER TABLE ONLY public.line_item_entries
 
 
 --
--- TOC entry 5035 (class 2606 OID 36099)
+-- TOC entry 4982 (class 2606 OID 19409)
 -- Name: line_item_templates line_item_templates_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6040,7 +6040,7 @@ ALTER TABLE ONLY public.line_item_templates
 
 
 --
--- TOC entry 5037 (class 2606 OID 36101)
+-- TOC entry 4984 (class 2606 OID 19411)
 -- Name: line_item_templates line_item_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6049,7 +6049,7 @@ ALTER TABLE ONLY public.line_item_templates
 
 
 --
--- TOC entry 5010 (class 2606 OID 29201)
+-- TOC entry 4969 (class 2606 OID 19413)
 -- Name: line_items line_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6058,7 +6058,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5012 (class 2606 OID 61519)
+-- TOC entry 4971 (class 2606 OID 19415)
 -- Name: line_items line_items_wbs_id_map_id_line_code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6067,7 +6067,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5001 (class 2606 OID 29181)
+-- TOC entry 5012 (class 2606 OID 19417)
 -- Name: maps map_locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6076,7 +6076,7 @@ ALTER TABLE ONLY public.maps
 
 
 --
--- TOC entry 5003 (class 2606 OID 29183)
+-- TOC entry 5014 (class 2606 OID 19419)
 -- Name: maps map_locations_wbs_id_map_number_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6085,7 +6085,7 @@ ALTER TABLE ONLY public.maps
 
 
 --
--- TOC entry 5018 (class 2606 OID 36249)
+-- TOC entry 5019 (class 2606 OID 19421)
 -- Name: organizations organizations_name_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6094,7 +6094,7 @@ ALTER TABLE ONLY public.organizations
 
 
 --
--- TOC entry 5020 (class 2606 OID 29617)
+-- TOC entry 5021 (class 2606 OID 19423)
 -- Name: organizations organizations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6103,7 +6103,7 @@ ALTER TABLE ONLY public.organizations
 
 
 --
--- TOC entry 4981 (class 2606 OID 29136)
+-- TOC entry 4986 (class 2606 OID 19425)
 -- Name: profiles profiles_email_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6112,7 +6112,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 4983 (class 2606 OID 33809)
+-- TOC entry 4988 (class 2606 OID 19427)
 -- Name: profiles profiles_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6121,7 +6121,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 4985 (class 2606 OID 29134)
+-- TOC entry 4990 (class 2606 OID 19429)
 -- Name: profiles profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6130,7 +6130,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 4987 (class 2606 OID 29138)
+-- TOC entry 4992 (class 2606 OID 19431)
 -- Name: profiles profiles_username_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6139,7 +6139,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5045 (class 2606 OID 45574)
+-- TOC entry 5023 (class 2606 OID 19433)
 -- Name: tack_rates tack_rates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6148,7 +6148,7 @@ ALTER TABLE ONLY public.tack_rates
 
 
 --
--- TOC entry 5006 (class 2606 OID 37025)
+-- TOC entry 5017 (class 2606 OID 19435)
 -- Name: maps unique_map_per_wbs; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6157,7 +6157,7 @@ ALTER TABLE ONLY public.maps
 
 
 --
--- TOC entry 4994 (class 2606 OID 36737)
+-- TOC entry 5025 (class 2606 OID 19437)
 -- Name: wbs unique_wbs_per_contract; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6166,7 +6166,7 @@ ALTER TABLE ONLY public.wbs
 
 
 --
--- TOC entry 5049 (class 2606 OID 48867)
+-- TOC entry 4960 (class 2606 OID 19439)
 -- Name: user_contracts user_contracts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6175,7 +6175,7 @@ ALTER TABLE ONLY public.user_contracts
 
 
 --
--- TOC entry 4996 (class 2606 OID 29166)
+-- TOC entry 5027 (class 2606 OID 19441)
 -- Name: wbs wbs_contract_id_wbs_number_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6184,7 +6184,7 @@ ALTER TABLE ONLY public.wbs
 
 
 --
--- TOC entry 4999 (class 2606 OID 29164)
+-- TOC entry 5030 (class 2606 OID 19443)
 -- Name: wbs wbs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6193,7 +6193,7 @@ ALTER TABLE ONLY public.wbs
 
 
 --
--- TOC entry 4988 (class 1259 OID 119592)
+-- TOC entry 4972 (class 1259 OID 19504)
 -- Name: contracts_coordinates_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6201,7 +6201,7 @@ CREATE INDEX contracts_coordinates_idx ON public.contracts USING gist (coordinat
 
 
 --
--- TOC entry 5025 (class 1259 OID 30237)
+-- TOC entry 4963 (class 1259 OID 19505)
 -- Name: crew_members_map_location_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6209,7 +6209,7 @@ CREATE INDEX crew_members_map_location_id_idx ON public.crew_members USING btree
 
 
 --
--- TOC entry 5007 (class 1259 OID 119594)
+-- TOC entry 4966 (class 1259 OID 19506)
 -- Name: line_items_coordinates_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6217,7 +6217,7 @@ CREATE INDEX line_items_coordinates_idx ON public.line_items USING gist (coordin
 
 
 --
--- TOC entry 5008 (class 1259 OID 33180)
+-- TOC entry 4967 (class 1259 OID 19507)
 -- Name: line_items_map_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6225,7 +6225,7 @@ CREATE INDEX line_items_map_id_idx ON public.line_items USING btree (map_id);
 
 
 --
--- TOC entry 5004 (class 1259 OID 119595)
+-- TOC entry 5015 (class 1259 OID 19508)
 -- Name: maps_coordinates_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6233,7 +6233,7 @@ CREATE INDEX maps_coordinates_idx ON public.maps USING gist (coordinates);
 
 
 --
--- TOC entry 4997 (class 1259 OID 119593)
+-- TOC entry 5028 (class 1259 OID 19509)
 -- Name: wbs_coordinates_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6241,7 +6241,7 @@ CREATE INDEX wbs_coordinates_idx ON public.wbs USING gist (coordinates);
 
 
 --
--- TOC entry 5171 (class 2620 OID 29884)
+-- TOC entry 5131 (class 2620 OID 19517)
 -- Name: contract_organizations handle_contract_organizations_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -6249,7 +6249,7 @@ CREATE TRIGGER handle_contract_organizations_updated_at BEFORE UPDATE ON public.
 
 
 --
--- TOC entry 5158 (class 2620 OID 29214)
+-- TOC entry 5128 (class 2620 OID 19518)
 -- Name: contracts handle_contracts_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -6257,7 +6257,7 @@ CREATE TRIGGER handle_contracts_updated_at BEFORE UPDATE ON public.contracts FOR
 
 
 --
--- TOC entry 5169 (class 2620 OID 29752)
+-- TOC entry 5122 (class 2620 OID 19519)
 -- Name: crew_members handle_crew_members_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -6265,7 +6265,7 @@ CREATE TRIGGER handle_crew_members_updated_at BEFORE UPDATE ON public.crew_membe
 
 
 --
--- TOC entry 5168 (class 2620 OID 29751)
+-- TOC entry 5129 (class 2620 OID 19520)
 -- Name: crews handle_crews_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -6273,7 +6273,7 @@ CREATE TRIGGER handle_crews_updated_at BEFORE UPDATE ON public.crews FOR EACH RO
 
 
 --
--- TOC entry 5170 (class 2620 OID 29753)
+-- TOC entry 5121 (class 2620 OID 19521)
 -- Name: equipment_assignments handle_equipment_assignments_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -6281,7 +6281,7 @@ CREATE TRIGGER handle_equipment_assignments_updated_at BEFORE UPDATE ON public.e
 
 
 --
--- TOC entry 5161 (class 2620 OID 29217)
+-- TOC entry 5123 (class 2620 OID 19522)
 -- Name: line_items handle_line_items_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -6289,7 +6289,7 @@ CREATE TRIGGER handle_line_items_updated_at BEFORE UPDATE ON public.line_items F
 
 
 --
--- TOC entry 5160 (class 2620 OID 29216)
+-- TOC entry 5133 (class 2620 OID 19523)
 -- Name: maps handle_map_locations_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -6297,7 +6297,7 @@ CREATE TRIGGER handle_map_locations_updated_at BEFORE UPDATE ON public.maps FOR 
 
 
 --
--- TOC entry 5167 (class 2620 OID 29749)
+-- TOC entry 5134 (class 2620 OID 19524)
 -- Name: organizations handle_organizations_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -6305,7 +6305,7 @@ CREATE TRIGGER handle_organizations_updated_at BEFORE UPDATE ON public.organizat
 
 
 --
--- TOC entry 5157 (class 2620 OID 29213)
+-- TOC entry 5130 (class 2620 OID 19525)
 -- Name: profiles handle_profiles_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -6313,7 +6313,7 @@ CREATE TRIGGER handle_profiles_updated_at BEFORE UPDATE ON public.profiles FOR E
 
 
 --
--- TOC entry 5159 (class 2620 OID 29215)
+-- TOC entry 5135 (class 2620 OID 19526)
 -- Name: wbs handle_wbs_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -6321,7 +6321,7 @@ CREATE TRIGGER handle_wbs_updated_at BEFORE UPDATE ON public.wbs FOR EACH ROW EX
 
 
 --
--- TOC entry 5172 (class 2620 OID 81919)
+-- TOC entry 5120 (class 2620 OID 19527)
 -- Name: daily_logs trg_check_active_contract; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -6329,7 +6329,7 @@ CREATE TRIGGER trg_check_active_contract BEFORE INSERT OR UPDATE ON public.daily
 
 
 --
--- TOC entry 5162 (class 2620 OID 33174)
+-- TOC entry 5124 (class 2620 OID 19528)
 -- Name: line_items update_contract_budget_delete; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -6337,7 +6337,7 @@ CREATE TRIGGER update_contract_budget_delete AFTER DELETE ON public.line_items F
 
 
 --
--- TOC entry 5163 (class 2620 OID 33172)
+-- TOC entry 5125 (class 2620 OID 19529)
 -- Name: line_items update_contract_budget_insert; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -6345,7 +6345,7 @@ CREATE TRIGGER update_contract_budget_insert AFTER INSERT ON public.line_items F
 
 
 --
--- TOC entry 5164 (class 2620 OID 43032)
+-- TOC entry 5126 (class 2620 OID 19530)
 -- Name: line_items update_contract_budget_trigger; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -6353,7 +6353,7 @@ CREATE TRIGGER update_contract_budget_trigger AFTER INSERT OR DELETE OR UPDATE O
 
 
 --
--- TOC entry 5165 (class 2620 OID 33173)
+-- TOC entry 5127 (class 2620 OID 19531)
 -- Name: line_items update_contract_budget_update; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -6361,7 +6361,7 @@ CREATE TRIGGER update_contract_budget_update AFTER UPDATE OF quantity, unit_pric
 
 
 --
--- TOC entry 5166 (class 2620 OID 29496)
+-- TOC entry 5132 (class 2620 OID 19532)
 -- Name: job_titles update_job_titles_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -6369,7 +6369,7 @@ CREATE TRIGGER update_job_titles_updated_at BEFORE UPDATE ON public.job_titles F
 
 
 --
--- TOC entry 5122 (class 2606 OID 81802)
+-- TOC entry 5103 (class 2606 OID 19590)
 -- Name: change_orders change_orders_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6378,7 +6378,7 @@ ALTER TABLE ONLY public.change_orders
 
 
 --
--- TOC entry 5123 (class 2606 OID 81807)
+-- TOC entry 5104 (class 2606 OID 19595)
 -- Name: change_orders change_orders_line_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6387,7 +6387,7 @@ ALTER TABLE ONLY public.change_orders
 
 
 --
--- TOC entry 5105 (class 2606 OID 29814)
+-- TOC entry 5107 (class 2606 OID 19600)
 -- Name: contract_organizations contract_organizations_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6396,7 +6396,7 @@ ALTER TABLE ONLY public.contract_organizations
 
 
 --
--- TOC entry 5106 (class 2606 OID 29824)
+-- TOC entry 5108 (class 2606 OID 19605)
 -- Name: contract_organizations contract_organizations_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6405,7 +6405,7 @@ ALTER TABLE ONLY public.contract_organizations
 
 
 --
--- TOC entry 5107 (class 2606 OID 29819)
+-- TOC entry 5109 (class 2606 OID 19610)
 -- Name: contract_organizations contract_organizations_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6414,7 +6414,7 @@ ALTER TABLE ONLY public.contract_organizations
 
 
 --
--- TOC entry 5072 (class 2606 OID 61266)
+-- TOC entry 5086 (class 2606 OID 19615)
 -- Name: contracts contracts_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6423,7 +6423,7 @@ ALTER TABLE ONLY public.contracts
 
 
 --
--- TOC entry 5092 (class 2606 OID 29697)
+-- TOC entry 5075 (class 2606 OID 19620)
 -- Name: crew_members crew_members_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6432,7 +6432,7 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5093 (class 2606 OID 29687)
+-- TOC entry 5076 (class 2606 OID 19625)
 -- Name: crew_members crew_members_crew_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6441,7 +6441,7 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5094 (class 2606 OID 30232)
+-- TOC entry 5077 (class 2606 OID 19630)
 -- Name: crew_members crew_members_map_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6450,7 +6450,7 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5095 (class 2606 OID 140412)
+-- TOC entry 5078 (class 2606 OID 19635)
 -- Name: crew_members crew_members_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6459,7 +6459,7 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5096 (class 2606 OID 29692)
+-- TOC entry 5079 (class 2606 OID 19640)
 -- Name: crew_members crew_members_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6468,7 +6468,7 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5088 (class 2606 OID 29669)
+-- TOC entry 5088 (class 2606 OID 19645)
 -- Name: crews crews_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6477,7 +6477,7 @@ ALTER TABLE ONLY public.crews
 
 
 --
--- TOC entry 5089 (class 2606 OID 29664)
+-- TOC entry 5089 (class 2606 OID 19650)
 -- Name: crews crews_foreman_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6486,7 +6486,7 @@ ALTER TABLE ONLY public.crews
 
 
 --
--- TOC entry 5090 (class 2606 OID 29659)
+-- TOC entry 5090 (class 2606 OID 19655)
 -- Name: crews crews_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6495,7 +6495,7 @@ ALTER TABLE ONLY public.crews
 
 
 --
--- TOC entry 5125 (class 2606 OID 81863)
+-- TOC entry 5032 (class 2606 OID 19660)
 -- Name: daily_logs daily_logs_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6504,7 +6504,7 @@ ALTER TABLE ONLY public.daily_logs
 
 
 --
--- TOC entry 5126 (class 2606 OID 81868)
+-- TOC entry 5033 (class 2606 OID 19665)
 -- Name: daily_logs daily_logs_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6513,7 +6513,7 @@ ALTER TABLE ONLY public.daily_logs
 
 
 --
--- TOC entry 5127 (class 2606 OID 81873)
+-- TOC entry 5034 (class 2606 OID 19670)
 -- Name: daily_logs daily_logs_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6522,7 +6522,7 @@ ALTER TABLE ONLY public.daily_logs
 
 
 --
--- TOC entry 5112 (class 2606 OID 43509)
+-- TOC entry 5031 (class 2606 OID 19675)
 -- Name: dump_trucks dump_trucks_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6531,7 +6531,7 @@ ALTER TABLE ONLY public.dump_trucks
 
 
 --
--- TOC entry 5098 (class 2606 OID 29718)
+-- TOC entry 5036 (class 2606 OID 19680)
 -- Name: equipment_assignments equipment_assignments_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6540,7 +6540,7 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5099 (class 2606 OID 29728)
+-- TOC entry 5037 (class 2606 OID 19685)
 -- Name: equipment_assignments equipment_assignments_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6549,7 +6549,7 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5100 (class 2606 OID 156242)
+-- TOC entry 5038 (class 2606 OID 19690)
 -- Name: equipment_assignments equipment_assignments_line_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6558,7 +6558,7 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5101 (class 2606 OID 156253)
+-- TOC entry 5039 (class 2606 OID 19695)
 -- Name: equipment_assignments equipment_assignments_map_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6567,7 +6567,7 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5102 (class 2606 OID 29723)
+-- TOC entry 5040 (class 2606 OID 19700)
 -- Name: equipment_assignments equipment_assignments_operator_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6576,7 +6576,7 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5103 (class 2606 OID 156258)
+-- TOC entry 5041 (class 2606 OID 19705)
 -- Name: equipment_assignments equipment_assignments_wbs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6585,7 +6585,7 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5137 (class 2606 OID 82076)
+-- TOC entry 5092 (class 2606 OID 19710)
 -- Name: equipment equipment_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6594,7 +6594,7 @@ ALTER TABLE ONLY public.equipment
 
 
 --
--- TOC entry 5138 (class 2606 OID 82071)
+-- TOC entry 5093 (class 2606 OID 19715)
 -- Name: equipment equipment_operator_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6603,7 +6603,7 @@ ALTER TABLE ONLY public.equipment
 
 
 --
--- TOC entry 5139 (class 2606 OID 140606)
+-- TOC entry 5094 (class 2606 OID 19720)
 -- Name: equipment equipment_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6612,7 +6612,7 @@ ALTER TABLE ONLY public.equipment
 
 
 --
--- TOC entry 5129 (class 2606 OID 94692)
+-- TOC entry 5043 (class 2606 OID 19725)
 -- Name: equipment_usage equipment_usage_contract_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6621,7 +6621,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5130 (class 2606 OID 81991)
+-- TOC entry 5044 (class 2606 OID 19730)
 -- Name: equipment_usage equipment_usage_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6630,7 +6630,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5131 (class 2606 OID 81981)
+-- TOC entry 5045 (class 2606 OID 19735)
 -- Name: equipment_usage equipment_usage_line_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6639,7 +6639,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5132 (class 2606 OID 81976)
+-- TOC entry 5046 (class 2606 OID 19740)
 -- Name: equipment_usage equipment_usage_map_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6648,7 +6648,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5133 (class 2606 OID 81986)
+-- TOC entry 5047 (class 2606 OID 19745)
 -- Name: equipment_usage equipment_usage_operator_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6657,7 +6657,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5134 (class 2606 OID 81996)
+-- TOC entry 5048 (class 2606 OID 19750)
 -- Name: equipment_usage equipment_usage_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6666,7 +6666,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5135 (class 2606 OID 140778)
+-- TOC entry 5049 (class 2606 OID 19755)
 -- Name: equipment_usage equipment_usage_wbs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6675,7 +6675,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5121 (class 2606 OID 136723)
+-- TOC entry 5106 (class 2606 OID 19760)
 -- Name: avatars fk_avatars_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6684,7 +6684,7 @@ ALTER TABLE ONLY public.avatars
 
 
 --
--- TOC entry 5124 (class 2606 OID 136658)
+-- TOC entry 5105 (class 2606 OID 19765)
 -- Name: change_orders fk_change_orders_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6693,7 +6693,7 @@ ALTER TABLE ONLY public.change_orders
 
 
 --
--- TOC entry 5108 (class 2606 OID 136663)
+-- TOC entry 5110 (class 2606 OID 19770)
 -- Name: contract_organizations fk_contract_organizations_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6702,7 +6702,7 @@ ALTER TABLE ONLY public.contract_organizations
 
 
 --
--- TOC entry 5073 (class 2606 OID 136633)
+-- TOC entry 5087 (class 2606 OID 19775)
 -- Name: contracts fk_contracts_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6711,7 +6711,7 @@ ALTER TABLE ONLY public.contracts
 
 
 --
--- TOC entry 5097 (class 2606 OID 136688)
+-- TOC entry 5080 (class 2606 OID 19780)
 -- Name: crew_members fk_crew_members_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6720,7 +6720,7 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5091 (class 2606 OID 136683)
+-- TOC entry 5091 (class 2606 OID 19785)
 -- Name: crews fk_crews_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6729,7 +6729,7 @@ ALTER TABLE ONLY public.crews
 
 
 --
--- TOC entry 5128 (class 2606 OID 136678)
+-- TOC entry 5035 (class 2606 OID 19790)
 -- Name: daily_logs fk_daily_logs_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6738,7 +6738,7 @@ ALTER TABLE ONLY public.daily_logs
 
 
 --
--- TOC entry 5104 (class 2606 OID 136698)
+-- TOC entry 5042 (class 2606 OID 19795)
 -- Name: equipment_assignments fk_equipment_assignments_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6747,7 +6747,7 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5140 (class 2606 OID 136693)
+-- TOC entry 5095 (class 2606 OID 19800)
 -- Name: equipment fk_equipment_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6756,7 +6756,7 @@ ALTER TABLE ONLY public.equipment
 
 
 --
--- TOC entry 5136 (class 2606 OID 136738)
+-- TOC entry 5050 (class 2606 OID 19805)
 -- Name: equipment_usage fk_equipment_usage_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6765,7 +6765,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5141 (class 2606 OID 136673)
+-- TOC entry 5051 (class 2606 OID 19810)
 -- Name: inspections fk_inspections_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6774,7 +6774,7 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 5148 (class 2606 OID 136668)
+-- TOC entry 5058 (class 2606 OID 19815)
 -- Name: issues fk_issues_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6783,7 +6783,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5084 (class 2606 OID 136728)
+-- TOC entry 5111 (class 2606 OID 19820)
 -- Name: job_titles fk_job_titles_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6792,7 +6792,7 @@ ALTER TABLE ONLY public.job_titles
 
 
 --
--- TOC entry 5113 (class 2606 OID 136703)
+-- TOC entry 5067 (class 2606 OID 19825)
 -- Name: line_item_entries fk_line_item_entries_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6801,7 +6801,7 @@ ALTER TABLE ONLY public.line_item_entries
 
 
 --
--- TOC entry 5109 (class 2606 OID 136653)
+-- TOC entry 5096 (class 2606 OID 19830)
 -- Name: line_item_templates fk_line_item_templates_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6810,7 +6810,7 @@ ALTER TABLE ONLY public.line_item_templates
 
 
 --
--- TOC entry 5079 (class 2606 OID 136648)
+-- TOC entry 5081 (class 2606 OID 19835)
 -- Name: line_items fk_line_items_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6819,7 +6819,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5076 (class 2606 OID 136643)
+-- TOC entry 5113 (class 2606 OID 19840)
 -- Name: maps fk_maps_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6828,7 +6828,7 @@ ALTER TABLE ONLY public.maps
 
 
 --
--- TOC entry 5086 (class 2606 OID 136718)
+-- TOC entry 5116 (class 2606 OID 19845)
 -- Name: organizations fk_organizations_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6837,7 +6837,7 @@ ALTER TABLE ONLY public.organizations
 
 
 --
--- TOC entry 5068 (class 2606 OID 136628)
+-- TOC entry 5099 (class 2606 OID 19850)
 -- Name: profiles fk_profiles_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6846,7 +6846,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5118 (class 2606 OID 136733)
+-- TOC entry 5072 (class 2606 OID 19855)
 -- Name: user_contracts fk_user_contracts_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6855,7 +6855,7 @@ ALTER TABLE ONLY public.user_contracts
 
 
 --
--- TOC entry 5074 (class 2606 OID 136638)
+-- TOC entry 5118 (class 2606 OID 19860)
 -- Name: wbs fk_wbs_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6864,7 +6864,7 @@ ALTER TABLE ONLY public.wbs
 
 
 --
--- TOC entry 5142 (class 2606 OID 82133)
+-- TOC entry 5052 (class 2606 OID 19865)
 -- Name: inspections inspections_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6873,7 +6873,7 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 5143 (class 2606 OID 82153)
+-- TOC entry 5053 (class 2606 OID 19870)
 -- Name: inspections inspections_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6882,7 +6882,7 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 5144 (class 2606 OID 82148)
+-- TOC entry 5054 (class 2606 OID 19875)
 -- Name: inspections inspections_line_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6891,7 +6891,7 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 5145 (class 2606 OID 82143)
+-- TOC entry 5055 (class 2606 OID 19880)
 -- Name: inspections inspections_map_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6900,7 +6900,7 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 5146 (class 2606 OID 82158)
+-- TOC entry 5056 (class 2606 OID 19885)
 -- Name: inspections inspections_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6909,7 +6909,7 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 5147 (class 2606 OID 82138)
+-- TOC entry 5057 (class 2606 OID 19890)
 -- Name: inspections inspections_wbs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6918,7 +6918,7 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 5149 (class 2606 OID 82242)
+-- TOC entry 5059 (class 2606 OID 19895)
 -- Name: issues issues_assigned_to_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6927,7 +6927,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5150 (class 2606 OID 82217)
+-- TOC entry 5060 (class 2606 OID 19900)
 -- Name: issues issues_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6936,7 +6936,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5151 (class 2606 OID 82247)
+-- TOC entry 5061 (class 2606 OID 19905)
 -- Name: issues issues_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6945,7 +6945,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5152 (class 2606 OID 82237)
+-- TOC entry 5062 (class 2606 OID 19910)
 -- Name: issues issues_equipment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6954,7 +6954,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5153 (class 2606 OID 82232)
+-- TOC entry 5063 (class 2606 OID 19915)
 -- Name: issues issues_line_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6963,7 +6963,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5154 (class 2606 OID 82227)
+-- TOC entry 5064 (class 2606 OID 19920)
 -- Name: issues issues_map_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6972,7 +6972,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5155 (class 2606 OID 82252)
+-- TOC entry 5065 (class 2606 OID 19925)
 -- Name: issues issues_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6981,7 +6981,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5156 (class 2606 OID 82222)
+-- TOC entry 5066 (class 2606 OID 19930)
 -- Name: issues issues_wbs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6990,7 +6990,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5085 (class 2606 OID 29489)
+-- TOC entry 5112 (class 2606 OID 19935)
 -- Name: job_titles job_titles_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6999,7 +6999,7 @@ ALTER TABLE ONLY public.job_titles
 
 
 --
--- TOC entry 5114 (class 2606 OID 47826)
+-- TOC entry 5068 (class 2606 OID 19940)
 -- Name: line_item_entries line_item_entries_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7008,7 +7008,7 @@ ALTER TABLE ONLY public.line_item_entries
 
 
 --
--- TOC entry 5115 (class 2606 OID 87294)
+-- TOC entry 5069 (class 2606 OID 19945)
 -- Name: line_item_entries line_item_entries_line_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7017,7 +7017,7 @@ ALTER TABLE ONLY public.line_item_entries
 
 
 --
--- TOC entry 5116 (class 2606 OID 47821)
+-- TOC entry 5070 (class 2606 OID 19950)
 -- Name: line_item_entries line_item_entries_map_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7026,7 +7026,7 @@ ALTER TABLE ONLY public.line_item_entries
 
 
 --
--- TOC entry 5117 (class 2606 OID 47831)
+-- TOC entry 5071 (class 2606 OID 19955)
 -- Name: line_item_entries line_item_entries_wbs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7035,7 +7035,7 @@ ALTER TABLE ONLY public.line_item_entries
 
 
 --
--- TOC entry 5110 (class 2606 OID 78225)
+-- TOC entry 5097 (class 2606 OID 19960)
 -- Name: line_item_templates line_item_templates_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7044,7 +7044,7 @@ ALTER TABLE ONLY public.line_item_templates
 
 
 --
--- TOC entry 5111 (class 2606 OID 78220)
+-- TOC entry 5098 (class 2606 OID 19965)
 -- Name: line_item_templates line_item_templates_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7053,7 +7053,7 @@ ALTER TABLE ONLY public.line_item_templates
 
 
 --
--- TOC entry 5080 (class 2606 OID 60970)
+-- TOC entry 5082 (class 2606 OID 19970)
 -- Name: line_items line_items_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7062,7 +7062,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5081 (class 2606 OID 33175)
+-- TOC entry 5083 (class 2606 OID 19975)
 -- Name: line_items line_items_map_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7071,7 +7071,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5082 (class 2606 OID 106114)
+-- TOC entry 5084 (class 2606 OID 19980)
 -- Name: line_items line_items_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7080,7 +7080,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5083 (class 2606 OID 33027)
+-- TOC entry 5085 (class 2606 OID 19985)
 -- Name: line_items line_items_wbs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7089,7 +7089,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5077 (class 2606 OID 33022)
+-- TOC entry 5114 (class 2606 OID 19990)
 -- Name: maps map_locations_wbs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7098,7 +7098,7 @@ ALTER TABLE ONLY public.maps
 
 
 --
--- TOC entry 5078 (class 2606 OID 61392)
+-- TOC entry 5115 (class 2606 OID 19995)
 -- Name: maps maps_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7107,7 +7107,7 @@ ALTER TABLE ONLY public.maps
 
 
 --
--- TOC entry 5087 (class 2606 OID 29618)
+-- TOC entry 5117 (class 2606 OID 20000)
 -- Name: organizations organizations_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7116,7 +7116,7 @@ ALTER TABLE ONLY public.organizations
 
 
 --
--- TOC entry 5069 (class 2606 OID 65997)
+-- TOC entry 5100 (class 2606 OID 20005)
 -- Name: profiles profiles_avatar_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7125,7 +7125,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5070 (class 2606 OID 29484)
+-- TOC entry 5101 (class 2606 OID 20010)
 -- Name: profiles profiles_job_title_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7134,7 +7134,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5071 (class 2606 OID 29623)
+-- TOC entry 5102 (class 2606 OID 20015)
 -- Name: profiles profiles_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7143,7 +7143,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5119 (class 2606 OID 48873)
+-- TOC entry 5073 (class 2606 OID 20020)
 -- Name: user_contracts user_contracts_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7152,7 +7152,7 @@ ALTER TABLE ONLY public.user_contracts
 
 
 --
--- TOC entry 5120 (class 2606 OID 62000)
+-- TOC entry 5074 (class 2606 OID 20025)
 -- Name: user_contracts user_contracts_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7161,7 +7161,7 @@ ALTER TABLE ONLY public.user_contracts
 
 
 --
--- TOC entry 5075 (class 2606 OID 29167)
+-- TOC entry 5119 (class 2606 OID 20030)
 -- Name: wbs wbs_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7170,7 +7170,7 @@ ALTER TABLE ONLY public.wbs
 
 
 --
--- TOC entry 5389 (class 3256 OID 42704)
+-- TOC entry 5315 (class 3256 OID 20055)
 -- Name: line_item_templates Admins and Engineers can modify formulas; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7178,7 +7178,7 @@ CREATE POLICY "Admins and Engineers can modify formulas" ON public.line_item_tem
 
 
 --
--- TOC entry 5367 (class 3256 OID 30363)
+-- TOC entry 5316 (class 3256 OID 20056)
 -- Name: contracts Admins and project managers can manage contracts; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7191,7 +7191,7 @@ CREATE POLICY "Admins and project managers can manage contracts" ON public.contr
 
 
 --
--- TOC entry 5391 (class 3256 OID 42911)
+-- TOC entry 5317 (class 3256 OID 20058)
 -- Name: contracts Admins can manage contracts; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7199,7 +7199,7 @@ CREATE POLICY "Admins can manage contracts" ON public.contracts USING ((auth.rol
 
 
 --
--- TOC entry 5394 (class 3256 OID 92118)
+-- TOC entry 5318 (class 3256 OID 20059)
 -- Name: contracts Allow access to demo template; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7207,7 +7207,7 @@ CREATE POLICY "Allow access to demo template" ON public.contracts FOR SELECT USI
 
 
 --
--- TOC entry 5357 (class 3256 OID 63976)
+-- TOC entry 5319 (class 3256 OID 20060)
 -- Name: contracts Allow access to own contracts; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7217,7 +7217,7 @@ CREATE POLICY "Allow access to own contracts" ON public.contracts FOR SELECT USI
 
 
 --
--- TOC entry 5356 (class 3256 OID 92160)
+-- TOC entry 5320 (class 3256 OID 20061)
 -- Name: contracts Allow all select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7225,7 +7225,7 @@ CREATE POLICY "Allow all select" ON public.contracts FOR SELECT USING (true);
 
 
 --
--- TOC entry 5399 (class 3256 OID 150455)
+-- TOC entry 5321 (class 3256 OID 20062)
 -- Name: demo_mappings Allow authenticated users to delete their own mappings; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7233,7 +7233,7 @@ CREATE POLICY "Allow authenticated users to delete their own mappings" ON public
 
 
 --
--- TOC entry 5397 (class 3256 OID 150453)
+-- TOC entry 5324 (class 3256 OID 20063)
 -- Name: demo_mappings Allow authenticated users to insert mappings; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7241,7 +7241,7 @@ CREATE POLICY "Allow authenticated users to insert mappings" ON public.demo_mapp
 
 
 --
--- TOC entry 5368 (class 3256 OID 150452)
+-- TOC entry 5325 (class 3256 OID 20064)
 -- Name: demo_mappings Allow authenticated users to select their own mappings; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7249,7 +7249,7 @@ CREATE POLICY "Allow authenticated users to select their own mappings" ON public
 
 
 --
--- TOC entry 5398 (class 3256 OID 150454)
+-- TOC entry 5326 (class 3256 OID 20065)
 -- Name: demo_mappings Allow authenticated users to update their own mappings; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7257,7 +7257,7 @@ CREATE POLICY "Allow authenticated users to update their own mappings" ON public
 
 
 --
--- TOC entry 5364 (class 3256 OID 94814)
+-- TOC entry 5327 (class 3256 OID 20066)
 -- Name: daily_logs Allow contract or org members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7270,7 +7270,7 @@ CREATE POLICY "Allow contract or org members" ON public.daily_logs FOR SELECT US
 
 
 --
--- TOC entry 5358 (class 3256 OID 94792)
+-- TOC entry 5328 (class 3256 OID 20068)
 -- Name: equipment_usage Allow contract or org members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7283,7 +7283,7 @@ CREATE POLICY "Allow contract or org members" ON public.equipment_usage FOR SELE
 
 
 --
--- TOC entry 5352 (class 3256 OID 94748)
+-- TOC entry 5329 (class 3256 OID 20070)
 -- Name: inspections Allow contract or org members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7296,7 +7296,7 @@ CREATE POLICY "Allow contract or org members" ON public.inspections FOR SELECT U
 
 
 --
--- TOC entry 5353 (class 3256 OID 94770)
+-- TOC entry 5330 (class 3256 OID 20072)
 -- Name: issues Allow contract or org members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7309,7 +7309,7 @@ CREATE POLICY "Allow contract or org members" ON public.issues FOR SELECT USING 
 
 
 --
--- TOC entry 5396 (class 3256 OID 133202)
+-- TOC entry 5331 (class 3256 OID 20074)
 -- Name: wbs Allow demo or contract owner access; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7319,7 +7319,7 @@ CREATE POLICY "Allow demo or contract owner access" ON public.wbs FOR SELECT USI
 
 
 --
--- TOC entry 5395 (class 3256 OID 133160)
+-- TOC entry 5332 (class 3256 OID 20075)
 -- Name: contracts Allow demo or owner access; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7327,7 +7327,7 @@ CREATE POLICY "Allow demo or owner access" ON public.contracts FOR SELECT USING 
 
 
 --
--- TOC entry 5359 (class 3256 OID 133094)
+-- TOC entry 5333 (class 3256 OID 20076)
 -- Name: avatars Allow demo session access; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7335,7 +7335,7 @@ CREATE POLICY "Allow demo session access" ON public.avatars FOR SELECT USING ((s
 
 
 --
--- TOC entry 5385 (class 3256 OID 133091)
+-- TOC entry 5334 (class 3256 OID 20077)
 -- Name: crew_members Allow demo session access; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7343,7 +7343,7 @@ CREATE POLICY "Allow demo session access" ON public.crew_members FOR SELECT USIN
 
 
 --
--- TOC entry 5384 (class 3256 OID 133090)
+-- TOC entry 5335 (class 3256 OID 20078)
 -- Name: crews Allow demo session access; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7351,7 +7351,7 @@ CREATE POLICY "Allow demo session access" ON public.crews FOR SELECT USING ((ses
 
 
 --
--- TOC entry 5393 (class 3256 OID 133093)
+-- TOC entry 5336 (class 3256 OID 20079)
 -- Name: job_titles Allow demo session access; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7359,7 +7359,7 @@ CREATE POLICY "Allow demo session access" ON public.job_titles FOR SELECT USING 
 
 
 --
--- TOC entry 5392 (class 3256 OID 133092)
+-- TOC entry 5337 (class 3256 OID 20080)
 -- Name: organizations Allow demo session access; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7367,7 +7367,7 @@ CREATE POLICY "Allow demo session access" ON public.organizations FOR SELECT USI
 
 
 --
--- TOC entry 5366 (class 3256 OID 92282)
+-- TOC entry 5338 (class 3256 OID 20081)
 -- Name: contracts Allow insert for own user_id; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7375,7 +7375,7 @@ CREATE POLICY "Allow insert for own user_id" ON public.contracts FOR INSERT TO a
 
 
 --
--- TOC entry 5355 (class 3256 OID 91274)
+-- TOC entry 5339 (class 3256 OID 20082)
 -- Name: contract_organizations Allow inserts from clone function; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7383,7 +7383,7 @@ CREATE POLICY "Allow inserts from clone function" ON public.contract_organizatio
 
 
 --
--- TOC entry 5354 (class 3256 OID 90940)
+-- TOC entry 5340 (class 3256 OID 20083)
 -- Name: contract_organizations Allow test user inserts; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7391,7 +7391,7 @@ CREATE POLICY "Allow test user inserts" ON public.contract_organizations FOR INS
 
 
 --
--- TOC entry 5363 (class 3256 OID 64498)
+-- TOC entry 5341 (class 3256 OID 20084)
 -- Name: user_contracts Allow users to access their own user_contracts; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7399,7 +7399,7 @@ CREATE POLICY "Allow users to access their own user_contracts" ON public.user_co
 
 
 --
--- TOC entry 5361 (class 3256 OID 29878)
+-- TOC entry 5342 (class 3256 OID 20085)
 -- Name: contract_organizations Contract organizations are viewable by organization members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7409,7 +7409,7 @@ CREATE POLICY "Contract organizations are viewable by organization members" ON p
 
 
 --
--- TOC entry 5362 (class 3256 OID 29881)
+-- TOC entry 5343 (class 3256 OID 20086)
 -- Name: contracts Contracts are viewable by organization members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7421,7 +7421,7 @@ CREATE POLICY "Contracts are viewable by organization members" ON public.contrac
 
 
 --
--- TOC entry 5380 (class 3256 OID 33008)
+-- TOC entry 5344 (class 3256 OID 20087)
 -- Name: crew_members Crew members are viewable by organization members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7433,7 +7433,7 @@ CREATE POLICY "Crew members are viewable by organization members" ON public.crew
 
 
 --
--- TOC entry 5382 (class 3256 OID 33012)
+-- TOC entry 5345 (class 3256 OID 20088)
 -- Name: crews Crews are viewable by organization members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7443,7 +7443,7 @@ CREATE POLICY "Crews are viewable by organization members" ON public.crews FOR S
 
 
 --
--- TOC entry 5371 (class 3256 OID 30389)
+-- TOC entry 5346 (class 3256 OID 20089)
 -- Name: profiles Enable delete for admins only; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7451,7 +7451,7 @@ CREATE POLICY "Enable delete for admins only" ON public.profiles FOR DELETE TO a
 
 
 --
--- TOC entry 5369 (class 3256 OID 30386)
+-- TOC entry 5347 (class 3256 OID 20090)
 -- Name: profiles Enable insert for authenticated users; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7459,7 +7459,7 @@ CREATE POLICY "Enable insert for authenticated users" ON public.profiles FOR INS
 
 
 --
--- TOC entry 5379 (class 3256 OID 93770)
+-- TOC entry 5348 (class 3256 OID 20091)
 -- Name: profiles Enable select for authenticated users; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7467,7 +7467,7 @@ CREATE POLICY "Enable select for authenticated users" ON public.profiles FOR SEL
 
 
 --
--- TOC entry 5370 (class 3256 OID 30388)
+-- TOC entry 5349 (class 3256 OID 20092)
 -- Name: profiles Enable update for users on their own profile; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7475,7 +7475,7 @@ CREATE POLICY "Enable update for users on their own profile" ON public.profiles 
 
 
 --
--- TOC entry 5388 (class 3256 OID 33020)
+-- TOC entry 5350 (class 3256 OID 20093)
 -- Name: job_titles Job titles are viewable by authenticated users; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7483,7 +7483,7 @@ CREATE POLICY "Job titles are viewable by authenticated users" ON public.job_tit
 
 
 --
--- TOC entry 5377 (class 3256 OID 32982)
+-- TOC entry 5351 (class 3256 OID 20094)
 -- Name: line_items Line items are viewable by organization members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7497,7 +7497,7 @@ CREATE POLICY "Line items are viewable by organization members" ON public.line_i
 
 
 --
--- TOC entry 5375 (class 3256 OID 32936)
+-- TOC entry 5352 (class 3256 OID 20096)
 -- Name: maps Map locations are viewable by organization members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7511,7 +7511,7 @@ CREATE POLICY "Map locations are viewable by organization members" ON public.map
 
 
 --
--- TOC entry 5386 (class 3256 OID 33018)
+-- TOC entry 5353 (class 3256 OID 20098)
 -- Name: organizations Organizations are viewable by authenticated users; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7519,7 +7519,7 @@ CREATE POLICY "Organizations are viewable by authenticated users" ON public.orga
 
 
 --
--- TOC entry 5374 (class 3256 OID 32891)
+-- TOC entry 5354 (class 3256 OID 20099)
 -- Name: wbs Project managers and admins can manage WBS sections; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7533,7 +7533,7 @@ CREATE POLICY "Project managers and admins can manage WBS sections" ON public.wb
 
 
 --
--- TOC entry 5378 (class 3256 OID 32984)
+-- TOC entry 5322 (class 3256 OID 20102)
 -- Name: line_items Project managers and admins can manage line items; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7551,7 +7551,7 @@ CREATE POLICY "Project managers and admins can manage line items" ON public.line
 
 
 --
--- TOC entry 5376 (class 3256 OID 32938)
+-- TOC entry 5323 (class 3256 OID 20105)
 -- Name: maps Project managers and admins can manage map locations; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7569,7 +7569,7 @@ CREATE POLICY "Project managers and admins can manage map locations" ON public.m
 
 
 --
--- TOC entry 5365 (class 3256 OID 29879)
+-- TOC entry 5355 (class 3256 OID 20108)
 -- Name: contract_organizations Project managers can manage contract organizations; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7581,7 +7581,7 @@ CREATE POLICY "Project managers can manage contract organizations" ON public.con
 
 
 --
--- TOC entry 5381 (class 3256 OID 33009)
+-- TOC entry 5356 (class 3256 OID 20110)
 -- Name: crew_members Project managers can manage crew members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7595,7 +7595,7 @@ CREATE POLICY "Project managers can manage crew members" ON public.crew_members 
 
 
 --
--- TOC entry 5383 (class 3256 OID 33013)
+-- TOC entry 5357 (class 3256 OID 20113)
 -- Name: crews Project managers can manage crews; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7607,7 +7607,7 @@ CREATE POLICY "Project managers can manage crews" ON public.crews TO authenticat
 
 
 --
--- TOC entry 5372 (class 3256 OID 33021)
+-- TOC entry 5358 (class 3256 OID 20115)
 -- Name: job_titles Users can create custom job titles; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7615,7 +7615,7 @@ CREATE POLICY "Users can create custom job titles" ON public.job_titles FOR INSE
 
 
 --
--- TOC entry 5387 (class 3256 OID 33019)
+-- TOC entry 5359 (class 3256 OID 20116)
 -- Name: organizations Users can manage their organization; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7623,7 +7623,7 @@ CREATE POLICY "Users can manage their organization" ON public.organizations TO a
 
 
 --
--- TOC entry 5390 (class 3256 OID 42910)
+-- TOC entry 5360 (class 3256 OID 20117)
 -- Name: contracts View Contracts; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7631,7 +7631,7 @@ CREATE POLICY "View Contracts" ON public.contracts FOR SELECT USING (((auth.role
 
 
 --
--- TOC entry 5360 (class 3256 OID 66903)
+-- TOC entry 5361 (class 3256 OID 20118)
 -- Name: avatars View all avatars; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7639,7 +7639,7 @@ CREATE POLICY "View all avatars" ON public.avatars FOR SELECT TO authenticated U
 
 
 --
--- TOC entry 5373 (class 3256 OID 32890)
+-- TOC entry 5362 (class 3256 OID 20119)
 -- Name: wbs WBS sections are viewable by organization members; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -7651,206 +7651,206 @@ CREATE POLICY "WBS sections are viewable by organization members" ON public.wbs 
 
 
 --
--- TOC entry 5340 (class 0 OID 45512)
--- Dependencies: 334
+-- TOC entry 5306 (class 0 OID 18962)
+-- Dependencies: 274
 -- Name: asphalt_types; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.asphalt_types ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5344 (class 0 OID 65986)
--- Dependencies: 338
+-- TOC entry 5308 (class 0 OID 19193)
+-- Dependencies: 293
 -- Name: avatars; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.avatars ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5345 (class 0 OID 81791)
--- Dependencies: 345
+-- TOC entry 5307 (class 0 OID 18972)
+-- Dependencies: 275
 -- Name: change_orders; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.change_orders ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5337 (class 0 OID 29800)
--- Dependencies: 331
+-- TOC entry 5309 (class 0 OID 19202)
+-- Dependencies: 294
 -- Name: contract_organizations; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.contract_organizations ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5328 (class 0 OID 29139)
--- Dependencies: 315
+-- TOC entry 5300 (class 0 OID 18895)
+-- Dependencies: 268
 -- Name: contracts; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.contracts ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5335 (class 0 OID 29674)
--- Dependencies: 329
+-- TOC entry 5298 (class 0 OID 18858)
+-- Dependencies: 266
 -- Name: crew_members; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.crew_members ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5334 (class 0 OID 29649)
--- Dependencies: 328
+-- TOC entry 5301 (class 0 OID 18905)
+-- Dependencies: 269
 -- Name: crews; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.crews ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5346 (class 0 OID 81852)
--- Dependencies: 346
+-- TOC entry 5291 (class 0 OID 18791)
+-- Dependencies: 259
 -- Name: daily_logs; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.daily_logs ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5351 (class 0 OID 135320)
--- Dependencies: 351
+-- TOC entry 5305 (class 0 OID 18943)
+-- Dependencies: 273
 -- Name: demo_mappings; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.demo_mappings ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5339 (class 0 OID 43500)
--- Dependencies: 333
+-- TOC entry 5290 (class 0 OID 18782)
+-- Dependencies: 258
 -- Name: dump_trucks; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.dump_trucks ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5348 (class 0 OID 82062)
--- Dependencies: 348
+-- TOC entry 5302 (class 0 OID 18914)
+-- Dependencies: 270
 -- Name: equipment; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.equipment ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5336 (class 0 OID 29702)
--- Dependencies: 330
+-- TOC entry 5292 (class 0 OID 18802)
+-- Dependencies: 260
 -- Name: equipment_assignments; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.equipment_assignments ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5347 (class 0 OID 81960)
--- Dependencies: 347
+-- TOC entry 5293 (class 0 OID 18812)
+-- Dependencies: 261
 -- Name: equipment_usage; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.equipment_usage ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5349 (class 0 OID 82124)
--- Dependencies: 349
+-- TOC entry 5294 (class 0 OID 18822)
+-- Dependencies: 262
 -- Name: inspections; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.inspections ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5350 (class 0 OID 82204)
--- Dependencies: 350
+-- TOC entry 5295 (class 0 OID 18830)
+-- Dependencies: 263
 -- Name: issues; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.issues ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5332 (class 0 OID 29471)
--- Dependencies: 326
+-- TOC entry 5310 (class 0 OID 19211)
+-- Dependencies: 295
 -- Name: job_titles; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.job_titles ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5342 (class 0 OID 47812)
--- Dependencies: 336
+-- TOC entry 5296 (class 0 OID 18842)
+-- Dependencies: 264
 -- Name: line_item_entries; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.line_item_entries ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5338 (class 0 OID 35668)
--- Dependencies: 332
+-- TOC entry 5303 (class 0 OID 18922)
+-- Dependencies: 271
 -- Name: line_item_templates; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.line_item_templates ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5331 (class 0 OID 29189)
--- Dependencies: 318
+-- TOC entry 5299 (class 0 OID 18872)
+-- Dependencies: 267
 -- Name: line_items; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.line_items ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5330 (class 0 OID 29172)
--- Dependencies: 317
+-- TOC entry 5311 (class 0 OID 19220)
+-- Dependencies: 296
 -- Name: maps; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.maps ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5333 (class 0 OID 29608)
--- Dependencies: 327
+-- TOC entry 5312 (class 0 OID 19228)
+-- Dependencies: 297
 -- Name: organizations; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5327 (class 0 OID 29126)
--- Dependencies: 314
+-- TOC entry 5304 (class 0 OID 18929)
+-- Dependencies: 272
 -- Name: profiles; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5341 (class 0 OID 45566)
--- Dependencies: 335
+-- TOC entry 5313 (class 0 OID 19237)
+-- Dependencies: 298
 -- Name: tack_rates; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.tack_rates ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5343 (class 0 OID 48860)
--- Dependencies: 337
+-- TOC entry 5297 (class 0 OID 18852)
+-- Dependencies: 265
 -- Name: user_contracts; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.user_contracts ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5329 (class 0 OID 29155)
--- Dependencies: 316
+-- TOC entry 5314 (class 0 OID 19244)
+-- Dependencies: 299
 -- Name: wbs; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.wbs ENABLE ROW LEVEL SECURITY;
 
--- Completed on 2025-05-25 13:14:29
+-- Completed on 2025-07-06 22:20:37
 
 --
 -- PostgreSQL database dump complete

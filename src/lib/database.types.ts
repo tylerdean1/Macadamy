@@ -3619,6 +3619,7 @@ export type Database = {
           id: string
           url: string
           is_preset: boolean
+          session_id: string
         }[]
       }
       get_change_orders: {
@@ -3630,19 +3631,23 @@ export type Database = {
             }
           | { contract_id: string }
         Returns: {
+          approved_by: string | null
+          approved_date: string | null
+          attachments: string[] | null
+          contract_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
           id: string
-          line_item_id: string
+          line_item_id: string | null
           new_quantity: number
-          new_unit_price: number
-          title: string
-          description: string
+          new_unit_price: number | null
+          session_id: string | null
           status: Database["public"]["Enums"]["change_order_status"]
           submitted_date: string
-          approved_date: string
-          approved_by: string
-          created_by: string
-          attachments: string[]
-          session_id: string
+          title: string
+          updated_at: string | null
+          updated_by: string | null
         }[]
       }
       get_change_orders_count_for_contract: {
@@ -3917,13 +3922,16 @@ export type Database = {
           | { contract_id: string }
         Returns: {
           id: string
+          contract_id: string
           wbs_id: string
           map_number: string
           location: string
           scope: string
           budget: number
-          coordinates_wkt: string
+          created_at: string
+          updated_at: string
           session_id: string
+          coordinates_wkt: string
         }[]
       }
       get_organizations: {
@@ -3990,18 +3998,14 @@ export type Database = {
         Returns: {
           id: string
           contract_id: string
-          description: string
-          level: number
-          parent_wbs_id: string
-          order_number: number
+          wbs_number: string
+          location: string
+          budget: number
+          scope: string
           created_at: string
           updated_at: string
           session_id: string
           coordinates_wkt: string
-          wbs_number: string
-          budget: number
-          scope: string
-          location: string
         }[]
       }
       gettransactionid: {
@@ -4430,7 +4434,7 @@ export type Database = {
         Args:
           | { tbl_oid: unknown; use_typmod?: boolean }
           | { use_typmod?: boolean }
-        Returns: string
+        Returns: number
       }
       postgis_addbbox: {
         Args: { "": unknown }
