@@ -4,7 +4,6 @@ import { toast } from 'react-hot-toast';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { supabase } from '@/lib/supabase';
-import { getDemoSession } from '@/lib/utils/cloneDemoData';
 import type { WbsWithWktRow } from '@/lib/rpc.types';
 
 interface EditableWbsSectionProps {
@@ -35,7 +34,6 @@ export function EditableWbsSection({
 
     try {
       const newWbsId = uuidv4();
-      const demoSession = getDemoSession();
 
       // Use the Supabase RPC call
       const { error } = await supabase.rpc('insert_wbs', {
@@ -43,8 +41,7 @@ export function EditableWbsSection({
         _wbs_number: newWbsNumber.trim(),
         _scope: newWbsScope.trim() ? newWbsScope.trim() : undefined,
         _budget: parseFloat(newWbsBudget) || 0,
-        _location: '',
-        ...(demoSession ? { _session_id: demoSession.sessionId } : {}),
+        _location: ''
       });
 
       if (error) throw error;

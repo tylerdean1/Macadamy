@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
-import { getDemoSession } from '@/lib/utils/cloneDemoData';
 
 interface EquipmentUsage {
   id?: string;
@@ -98,7 +97,6 @@ export default function EquipmentLog() {
     if (!user) return;
 
     try {
-      const demoSession = getDemoSession();
       const { error } = await supabase.rpc('insert_equipment_usage', {
         _equipment_id: newLog.equipment_id,
         _usage_date: newLog.usage_date,
@@ -106,7 +104,6 @@ export default function EquipmentLog() {
         _operator_id: newLog.operator_id ?? undefined,
         _notes: newLog.notes || undefined,
         _created_by: user.id,
-        ...(demoSession ? { _session_id: demoSession.sessionId } : {}),
       });
 
       if (error) throw error;
@@ -130,13 +127,11 @@ export default function EquipmentLog() {
   const handleAddEquipment = async () => {
     if (!user) return;
     try {
-      const demoSession = getDemoSession();
       const { error } = await supabase.rpc('insert_equipment', {
         _user_defined_id: newEquipment.user_defined_id,
         _name: newEquipment.name,
         _description: newEquipment.description,
         _created_by: user.id,
-        ...(demoSession ? { _session_id: demoSession.sessionId } : {}),
       });
 
       if (error) throw error;

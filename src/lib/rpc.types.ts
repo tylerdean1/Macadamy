@@ -666,23 +666,6 @@ export type InsertWbsRpcArgs = {
 };
 export type InsertWbsRpc = (args: InsertWbsRpcArgs) => Promise<string>;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 export type UpdateContractRpcArgs = {
   _id: string;
   _title?: string;

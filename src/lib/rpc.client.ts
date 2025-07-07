@@ -47,18 +47,6 @@ class RpcClient {
     return this.callRpc<{ value: string }[]>("get_enum_values", args);
   }
 
-  // Demo Data RPCs
-  async createDemoEnvironment(args: RPC.CreateDemoEnvironmentRpcArgs): Promise<{ created_session_id: string; created_profile_id: string }> {
-    return this.callRpc<{ created_session_id: string; created_profile_id: string }>(
-      "create_demo_environment",
-      args,
-      { single: true }
-    );
-  }
-
-  async executeFullDemoClone(args: RPC.ExecuteFullDemoCloneRpcArgs): Promise<void> {
-    await this.callRpc<void>("execute_full_demo_clone", args);
-  }
 
   async checkUsernameAvailable(args: RPC.CheckUsernameAvailableRpcArgs): Promise<boolean> {
     return this.callRpc<boolean>("check_username_available", args, { single: true });

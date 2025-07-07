@@ -268,1331 +268,72 @@ END;$$;
 
 --
 -- TOC entry 1136 (class 1255 OID 18735)
--- Name: clone_change_orders_for_session(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.clone_change_orders_for_session(session_id uuid) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-declare
-  old_contracts uuid[];
-  new_contracts uuid[];
-  old_line_items uuid[];
-  new_line_items uuid[];
-begin
-  -- Step 1: Load mapping arrays
-  select old_contract_ids, new_contract_ids,
-         old_line_item_ids, new_line_item_ids
-  into old_contracts, new_contracts,
-       old_line_items, new_line_items
-  from demo_mappings
-  where session_id = clone_change_orders_for_session.session_id;
-
-  -- Step 2: Clone all base change orders
-  with contract_map as (
-    select old_id, new_id
-    from unnest(old_contracts, new_contracts) with ordinality as t(old_id, new_id, ord)
-  ),
-  line_item_map as (
-    select old_id, new_id
-    from unnest(old_line_items, new_line_items) with ordinality as t(old_id, new_id, ord)
-  ),
-  base_change_orders as (
-    select co.*
-    from change_orders co
-    where co.session_id is null
-  ),
-  mapped_orders as (
-    select
-      gen_random_uuid() as new_id,
-      co.id as old_id,
-      cm.new_id as new_contract_id,
-      lim.new_id as new_line_item_id,
-      co.title,
-      co.status,
-      co.new_quantity,
-      co.new_unit_price,
-      co.description,
-      co.attachments,
-      co.submitted_date,
-      co.approved_date,
-      co.approved_by,
-      co.created_by,
-      co.updated_by
-    from base_change_orders co
-    join contract_map cm on co.contract_id = cm.old_id
-    join line_item_map lim on co.line_item_id = lim.old_id
-  ),
-  inserted_orders as (
-    insert into change_orders (
-      id, contract_id, line_item_id,
-      title, status, new_quantity, new_unit_price,
-      description, attachments,
-      submitted_date, approved_date, approved_by,
-      created_by, updated_by,
-      created_at, updated_at, session_id
-    )
-    select
-      mo.new_id,
-      mo.new_contract_id,
-      mo.new_line_item_id,
-      mo.title,
-      mo.status,
-      mo.new_quantity,
-      mo.new_unit_price,
-      mo.description,
-      mo.attachments,
-      mo.submitted_date,
-      mo.approved_date,
-      mo.approved_by,
-      mo.created_by,
-      mo.updated_by,
-      now(),
-      now(),
-      session_id
-    from mapped_orders mo
-    returning id, old_id
-  )
-  update demo_mappings
-  set old_change_order_ids = (select array_agg(old_id) from inserted_orders),
-      new_change_order_ids = (select array_agg(id) from inserted_orders)
-  where session_id = clone_change_orders_for_session.session_id;
-end;
-$$;
 
 
 --
 -- TOC entry 1143 (class 1255 OID 18736)
--- Name: clone_contract_organizations(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.clone_contract_organizations(session_id uuid) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-declare
-  old_contracts uuid[];
-  new_contracts uuid[];
-begin
-  -- Step 1: Load contract mapping arrays
-  select old_contract_ids, new_contract_ids
-  into old_contracts, new_contracts
-  from demo_mappings
-  where session_id = clone_contract_organizations.session_id;
-
-  -- Step 2: Clone org relationships from base contracts
-  with contract_map as (
-    select old_id, new_id
-    from unnest(old_contracts, new_contracts) with ordinality
-  ),
-  base_links as (
-    select co.*
-    from contract_organizations co
-    join contract_map cm on co.contract_id = cm.old_id
-    where co.session_id is null
-  ),
-  mapped_links as (
-    select
-      gen_random_uuid() as new_id,
-      co.id as old_id,
-      cm.new_id as new_contract_id,
-      co.organization_id,
-      co.organization_role,
-      co.contact_name,
-      co.contact_email,
-      co.contact_phone
-    from base_links co
-    join contract_map cm on co.contract_id = cm.old_id
-  ),
-  inserted_links as (
-    insert into contract_organizations (
-      id, contract_id, organization_id, organization_role,
-      contact_name, contact_email, contact_phone,
-      created_at, updated_at, session_id
-    )
-    select
-      ml.new_id,
-      ml.new_contract_id,
-      ml.organization_id,
-      ml.organization_role,
-      ml.contact_name,
-      ml.contact_email,
-      ml.contact_phone,
-      now(),
-      now(),
-      session_id
-    from mapped_links ml
-    returning id, old_id
-  )
-  update demo_mappings
-  set old_contract_org_ids = (select array_agg(old_id) from inserted_links),
-      new_contract_org_ids = (select array_agg(id) from inserted_links)
-  where session_id = clone_contract_organizations.session_id;
-end;
-$$;
 
 
 --
--- TOC entry 1145 (class 1255 OID 18737)
--- Name: clone_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.clone_contracts(session_id uuid) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-declare
-  old_ids uuid[];
-  new_ids uuid[];
-  old_id uuid;
-  new_id uuid;
-begin
-  -- Step 1: Get original profile
-  for old_id in
-    select old_profile_id
-    from demo_mappings
-    where session_id = clone_contracts.session_id
-  loop
-    -- Step 2: Clone contracts from user_contracts
-    with base_contracts as (
-      select c.*
-      from contracts c
-      join user_contracts uc on uc.contract_id = c.id
-      where uc.user_id = old_id and c.session_id is null
-    ),
-    contract_map as (
-      select
-        c.id as old_id,
-        gen_random_uuid() as new_id,
-        c.title,
-        c.description,
-        c.location,
-        c.start_date,
-        c.end_date,
-        c.budget,
-        c.status,
-        c.coordinates
-      from base_contracts c
-    ),
-    inserted_contracts as (
-      insert into contracts (
-        id, title, description, location,
-        start_date, end_date,
-        created_by, created_at, updated_at,
-        budget, status, coordinates,
-        session_id
-      )
-      select
-        cm.new_id,
-        cm.title,
-        cm.description,
-        cm.location,
-        cm.start_date,
-        cm.end_date,
-        (select new_profile_id from demo_mappings where session_id = clone_contracts.session_id),
-        now(),
-        now(),
-        cm.budget,
-        cm.status,
-        cm.coordinates,
-        session_id
-      from contract_map cm
-      returning id, (select old_id from contract_map where new_id = contracts.id)
-    ),
-    inserted_user_contracts as (
-      insert into user_contracts (user_id, contract_id, role, session_id)
-      select
-        (select new_profile_id from demo_mappings where session_id = clone_contracts.session_id),
-        ic.id,
-        uc.role,
-        session_id
-      from user_contracts uc
-      join inserted_contracts ic on uc.contract_id = ic.old_id
-      where uc.user_id = old_id
-      returning uc.contract_id, contract_id
-    )
-    select
-      array_agg(contract_id), array_agg(new_contract_id)
-    into old_ids, new_ids
-    from (
-      select contract_id, contract_id as new_contract_id
-      from inserted_user_contracts
-    ) x;
-  end loop;
-
-  -- Step 3: Update demo_mappings with contract ID mappings
-  update demo_mappings
-  set old_contract_ids = old_ids,
-      new_contract_ids = new_ids
-  where session_id = clone_contracts.session_id;
-end;
-$$;
 
 
 --
 -- TOC entry 1157 (class 1255 OID 18738)
--- Name: clone_crew_members(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.clone_crew_members(session_id uuid) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-declare
-  old_crews uuid[];
-  new_crews uuid[];
-begin
-  -- Step 1: Load crew mapping arrays
-  select old_crew_ids, new_crew_ids
-  into old_crews, new_crews
-  from demo_mappings
-  where session_id = clone_crew_members.session_id;
-
-  -- Step 2: Clone all crew members linked to base crews
-  with crew_map as (
-    select old_id, new_id
-    from unnest(old_crews, new_crews) with ordinality
-  ),
-  base_members as (
-    select cm.*
-    from crew_members cm
-    join crew_map map on cm.crew_id = map.old_id
-    where cm.session_id is null
-  ),
-  mapped_members as (
-    select
-      gen_random_uuid() as new_id,
-      cm.id as old_id,
-      map.new_id as new_crew_id,
-      cm.name,
-      cm.role,
-      cm.phone,
-      cm.email
-    from base_members cm
-    join crew_map map on cm.crew_id = map.old_id
-  ),
-  inserted_members as (
-    insert into crew_members (
-      id, crew_id, name, role, phone, email,
-      created_at, updated_at, session_id
-    )
-    select
-      mm.new_id,
-      mm.new_crew_id,
-      mm.name,
-      mm.role,
-      mm.phone,
-      mm.email,
-      now(),
-      now(),
-      session_id
-    from mapped_members mm
-    returning id, old_id
-  )
-  update demo_mappings
-  set old_crew_member_ids = (select array_agg(old_id) from inserted_members),
-      new_crew_member_ids = (select array_agg(id) from inserted_members)
-  where session_id = clone_crew_members.session_id;
-end;
-$$;
 
 
 --
 -- TOC entry 1168 (class 1255 OID 18739)
--- Name: clone_crews(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.clone_crews(session_id uuid) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-declare
-  old_contracts uuid[];
-  new_contracts uuid[];
-begin
-  -- Step 1: Load contract mappings
-  select old_contract_ids, new_contract_ids
-  into old_contracts, new_contracts
-  from demo_mappings
-  where session_id = clone_crews.session_id;
-
-  -- Step 2: Clone all base crews
-  with contract_map as (
-    select old_id, new_id
-    from unnest(old_contracts, new_contracts) with ordinality
-  ),
-  base_crews as (
-    select c.*
-    from crews c
-    join contract_map cm on c.contract_id = cm.old_id
-    where c.session_id is null
-  ),
-  mapped_crews as (
-    select
-      gen_random_uuid() as new_id,
-      c.id as old_id,
-      cm.new_id as new_contract_id,
-      c.name,
-      c.notes
-    from base_crews c
-    join contract_map cm on c.contract_id = cm.old_id
-  ),
-  inserted_crews as (
-    insert into crews (
-      id, contract_id, name, notes,
-      created_at, updated_at, session_id
-    )
-    select
-      mc.new_id,
-      mc.new_contract_id,
-      mc.name,
-      mc.notes,
-      now(),
-      now(),
-      session_id
-    from mapped_crews mc
-    returning id, old_id
-  )
-  update demo_mappings
-  set old_crew_ids = (select array_agg(old_id) from inserted_crews),
-      new_crew_ids = (select array_agg(id) from inserted_crews)
-  where session_id = clone_crews.session_id;
-end;
-$$;
 
 
 --
 -- TOC entry 1169 (class 1255 OID 18740)
--- Name: clone_daily_logs(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.clone_daily_logs(session_id uuid) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-declare
-  old_contracts uuid[];
-  new_contracts uuid[];
-begin
-  -- Step 1: Load contract mappings
-  select old_contract_ids, new_contract_ids
-  into old_contracts, new_contracts
-  from demo_mappings
-  where session_id = clone_daily_logs.session_id;
-
-  -- Step 2: Clone base daily logs
-  with contract_map as (
-    select old_id, new_id
-    from unnest(old_contracts, new_contracts) with ordinality
-  ),
-  base_logs as (
-    select dl.*
-    from daily_logs dl
-    join contract_map cm on dl.contract_id = cm.old_id
-    where dl.session_id is null
-  ),
-  mapped_logs as (
-    select
-      gen_random_uuid() as new_id,
-      dl.id as old_id,
-      cm.new_id as new_contract_id,
-      dl.log_date,
-      dl.weather,
-      dl.notes
-    from base_logs dl
-    join contract_map cm on dl.contract_id = cm.old_id
-  ),
-  inserted_logs as (
-    insert into daily_logs (
-      id, contract_id, log_date,
-      weather, notes,
-      created_at, updated_at, session_id
-    )
-    select
-      ml.new_id,
-      ml.new_contract_id,
-      ml.log_date,
-      ml.weather,
-      ml.notes,
-      now(),
-      now(),
-      session_id
-    from mapped_logs ml
-    returning id, old_id
-  )
-  update demo_mappings
-  set old_daily_log_ids = (select array_agg(old_id) from inserted_logs),
-      new_daily_log_ids = (select array_agg(id) from inserted_logs)
-  where session_id = clone_daily_logs.session_id;
-end;
-$$;
 
 
 --
 -- TOC entry 1178 (class 1255 OID 18741)
--- Name: clone_equipment(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.clone_equipment(session_id uuid) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-declare
-  old_contracts uuid[];
-  new_contracts uuid[];
-begin
-  -- Step 1: Load contract mapping
-  select old_contract_ids, new_contract_ids
-  into old_contracts, new_contracts
-  from demo_mappings
-  where session_id = clone_equipment.session_id;
-
-  -- Step 2: Clone all equipment linked to base contracts
-  with contract_map as (
-    select old_id, new_id
-    from unnest(old_contracts, new_contracts) with ordinality
-  ),
-  base_equipment as (
-    select e.*
-    from equipment e
-    join contract_map cm on e.contract_id = cm.old_id
-    where e.session_id is null
-  ),
-  mapped_equipment as (
-    select
-      gen_random_uuid() as new_id,
-      e.id as old_id,
-      cm.new_id as new_contract_id,
-      e.name,
-      e.description,
-      e.unit_type,
-      e.notes
-    from base_equipment e
-    join contract_map cm on e.contract_id = cm.old_id
-  ),
-  inserted_equipment as (
-    insert into equipment (
-      id, contract_id, name, description,
-      unit_type, notes,
-      created_at, updated_at, session_id
-    )
-    select
-      me.new_id,
-      me.new_contract_id,
-      me.name,
-      me.description,
-      me.unit_type,
-      me.notes,
-      now(),
-      now(),
-      session_id
-    from mapped_equipment me
-    returning id, old_id
-  )
-  update demo_mappings
-  set old_equipment_ids = (select array_agg(old_id) from inserted_equipment),
-      new_equipment_ids = (select array_agg(id) from inserted_equipment)
-  where session_id = clone_equipment.session_id;
-end;
-$$;
 
 
 --
 -- TOC entry 1179 (class 1255 OID 18742)
--- Name: clone_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.clone_equipment_assignments(session_id uuid) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-declare
-  old_equipment_ids uuid[];
-  new_equipment_ids uuid[];
-begin
-  -- Step 1: Get equipment mapping
-  select old_equipment_ids, new_equipment_ids
-  into old_equipment_ids, new_equipment_ids
-  from demo_mappings
-  where session_id = clone_equipment_assignments.session_id;
-
-  -- Step 2: Clone assignments linked to base equipment
-  with equipment_map as (
-    select old_id, new_id
-    from unnest(old_equipment_ids, new_equipment_ids) with ordinality
-  ),
-  base_assignments as (
-    select ea.*
-    from equipment_assignments ea
-    join equipment_map em on ea.equipment_id = em.old_id
-    where ea.session_id is null
-  ),
-  mapped_assignments as (
-    select
-      gen_random_uuid() as new_id,
-      ea.id as old_id,
-      em.new_id as new_equipment_id,
-      ea.assignment_date,
-      ea.map_id,
-      ea.notes
-    from base_assignments ea
-    join equipment_map em on ea.equipment_id = em.old_id
-  ),
-  inserted_assignments as (
-    insert into equipment_assignments (
-      id, equipment_id, assignment_date,
-      map_id, notes,
-      created_at, updated_at, session_id
-    )
-    select
-      ma.new_id,
-      ma.new_equipment_id,
-      ma.assignment_date,
-      ma.map_id,
-      ma.notes,
-      now(),
-      now(),
-      session_id
-    from mapped_assignments ma
-    returning id, old_id
-  )
-  update demo_mappings
-  set old_equipment_assignment_ids = (select array_agg(old_id) from inserted_assignments),
-      new_equipment_assignment_ids = (select array_agg(id) from inserted_assignments)
-  where session_id = clone_equipment_assignments.session_id;
-end;
-$$;
 
 
 --
 -- TOC entry 1185 (class 1255 OID 18743)
--- Name: clone_inspections(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.clone_inspections(session_id uuid) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-declare
-  old_line_items uuid[];
-  new_line_items uuid[];
-begin
-  -- Step 1: Load line item mappings
-  select old_line_item_ids, new_line_item_ids
-  into old_line_items, new_line_items
-  from demo_mappings
-  where session_id = clone_inspections.session_id;
-
-  -- Step 2: Clone base inspections
-  with line_item_map as (
-    select old_id, new_id
-    from unnest(old_line_items, new_line_items) with ordinality
-  ),
-  base_inspections as (
-    select i.*
-    from inspections i
-    join line_item_map lim on i.line_item_id = lim.old_id
-    where i.session_id is null
-  ),
-  mapped_inspections as (
-    select
-      gen_random_uuid() as new_id,
-      i.id as old_id,
-      lim.new_id as new_line_item_id,
-      i.date,
-      i.inspector,
-      i.result,
-      i.notes,
-      i.attachments
-    from base_inspections i
-    join line_item_map lim on i.line_item_id = lim.old_id
-  ),
-  inserted_inspections as (
-    insert into inspections (
-      id, line_item_id, date, inspector,
-      result, notes, attachments,
-      created_at, updated_at, session_id
-    )
-    select
-      mi.new_id,
-      mi.new_line_item_id,
-      mi.date,
-      mi.inspector,
-      mi.result,
-      mi.notes,
-      mi.attachments,
-      now(),
-      now(),
-      session_id
-    from mapped_inspections mi
-    returning id, old_id
-  )
-  update demo_mappings
-  set old_inspection_ids = (select array_agg(old_id) from inserted_inspections),
-      new_inspection_ids = (select array_agg(id) from inserted_inspections)
-  where session_id = clone_inspections.session_id;
-end;
-$$;
 
 
 --
 -- TOC entry 1186 (class 1255 OID 18744)
--- Name: clone_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.clone_issues(session_id uuid) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-declare
-  old_maps uuid[];
-  new_maps uuid[];
-begin
-  -- Step 1: Get map ID arrays
-  select old_map_ids, new_map_ids
-  into old_maps, new_maps
-  from demo_mappings
-  where session_id = clone_issues.session_id;
-
-  -- Step 2: Clone issues from base maps
-  with map_map as (
-    select old_id, new_id
-    from unnest(old_maps, new_maps) with ordinality
-  ),
-  base_issues as (
-    select i.*
-    from issues i
-    join map_map mm on i.map_id = mm.old_id
-    where i.session_id is null
-  ),
-  mapped_issues as (
-    select
-      gen_random_uuid() as new_id,
-      i.id as old_id,
-      mm.new_id as new_map_id,
-      i.title,
-      i.description,
-      i.status,
-      i.priority,
-      i.reported_by,
-      i.resolved_by,
-      i.resolved_date,
-      i.attachments
-    from base_issues i
-    join map_map mm on i.map_id = mm.old_id
-  ),
-  inserted_issues as (
-    insert into issues (
-      id, map_id, title, description, status, priority,
-      reported_by, resolved_by, resolved_date, attachments,
-      created_at, updated_at, session_id
-    )
-    select
-      mi.new_id,
-      mi.new_map_id,
-      mi.title,
-      mi.description,
-      mi.status,
-      mi.priority,
-      mi.reported_by,
-      mi.resolved_by,
-      mi.resolved_date,
-      mi.attachments,
-      now(),
-      now(),
-      session_id
-    from mapped_issues mi
-    returning id, old_id
-  )
-  update demo_mappings
-  set old_issue_ids = (select array_agg(old_id) from inserted_issues),
-      new_issue_ids = (select array_agg(id) from inserted_issues)
-  where session_id = clone_issues.session_id;
-end;
-$$;
 
 
 --
 -- TOC entry 907 (class 1255 OID 18745)
--- Name: clone_line_item_crew_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.clone_line_item_crew_assignments(session_id uuid) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-declare
-  old_line_items uuid[];
-  new_line_items uuid[];
-  old_crew_members uuid[];
-  new_crew_members uuid[];
-begin
-  -- Step 1: Load mappings
-  select old_line_item_ids, new_line_item_ids,
-         old_crew_member_ids, new_crew_member_ids
-  into old_line_items, new_line_items,
-       old_crew_members, new_crew_members
-  from demo_mappings
-  where session_id = clone_line_item_crew_assignments.session_id;
-
-  -- Step 2: Build unnest maps
-  with line_item_map as (
-    select old_id, new_id
-    from unnest(old_line_items, new_line_items) with ordinality
-  ),
-  crew_member_map as (
-    select old_id, new_id
-    from unnest(old_crew_members, new_crew_members) with ordinality
-  ),
-  base_assignments as (
-    select a.*
-    from line_item_crew_assignments a
-    join line_item_map lm on a.line_item_id = lm.old_id
-    join crew_member_map cm on a.crew_member_id = cm.old_id
-    where a.session_id is null
-  ),
-  mapped_assignments as (
-    select
-      gen_random_uuid() as new_id,
-      a.id as old_id,
-      lm.new_id as new_line_item_id,
-      cm.new_id as new_crew_member_id,
-      a.assignment_date,
-      a.hours,
-      a.notes
-    from base_assignments a
-    join line_item_map lm on a.line_item_id = lm.old_id
-    join crew_member_map cm on a.crew_member_id = cm.old_id
-  ),
-  inserted_assignments as (
-    insert into line_item_crew_assignments (
-      id, line_item_id, crew_member_id,
-      assignment_date, hours, notes,
-      created_at, updated_at, session_id
-    )
-    select
-      ma.new_id,
-      ma.new_line_item_id,
-      ma.new_crew_member_id,
-      ma.assignment_date,
-      ma.hours,
-      ma.notes,
-      now(),
-      now(),
-      session_id
-    from mapped_assignments ma
-    returning id, old_id
-  )
-  update demo_mappings
-  set old_li_crew_ids = (select array_agg(old_id) from inserted_assignments),
-      new_li_crew_ids = (select array_agg(id) from inserted_assignments)
-  where session_id = clone_line_item_crew_assignments.session_id;
-end;
-$$;
 
 
 --
 -- TOC entry 1189 (class 1255 OID 18746)
--- Name: clone_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.clone_line_item_entries(session_id uuid) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-declare
-  old_line_items uuid[];
-  new_line_items uuid[];
-begin
-  -- Step 1: Load line item mappings
-  select old_line_item_ids, new_line_item_ids
-  into old_line_items, new_line_items
-  from demo_mappings
-  where session_id = clone_line_item_entries.session_id;
-
-  -- Step 2: Clone base entries
-  with line_item_map as (
-    select old_id, new_id
-    from unnest(old_line_items, new_line_items) with ordinality
-  ),
-  base_entries as (
-    select e.*
-    from line_item_entries e
-    join line_item_map lim on e.line_item_id = lim.old_id
-    where e.session_id is null
-  ),
-  mapped_entries as (
-    select
-      gen_random_uuid() as new_id,
-      e.id as old_id,
-      lim.new_id as new_line_item_id,
-      e.entry_date,
-      e.quantity,
-      e.notes
-    from base_entries e
-    join line_item_map lim on e.line_item_id = lim.old_id
-  ),
-  inserted_entries as (
-    insert into line_item_entries (
-      id, line_item_id, entry_date,
-      quantity, notes,
-      created_at, updated_at, session_id
-    )
-    select
-      me.new_id,
-      me.new_line_item_id,
-      me.entry_date,
-      me.quantity,
-      me.notes,
-      now(),
-      now(),
-      session_id
-    from mapped_entries me
-    returning id, old_id
-  )
-  update demo_mappings
-  set old_entry_ids = (select array_agg(old_id) from inserted_entries),
-      new_entry_ids = (select array_agg(id) from inserted_entries)
-  where session_id = clone_line_item_entries.session_id;
-end;
-$$;
 
 
 --
 -- TOC entry 1190 (class 1255 OID 18747)
--- Name: clone_line_item_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.clone_line_item_equipment_assignments(session_id uuid) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-declare
-  old_line_items uuid[];
-  new_line_items uuid[];
-  old_equipment uuid[];
-  new_equipment uuid[];
-begin
-  -- Step 1: Load mappings
-  select old_line_item_ids, new_line_item_ids,
-         old_equipment_ids, new_equipment_ids
-  into old_line_items, new_line_items,
-       old_equipment, new_equipment
-  from demo_mappings
-  where session_id = clone_line_item_equipment_assignments.session_id;
-
-  -- Step 2: Build mapping tables
-  with line_item_map as (
-    select old_id, new_id
-    from unnest(old_line_items, new_line_items) with ordinality
-  ),
-  equipment_map as (
-    select old_id, new_id
-    from unnest(old_equipment, new_equipment) with ordinality
-  ),
-  base_assignments as (
-    select a.*
-    from line_item_equipment_assignments a
-    join line_item_map lm on a.line_item_id = lm.old_id
-    join equipment_map em on a.equipment_id = em.old_id
-    where a.session_id is null
-  ),
-  mapped_assignments as (
-    select
-      gen_random_uuid() as new_id,
-      a.id as old_id,
-      lm.new_id as new_line_item_id,
-      em.new_id as new_equipment_id,
-      a.assignment_date,
-      a.hours,
-      a.notes
-    from base_assignments a
-    join line_item_map lm on a.line_item_id = lm.old_id
-    join equipment_map em on a.equipment_id = em.old_id
-  ),
-  inserted_assignments as (
-    insert into line_item_equipment_assignments (
-      id, line_item_id, equipment_id,
-      assignment_date, hours, notes,
-      created_at, updated_at, session_id
-    )
-    select
-      ma.new_id,
-      ma.new_line_item_id,
-      ma.new_equipment_id,
-      ma.assignment_date,
-      ma.hours,
-      ma.notes,
-      now(),
-      now(),
-      session_id
-    from mapped_assignments ma
-    returning id, old_id
-  )
-  update demo_mappings
-  set old_li_equipment_ids = (select array_agg(old_id) from inserted_assignments),
-      new_li_equipment_ids = (select array_agg(id) from inserted_assignments)
-  where session_id = clone_line_item_equipment_assignments.session_id;
-end;
-$$;
 
 
 --
 -- TOC entry 1203 (class 1255 OID 18748)
--- Name: clone_line_item_templates(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.clone_line_item_templates(session_id uuid) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-declare
-  old_ids uuid[];
-  new_ids uuid[];
-begin
-  -- Step 1: Load line item ID mappings
-  select old_line_item_ids, new_line_item_ids
-  into old_ids, new_ids
-  from demo_mappings
-  where session_id = clone_line_item_templates.session_id;
-
-  -- Step 2: Gather unique template IDs from base line items
-  with line_item_map as (
-    select old_id, new_id
-    from unnest(old_ids, new_ids) with ordinality
-  ),
-  base_templates as (
-    select distinct li.template_id
-    from line_items li
-    join line_item_map lim on li.id = lim.old_id
-    where li.template_id is not null
-  ),
-  mapped_templates as (
-    select
-      gen_random_uuid() as new_id,
-      t.id as old_id,
-      t.name,
-      t.formula
-    from line_item_templates t
-    join base_templates bt on t.id = bt.template_id
-  ),
-  inserted_templates as (
-    insert into line_item_templates (
-      id, name, formula,
-      created_at, updated_at, session_id
-    )
-    select
-      mt.new_id,
-      mt.name,
-      mt.formula,
-      now(),
-      now(),
-      session_id
-    from mapped_templates mt
-    returning id, old_id
-  )
-  -- Step 3: Update cloned line items to use new template_id
-  update line_items li
-  set template_id = mt.id
-  from inserted_templates mt,
-       line_items base_li
-  where base_li.template_id = mt.old_id
-    and li.session_id = session_id
-    and li.line_code = base_li.line_code;
-
-  -- Step 4: Track template mappings in demo_mappings
-  update demo_mappings
-  set old_template_ids = (select array_agg(old_id) from inserted_templates),
-      new_template_ids = (select array_agg(id) from inserted_templates)
-  where session_id = clone_line_item_templates.session_id;
-end;
-$$;
 
 
 --
 -- TOC entry 1204 (class 1255 OID 18749)
--- Name: clone_line_items_for_maps(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.clone_line_items_for_maps(session_id uuid) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-declare
-  old_ids uuid[];
-  new_ids uuid[];
-begin
-  -- Step 1: Get map IDs from demo_mappings
-  select old_map_ids, new_map_ids
-  into old_ids, new_ids
-  from demo_mappings
-  where session_id = clone_line_items_for_maps.session_id;
-
-  -- Step 2: Clone line items from base maps
-  with map_map as (
-    select old_id, new_id
-    from unnest(old_ids, new_ids) with ordinality as t(old_id, new_id, ord)
-  ),
-  base_line_items as (
-    select li.*
-    from line_items li
-    join map_map mm on li.map_id = mm.old_id
-    where li.session_id is null
-  ),
-  mapped_line_items as (
-    select
-      gen_random_uuid() as new_id,
-      li.id as old_id,
-      mm.new_id as new_map_id,
-      m.wbs_id,
-      m.contract_id,
-      li.line_code,
-      li.description,
-      li.unit_measure,
-      li.quantity,
-      li.unit_price,
-      li.reference_doc,
-      li.coordinates
-    from base_line_items li
-    join maps m on li.map_id = m.id
-    join map_map mm on li.map_id = mm.old_id
-  ),
-  inserted_items as (
-    insert into line_items (
-      id, contract_id, wbs_id, map_id,
-      line_code, description, unit_measure,
-      quantity, unit_price, reference_doc,
-      coordinates, created_at, updated_at, session_id
-    )
-    select
-      mli.new_id,
-      mli.contract_id,
-      mli.wbs_id,
-      mli.new_map_id,
-      mli.line_code,
-      mli.description,
-      mli.unit_measure,
-      mli.quantity,
-      mli.unit_price,
-      mli.reference_doc,
-      mli.coordinates,
-      now(),
-      now(),
-      session_id
-    from mapped_line_items mli
-    returning id, old_id
-  )
-  -- Step 3: Save old/new line item IDs
-  update demo_mappings
-  set old_line_item_ids = (select array_agg(old_id) from inserted_items),
-      new_line_item_ids = (select array_agg(id) from inserted_items)
-  where session_id = clone_line_items_for_maps.session_id;
-end;
-$$;
 
 
 --
 -- TOC entry 1205 (class 1255 OID 18750)
--- Name: clone_maps_for_wbs(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.clone_maps_for_wbs(session_id uuid) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-declare
-  old_ids uuid[];
-  new_ids uuid[];
-begin
-  -- Step 1: Get WBS ID arrays from demo_mappings
-  select old_wbs_ids, new_wbs_ids
-  into old_ids, new_ids
-  from demo_mappings
-  where session_id = clone_maps_for_wbs.session_id;
-
-  -- Step 2: Clone maps tied to base WBS
-  with wbs_map as (
-    select old_id, new_id
-    from unnest(old_ids, new_ids) with ordinality as t(old_id, new_id, ord)
-  ),
-  base_maps as (
-    select m.*
-    from maps m
-    join wbs_map wm on m.wbs_id = wm.old_id
-    where m.session_id is null
-  ),
-  mapped_maps as (
-    select
-      gen_random_uuid() as new_id,
-      m.id as old_id,
-      wm.new_id as new_wbs_id,
-      m.contract_id,
-      m.map_number,
-      m.location_description,
-      m.scope,
-      m.budget,
-      m.coordinates
-    from base_maps m
-    join wbs_map wm on m.wbs_id = wm.old_id
-  ),
-  inserted_maps as (
-    insert into maps (
-      id, contract_id, wbs_id, map_number,
-      location_description, scope, budget,
-      coordinates, created_at, updated_at, session_id
-    )
-    select
-      mm.new_id,
-      mm.contract_id,
-      mm.new_wbs_id,
-      mm.map_number,
-      mm.location_description,
-      mm.scope,
-      mm.budget,
-      mm.coordinates,
-      now(),
-      now(),
-      session_id
-    from mapped_maps mm
-    returning id, old_id
-  )
-  -- Step 3: Update demo_mappings with map ID arrays
-  update demo_mappings
-  set old_map_ids = (select array_agg(old_id) from inserted_maps),
-      new_map_ids = (select array_agg(id) from inserted_maps)
-  where session_id = clone_maps_for_wbs.session_id;
-end;
-$$;
 
 
 --
 -- TOC entry 1209 (class 1255 OID 18751)
--- Name: clone_wbs_for_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.clone_wbs_for_contracts(session_id uuid) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-declare
-  old_ids uuid[];
-  new_ids uuid[];
-begin
-  -- Step 1: Get contract ID arrays from demo_mappings
-  select old_contract_ids, new_contract_ids
-  into old_ids, new_ids
-  from demo_mappings
-  where session_id = clone_wbs_for_contracts.session_id;
-
-  -- Step 2: Clone WBS using indexed pairing
-  with contract_map as (
-    select old_id, new_id
-    from unnest(old_ids, new_ids) with ordinality as t(old_id, new_id, ord)
-  ),
-  base_wbs as (
-    select w.*
-    from wbs w
-    join contract_map cm on w.contract_id = cm.old_id
-    where w.session_id is null
-  ),
-  mapped_wbs as (
-    select
-      gen_random_uuid() as new_id,
-      w.id as old_id,
-      cm.new_id as new_contract_id,
-      w.wbs_number,
-      w.scope,
-      w.location,
-      w.budget,
-      w.coordinates
-    from base_wbs w
-    join contract_map cm on w.contract_id = cm.old_id
-  ),
-  inserted_wbs as (
-    insert into wbs (
-      id, contract_id, wbs_number, scope, location,
-      budget, coordinates, created_at, updated_at, session_id
-    )
-    select
-      mw.new_id,
-      mw.new_contract_id,
-      mw.wbs_number,
-      mw.scope,
-      mw.location,
-      mw.budget,
-      mw.coordinates,
-      now(),
-      now(),
-      session_id
-    from mapped_wbs mw
-    returning id, old_id
-  )
-  -- Step 3: Update demo_mappings with old and new WBS IDs
-  update demo_mappings
-  set old_wbs_ids = (select array_agg(old_id) from inserted_wbs),
-      new_wbs_ids = (select array_agg(id) from inserted_wbs)
-  where session_id = clone_wbs_for_contracts.session_id;
-end;
-$$;
 
 
 --
--- TOC entry 1213 (class 1255 OID 18752)
--- Name: create_demo_environment(text); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.create_demo_environment(base_profile_email text) RETURNS json
-    LANGUAGE plpgsql SECURITY DEFINER
-    AS $$DECLARE
-  base_user_id uuid;
-  new_profile_id uuid := gen_random_uuid();
-  new_session_id uuid := gen_random_uuid();
-  cloned_username text;
-  cloned_phone text;
-  cloned_location text;
-  cloned_avatar_id uuid;
-  cloned_organization_id uuid;
-  cloned_job_title_id uuid;
-  cloned_role public.user_role; -- Assuming user_role is an enum in the public schema
-BEGIN
-  -- Step 0: Get the ID of the base user profile from its email
-  SELECT id, username, phone, location, avatar_id, organization_id, job_title_id, role
-  INTO base_user_id, cloned_username, cloned_phone, cloned_location, cloned_avatar_id, cloned_organization_id, cloned_job_title_id, cloned_role
-  FROM public.profiles
-  WHERE email = base_profile_email;
-
-  IF base_user_id IS NULL THEN
-    RAISE EXCEPTION 'Base profile with email % not found.', base_profile_email;
-  END IF;
-
-  -- Step 1: Clone profile from base user
-  -- The email for the new demo user will be dynamically generated to be unique.
-  -- You might want a different strategy for demo user emails if they need to be predictable.
-  INSERT INTO public.profiles (
-    id, email, full_name, username, phone, location,
-    avatar_id, organization_id, job_title_id,
-    role, created_at, updated_at, session_id
-  )
-  VALUES (
-    new_profile_id,
-    'demo_' || new_session_id::text || '@example.com', -- Creates a unique demo email
-    'TEST USER ' || substr(new_profile_id::text, 1, 8), -- Example: TEST USER abc12345
-    cloned_username || '_' || substr(new_profile_id::text, 1, 4), -- Appends part of UUID to make username unique
-    cloned_phone,
-    cloned_location,
-    cloned_avatar_id,
-    cloned_organization_id,
-    cloned_job_title_id,
-    cloned_role,
-    now(),
-    now(),
-    new_session_id -- Assign the new session_id to the profile itself
-  );
-
-  -- Step 2: Create tracking row in demo_mappings
-  INSERT INTO public.demo_mappings (
-    session_id,
-    old_profile_id, -- This was the ID of the base template user
-    new_profile_id  -- This is the ID of the newly created demo user profile
-  )
-  VALUES (
-    new_session_id,
-    base_user_id,
-    new_profile_id
-  );
-
-  -- Step 3: Return new_session_id and new_profile_id
-  RETURN json_build_object(
-    'created_session_id', new_session_id,
-    'created_profile_id', new_profile_id
-  );
-END;$$;
-
-
 --
 -- TOC entry 1216 (class 1255 OID 18753)
 -- Name: custom_access_token_hook(jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -1602,30 +343,7 @@ CREATE FUNCTION public.custom_access_token_hook(claims jsonb) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
-DECLARE
-  user_id uuid;
-  active_session_id uuid;
 BEGIN
-  -- Extract user_id from the standard JWT 'sub' claim (subject, which is the user's ID)
-  user_id := (claims->>'sub')::uuid;
-
-  -- Check if this user_id (which is the new_profile_id for a demo user)
-  -- exists in demo_mappings and get the corresponding session_id
-  SELECT dm.session_id INTO active_session_id
-  FROM public.demo_mappings dm
-  WHERE dm.new_profile_id = user_id
-  LIMIT 1; -- There should ideally be only one active session_id per demo user profile
-
-  -- If a session_id is found, add it and an is_demo_user flag to the claims
-  IF active_session_id IS NOT NULL THEN
-    claims := jsonb_set(claims, '{session_id}', to_jsonb(active_session_id));
-    claims := jsonb_set(claims, '{is_demo_user}', to_jsonb(true));
-  ELSE
-    -- For non-demo users, or if no mapping is found, explicitly set is_demo_user to false
-    claims := jsonb_set(claims, '{is_demo_user}', to_jsonb(false));
-  END IF;
-
-  -- Return the (potentially) modified claims
   RETURN claims;
 END;
 $$;
@@ -1762,17 +480,6 @@ $$;
 
 --
 -- TOC entry 975 (class 1255 OID 18763)
--- Name: delete_demo_mapping(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.delete_demo_mapping(_session_id uuid) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-begin
-  delete from demo_mappings
-  where session_id = _session_id;
-end;
-$$;
 
 
 --
@@ -2026,44 +733,6 @@ $$;
 
 
 --
--- TOC entry 1223 (class 1255 OID 18781)
--- Name: execute_full_demo_clone(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.execute_full_demo_clone(p_session_id uuid) RETURNS void
-    LANGUAGE plpgsql SECURITY DEFINER
-    AS $$
-BEGIN
-  -- Core project structure
-  PERFORM clone_contracts(p_session_id);
-  PERFORM clone_wbs_for_contracts(p_session_id);
-  PERFORM clone_maps_for_wbs(p_session_id);
-  PERFORM clone_line_items_for_maps(p_session_id);
-
-  -- Layered entities tied to line items / contracts
-  PERFORM clone_change_orders_for_session(p_session_id);
-  PERFORM clone_contract_organizations(p_session_id);
-  PERFORM clone_issues(p_session_id);
-  PERFORM clone_inspections(p_session_id);
-  PERFORM clone_daily_logs(p_session_id);
-
-  -- Resources & assignments
-  PERFORM clone_crews(p_session_id);
-  PERFORM clone_crew_members(p_session_id);
-  PERFORM clone_equipment(p_session_id);
-  PERFORM clone_equipment_assignments(p_session_id);
-
-  -- Line item-based production tracking
-  PERFORM clone_line_item_entries(p_session_id);
-  PERFORM clone_line_item_crew_assignments(p_session_id);
-  PERFORM clone_line_item_equipment_assignments(p_session_id);
-
-  -- Formula support
-  PERFORM clone_line_item_templates(p_session_id);
-
-  -- Done.
-END;
-$$;
 
 
 SET default_table_access_method = heap;
@@ -3057,79 +1726,12 @@ $$;
 
 --
 -- TOC entry 273 (class 1259 OID 18943)
--- Name: demo_mappings; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.demo_mappings (
-    session_id uuid NOT NULL,
-    created_at timestamp with time zone DEFAULT now(),
-    old_profile_id uuid,
-    new_profile_id uuid,
-    old_organization_ids uuid[],
-    new_organization_ids uuid[],
-    old_contract_ids uuid[],
-    new_contract_ids uuid[],
-    old_wbs_ids uuid[],
-    new_wbs_ids uuid[],
-    old_map_ids uuid[],
-    new_map_ids uuid[],
-    old_line_item_ids uuid[],
-    new_line_item_ids uuid[],
-    old_template_ids uuid[],
-    new_template_ids uuid[],
-    old_contract_org_ids uuid[],
-    new_contract_org_ids uuid[],
-    old_change_order_ids uuid[],
-    new_change_order_ids uuid[],
-    old_issue_ids uuid[],
-    new_issue_ids uuid[],
-    old_inspection_ids uuid[],
-    new_inspection_ids uuid[],
-    old_crew_ids uuid[],
-    new_crew_ids uuid[],
-    old_crew_member_ids uuid[],
-    new_crew_member_ids uuid[],
-    old_equipment_ids uuid[],
-    new_equipment_ids uuid[],
-    old_equipment_assignment_ids uuid[],
-    new_equipment_assignment_ids uuid[],
-    old_entry_ids uuid[],
-    new_entry_ids uuid[],
-    old_li_crew_ids uuid[],
-    new_li_crew_ids uuid[],
-    old_li_equipment_ids uuid[],
-    new_li_equipment_ids uuid[],
-    old_daily_log_ids uuid[],
-    new_daily_log_ids uuid[]
-);
 
 
 --
 -- TOC entry 968 (class 1255 OID 18949)
--- Name: filtered_by_session_demo_mappings(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.filtered_by_session_demo_mappings(_session_id uuid) RETURNS SETOF public.demo_mappings
-    LANGUAGE sql
-    AS $$
-  select * from demo_mappings
-  where session_id = _session_id
-  order by created_at desc;
-$$;
-
-
---
--- TOC entry 969 (class 1255 OID 18950)
--- Name: filtered_by_status_contracts(public.contract_status); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.filtered_by_status_contracts(_status public.contract_status) RETURNS SETOF public.contracts
-    LANGUAGE sql
-    AS $$
-  select * from contracts
-  where status = _status
-  order by created_at desc;
-$$;
 
 
 --
@@ -4455,25 +3057,6 @@ $$;
 
 --
 -- TOC entry 1042 (class 1255 OID 19021)
--- Name: insert_demo_mapping(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.insert_demo_mapping(_session_id uuid) RETURNS uuid
-    LANGUAGE plpgsql
-    AS $$
-declare
-  new_id uuid;
-begin
-  insert into demo_mappings (
-    session_id, created_at
-  )
-  values (
-    _session_id, now()
-  )
-  returning session_id into new_id;
-  return new_id;
-end;
-$$;
 
 
 --
@@ -5192,56 +3775,6 @@ $$;
 
 --
 -- TOC entry 1423 (class 1255 OID 19049)
--- Name: update_demo_mapping(uuid, text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text, text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text[], text, text[], text[]); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.update_demo_mapping(_session_id uuid, _new_change_order_ids text[] DEFAULT NULL::text[], _new_contract_ids text[] DEFAULT NULL::text[], _new_contract_org_ids text[] DEFAULT NULL::text[], _new_crew_ids text[] DEFAULT NULL::text[], _new_crew_member_ids text[] DEFAULT NULL::text[], _new_daily_log_ids text[] DEFAULT NULL::text[], _new_entry_ids text[] DEFAULT NULL::text[], _new_equipment_assignment_ids text[] DEFAULT NULL::text[], _new_equipment_ids text[] DEFAULT NULL::text[], _new_inspection_ids text[] DEFAULT NULL::text[], _new_issue_ids text[] DEFAULT NULL::text[], _new_li_crew_ids text[] DEFAULT NULL::text[], _new_li_equipment_ids text[] DEFAULT NULL::text[], _new_line_item_ids text[] DEFAULT NULL::text[], _new_map_ids text[] DEFAULT NULL::text[], _new_organization_ids text[] DEFAULT NULL::text[], _new_profile_id text DEFAULT NULL::text, _new_template_ids text[] DEFAULT NULL::text[], _new_wbs_ids text[] DEFAULT NULL::text[], _old_change_order_ids text[] DEFAULT NULL::text[], _old_contract_ids text[] DEFAULT NULL::text[], _old_contract_org_ids text[] DEFAULT NULL::text[], _old_crew_ids text[] DEFAULT NULL::text[], _old_crew_member_ids text[] DEFAULT NULL::text[], _old_daily_log_ids text[] DEFAULT NULL::text[], _old_entry_ids text[] DEFAULT NULL::text[], _old_equipment_assignment_ids text[] DEFAULT NULL::text[], _old_equipment_ids text[] DEFAULT NULL::text[], _old_inspection_ids text[] DEFAULT NULL::text[], _old_issue_ids text[] DEFAULT NULL::text[], _old_li_crew_ids text[] DEFAULT NULL::text[], _old_li_equipment_ids text[] DEFAULT NULL::text[], _old_line_item_ids text[] DEFAULT NULL::text[], _old_map_ids text[] DEFAULT NULL::text[], _old_organization_ids text[] DEFAULT NULL::text[], _old_profile_id text DEFAULT NULL::text, _old_template_ids text[] DEFAULT NULL::text[], _old_wbs_ids text[] DEFAULT NULL::text[]) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-begin
-  update demo_mappings
-  set
-    new_change_order_ids = coalesce(_new_change_order_ids, new_change_order_ids),
-    new_contract_ids = coalesce(_new_contract_ids, new_contract_ids),
-    new_contract_org_ids = coalesce(_new_contract_org_ids, new_contract_org_ids),
-    new_crew_ids = coalesce(_new_crew_ids, new_crew_ids),
-    new_crew_member_ids = coalesce(_new_crew_member_ids, new_crew_member_ids),
-    new_daily_log_ids = coalesce(_new_daily_log_ids, new_daily_log_ids),
-    new_entry_ids = coalesce(_new_entry_ids, new_entry_ids),
-    new_equipment_assignment_ids = coalesce(_new_equipment_assignment_ids, new_equipment_assignment_ids),
-    new_equipment_ids = coalesce(_new_equipment_ids, new_equipment_ids),
-    new_inspection_ids = coalesce(_new_inspection_ids, new_inspection_ids),
-    new_issue_ids = coalesce(_new_issue_ids, new_issue_ids),
-    new_li_crew_ids = coalesce(_new_li_crew_ids, new_li_crew_ids),
-    new_li_equipment_ids = coalesce(_new_li_equipment_ids, new_li_equipment_ids),
-    new_line_item_ids = coalesce(_new_line_item_ids, new_line_item_ids),
-    new_map_ids = coalesce(_new_map_ids, new_map_ids),
-    new_organization_ids = coalesce(_new_organization_ids, new_organization_ids),
-    new_profile_id = coalesce(_new_profile_id, new_profile_id),
-    new_template_ids = coalesce(_new_template_ids, new_template_ids),
-    new_wbs_ids = coalesce(_new_wbs_ids, new_wbs_ids),
-    old_change_order_ids = coalesce(_old_change_order_ids, old_change_order_ids),
-    old_contract_ids = coalesce(_old_contract_ids, old_contract_ids),
-    old_contract_org_ids = coalesce(_old_contract_org_ids, old_contract_org_ids),
-    old_crew_ids = coalesce(_old_crew_ids, old_crew_ids),
-    old_crew_member_ids = coalesce(_old_crew_member_ids, old_crew_member_ids),
-    old_daily_log_ids = coalesce(_old_daily_log_ids, old_daily_log_ids),
-    old_entry_ids = coalesce(_old_entry_ids, old_entry_ids),
-    old_equipment_assignment_ids = coalesce(_old_equipment_assignment_ids, old_equipment_assignment_ids),
-    old_equipment_ids = coalesce(_old_equipment_ids, old_equipment_ids),
-    old_inspection_ids = coalesce(_old_inspection_ids, old_inspection_ids),
-    old_issue_ids = coalesce(_old_issue_ids, old_issue_ids),
-    old_li_crew_ids = coalesce(_old_li_crew_ids, old_li_crew_ids),
-    old_li_equipment_ids = coalesce(_old_li_equipment_ids, old_li_equipment_ids),
-    old_line_item_ids = coalesce(_old_line_item_ids, old_line_item_ids),
-    old_map_ids = coalesce(_old_map_ids, old_map_ids),
-    old_organization_ids = coalesce(_old_organization_ids, old_organization_ids),
-    old_profile_id = coalesce(_old_profile_id, old_profile_id),
-    old_template_ids = coalesce(_old_template_ids, old_template_ids),
-    old_wbs_ids = coalesce(_old_wbs_ids, old_wbs_ids)
-  where session_id = _session_id;
-end;
-$$;
 
 
 --
@@ -5942,11 +4475,8 @@ ALTER TABLE ONLY public.daily_logs
 
 --
 -- TOC entry 4994 (class 2606 OID 19389)
--- Name: demo_mappings demo_mappings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.demo_mappings
-    ADD CONSTRAINT demo_mappings_pkey PRIMARY KEY (session_id);
 
 
 --
@@ -6680,7 +5210,6 @@ ALTER TABLE ONLY public.equipment_usage
 --
 
 ALTER TABLE ONLY public.avatars
-    ADD CONSTRAINT fk_avatars_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6689,7 +5218,6 @@ ALTER TABLE ONLY public.avatars
 --
 
 ALTER TABLE ONLY public.change_orders
-    ADD CONSTRAINT fk_change_orders_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6698,7 +5226,6 @@ ALTER TABLE ONLY public.change_orders
 --
 
 ALTER TABLE ONLY public.contract_organizations
-    ADD CONSTRAINT fk_contract_organizations_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6707,7 +5234,6 @@ ALTER TABLE ONLY public.contract_organizations
 --
 
 ALTER TABLE ONLY public.contracts
-    ADD CONSTRAINT fk_contracts_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6716,7 +5242,6 @@ ALTER TABLE ONLY public.contracts
 --
 
 ALTER TABLE ONLY public.crew_members
-    ADD CONSTRAINT fk_crew_members_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6725,7 +5250,6 @@ ALTER TABLE ONLY public.crew_members
 --
 
 ALTER TABLE ONLY public.crews
-    ADD CONSTRAINT fk_crews_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6734,7 +5258,6 @@ ALTER TABLE ONLY public.crews
 --
 
 ALTER TABLE ONLY public.daily_logs
-    ADD CONSTRAINT fk_daily_logs_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6743,7 +5266,6 @@ ALTER TABLE ONLY public.daily_logs
 --
 
 ALTER TABLE ONLY public.equipment_assignments
-    ADD CONSTRAINT fk_equipment_assignments_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6752,7 +5274,6 @@ ALTER TABLE ONLY public.equipment_assignments
 --
 
 ALTER TABLE ONLY public.equipment
-    ADD CONSTRAINT fk_equipment_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6761,7 +5282,6 @@ ALTER TABLE ONLY public.equipment
 --
 
 ALTER TABLE ONLY public.equipment_usage
-    ADD CONSTRAINT fk_equipment_usage_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6770,7 +5290,6 @@ ALTER TABLE ONLY public.equipment_usage
 --
 
 ALTER TABLE ONLY public.inspections
-    ADD CONSTRAINT fk_inspections_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6779,7 +5298,6 @@ ALTER TABLE ONLY public.inspections
 --
 
 ALTER TABLE ONLY public.issues
-    ADD CONSTRAINT fk_issues_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6788,7 +5306,6 @@ ALTER TABLE ONLY public.issues
 --
 
 ALTER TABLE ONLY public.job_titles
-    ADD CONSTRAINT fk_job_titles_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6797,7 +5314,6 @@ ALTER TABLE ONLY public.job_titles
 --
 
 ALTER TABLE ONLY public.line_item_entries
-    ADD CONSTRAINT fk_line_item_entries_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6806,7 +5322,6 @@ ALTER TABLE ONLY public.line_item_entries
 --
 
 ALTER TABLE ONLY public.line_item_templates
-    ADD CONSTRAINT fk_line_item_templates_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6815,7 +5330,6 @@ ALTER TABLE ONLY public.line_item_templates
 --
 
 ALTER TABLE ONLY public.line_items
-    ADD CONSTRAINT fk_line_items_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6824,7 +5338,6 @@ ALTER TABLE ONLY public.line_items
 --
 
 ALTER TABLE ONLY public.maps
-    ADD CONSTRAINT fk_maps_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6833,7 +5346,6 @@ ALTER TABLE ONLY public.maps
 --
 
 ALTER TABLE ONLY public.organizations
-    ADD CONSTRAINT fk_organizations_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6842,7 +5354,6 @@ ALTER TABLE ONLY public.organizations
 --
 
 ALTER TABLE ONLY public.profiles
-    ADD CONSTRAINT fk_profiles_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6851,7 +5362,6 @@ ALTER TABLE ONLY public.profiles
 --
 
 ALTER TABLE ONLY public.user_contracts
-    ADD CONSTRAINT fk_user_contracts_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -6860,7 +5370,6 @@ ALTER TABLE ONLY public.user_contracts
 --
 
 ALTER TABLE ONLY public.wbs
-    ADD CONSTRAINT fk_wbs_session FOREIGN KEY (session_id) REFERENCES public.demo_mappings(session_id) ON DELETE CASCADE;
 
 
 --
@@ -7226,34 +5735,26 @@ CREATE POLICY "Allow all select" ON public.contracts FOR SELECT USING (true);
 
 --
 -- TOC entry 5321 (class 3256 OID 20062)
--- Name: demo_mappings Allow authenticated users to delete their own mappings; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Allow authenticated users to delete their own mappings" ON public.demo_mappings FOR DELETE TO authenticated USING ((session_id = ( SELECT auth.uid() AS uid)));
 
 
 --
 -- TOC entry 5324 (class 3256 OID 20063)
--- Name: demo_mappings Allow authenticated users to insert mappings; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Allow authenticated users to insert mappings" ON public.demo_mappings FOR INSERT TO authenticated WITH CHECK ((session_id = ( SELECT auth.uid() AS uid)));
 
 
 --
 -- TOC entry 5325 (class 3256 OID 20064)
--- Name: demo_mappings Allow authenticated users to select their own mappings; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Allow authenticated users to select their own mappings" ON public.demo_mappings FOR SELECT TO authenticated USING ((session_id = ( SELECT auth.uid() AS uid)));
 
 
 --
 -- TOC entry 5326 (class 3256 OID 20065)
--- Name: demo_mappings Allow authenticated users to update their own mappings; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Allow authenticated users to update their own mappings" ON public.demo_mappings FOR UPDATE TO authenticated USING ((session_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((session_id = ( SELECT auth.uid() AS uid)));
 
 
 --
@@ -7717,10 +6218,8 @@ ALTER TABLE public.daily_logs ENABLE ROW LEVEL SECURITY;
 --
 -- TOC entry 5305 (class 0 OID 18943)
 -- Dependencies: 273
--- Name: demo_mappings; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
-ALTER TABLE public.demo_mappings ENABLE ROW LEVEL SECURITY;
 
 --
 -- TOC entry 5290 (class 0 OID 18782)

@@ -19,7 +19,6 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
 import { FileText, Plus, Pencil } from 'lucide-react';
-import { getDemoSession } from '@/lib/utils/cloneDemoData';
 
 // Define the structure of an inspection record
 interface Inspection {
@@ -273,8 +272,7 @@ export default function Inspections() {
         line_item_id: newInspection.line_item_id || undefined,
         pdf_url: pdfUrl,
         photo_urls: photoUrls.length > 0 ? photoUrls : undefined,
-        created_by: user.id,
-        ...(getDemoSession() ? { session_id: getDemoSession()!.sessionId } : {}),
+        created_by: user.id
       };
 
       let error;
@@ -290,7 +288,6 @@ export default function Inspections() {
           _map_id: insertData.map_id,
           _pdf_url: insertData.pdf_url,
           _photo_urls: insertData.photo_urls,
-          _session_id: insertData.session_id,
           _wbs_id: insertData.wbs_id,
         });
         error = result.error;
@@ -305,7 +302,6 @@ export default function Inspections() {
           _map_id: insertData.map_id,
           _pdf_url: insertData.pdf_url,
           _photo_urls: insertData.photo_urls,
-          _session_id: insertData.session_id,
           _wbs_id: insertData.wbs_id,
         });
         error = result.error;

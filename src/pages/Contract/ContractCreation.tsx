@@ -9,7 +9,6 @@ import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { ContractInfoForm } from './ContractDasboardComponents/ContractInfoForm';
 import { MapModal } from './SharedComponents/MapModal';
 import { MapPreview } from './SharedComponents/GoogleMaps/MapPreview';
-import { getDemoSession } from '@/lib/utils/cloneDemoData';
 import { parseWktToGeoJson, geometryToWKT } from '@/lib/utils/geometryUtils';
 
 import { supabase } from '@/lib/supabase';
@@ -60,7 +59,6 @@ export const ContractCreation = () => {
     try {
       // Generate a new UUID for the contract
       const contractId = uuidv4();
-      const demoSession = getDemoSession();
       // Prepare contract data
       // Insert the contract
       const { error: contractError } = await supabase.rpc('insert_contract', {
@@ -72,8 +70,7 @@ export const ContractCreation = () => {
         _budget: contractData.budget ?? 0,
         _status: contractData.status ?? 'Draft',
         _coordinates: contractData.coordinates_wkt ?? undefined,
-        _created_by: user.id,
-        ...(demoSession ? { _session_id: demoSession.sessionId } : {})
+        _created_by: user.id
       });
 
       if (contractError) throw contractError;
@@ -82,8 +79,7 @@ export const ContractCreation = () => {
       const { error: assignError } = await supabase.rpc('insert_user_contract', {
         _user_id: user.id,
         _contract_id: contractId,
-        _role: 'Project Manager',
-        ...(demoSession ? { _session_id: demoSession.sessionId } : {})
+        _role: 'Project Manager'
       });
 
       if (assignError) throw assignError;

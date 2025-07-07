@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom'; // Import hooks for r
 import { ArrowLeft } from 'lucide-react'; // Import arrow icon for navigation
 import { supabase } from '@/lib/supabase'; // Import Supabase client
 import { useAuthStore } from '@/lib/store'; // Import auth store to get user
-import { getDemoSession } from '@/lib/utils/cloneDemoData'; // Import demo session utility
 
 /** 
  * Change Order interface representing a change order record.
@@ -121,7 +120,6 @@ export default function ChangeOrders() {
   const handleCreateOrder = async () => {
     if (typeof newOrder.title !== 'string' || newOrder.title.length === 0 || typeof newOrder.line_item_id !== 'string' || newOrder.line_item_id.length === 0) return; // Ensure necessary fields are filled
 
-    const demoSession = getDemoSession();
     // Use the insert_change_order RPC function with correct backend mapping
     const safeContractId = typeof contract_id === 'string' ? contract_id : '';
     const safeStatus = (['draft', 'approved', 'rejected', 'pending'].includes(newOrder.status as string)
@@ -136,7 +134,6 @@ export default function ChangeOrders() {
       _new_unit_price: newOrder.new_unit_price,
       _status: safeStatus,
       _created_by: user?.id,
-      ...(demoSession ? { _session_id: demoSession.sessionId } : {}),
     });
 
     if (error) {
