@@ -332,7 +332,8 @@ export interface EnrichedUserProfile {
   organization_name: string | null;
   avatar_id: string | null;
   avatar_url: string | null;
-  session_id: string | null;
+  // session_id removed from schema
+  session_id?: string | null;
 }
 
 export interface EnrichedUserContract {
@@ -349,7 +350,8 @@ export interface EnrichedUserContract {
   status: ContractStatusValue | null;
   coordinates: Json | null; // Changed from any to Json
   user_contract_role: UserRole | null;
-  session_id?: string | null; // Added optional session_id for compatibility
+  // session_id removed from schema
+  session_id?: string | null;
 }
 
 /**

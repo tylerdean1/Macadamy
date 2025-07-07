@@ -795,7 +795,6 @@ CREATE TABLE public.daily_logs (
     updated_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now(),
-    session_id uuid
 );
 
 
@@ -844,7 +843,6 @@ CREATE TABLE public.equipment_assignments (
     created_by uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
-    session_id uuid,
     bid_rate numeric,
     line_item_id uuid,
     map_id uuid,
@@ -887,7 +885,6 @@ CREATE TABLE public.equipment_usage (
     updated_by uuid,
     updated_at timestamp with time zone,
     contract_id uuid,
-    session_id uuid,
     wbs_id uuid,
     CONSTRAINT equipment_usage_hours_used_check CHECK ((hours_used >= (0)::numeric))
 );
@@ -926,7 +923,6 @@ CREATE TABLE public.inspections (
     created_at timestamp with time zone DEFAULT now(),
     updated_by uuid,
     updated_at timestamp with time zone,
-    session_id uuid
 );
 
 
@@ -967,7 +963,6 @@ CREATE TABLE public.issues (
     photo_urls text[] DEFAULT '{}'::text[],
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
-    session_id uuid,
     priority public.priority DEFAULT 'Note'::public.priority,
     CONSTRAINT issues_status_check CHECK ((status = ANY (ARRAY['Open'::text, 'In Progress'::text, 'Resolved'::text])))
 );
@@ -1003,7 +998,6 @@ CREATE TABLE public.line_item_entries (
     input_variables jsonb NOT NULL,
     computed_output numeric,
     notes text,
-    session_id uuid,
     output_unit public.unit_measure_type
 );
 
@@ -1027,7 +1021,6 @@ $$;
 -- Name: filtered_by_contract_line_items(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.filtered_by_contract_line_items(_contract_id uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_id uuid, map_id uuid, description text, line_code text, quantity numeric, reference_doc text, template_id uuid, unit_measure public.unit_measure_type, unit_price numeric, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text)
     LANGUAGE sql
     AS $$
   select
@@ -1044,7 +1037,6 @@ CREATE FUNCTION public.filtered_by_contract_line_items(_contract_id uuid) RETURN
     li.unit_price,
     li.created_at,
     li.updated_at,
-    li.session_id,
     ST_AsText(li.coordinates) as coordinates_wkt
   from line_items li
   where li.contract_id = _contract_id
@@ -1057,7 +1049,6 @@ $$;
 -- Name: filtered_by_contract_maps(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.filtered_by_contract_maps(_contract_id uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_id uuid, map_number text, location text, scope text, budget numeric, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text)
     LANGUAGE sql
     AS $$
   select
@@ -1070,7 +1061,6 @@ CREATE FUNCTION public.filtered_by_contract_maps(_contract_id uuid) RETURNS TABL
     m.budget,
     m.created_at,
     m.updated_at,
-    m.session_id,
     ST_AsText(m.coordinates) as coordinates_wkt
   from maps m
   where m.contract_id = _contract_id
@@ -1087,7 +1077,6 @@ CREATE TABLE public.user_contracts (
     user_id uuid NOT NULL,
     contract_id uuid NOT NULL,
     role public.user_role DEFAULT 'Admin'::public.user_role,
-    session_id uuid
 );
 
 
@@ -1109,7 +1098,6 @@ $$;
 -- Name: filtered_by_contract_wbs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.filtered_by_contract_wbs(_contract_id uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_number text, location text, budget numeric, scope text, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text)
     LANGUAGE sql
     AS $$
   select
@@ -1121,7 +1109,6 @@ CREATE FUNCTION public.filtered_by_contract_wbs(_contract_id uuid) RETURNS TABLE
     w.scope,
     w.created_at,
     w.updated_at,
-    w.session_id,
     ST_AsText(w.coordinates) as coordinates_wkt
   from wbs w
   where w.contract_id = _contract_id
@@ -1145,7 +1132,6 @@ CREATE TABLE public.crew_members (
     updated_at timestamp with time zone DEFAULT now(),
     map_location_id uuid,
     location_notes text,
-    session_id uuid,
     organization_id uuid
 );
 
@@ -1242,7 +1228,6 @@ CREATE TABLE public.line_items (
     map_id uuid,
     contract_id uuid,
     coordinates public.geometry,
-    session_id uuid
 );
 
 ALTER TABLE ONLY public.line_items REPLICA IDENTITY FULL;
@@ -1407,7 +1392,6 @@ $$;
 -- Name: filtered_by_map_line_items(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.filtered_by_map_line_items(_map_id uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_id uuid, map_id uuid, description text, line_code text, quantity numeric, reference_doc text, template_id uuid, unit_measure public.unit_measure_type, unit_price numeric, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text)
     LANGUAGE sql
     AS $$
   select
@@ -1424,7 +1408,6 @@ CREATE FUNCTION public.filtered_by_map_line_items(_map_id uuid) RETURNS TABLE(id
     li.unit_price,
     li.created_at,
     li.updated_at,
-    li.session_id,
     ST_AsText(li.coordinates) as coordinates_wkt
   from line_items li
   where li.map_id = _map_id
@@ -1493,7 +1476,6 @@ CREATE TABLE public.contracts (
     budget numeric,
     status public.contract_status DEFAULT 'Draft'::public.contract_status NOT NULL,
     coordinates public.geometry,
-    session_id uuid
 );
 
 ALTER TABLE ONLY public.contracts REPLICA IDENTITY FULL;
@@ -1529,7 +1511,6 @@ CREATE TABLE public.crews (
     created_by uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
-    session_id uuid
 );
 
 ALTER TABLE ONLY public.crews REPLICA IDENTITY FULL;
@@ -1562,7 +1543,6 @@ CREATE TABLE public.equipment (
     operator_id uuid,
     created_by uuid,
     created_at timestamp with time zone DEFAULT now(),
-    session_id uuid,
     organization_id uuid,
     standard_pay_rate numeric,
     standard_pay_unit public.pay_rate_unit
@@ -1598,7 +1578,6 @@ CREATE TABLE public.line_item_templates (
     instructions text,
     organization_id uuid,
     created_by uuid,
-    session_id uuid
 );
 
 
@@ -1634,7 +1613,6 @@ CREATE TABLE public.profiles (
     job_title_id uuid,
     organization_id uuid,
     avatar_id uuid,
-    session_id uuid
 );
 
 ALTER TABLE ONLY public.profiles REPLICA IDENTITY FULL;
@@ -1836,7 +1814,6 @@ $$;
 -- Name: filtered_by_wbs_line_items(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.filtered_by_wbs_line_items(_wbs_id uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_id uuid, map_id uuid, description text, line_code text, quantity numeric, reference_doc text, template_id uuid, unit_measure public.unit_measure_type, unit_price numeric, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text)
     LANGUAGE sql
     AS $$
   select
@@ -1853,7 +1830,6 @@ CREATE FUNCTION public.filtered_by_wbs_line_items(_wbs_id uuid) RETURNS TABLE(id
     li.unit_price,
     li.created_at,
     li.updated_at,
-    li.session_id,
     ST_AsText(li.coordinates) as coordinates_wkt
   from line_items li
   where li.wbs_id = _wbs_id
@@ -1866,7 +1842,6 @@ $$;
 -- Name: filtered_by_wbs_maps(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.filtered_by_wbs_maps(_wbs_id uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_id uuid, map_number text, location text, scope text, budget numeric, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text)
     LANGUAGE sql
     AS $$
   select
@@ -1879,7 +1854,6 @@ CREATE FUNCTION public.filtered_by_wbs_maps(_wbs_id uuid) RETURNS TABLE(id uuid,
     m.budget,
     m.created_at,
     m.updated_at,
-    m.session_id,
     ST_AsText(m.coordinates) as coordinates_wkt
   from maps m
   where m.wbs_id = _wbs_id
@@ -1892,7 +1866,6 @@ $$;
 -- Name: get_all_line_item_templates(); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_all_line_item_templates() RETURNS TABLE(id uuid, name text, description text, unit_type public.unit_measure_type, formula jsonb, instructions text, session_id uuid)
     LANGUAGE sql
     AS $$
   select
@@ -1902,7 +1875,6 @@ CREATE FUNCTION public.get_all_line_item_templates() RETURNS TABLE(id uuid, name
     lit.unit_type,
     lit.formula,
     lit.instructions,
-    lit.session_id
   from line_item_templates lit;
 $$;
 
@@ -1912,7 +1884,6 @@ $$;
 -- Name: get_all_profiles(); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_all_profiles() RETURNS TABLE(id uuid, full_name text, username text, email text, phone text, location text, role public.user_role, job_title_id uuid, organization_id uuid, avatar_id uuid, avatar_url text, session_id uuid)
     LANGUAGE sql
     AS $$
   select
@@ -1927,7 +1898,6 @@ CREATE FUNCTION public.get_all_profiles() RETURNS TABLE(id uuid, full_name text,
     p.organization_id,
     p.avatar_id,
     a.url as avatar_url,
-    p.session_id
   from profiles p
   left join avatars a on p.avatar_id = a.id;
 $$;
@@ -1969,18 +1939,15 @@ $$;
 -- Name: get_avatars_for_profile(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_avatars_for_profile(_profile_id uuid) RETURNS TABLE(id uuid, url text, is_preset boolean, session_id uuid)
     LANGUAGE sql
     AS $$
   -- Get all preset avatars
-  SELECT a.id, a.url, a.is_preset, a.session_id
   FROM avatars a
   WHERE a.is_preset = true
   
   UNION
   
   -- Get the profile's dedicated avatar (if it exists)
-  SELECT a.id, a.url, a.is_preset, a.session_id
   FROM avatars a
   WHERE a.id = _profile_id
 $$;
@@ -1991,7 +1958,6 @@ $$;
 -- Name: get_change_orders(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_change_orders(contract_id uuid) RETURNS TABLE(id uuid, line_item_id uuid, new_quantity numeric, new_unit_price numeric, title text, description text, status public.change_order_status, submitted_date date, approved_date date, approved_by uuid, created_by uuid, attachments text[], session_id uuid)
     LANGUAGE sql
     AS $$
   select
@@ -2007,7 +1973,6 @@ CREATE FUNCTION public.get_change_orders(contract_id uuid) RETURNS TABLE(id uuid
     co.approved_by,
     co.created_by,
     co.attachments,
-    co.session_id
   from change_orders co
   where co.contract_id = contract_id;
 $$;
@@ -2035,7 +2000,6 @@ CREATE TABLE public.change_orders (
     updated_at timestamp with time zone,
     updated_by uuid,
     attachments text[],
-    session_id uuid
 );
 
 
@@ -2044,7 +2008,6 @@ CREATE TABLE public.change_orders (
 -- Name: get_change_orders(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_change_orders(_contract_id uuid DEFAULT NULL::uuid, _line_item_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid) RETURNS SETOF public.change_orders
     LANGUAGE sql
     AS $$
   select *
@@ -2052,7 +2015,6 @@ CREATE FUNCTION public.get_change_orders(_contract_id uuid DEFAULT NULL::uuid, _
   where
     (_contract_id is null or contract_id = _contract_id)
     and (_line_item_id is null or line_item_id = _line_item_id)
-    and (_session_id is null or session_id = _session_id)
   order by created_at desc;
 $$;
 
@@ -2066,14 +2028,12 @@ CREATE FUNCTION public.get_change_orders_count_for_contract(contract_id_param uu
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     AS $$
 DECLARE
-    current_session_id uuid := (SELECT NULLIF(current_setting('request.jwt.claims', true)::jsonb ->> 'session_id', ''))::uuid;
     change_orders_count integer;
 BEGIN
     SELECT COUNT(*)
     INTO change_orders_count
     FROM public.change_orders
     WHERE contract_id = contract_id_param
-      AND (session_id = current_session_id OR (current_session_id IS NULL AND session_id IS NULL));
     
     RETURN change_orders_count;
 END;
@@ -2102,7 +2062,6 @@ $$;
 -- Name: get_contract_with_wkt(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_contract_with_wkt(contract_id uuid) RETURNS TABLE(id uuid, title text, description text, location text, start_date date, end_date date, budget numeric, status public.contract_status, coordinates_wkt text, session_id uuid)
     LANGUAGE sql
     AS $$
   select
@@ -2115,7 +2074,6 @@ CREATE FUNCTION public.get_contract_with_wkt(contract_id uuid) RETURNS TABLE(id 
     c.budget,
     c.status,
     st_astext(c.coordinates)::text as coordinates_wkt,
-    c.session_id
   from contracts c
   where c.id = contract_id;
 $$;
@@ -2126,7 +2084,6 @@ $$;
 -- Name: get_crew_members_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_crew_members_by_organization(_organization_id uuid) RETURNS TABLE(crew_id uuid, profile_id uuid, role text, assigned_at timestamp with time zone, created_by uuid, map_location_id uuid, location_notes text, session_id uuid)
     LANGUAGE sql
     AS $$
   select
@@ -2137,7 +2094,6 @@ CREATE FUNCTION public.get_crew_members_by_organization(_organization_id uuid) R
     cm.created_by,
     cm.map_location_id,
     cm.location_notes,
-    cm.session_id
   from crew_members cm
   join crews c on cm.crew_id = c.id
   where c.organization_id = _organization_id;
@@ -2149,7 +2105,6 @@ $$;
 -- Name: get_crews_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_crews_by_organization(_organization_id uuid) RETURNS TABLE(id uuid, name text, description text, foreman_id uuid, created_by uuid, session_id uuid)
     LANGUAGE sql
     AS $$
   select
@@ -2158,7 +2113,6 @@ CREATE FUNCTION public.get_crews_by_organization(_organization_id uuid) RETURNS 
     c.description,
     c.foreman_id,
     c.created_by,
-    c.session_id
   from crews c
   where c.organization_id = _organization_id;
 $$;
@@ -2169,7 +2123,6 @@ $$;
 -- Name: get_daily_logs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_daily_logs(_contract_id uuid) RETURNS TABLE(id uuid, log_date date, weather_conditions text, temperature text, work_performed text, delays_encountered text, visitors text, safety_incidents text, created_by uuid, session_id uuid)
     LANGUAGE sql
     AS $$
   select
@@ -2182,7 +2135,6 @@ CREATE FUNCTION public.get_daily_logs(_contract_id uuid) RETURNS TABLE(id uuid, 
     dl.visitors,
     dl.safety_incidents,
     dl.created_by,
-    dl.session_id
   from daily_logs dl
   where dl.contract_id = _contract_id;
 $$;
@@ -2216,7 +2168,6 @@ $$;
 -- Name: get_enriched_profile(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_enriched_profile(_user_id uuid) RETURNS TABLE(id uuid, full_name text, username text, email text, phone text, location text, role public.user_role, job_title_id uuid, organization_id uuid, avatar_id uuid, avatar_url text, job_title text, organization_name text, session_id uuid)
     LANGUAGE sql
     AS $$
   select
@@ -2233,7 +2184,6 @@ CREATE FUNCTION public.get_enriched_profile(_user_id uuid) RETURNS TABLE(id uuid
     a.url as avatar_url,
     jt.title as job_title,
     o.name as organization_name,
-    p.session_id
   from profiles p
   left join avatars a on p.avatar_id = a.id
   left join job_titles jt on p.job_title_id = jt.id
@@ -2247,7 +2197,6 @@ $$;
 -- Name: get_enriched_profile_by_username(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_enriched_profile_by_username(_username text) RETURNS TABLE(id uuid, full_name text, username text, email text, phone text, location text, role public.user_role, job_title_id uuid, organization_id uuid, avatar_id uuid, avatar_url text, job_title text, organization_name text, session_id uuid)
     LANGUAGE sql
     AS $$
   select
@@ -2264,7 +2213,6 @@ CREATE FUNCTION public.get_enriched_profile_by_username(_username text) RETURNS 
     a.url as avatar_url,
     jt.title as job_title,
     o.name as organization_name,
-    p.session_id
   from profiles p
   left join avatars a on p.avatar_id = a.id
   left join job_titles jt on p.job_title_id = jt.id
@@ -2300,13 +2248,9 @@ CREATE FUNCTION public.get_enriched_user_contracts(_user_id uuid) RETURNS TABLE(
   JOIN user_contracts uc ON c.id = uc.contract_id
   WHERE uc.user_id = _user_id
   AND (
-    uc.session_id IS NULL OR uc.session_id = (
-      SELECT current_setting('request.jwt.claims', true)::jsonb ->> 'session_id'
     )::uuid
   )
   AND (
-    c.session_id IS NULL OR c.session_id = (
-      SELECT current_setting('request.jwt.claims', true)::jsonb ->> 'session_id'
     )::uuid
   );
 $$;
@@ -2333,7 +2277,6 @@ $$;
 -- Name: get_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_equipment_assignments(_contract_id uuid) RETURNS TABLE(id uuid, equipment_id uuid, operator_id uuid, start_date date, end_date date, status text, notes text, session_id uuid)
     LANGUAGE sql
     AS $$
   select
@@ -2344,7 +2287,6 @@ CREATE FUNCTION public.get_equipment_assignments(_contract_id uuid) RETURNS TABL
     ea.end_date,
     ea.status,
     ea.notes,
-    ea.session_id
   from equipment_assignments ea
   where ea.contract_id = _contract_id;
 $$;
@@ -2355,7 +2297,6 @@ $$;
 -- Name: get_equipment_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_equipment_by_organization(_organization_id uuid) RETURNS TABLE(id uuid, user_defined_id text, name text, description text, operator_id uuid, session_id uuid)
     LANGUAGE sql
     AS $$
   select
@@ -2364,7 +2305,6 @@ CREATE FUNCTION public.get_equipment_by_organization(_organization_id uuid) RETU
     e.name,
     e.description,
     e.operator_id,
-    e.session_id
   from equipment e
   where e.organization_id = _organization_id;
 $$;
@@ -2375,7 +2315,6 @@ $$;
 -- Name: get_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_equipment_usage(_contract_id uuid) RETURNS TABLE(equipment_id uuid, wbs_id uuid, map_id uuid, line_item_id uuid, usage_date date, hours_used numeric, operator_id uuid, session_id uuid)
     LANGUAGE sql
     AS $$
   select
@@ -2386,7 +2325,6 @@ CREATE FUNCTION public.get_equipment_usage(_contract_id uuid) RETURNS TABLE(equi
     eu.usage_date,
     eu.hours_used,
     eu.operator_id,
-    eu.session_id
   from equipment_usage eu
   where eu.contract_id = _contract_id;
 $$;
@@ -2401,14 +2339,12 @@ CREATE FUNCTION public.get_inspections_count_for_contract(contract_id_param uuid
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     AS $$
 DECLARE
-    current_session_id uuid := (SELECT NULLIF(current_setting('request.jwt.claims', true)::jsonb ->> 'session_id', ''))::uuid;
     inspections_count integer;
 BEGIN
     SELECT COUNT(*)
     INTO inspections_count
     FROM public.inspections
     WHERE contract_id = contract_id_param
-      AND (session_id = current_session_id OR (current_session_id IS NULL AND session_id IS NULL));
     
     RETURN inspections_count;
 END;
@@ -2420,7 +2356,6 @@ $$;
 -- Name: get_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_issues(_contract_id uuid) RETURNS TABLE(id uuid, wbs_id uuid, map_id uuid, line_item_id uuid, equipment_id uuid, title text, description text, priority text, status text, due_date date, resolution text, assigned_to uuid, created_by uuid, photo_urls text[], session_id uuid)
     LANGUAGE sql
     AS $$
   select
@@ -2438,7 +2373,6 @@ CREATE FUNCTION public.get_issues(_contract_id uuid) RETURNS TABLE(id uuid, wbs_
     i.assigned_to,
     i.created_by,
     i.photo_urls,
-    i.session_id
   from issues i
   where i.contract_id = _contract_id;
 $$;
@@ -2453,14 +2387,12 @@ CREATE FUNCTION public.get_issues_count_for_contract(contract_id_param uuid) RET
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     AS $$
 DECLARE
-    current_session_id uuid := (SELECT NULLIF(current_setting('request.jwt.claims', true)::jsonb ->> 'session_id', ''))::uuid;
     issues_count integer;
 BEGIN
     SELECT COUNT(*)
     INTO issues_count
     FROM public.issues
     WHERE contract_id = contract_id_param
-      AND (session_id = current_session_id OR (current_session_id IS NULL AND session_id IS NULL));
     
     RETURN issues_count;
 END;
@@ -2472,13 +2404,11 @@ $$;
 -- Name: get_job_titles(); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_job_titles() RETURNS TABLE(title text, is_custom boolean, session_id uuid)
     LANGUAGE sql
     AS $$
   select
     jt.title,
     jt.is_custom,
-    jt.session_id
   from job_titles jt;
 $$;
 
@@ -2488,7 +2418,6 @@ $$;
 -- Name: get_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_line_item_entries(_contract_id uuid) RETURNS TABLE(id uuid, wbs_id uuid, map_id uuid, line_item_id uuid, entered_by uuid, input_variables jsonb, computed_output numeric, notes text, output_unit public.unit_measure_type, session_id uuid)
     LANGUAGE sql
     AS $$
   select
@@ -2501,7 +2430,6 @@ CREATE FUNCTION public.get_line_item_entries(_contract_id uuid) RETURNS TABLE(id
     lie.computed_output,
     lie.notes,
     lie.output_unit,
-    lie.session_id
   from line_item_entries lie
   where lie.contract_id = _contract_id;
 $$;
@@ -2512,7 +2440,6 @@ $$;
 -- Name: get_line_item_templates_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_line_item_templates_by_organization(_organization_id uuid) RETURNS TABLE(id uuid, name text, description text, unit_type public.unit_measure_type, formula jsonb, instructions text, session_id uuid)
     LANGUAGE sql
     AS $$
   select
@@ -2522,7 +2449,6 @@ CREATE FUNCTION public.get_line_item_templates_by_organization(_organization_id 
     lit.unit_type,
     lit.formula,
     lit.instructions,
-    lit.session_id
   from line_item_templates lit
   where lit.organization_id = _organization_id;
 $$;
@@ -2533,11 +2459,9 @@ $$;
 -- Name: get_line_items_with_wkt(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_line_items_with_wkt(contract_id_param uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_id uuid, description text, quantity numeric, unit public.unit_measure_type, unit_price numeric, total_price numeric, notes text, status text, start_date date, end_date date, actual_quantity numeric, actual_cost numeric, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text, line_code text, map_id uuid, unit_measure text, reference_doc text, template_id text)
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     AS $$
 DECLARE
-    current_session_id uuid := (SELECT NULLIF(current_setting('request.jwt.claims', true)::jsonb ->> 'session_id', ''))::uuid;
 BEGIN
     RETURN QUERY
     SELECT
@@ -2557,7 +2481,6 @@ BEGIN
         li.actual_cost,
         li.created_at,
         li.updated_at,
-        li.session_id,
         ST_AsText(li.coordinates)::text as coordinates_wkt,
         li.line_code,
         li.map_id,
@@ -2568,7 +2491,6 @@ BEGIN
         public.line_items li
     WHERE
         li.contract_id = contract_id_param
-        AND (li.session_id = current_session_id OR (current_session_id IS NULL AND li.session_id IS NULL))
     ORDER BY
         li.description;
 END;
@@ -2580,7 +2502,6 @@ $$;
 -- Name: get_line_items_with_wkt(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_line_items_with_wkt(_contract_id uuid, _session_id uuid DEFAULT NULL::uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_id uuid, map_id uuid, description text, line_code text, quantity numeric, reference_doc text, template_id uuid, unit_measure public.unit_measure_type, unit_price numeric, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text)
     LANGUAGE sql
     AS $$
   select
@@ -2597,11 +2518,9 @@ CREATE FUNCTION public.get_line_items_with_wkt(_contract_id uuid, _session_id uu
     li.unit_price,
     li.created_at,
     li.updated_at,
-    li.session_id,
     ST_AsText(li.coordinates) as coordinates_wkt
   from line_items li
   where li.contract_id = _contract_id
-    and (_session_id is null or li.session_id = _session_id)
 $$;
 
 
@@ -2610,7 +2529,6 @@ $$;
 -- Name: get_maps_with_wkt(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_maps_with_wkt(contract_id uuid) RETURNS TABLE(id uuid, wbs_id uuid, map_number text, location text, scope text, budget numeric, coordinates_wkt text, session_id uuid)
     LANGUAGE sql
     AS $$
   select
@@ -2621,7 +2539,6 @@ CREATE FUNCTION public.get_maps_with_wkt(contract_id uuid) RETURNS TABLE(id uuid
     m.scope,
     m.budget,
     ST_AsText(m.coordinates)::text as coordinates_wkt,
-    m.session_id
   from maps m
   where m.contract_id = contract_id;
 $$;
@@ -2632,7 +2549,6 @@ $$;
 -- Name: get_maps_with_wkt(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_maps_with_wkt(_contract_id uuid, _session_id uuid DEFAULT NULL::uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_id uuid, map_number text, location text, scope text, budget numeric, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text)
     LANGUAGE sql
     AS $$
   select
@@ -2645,11 +2561,9 @@ CREATE FUNCTION public.get_maps_with_wkt(_contract_id uuid, _session_id uuid DEF
     m.budget,
     m.created_at,
     m.updated_at,
-    m.session_id,
     ST_AsText(m.coordinates) as coordinates_wkt
   from maps m
   where m.contract_id = _contract_id
-    and (_session_id is null or m.session_id = _session_id)
 $$;
 
 
@@ -2658,7 +2572,6 @@ $$;
 -- Name: get_organizations(); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_organizations() RETURNS TABLE(id uuid, name text, address text, phone text, website text, session_id uuid)
     LANGUAGE sql
     AS $$
   select
@@ -2667,7 +2580,6 @@ CREATE FUNCTION public.get_organizations() RETURNS TABLE(id uuid, name text, add
     o.address,
     o.phone,
     o.website,
-    o.session_id
   from organizations o;
 $$;
 
@@ -2677,7 +2589,6 @@ $$;
 -- Name: get_profiles_by_contract(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_profiles_by_contract(_contract_id uuid) RETURNS TABLE(id uuid, full_name text, username text, email text, phone text, location text, role public.user_role, job_title_id uuid, organization_id uuid, avatar_id uuid, avatar_url text, session_id uuid)
     LANGUAGE sql
     AS $$
   select
@@ -2692,7 +2603,6 @@ CREATE FUNCTION public.get_profiles_by_contract(_contract_id uuid) RETURNS TABLE
     p.organization_id,
     p.avatar_id,
     a.url as avatar_url,
-    p.session_id
   from profiles p
   join user_contracts uc on uc.user_id = p.id
   left join avatars a on p.avatar_id = a.id
@@ -2705,7 +2615,6 @@ $$;
 -- Name: get_profiles_by_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_profiles_by_organization(_organization_id uuid) RETURNS TABLE(id uuid, full_name text, username text, email text, phone text, location text, role public.user_role, job_title_id uuid, organization_id uuid, avatar_id uuid, avatar_url text, session_id uuid)
     LANGUAGE sql
     AS $$
 select
@@ -2720,7 +2629,6 @@ select
   p.organization_id,
   p.avatar_id,
   a.url as avatar_url,
-  p.session_id
 from profiles p
 left join avatars a on p.avatar_id = a.id
 where p.organization_id = _organization_id;
@@ -2732,13 +2640,11 @@ $$;
 -- Name: get_user_contracts(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_user_contracts(_user_id uuid) RETURNS TABLE(contract_id uuid, role public.user_role, session_id uuid)
     LANGUAGE sql
     AS $$
 select
   uc.contract_id,
   uc.role,
-  uc.session_id
 from user_contracts uc
 where uc.user_id = _user_id;
 $$;
@@ -2749,11 +2655,9 @@ $$;
 -- Name: get_wbs_with_wkt(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_wbs_with_wkt(contract_id_param uuid) RETURNS TABLE(id uuid, contract_id uuid, description text, level integer, parent_wbs_id uuid, order_number integer, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text, wbs_number text, budget numeric, scope text, location text)
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     AS $$
 DECLARE
-    current_session_id uuid := (SELECT NULLIF(current_setting('request.jwt.claims', true)::jsonb ->> 'session_id', ''))::uuid;
 BEGIN
     RETURN QUERY
     SELECT
@@ -2765,7 +2669,6 @@ BEGIN
         w.order_number,
         w.created_at,
         w.updated_at,
-        w.session_id,
         ST_AsText(w.coordinates)::text as coordinates_wkt,
         w.wbs_number,
         w.budget,
@@ -2775,7 +2678,6 @@ BEGIN
         public.wbs w
     WHERE
         w.contract_id = contract_id_param
-        AND (w.session_id = current_session_id OR (current_session_id IS NULL AND w.session_id IS NULL))
     ORDER BY
         w.order_number;
 END;
@@ -2787,7 +2689,6 @@ $$;
 -- Name: get_wbs_with_wkt(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_wbs_with_wkt(_contract_id uuid, _session_id uuid DEFAULT NULL::uuid) RETURNS TABLE(id uuid, contract_id uuid, wbs_number text, location text, budget numeric, scope text, created_at timestamp with time zone, updated_at timestamp with time zone, session_id uuid, coordinates_wkt text)
     LANGUAGE sql
     AS $$
   select
@@ -2799,11 +2700,9 @@ CREATE FUNCTION public.get_wbs_with_wkt(_contract_id uuid, _session_id uuid DEFA
     w.scope,
     w.created_at,
     w.updated_at,
-    w.session_id,
     ST_AsText(w.coordinates) as coordinates_wkt
   from wbs w
   where w.contract_id = _contract_id
-    and (_session_id is null or w.session_id = _session_id)
 $$;
 
 
@@ -2867,19 +2766,16 @@ $$;
 -- Name: insert_avatar(uuid, text, text, boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_avatar(_id uuid, _name text, _url text, _is_preset boolean DEFAULT false, _session_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 begin
   insert into avatars (
-    id, name, url, is_preset, session_id, created_at
   )
   values (
     _id,
     _name,
     _url,
     _is_preset,
-    _session_id,
     now()
   );
   return _id;
@@ -2892,7 +2788,6 @@ $$;
 -- Name: insert_change_order(uuid, uuid, text, text, text[], numeric, numeric, public.change_order_status, timestamp with time zone, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_change_order(_contract_id uuid, _line_item_id uuid DEFAULT NULL::uuid, _title text DEFAULT NULL::text, _description text DEFAULT NULL::text, _attachments text[] DEFAULT NULL::text[], _new_quantity numeric DEFAULT NULL::numeric, _new_unit_price numeric DEFAULT NULL::numeric, _status public.change_order_status DEFAULT 'pending'::public.change_order_status, _submitted_date timestamp with time zone DEFAULT now(), _created_by uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
@@ -2901,12 +2796,10 @@ begin
   insert into change_orders (
     id, contract_id, line_item_id, title, description, attachments,
     new_quantity, new_unit_price, status, submitted_date,
-    created_by, session_id, created_at
   )
   values (
     gen_random_uuid(), _contract_id, _line_item_id, _title, _description, _attachments,
     _new_quantity, _new_unit_price, _status, _submitted_date,
-    _created_by, _session_id, now()
   )
   returning id into new_id;
 
@@ -2945,7 +2838,6 @@ $$;
 -- Name: insert_contract_organization(uuid, uuid, uuid, public.organization_role, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_contract_organization(_contract_id uuid, _organization_id uuid, _created_by uuid, _role public.organization_role DEFAULT NULL::public.organization_role, _notes text DEFAULT NULL::text, _session_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
@@ -2958,7 +2850,6 @@ begin
     role,
     notes,
     created_by,
-    session_id,
     created_at
   )
   values (
@@ -2968,7 +2859,6 @@ begin
     _role,
     _notes,
     _created_by,
-    _session_id,
     now()
   )
   returning id into new_id;
@@ -2983,17 +2873,14 @@ $$;
 -- Name: insert_crew(text, uuid, uuid, text, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_crew(_name text, _organization_id uuid, _created_by uuid, _description text DEFAULT NULL::text, _foreman_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into crews (
-    id, name, organization_id, created_by, description, foreman_id, session_id, created_at
   )
   values (
-    gen_random_uuid(), _name, _organization_id, _created_by, _description, _foreman_id, _session_id, now()
   )
   returning id into new_id;
   return new_id;
@@ -3006,7 +2893,6 @@ $$;
 -- Name: insert_crew_member(uuid, uuid, uuid, text, text, uuid, uuid, uuid, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_crew_member(_created_by uuid, _crew_id uuid, _profile_id uuid, _role text DEFAULT NULL::text, _location_notes text DEFAULT NULL::text, _organization_id uuid DEFAULT NULL::uuid, _map_location_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _assigned_at timestamp with time zone DEFAULT NULL::timestamp with time zone) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
@@ -3015,12 +2901,10 @@ begin
   insert into crew_members (
     id, created_by, crew_id, profile_id, role,
     location_notes, organization_id, map_location_id,
-    session_id, assigned_at, created_at
   )
   values (
     gen_random_uuid(), _created_by, _crew_id, _profile_id, _role,
     _location_notes, _organization_id, _map_location_id,
-    _session_id, _assigned_at, now()
   )
   returning id into new_id;
   return new_id;
@@ -3033,7 +2917,6 @@ $$;
 -- Name: insert_daily_log(uuid, date, uuid, text, text, numeric, text, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_daily_log(_contract_id uuid, _log_date date, _created_by uuid DEFAULT NULL::uuid, _work_performed text DEFAULT NULL::text, _weather_conditions text DEFAULT NULL::text, _temperature numeric DEFAULT NULL::numeric, _delays_encountered text DEFAULT NULL::text, _safety_incidents text DEFAULT NULL::text, _visitors text DEFAULT NULL::text, _session_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
@@ -3042,12 +2925,10 @@ begin
   insert into daily_logs (
     id, contract_id, log_date, created_by, work_performed,
     weather_conditions, temperature, delays_encountered, safety_incidents,
-    visitors, session_id, created_at
   )
   values (
     gen_random_uuid(), _contract_id, _log_date, _created_by, _work_performed,
     _weather_conditions, _temperature, _delays_encountered, _safety_incidents,
-    _visitors, _session_id, now()
   )
   returning id into new_id;
   return new_id;
@@ -3122,18 +3003,15 @@ $$;
 -- Name: insert_equipment(text, uuid, uuid, uuid, uuid, numeric, public.pay_rate_unit, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_equipment(_name text, _created_by uuid DEFAULT NULL::uuid, _operator_id uuid DEFAULT NULL::uuid, _organization_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _standard_pay_rate numeric DEFAULT NULL::numeric, _standard_pay_unit public.pay_rate_unit DEFAULT NULL::public.pay_rate_unit, _description text DEFAULT NULL::text, _user_defined_id text DEFAULT NULL::text) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into equipment (
-    id, name, created_by, operator_id, organization_id, session_id,
     standard_pay_rate, standard_pay_unit, description, user_defined_id, created_at
   )
   values (
-    gen_random_uuid(), _name, _created_by, _operator_id, _organization_id, _session_id,
     _standard_pay_rate, _standard_pay_unit, _description, _user_defined_id, now()
   )
   returning id into new_id;
@@ -3147,7 +3025,6 @@ $$;
 -- Name: insert_equipment_usage(numeric, uuid, uuid, uuid, uuid, uuid, uuid, uuid, text, uuid, date, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_equipment_usage(_hours_used numeric, _contract_id uuid DEFAULT NULL::uuid, _created_by uuid DEFAULT NULL::uuid, _equipment_id uuid DEFAULT NULL::uuid, _line_item_id uuid DEFAULT NULL::uuid, _map_id uuid DEFAULT NULL::uuid, _operator_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _notes text DEFAULT NULL::text, _updated_by uuid DEFAULT NULL::uuid, _usage_date date DEFAULT NULL::date, _wbs_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
@@ -3155,11 +3032,9 @@ declare
 begin
   insert into equipment_usage (
     id, contract_id, created_by, equipment_id, line_item_id, hours_used,
-    map_id, operator_id, session_id, notes, updated_by, usage_date, wbs_id, created_at
   )
   values (
     gen_random_uuid(), _contract_id, _created_by, _equipment_id, _line_item_id, _hours_used,
-    _map_id, _operator_id, _session_id, _notes, _updated_by, _usage_date, _wbs_id, now()
   )
   returning id into new_id;
   return new_id;
@@ -3172,7 +3047,6 @@ $$;
 -- Name: insert_inspection(uuid, text, text, uuid, uuid, uuid, text, text[], uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_inspection(_contract_id uuid, _name text, _description text DEFAULT NULL::text, _created_by uuid DEFAULT NULL::uuid, _line_item_id uuid DEFAULT NULL::uuid, _map_id uuid DEFAULT NULL::uuid, _pdf_url text DEFAULT NULL::text, _photo_urls text[] DEFAULT NULL::text[], _session_id uuid DEFAULT NULL::uuid, _wbs_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
@@ -3180,11 +3054,9 @@ declare
 begin
   insert into inspections (
     id, contract_id, name, description, created_by, line_item_id, map_id,
-    pdf_url, photo_urls, session_id, wbs_id, created_at
   )
   values (
     gen_random_uuid(), _contract_id, _name, _description, _created_by, _line_item_id, _map_id,
-    _pdf_url, _photo_urls, _session_id, _wbs_id, now()
   )
   returning id into new_id;
   return new_id;
@@ -3197,7 +3069,6 @@ $$;
 -- Name: insert_issue(text, text, text, public.priority, uuid, uuid, uuid, uuid, uuid, uuid, uuid, text[], text, text, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_issue(_title text, _description text, _status text, _priority public.priority DEFAULT NULL::public.priority, _assigned_to uuid DEFAULT NULL::uuid, _contract_id uuid DEFAULT NULL::uuid, _created_by uuid DEFAULT NULL::uuid, _equipment_id uuid DEFAULT NULL::uuid, _line_item_id uuid DEFAULT NULL::uuid, _map_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _photo_urls text[] DEFAULT NULL::text[], _resolution text DEFAULT NULL::text, _due_date text DEFAULT NULL::text, _updated_at text DEFAULT NULL::text, _updated_by text DEFAULT NULL::text, _wbs_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
@@ -3205,12 +3076,10 @@ declare
 begin
   insert into issues (
     id, title, description, status, priority, assigned_to, contract_id,
-    created_by, equipment_id, line_item_id, map_id, session_id, photo_urls,
     resolution, due_date, updated_at, updated_by, wbs_id, created_at
   )
   values (
     gen_random_uuid(), _title, _description, _status, _priority, _assigned_to, _contract_id,
-    _created_by, _equipment_id, _line_item_id, _map_id, _session_id, _photo_urls,
     _resolution, _due_date, _updated_at, _updated_by, _wbs_id, now()
   )
   returning id into new_id;
@@ -3224,17 +3093,14 @@ $$;
 -- Name: insert_job_title(text, uuid, boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_job_title(_title text, _created_by uuid DEFAULT NULL::uuid, _is_custom boolean DEFAULT NULL::boolean, _session_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into job_titles (
-    id, title, created_by, is_custom, session_id, created_at
   )
   values (
-    gen_random_uuid(), _title, _created_by, _is_custom, _session_id, now()
   )
   returning id into new_id;
   return new_id;
@@ -3247,7 +3113,6 @@ $$;
 -- Name: insert_line_item(text, text, uuid, public.unit_measure_type, numeric, numeric, uuid, uuid, text, uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_line_item(_description text, _line_code text, _wbs_id uuid, _unit_measure public.unit_measure_type, _quantity numeric, _unit_price numeric, _contract_id uuid DEFAULT NULL::uuid, _map_id uuid DEFAULT NULL::uuid, _reference_doc text DEFAULT NULL::text, _template_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _coordinates text DEFAULT NULL::text) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
@@ -3255,11 +3120,9 @@ declare
 begin
   insert into line_items (
     id, description, line_code, wbs_id, unit_measure, quantity, unit_price, contract_id, map_id,
-    reference_doc, template_id, session_id, coordinates, created_at
   )
   values (
     gen_random_uuid(), _description, _line_code, _wbs_id, _unit_measure, _quantity, _unit_price, _contract_id, _map_id,
-    _reference_doc, _template_id, _session_id, _coordinates, now()
   )
   returning id into new_id;
   return new_id;
@@ -3297,7 +3160,6 @@ $$;
 -- Name: insert_line_item_template(uuid, text, text, jsonb, text, uuid, uuid, public.unit_measure_type, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_line_item_template(_id uuid, _name text DEFAULT NULL::text, _description text DEFAULT NULL::text, _formula jsonb DEFAULT NULL::jsonb, _instructions text DEFAULT NULL::text, _created_by uuid DEFAULT NULL::uuid, _organization_id uuid DEFAULT NULL::uuid, _output_unit public.unit_measure_type DEFAULT NULL::public.unit_measure_type, _session_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
@@ -3305,11 +3167,9 @@ declare
 begin
   insert into line_item_templates (
     id, name, description, formula, instructions, created_by,
-    organization_id, output_unit, session_id, created_at
   )
   values (
     _id, _name, _description, _formula, _instructions, _created_by,
-    _organization_id, _output_unit, _session_id, now()
   )
   returning id into new_id;
   return new_id;
@@ -3322,17 +3182,14 @@ $$;
 -- Name: insert_map(text, uuid, text, numeric, text, text, uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_map(_map_number text, _wbs_id uuid, _location text DEFAULT NULL::text, _budget numeric DEFAULT NULL::numeric, _scope text DEFAULT NULL::text, _coordinates text DEFAULT NULL::text, _contract_id uuid DEFAULT NULL::uuid, _session_id text DEFAULT NULL::text) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into maps (
-    id, map_number, wbs_id, location, budget, scope, coordinates, contract_id, session_id, created_at
   )
   values (
-    gen_random_uuid(), _map_number, _wbs_id, _location, _budget, _scope, _coordinates, _contract_id, _session_id, now()
   )
   returning id into new_id;
   return new_id;
@@ -3345,17 +3202,14 @@ $$;
 -- Name: insert_organization(text, text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_organization(_name text, _created_by text, _address text DEFAULT NULL::text, _phone text DEFAULT NULL::text, _website text DEFAULT NULL::text, _session_id text DEFAULT NULL::text) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into organizations (
-    id, name, created_by, address, phone, website, session_id, created_at
   )
   values (
-    gen_random_uuid(), _name, _created_by, _address, _phone, _website, _session_id, now()
   )
   returning id into new_id;
   return new_id;
@@ -3368,7 +3222,6 @@ $$;
 -- Name: insert_profile(uuid, text, text, text, text, uuid, uuid, text, public.user_role, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_profile(_id uuid, _full_name text, _email text DEFAULT NULL::text, _username text DEFAULT NULL::text, _phone text DEFAULT NULL::text, _avatar_id uuid DEFAULT NULL::uuid, _job_title_id uuid DEFAULT NULL::uuid, _location text DEFAULT NULL::text, _role public.user_role DEFAULT NULL::public.user_role, _organization_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
@@ -3376,11 +3229,9 @@ declare
 begin
   insert into profiles (
     id, full_name, email, username, phone, avatar_id, job_title_id,
-    location, role, organization_id, session_id, created_at
   )
   values (
     _id, _full_name, _email, _username, _phone, _avatar_id, _job_title_id,
-    _location, _role, _organization_id, _session_id, now()
   )
   returning id into new_id;
   return new_id;
@@ -3411,14 +3262,12 @@ begin
 
   -- Insert custom job title if provided
   if _custom_job_title is not null then
-    insert into job_titles (id, title, is_custom, created_by, updated_at, session_id)
     values (gen_random_uuid(), _custom_job_title, true, null, now(), null)
     returning id into new_job_title_id;
   end if;
 
   -- Insert custom organization if provided
   if _custom_organization_name is not null then
-    insert into organizations (id, name, created_at, session_id)
     values (gen_random_uuid(), _custom_organization_name, now(), null)
     returning id into new_organization_id;
   end if;
@@ -3426,7 +3275,6 @@ begin
   -- Insert the new profile
   insert into profiles (
     id, user_role, full_name, email, username, phone, location,
-    job_title_id, organization_id, avatar_id, created_at, session_id
   )
   values (
     coalesce(_id, gen_random_uuid()), _role, _full_name, _email, _username, _phone, _location,
@@ -3443,15 +3291,12 @@ $$;
 -- Name: insert_user_contract(uuid, uuid, public.user_role, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_user_contract(_user_id uuid, _contract_id uuid, _role public.user_role DEFAULT NULL::public.user_role, _session_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   insert into user_contracts (
-    user_id, contract_id, role, session_id
   )
   values (
-    _user_id, _contract_id, _role, _session_id
   );
 end;
 $$;
@@ -3462,17 +3307,14 @@ $$;
 -- Name: insert_wbs(text, uuid, text, numeric, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.insert_wbs(_wbs_number text, _contract_id uuid, _location text DEFAULT NULL::text, _budget numeric DEFAULT NULL::numeric, _scope text DEFAULT NULL::text, _coordinates text DEFAULT NULL::text, _session_id text DEFAULT NULL::text) RETURNS uuid
     LANGUAGE plpgsql
     AS $$
 declare
   new_id uuid;
 begin
   insert into wbs (
-    id, wbs_number, contract_id, location, budget, scope, coordinates, session_id, created_at
   )
   values (
-    gen_random_uuid(), _wbs_number, _contract_id, _location, _budget, _scope, _coordinates, _session_id, now()
   )
   returning id into new_id;
   return new_id;
@@ -3564,7 +3406,6 @@ $$;
 -- Name: update_avatar(uuid, text, text, boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_avatar(_id uuid, _name text DEFAULT NULL::text, _url text DEFAULT NULL::text, _is_preset boolean DEFAULT NULL::boolean, _session_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
@@ -3573,7 +3414,6 @@ begin
     name = coalesce(_name, name),
     url = coalesce(_url, url),
     is_preset = coalesce(_is_preset, is_preset),
-    session_id = coalesce(_session_id, session_id),
     created_at = now()
   where id = _id;
 end;
@@ -3709,7 +3549,6 @@ $$;
 -- Name: update_crew(uuid, text, text, uuid, uuid, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_crew(_id uuid, _name text DEFAULT NULL::text, _description text DEFAULT NULL::text, _foreman_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _updated_at timestamp with time zone DEFAULT now()) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
@@ -3718,7 +3557,6 @@ begin
     name = coalesce(_name, name),
     description = coalesce(_description, description),
     foreman_id = coalesce(_foreman_id, foreman_id),
-    session_id = coalesce(_session_id, session_id),
     updated_at = _updated_at
   where id = _id;
 end;
@@ -3730,7 +3568,6 @@ $$;
 -- Name: update_crew_member(uuid, text, text, uuid, uuid, uuid, timestamp with time zone, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_crew_member(_id uuid, _role text DEFAULT NULL::text, _location_notes text DEFAULT NULL::text, _organization_id uuid DEFAULT NULL::uuid, _map_location_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _assigned_at timestamp with time zone DEFAULT NULL::timestamp with time zone, _updated_at timestamp with time zone DEFAULT now()) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
@@ -3740,7 +3577,6 @@ begin
     location_notes = coalesce(_location_notes, location_notes),
     organization_id = coalesce(_organization_id, organization_id),
     map_location_id = coalesce(_map_location_id, map_location_id),
-    session_id = coalesce(_session_id, session_id),
     assigned_at = coalesce(_assigned_at, assigned_at),
     updated_at = _updated_at
   where id = _id;
@@ -3753,7 +3589,6 @@ $$;
 -- Name: update_daily_log(uuid, text, text, numeric, text, text, text, uuid, uuid, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_daily_log(_id uuid, _work_performed text DEFAULT NULL::text, _weather_conditions text DEFAULT NULL::text, _temperature numeric DEFAULT NULL::numeric, _delays_encountered text DEFAULT NULL::text, _safety_incidents text DEFAULT NULL::text, _visitors text DEFAULT NULL::text, _updated_by uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _updated_at timestamp with time zone DEFAULT now()) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
@@ -3766,7 +3601,6 @@ begin
     safety_incidents = coalesce(_safety_incidents, safety_incidents),
     visitors = coalesce(_visitors, visitors),
     updated_by = coalesce(_updated_by, updated_by),
-    session_id = coalesce(_session_id, session_id),
     updated_at = _updated_at
   where id = _id;
 end;
@@ -3843,7 +3677,6 @@ $$;
 -- Name: update_equipment(uuid, text, uuid, uuid, uuid, uuid, numeric, public.pay_rate_unit, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_equipment(_id uuid, _name text DEFAULT NULL::text, _created_by uuid DEFAULT NULL::uuid, _operator_id uuid DEFAULT NULL::uuid, _organization_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _standard_pay_rate numeric DEFAULT NULL::numeric, _standard_pay_unit public.pay_rate_unit DEFAULT NULL::public.pay_rate_unit, _description text DEFAULT NULL::text, _user_defined_id text DEFAULT NULL::text) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
@@ -3853,7 +3686,6 @@ begin
     created_by = coalesce(_created_by, created_by),
     operator_id = coalesce(_operator_id, operator_id),
     organization_id = coalesce(_organization_id, organization_id),
-    session_id = coalesce(_session_id, session_id),
     standard_pay_rate = coalesce(_standard_pay_rate, standard_pay_rate),
     standard_pay_unit = coalesce(_standard_pay_unit, standard_pay_unit),
     description = coalesce(_description, description),
@@ -3869,7 +3701,6 @@ $$;
 -- Name: update_equipment_assignment(uuid, numeric, uuid, uuid, date, date, uuid, uuid, uuid, text, uuid, uuid, text, timestamp with time zone, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_equipment_assignment(_id uuid, _bid_rate numeric DEFAULT NULL::numeric, _contract_id uuid DEFAULT NULL::uuid, _created_by uuid DEFAULT NULL::uuid, _start_date date DEFAULT NULL::date, _end_date date DEFAULT NULL::date, _equipment_id uuid DEFAULT NULL::uuid, _line_item_id uuid DEFAULT NULL::uuid, _map_id uuid DEFAULT NULL::uuid, _notes text DEFAULT NULL::text, _operator_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _status text DEFAULT NULL::text, _updated_at timestamp with time zone DEFAULT now(), _wbs_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
@@ -3885,7 +3716,6 @@ begin
     map_id = coalesce(_map_id, map_id),
     notes = coalesce(_notes, notes),
     operator_id = coalesce(_operator_id, operator_id),
-    session_id = coalesce(_session_id, session_id),
     status = coalesce(_status, status),
     updated_at = _updated_at,
     wbs_id = coalesce(_wbs_id, wbs_id)
@@ -3899,7 +3729,6 @@ $$;
 -- Name: update_equipment_usage(uuid, uuid, uuid, uuid, uuid, numeric, uuid, uuid, uuid, text, uuid, date, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_equipment_usage(_id uuid, _contract_id uuid DEFAULT NULL::uuid, _created_by uuid DEFAULT NULL::uuid, _equipment_id uuid DEFAULT NULL::uuid, _line_item_id uuid DEFAULT NULL::uuid, _hours_used numeric DEFAULT NULL::numeric, _map_id uuid DEFAULT NULL::uuid, _operator_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _notes text DEFAULT NULL::text, _updated_by uuid DEFAULT NULL::uuid, _usage_date date DEFAULT NULL::date, _wbs_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
@@ -3912,7 +3741,6 @@ begin
     hours_used = coalesce(_hours_used, hours_used),
     map_id = coalesce(_map_id, map_id),
     operator_id = coalesce(_operator_id, operator_id),
-    session_id = coalesce(_session_id, session_id),
     notes = coalesce(_notes, notes),
     updated_by = coalesce(_updated_by, updated_by),
     usage_date = coalesce(_usage_date, usage_date),
@@ -3928,7 +3756,6 @@ $$;
 -- Name: update_inspection(uuid, uuid, text, text, uuid, uuid, uuid, text, text[], uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_inspection(_id uuid, _contract_id uuid DEFAULT NULL::uuid, _name text DEFAULT NULL::text, _description text DEFAULT NULL::text, _created_by uuid DEFAULT NULL::uuid, _line_item_id uuid DEFAULT NULL::uuid, _map_id uuid DEFAULT NULL::uuid, _pdf_url text DEFAULT NULL::text, _photo_urls text[] DEFAULT NULL::text[], _session_id uuid DEFAULT NULL::uuid, _wbs_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
@@ -3942,7 +3769,6 @@ begin
     map_id = coalesce(_map_id, map_id),
     pdf_url = coalesce(_pdf_url, pdf_url),
     photo_urls = coalesce(_photo_urls, photo_urls),
-    session_id = coalesce(_session_id, session_id),
     wbs_id = coalesce(_wbs_id, wbs_id),
     updated_at = now()
   where id = _id;
@@ -3955,7 +3781,6 @@ $$;
 -- Name: update_issue(uuid, text, text, public.priority, text, uuid, uuid, uuid, uuid, uuid, uuid, uuid, text[], text, text, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_issue(_id uuid, _title text DEFAULT NULL::text, _description text DEFAULT NULL::text, _priority public.priority DEFAULT NULL::public.priority, _status text DEFAULT NULL::text, _assigned_to uuid DEFAULT NULL::uuid, _contract_id uuid DEFAULT NULL::uuid, _created_by uuid DEFAULT NULL::uuid, _equipment_id uuid DEFAULT NULL::uuid, _line_item_id uuid DEFAULT NULL::uuid, _map_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _photo_urls text[] DEFAULT NULL::text[], _resolution text DEFAULT NULL::text, _due_date text DEFAULT NULL::text, _updated_at text DEFAULT NULL::text, _updated_by text DEFAULT NULL::text, _wbs_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
@@ -3971,7 +3796,6 @@ begin
     equipment_id = coalesce(_equipment_id, equipment_id),
     line_item_id = coalesce(_line_item_id, line_item_id),
     map_id = coalesce(_map_id, map_id),
-    session_id = coalesce(_session_id, session_id),
     photo_urls = coalesce(_photo_urls, photo_urls),
     resolution = coalesce(_resolution, resolution),
     due_date = coalesce(_due_date, due_date),
@@ -3988,7 +3812,6 @@ $$;
 -- Name: update_job_title(uuid, text, uuid, boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_job_title(_id uuid, _title text DEFAULT NULL::text, _created_by uuid DEFAULT NULL::uuid, _is_custom boolean DEFAULT NULL::boolean, _session_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
@@ -3997,7 +3820,6 @@ begin
     title = coalesce(_title, title),
     created_by = coalesce(_created_by, created_by),
     is_custom = coalesce(_is_custom, is_custom),
-    session_id = coalesce(_session_id, session_id),
     updated_at = now()
   where id = _id;
 end;
@@ -4009,7 +3831,6 @@ $$;
 -- Name: update_line_item(uuid, text, text, uuid, uuid, uuid, text, uuid, uuid, public.unit_measure_type, numeric, numeric, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_line_item(_id uuid, _description text DEFAULT NULL::text, _line_code text DEFAULT NULL::text, _wbs_id uuid DEFAULT NULL::uuid, _contract_id uuid DEFAULT NULL::uuid, _map_id uuid DEFAULT NULL::uuid, _reference_doc text DEFAULT NULL::text, _template_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid, _unit_measure public.unit_measure_type DEFAULT NULL::public.unit_measure_type, _quantity numeric DEFAULT NULL::numeric, _unit_price numeric DEFAULT NULL::numeric, _coordinates text DEFAULT NULL::text) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
@@ -4022,7 +3843,6 @@ begin
     map_id = coalesce(_map_id, map_id),
     reference_doc = coalesce(_reference_doc, reference_doc),
     template_id = coalesce(_template_id, template_id),
-    session_id = coalesce(_session_id, session_id),
     unit_measure = coalesce(_unit_measure, unit_measure),
     quantity = coalesce(_quantity, quantity),
     unit_price = coalesce(_unit_price, unit_price),
@@ -4065,7 +3885,6 @@ $$;
 -- Name: update_line_item_template(uuid, text, text, jsonb, text, uuid, uuid, public.unit_measure_type, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_line_item_template(_id uuid, _name text DEFAULT NULL::text, _description text DEFAULT NULL::text, _formula jsonb DEFAULT NULL::jsonb, _instructions text DEFAULT NULL::text, _created_by uuid DEFAULT NULL::uuid, _organization_id uuid DEFAULT NULL::uuid, _output_unit public.unit_measure_type DEFAULT NULL::public.unit_measure_type, _session_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
@@ -4078,7 +3897,6 @@ begin
     created_by = coalesce(_created_by, created_by),
     organization_id = coalesce(_organization_id, organization_id),
     output_unit = coalesce(_output_unit, output_unit),
-    session_id = coalesce(_session_id, session_id)
   where id = _id;
 end;
 $$;
@@ -4089,7 +3907,6 @@ $$;
 -- Name: update_map(uuid, text, uuid, text, numeric, text, text, uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_map(_id uuid, _map_number text DEFAULT NULL::text, _wbs_id uuid DEFAULT NULL::uuid, _location text DEFAULT NULL::text, _budget numeric DEFAULT NULL::numeric, _scope text DEFAULT NULL::text, _coordinates text DEFAULT NULL::text, _contract_id uuid DEFAULT NULL::uuid, _session_id text DEFAULT NULL::text) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
@@ -4102,7 +3919,6 @@ begin
     scope = coalesce(_scope, scope),
     coordinates = coalesce(_coordinates, coordinates),
     contract_id = coalesce(_contract_id, contract_id),
-    session_id = coalesce(_session_id, session_id),
     updated_at = now()
   where id = _id;
 end;
@@ -4114,7 +3930,6 @@ $$;
 -- Name: update_organization(uuid, text, text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_organization(_id uuid, _name text DEFAULT NULL::text, _created_by text DEFAULT NULL::text, _address text DEFAULT NULL::text, _phone text DEFAULT NULL::text, _website text DEFAULT NULL::text, _session_id text DEFAULT NULL::text) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
@@ -4125,7 +3940,6 @@ begin
     address = coalesce(_address, address),
     phone = coalesce(_phone, phone),
     website = coalesce(_website, website),
-    session_id = coalesce(_session_id, session_id),
     updated_at = now()
   where id = _id;
 end;
@@ -4137,7 +3951,6 @@ $$;
 -- Name: update_profile(uuid, text, text, text, text, uuid, uuid, text, public.user_role, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_profile(_id uuid, _full_name text DEFAULT NULL::text, _email text DEFAULT NULL::text, _username text DEFAULT NULL::text, _phone text DEFAULT NULL::text, _avatar_id uuid DEFAULT NULL::uuid, _job_title_id uuid DEFAULT NULL::uuid, _location text DEFAULT NULL::text, _role public.user_role DEFAULT NULL::public.user_role, _organization_id uuid DEFAULT NULL::uuid, _session_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
@@ -4152,7 +3965,6 @@ begin
     location = coalesce(_location, location),
     role = coalesce(_role, role),
     organization_id = coalesce(_organization_id, organization_id),
-    session_id = coalesce(_session_id, session_id),
     updated_at = now()
   where id = _id;
 end;
@@ -4164,14 +3976,12 @@ $$;
 -- Name: update_user_contract(uuid, uuid, public.user_role, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_user_contract(_user_id uuid, _contract_id uuid, _role public.user_role DEFAULT NULL::public.user_role, _session_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
   update user_contracts
   set
     role = coalesce(_role, role),
-    session_id = coalesce(_session_id, session_id)
   where user_id = _user_id
     and contract_id = _contract_id;
 end;
@@ -4183,7 +3993,6 @@ $$;
 -- Name: update_wbs(uuid, text, uuid, text, numeric, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.update_wbs(_id uuid, _wbs_number text DEFAULT NULL::text, _contract_id uuid DEFAULT NULL::uuid, _location text DEFAULT NULL::text, _budget numeric DEFAULT NULL::numeric, _scope text DEFAULT NULL::text, _coordinates text DEFAULT NULL::text, _session_id text DEFAULT NULL::text) RETURNS void
     LANGUAGE plpgsql
     AS $$
 begin
@@ -4195,7 +4004,6 @@ begin
     budget = coalesce(_budget, budget),
     scope = coalesce(_scope, scope),
     coordinates = coalesce(_coordinates, coordinates),
-    session_id = coalesce(_session_id, session_id),
     updated_at = now()
   where id = _id;
 end;
@@ -4244,7 +4052,6 @@ CREATE TABLE public.avatars (
     url text NOT NULL,
     created_at timestamp with time zone DEFAULT now(),
     is_preset boolean DEFAULT false NOT NULL,
-    session_id uuid,
     CONSTRAINT avatars_url_check CHECK ((url ~* '^https?://.*$'::text))
 );
 
@@ -4263,7 +4070,6 @@ CREATE TABLE public.contract_organizations (
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
     role public.organization_role DEFAULT 'Prime Contractor'::public.organization_role,
-    session_id uuid
 );
 
 ALTER TABLE ONLY public.contract_organizations REPLICA IDENTITY FULL;
@@ -4281,7 +4087,6 @@ CREATE TABLE public.job_titles (
     created_by uuid,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
-    session_id uuid
 );
 
 ALTER TABLE ONLY public.job_titles REPLICA IDENTITY FULL;
@@ -4303,7 +4108,6 @@ CREATE TABLE public.maps (
     budget numeric,
     contract_id uuid,
     scope text,
-    session_id uuid
 );
 
 ALTER TABLE ONLY public.maps REPLICA IDENTITY FULL;
@@ -4323,7 +4127,6 @@ CREATE TABLE public.organizations (
     created_by uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
-    session_id uuid,
     CONSTRAINT check_valid_website CHECK ((website ~* '^(https?:\/\/)?([a-zA-Z0-9.-]+)\.([a-zA-Z]{2,6})([\/\w .-]*)*\/?$'::text))
 );
 
@@ -4359,7 +4162,6 @@ CREATE TABLE public.wbs (
     budget numeric,
     location text,
     coordinates public.geometry,
-    session_id uuid
 );
 
 ALTER TABLE ONLY public.wbs REPLICA IDENTITY FULL;
@@ -5816,7 +5618,6 @@ CREATE POLICY "Allow contract or org members" ON public.issues FOR SELECT USING 
 
 CREATE POLICY "Allow demo or contract owner access" ON public.wbs FOR SELECT USING ((contract_id IN ( SELECT contracts.id
    FROM public.contracts
-  WHERE ((contracts.created_by = auth.uid()) OR (contracts.session_id = (((current_setting('request.jwt.claims'::text, true))::jsonb ->> 'session_id'::text))::uuid)))));
 
 
 --
@@ -5824,7 +5625,6 @@ CREATE POLICY "Allow demo or contract owner access" ON public.wbs FOR SELECT USI
 -- Name: contracts Allow demo or owner access; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Allow demo or owner access" ON public.contracts FOR SELECT USING (((created_by = auth.uid()) OR (session_id = (((current_setting('request.jwt.claims'::text, true))::jsonb ->> 'session_id'::text))::uuid)));
 
 
 --
@@ -5832,7 +5632,6 @@ CREATE POLICY "Allow demo or owner access" ON public.contracts FOR SELECT USING 
 -- Name: avatars Allow demo session access; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Allow demo session access" ON public.avatars FOR SELECT USING ((session_id = (((current_setting('request.jwt.claims'::text, true))::jsonb ->> 'session_id'::text))::uuid));
 
 
 --
@@ -5840,7 +5639,6 @@ CREATE POLICY "Allow demo session access" ON public.avatars FOR SELECT USING ((s
 -- Name: crew_members Allow demo session access; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Allow demo session access" ON public.crew_members FOR SELECT USING ((session_id = (((current_setting('request.jwt.claims'::text, true))::jsonb ->> 'session_id'::text))::uuid));
 
 
 --
@@ -5848,7 +5646,6 @@ CREATE POLICY "Allow demo session access" ON public.crew_members FOR SELECT USIN
 -- Name: crews Allow demo session access; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Allow demo session access" ON public.crews FOR SELECT USING ((session_id = (((current_setting('request.jwt.claims'::text, true))::jsonb ->> 'session_id'::text))::uuid));
 
 
 --
@@ -5856,7 +5653,6 @@ CREATE POLICY "Allow demo session access" ON public.crews FOR SELECT USING ((ses
 -- Name: job_titles Allow demo session access; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Allow demo session access" ON public.job_titles FOR SELECT USING ((session_id = (((current_setting('request.jwt.claims'::text, true))::jsonb ->> 'session_id'::text))::uuid));
 
 
 --
@@ -5864,7 +5660,6 @@ CREATE POLICY "Allow demo session access" ON public.job_titles FOR SELECT USING 
 -- Name: organizations Allow demo session access; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Allow demo session access" ON public.organizations FOR SELECT USING ((session_id = (((current_setting('request.jwt.claims'::text, true))::jsonb ->> 'session_id'::text))::uuid));
 
 
 --

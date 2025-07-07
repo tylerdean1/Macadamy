@@ -21,7 +21,8 @@ export interface EnrichedProfile {
   avatar_url: string | null;
   job_title: string | null;
   organization_name: string | null;
-  session_id: string | null;
+  // session_id removed from schema
+  session_id?: string | null;
 }
 
 export interface LoadingState {
@@ -205,7 +206,6 @@ export const useAuthStore = create<AuthState>()(
             _job_title_id: updates.job_title_id ?? undefined,
             _organization_id: updates.organization_id ?? undefined,
             _avatar_id: updates.avatar_id ?? undefined,
-            _session_id: get().profile?.session_id ?? undefined,
           };
 
           await rpcClient.updateProfileFull(rpcArgs);

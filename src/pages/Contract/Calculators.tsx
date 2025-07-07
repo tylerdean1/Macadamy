@@ -7,7 +7,7 @@ import { rpcClient } from '@/lib/rpc.client';
 export default function Calculators() {
   const { id } = useParams(); // Retrieve the contract ID from the URL parameters
   const navigate = useNavigate(); // Hook to facilitate navigation between routes
-  const { currentSessionId } = useAuth();
+  useAuth();
   interface CalculatorTemplate {
     id: string;
     name: string;
@@ -22,15 +22,13 @@ export default function Calculators() {
 
   // Fetch calculator templates when the component mounts or ID changes
   useEffect(() => {
-    if (typeof currentSessionId !== 'string' || currentSessionId.length === 0) return;
     void fetchTemplates();
-  }, [id, currentSessionId]);
+  }, [id]);
 
   // Function to fetch templates from the database
   const fetchTemplates = async () => {
-    if (typeof currentSessionId !== 'string' || currentSessionId.length === 0) return;
     try {
-      const data = await rpcClient.getAllLineItemTemplates({ session_id: currentSessionId });
+      const data = await rpcClient.getAllLineItemTemplates();
       interface FormulaJson {
         variables?: { name: string; value: string | number }[];
       }

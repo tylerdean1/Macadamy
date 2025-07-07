@@ -113,11 +113,11 @@ export function useProfileData(): {
             try {
                 const presetAvatarsResult = await supabase
                     .from('avatars')
-                    .select('id, url, is_preset, session_id, name, created_at')
+                    .select('id, url, is_preset, name, created_at')
                     .eq('is_preset', true);
 
                 if (!presetAvatarsResult.error && Array.isArray(presetAvatarsResult.data)) {
-                    avatarsData = presetAvatarsResult.data.map(a => ({ ...a, name: a.name ?? '', session_id: a.session_id ?? null }));
+                    avatarsData = presetAvatarsResult.data.map(a => ({ ...a, name: a.name ?? '' }));
                 }
             } catch (presetError) {
                 console.error('Error fetching preset avatars:', presetError);
@@ -140,7 +140,6 @@ export function useProfileData(): {
                             id: profile.avatar_id,
                             url: profile.avatar_url,
                             is_preset: false,
-                            session_id: profile.session_id ?? null,
                             name: currentAvatarName,
                             created_at: customAvatarData?.created_at ?? new Date().toISOString(),
                         });
@@ -149,7 +148,6 @@ export function useProfileData(): {
                             id: profile.avatar_id,
                             url: profile.avatar_url,
                             is_preset: false,
-                            session_id: profile.session_id ?? null,
                             name: currentAvatarName,
                             created_at: new Date().toISOString(),
                         });
@@ -162,18 +160,12 @@ export function useProfileData(): {
             const allJobsData = await rpcClient.getJobTitles();
 
             let filteredOrganizations: OrganizationsRow[] = Array.isArray(allOrgsData) ? allOrgsData : [];
-            if (profile.is_demo_user === true && typeof profile.session_id === 'string' && profile.session_id.length > 0) {
-                filteredOrganizations = filteredOrganizations.filter(org => org.session_id === profile.session_id);
-            }
             setOrganizations(filteredOrganizations);
 
             let filteredJobTitlesRpcData: JobTitlesRow[] = Array.isArray(allJobsData) ? allJobsData : [];
             if (typeof profile.organization_id === 'string' && profile.organization_id.length > 0) {
                 filteredJobTitlesRpcData = filteredJobTitlesRpcData.filter(jt => jt.organization_id === profile.organization_id);
             }
-            if (profile.is_demo_user === true && typeof profile.session_id ===
-                filteredJobTitlesRpcData = filteredJobTitlesRpcData.filter(jt => jt.session_id === profile.session_id);
-        }
             setJobTitles(filteredJobTitlesRpcData);
 
     } catch (err) {
@@ -244,7 +236,6 @@ const handleImageCroppedAndUpload = useCallback(async (croppedFile: File) => {
             name: croppedFile.name || AVATAR_FILE_NAME,
             url: newStoragePath, // Store the storage path, not public URL initially
             is_preset: false,
-            session_id: currentProfile.is_demo_user ? currentProfile.session_id : null,
         };
 
         // Check if user has an existing non-preset avatar
@@ -303,7 +294,6 @@ const handleImageCroppedAndUpload = useCallback(async (croppedFile: File) => {
                     url: newPublicAvatarUrl,
                     is_preset: false,
                     name: avatarRecordPayload.name,
-                    session_id: avatarRecordPayload.session_id,
                     created_at: new Date().toISOString() // Or fetch if available
                 };
                 if (existingIndex > -1) {
@@ -343,10 +333,8 @@ const handleSaveProfile = useCallback(async () => {
 
             if (typeof currentProfile.organization_id === 'string' && currentProfile.organization_id) {
                 findQuery.eq('organization_id', currentProfile.organization_id);
-            } else if (currentProfile.is_demo_user === true && typeof currentProfile.session_id === 'string' && currentProfile.session_id) {
-                findQuery.eq('session_id', currentProfile.session_id);
             } else {
-                findQuery.is('organization_id', null).is('session_id', null);
+                findQuery.is('organization_id', null);
             }
             const { data: existingTitle, error: findError } = await findQuery.maybeSingle();
             if (findError) throw findError;
@@ -358,7 +346,6 @@ const handleSaveProfile = useCallback(async () => {
                     title: customTitleText,
                     is_custom: true,
                     organization_id: typeof currentProfile.organization_id === 'string' && currentProfile.organization_id ? currentProfile.organization_id : undefined,
-                    session_id: currentProfile.is_demo_user === true && typeof currentProfile.session_id === 'string' && currentProfile.session_id ? currentProfile.session_id : undefined,
                 };
                 const newCustomTitles = await rpcClient.insert_job_title(jobTitleRpcPayload);
                 if (Array.isArray(newCustomTitles) && newCustomTitles.length > 0 && newCustomTitles[0]) {

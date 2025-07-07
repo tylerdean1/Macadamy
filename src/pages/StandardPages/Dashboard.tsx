@@ -129,7 +129,6 @@ export default function Dashboard() {
             status: contract.status ?? null,
             // These two fields are not present in the mapped contract, so fallback to null
             coordinates_wkt: null,
-            session_id: null,
           }))}
           searchQuery={searchQuery}
           onSearchChange={handleSearchChange}
