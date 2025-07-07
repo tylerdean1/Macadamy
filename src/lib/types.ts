@@ -313,8 +313,6 @@ export interface Profile {
     is_custom: boolean | null;
   } | null;
 
-  is_demo_user?: boolean;
-  session_id?: string | null;
 }
 
 /**

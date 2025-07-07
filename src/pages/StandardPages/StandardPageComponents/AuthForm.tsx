@@ -21,11 +21,11 @@ export function AuthForm({
   const [showPwd, setShowPwd] = useState(false);
 
   // Get auth functions from hooks
-  const { login, loginAsDemoUser } = useAuth();
+  const { login } = useAuth();
 
   // Get loading state from auth store
   const { loading } = useAuthStore();
-  const isLoading = loading.auth || loading.profile || loading.demo;
+  const isLoading = loading.auth || loading.profile;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,15 +54,6 @@ export function AuthForm({
     }
   };
 
-  const handleDemoLogin = async () => {
-    try {
-      // The loginAsDemoUser method handles redirection and loading states
-      await loginAsDemoUser();
-    } catch (err) {
-      console.error('Demo login error:', err);
-      // Error handling is done in the useAuth hook, but we catch here just in case
-    }
-  };
 
   return (
     <Card className="bg-background-light p-8 rounded-lg shadow-xl border border-background-lighter w-full max-w-md mx-auto">
@@ -132,28 +123,12 @@ export function AuthForm({
           variant="primary"
           className="w-full py-2.5 text-md"
           disabled={isLoading}
-          isLoading={isLoading && !loading.demo}
+          isLoading={isLoading}
         >
           Sign In
         </Button>
       </form>
 
-      <div className="flex items-center my-6">
-        <div className="flex-grow border-t border-gray-700"></div>
-        <span className="mx-4 text-gray-500 text-sm">or</span>
-        <div className="flex-grow border-t border-gray-700"></div>
-      </div>
-
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full py-2.5 text-md"
-        onClick={() => void handleDemoLogin()}
-        isLoading={loading.demo}
-        disabled={isLoading}
-      >
-        Demo Login
-      </Button>
 
       {onNavigateToSignup && (
         <div className="mt-6 text-center text-sm">

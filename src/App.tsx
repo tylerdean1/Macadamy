@@ -17,7 +17,6 @@ const LandingPage        = lazy(() => import('@/pages/StandardPages/LandingPage'
 const ResetPassword      = lazy(() => import('@/pages/StandardPages/ResetPassword'));
 const UpdatePassword     = lazy(() => import('@/pages/StandardPages/UpdatePassword'));
 const UserOnboarding     = lazy(() => import('@/pages/StandardPages/UserOnboarding'));
-const DemoRedirect       = lazy(() => import('@/pages/StandardPages/DemoRedirect'));
 const Dashboard          = lazy(() => import('@/pages/StandardPages/Dashboard'));
 
 const ContractDashboard  = lazy(() => import('@/pages/Contract/ContractDashboard'));
@@ -77,7 +76,7 @@ export default function App(): JSX.Element {
   }, []);
 
   /* hide navbar on auth-style routes */
-  const hideNavbarRoutes: string[] = ['/', '/demo', '/reset-password', '/onboarding'];
+  const hideNavbarRoutes: string[] = ['/', '/reset-password', '/onboarding'];
   const shouldShowNavbar: boolean  = !hideNavbarRoutes.includes(location.pathname);
 
   /* ── initial bootstrap spinner ──────────────────────────────── */
@@ -117,7 +116,6 @@ export default function App(): JSX.Element {
         <Routes>
           {/* ── public ─────────────────────────────────────────── */}
           <Route path="/"              element={<LandingPage />}   />
-          <Route path="/demo"          element={<DemoRedirect />}  />
           <Route path="/reset-password"   element={<ResetPassword />} />
           <Route path="/update-password"  element={<UpdatePassword />} />
           <Route path="/onboarding"    element={<UserOnboarding />} />

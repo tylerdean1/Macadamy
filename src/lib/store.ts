@@ -22,14 +22,12 @@ export interface EnrichedProfile {
   job_title: string | null;
   organization_name: string | null;
   session_id: string | null;
-  is_demo_user?: boolean; // Added for demo user check
 }
 
 export interface LoadingState {
   initialization: boolean;
   auth: boolean;
   profile: boolean;
-  demo: boolean;
 }
 
 export type AuthState = {
@@ -63,7 +61,6 @@ export const useAuthStore = create<AuthState>()(
         initialization: false, // Set to false by default - will be set to true during active initialization
         auth: false,
         profile: false,
-        demo: false,
       },
       error: null,
       isLoading: false, // Deprecated but kept for backward compatibility
@@ -87,7 +84,7 @@ export const useAuthStore = create<AuthState>()(
           // If setting to false, we clear all loading flags
           const newLoadingState = isLoading
             ? { ...state.loading, initialization: true }
-            : { initialization: false, auth: false, profile: false, demo: false };
+            : { initialization: false, auth: false, profile: false };
 
           return {
             ...state,
@@ -111,7 +108,7 @@ export const useAuthStore = create<AuthState>()(
         set({
           user: null,
           profile: null,
-          loading: { initialization: false, auth: false, profile: false, demo: false },
+          loading: { initialization: false, auth: false, profile: false },
           isLoading: false,
           error: null
         }),
@@ -120,7 +117,7 @@ export const useAuthStore = create<AuthState>()(
       resetLoadingStates: (): void =>
         set(state => ({
           ...state,
-          loading: { initialization: false, auth: false, profile: false, demo: false },
+          loading: { initialization: false, auth: false, profile: false },
           isLoading: false,
         })),
 
@@ -130,7 +127,7 @@ export const useAuthStore = create<AuthState>()(
             ...state,
             profile: null,
             loading: { ...state.loading, profile: false },
-            isLoading: state.loading.initialization || state.loading.auth || state.loading.demo,
+            isLoading: state.loading.initialization || state.loading.auth,
             error: "Invalid user ID provided"
           }));
           return;
@@ -151,7 +148,7 @@ export const useAuthStore = create<AuthState>()(
               ...state,
               profile: null,
               loading: { ...state.loading, profile: false },
-              isLoading: state.loading.initialization || state.loading.auth || state.loading.demo,
+              isLoading: state.loading.initialization || state.loading.auth,
               error: "Failed to load user profile"
             }));
             return;
@@ -162,7 +159,7 @@ export const useAuthStore = create<AuthState>()(
             ...state,
             profile: data as EnrichedProfile,
             loading: { ...state.loading, profile: false },
-            isLoading: state.loading.initialization || state.loading.auth || state.loading.demo,
+            isLoading: state.loading.initialization || state.loading.auth,
             error: null
           }));
         } catch (err) {
@@ -171,7 +168,7 @@ export const useAuthStore = create<AuthState>()(
             ...state,
             profile: null,
             loading: { ...state.loading, profile: false },
-            isLoading: state.loading.initialization || state.loading.auth || state.loading.demo,
+            isLoading: state.loading.initialization || state.loading.auth,
             error: err instanceof Error ? err.message : "Error loading profile"
           }));
         }
@@ -219,14 +216,14 @@ export const useAuthStore = create<AuthState>()(
               ...state,
               profile: { ...currentProfile, ...updates },
               loading: { ...state.loading, profile: false },
-              isLoading: state.loading.initialization || state.loading.auth || state.loading.demo,
+              isLoading: state.loading.initialization || state.loading.auth,
               error: null
             }));
           } else {
             set(state => ({
               ...state,
               loading: { ...state.loading, profile: false },
-              isLoading: state.loading.initialization || state.loading.auth || state.loading.demo,
+              isLoading: state.loading.initialization || state.loading.auth,
               error: "Profile not found for update"
             }));
           }
@@ -235,7 +232,7 @@ export const useAuthStore = create<AuthState>()(
           set(state => ({
             ...state,
             loading: { ...state.loading, profile: false },
-            isLoading: state.loading.initialization || state.loading.auth || state.loading.demo,
+            isLoading: state.loading.initialization || state.loading.auth,
             error: err instanceof Error ? err.message : "Error updating profile"
           }));
         }

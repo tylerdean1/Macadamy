@@ -360,9 +360,6 @@ export type CheckUsernameAvailableRpc = (args: CheckUsernameAvailableRpcArgs) =>
 export type GetDashboardMetricsRpcArgs = { _user_id: string };
 export type GetDashboardMetricsRpc = (args: GetDashboardMetricsRpcArgs) => Promise<{ active_contracts: number; total_issues: number; total_inspections: number }>;
 
-// --- Demo/Clone/Session/Other ---
-export type ExecuteFullDemoCloneRpcArgs = { session_id: string };
-export type ExecuteFullDemoCloneRpc = (args: ExecuteFullDemoCloneRpcArgs) => Promise<void>;
 
 // --- Delete/Write/Mutate RPCs (all return void) ---
 export type DeleteContractsRpcArgs = { id: string };
@@ -419,8 +416,6 @@ export type DeleteCrewRpc = (args: DeleteCrewRpcArgs) => Promise<void>;
 export type DeleteCrewMemberRpcArgs = { id: string };
 export type DeleteCrewMemberRpc = (args: DeleteCrewMemberRpcArgs) => Promise<void>;
 
-export type DeleteDemoMappingRpcArgs = { session_id: string };
-export type DeleteDemoMappingRpc = (args: DeleteDemoMappingRpcArgs) => Promise<void>;
 
 export type DeleteDumpTruckRpcArgs = { id: string };
 export type DeleteDumpTruckRpc = (args: DeleteDumpTruckRpcArgs) => Promise<void>;
@@ -714,60 +709,6 @@ export type InsertWbsRpcArgs = {
 };
 export type InsertWbsRpc = (args: InsertWbsRpcArgs) => Promise<string>;
 
-// --- Clone/Demo/Utility RPCs ---
-export type CloneChangeOrdersForSessionRpcArgs = { session_id: string };
-export type CloneChangeOrdersForSessionRpc = (args: CloneChangeOrdersForSessionRpcArgs) => Promise<void>;
-
-export type CloneContractOrganizationsRpcArgs = { session_id: string };
-export type CloneContractOrganizationsRpc = (args: CloneContractOrganizationsRpcArgs) => Promise<void>;
-
-export type CloneContractsRpcArgs = { session_id: string };
-export type CloneContractsRpc = (args: CloneContractsRpcArgs) => Promise<void>;
-
-export type CloneCrewMembersRpcArgs = { session_id: string };
-export type CloneCrewMembersRpc = (args: CloneCrewMembersRpcArgs) => Promise<void>;
-
-export type CloneCrewsRpcArgs = { session_id: string };
-export type CloneCrewsRpc = (args: CloneCrewsRpcArgs) => Promise<void>;
-
-export type CloneDailyLogsRpcArgs = { session_id: string };
-export type CloneDailyLogsRpc = (args: CloneDailyLogsRpcArgs) => Promise<void>;
-
-export type CloneEquipmentRpcArgs = { session_id: string };
-export type CloneEquipmentRpc = (args: CloneEquipmentRpcArgs) => Promise<void>;
-
-export type CloneEquipmentAssignmentsRpcArgs = { session_id: string };
-export type CloneEquipmentAssignmentsRpc = (args: CloneEquipmentAssignmentsRpcArgs) => Promise<void>;
-
-export type CloneInspectionsRpcArgs = { session_id: string };
-export type CloneInspectionsRpc = (args: CloneInspectionsRpcArgs) => Promise<void>;
-
-export type CloneIssuesRpcArgs = { session_id: string };
-export type CloneIssuesRpc = (args: CloneIssuesRpcArgs) => Promise<void>;
-
-export type CloneLineItemCrewAssignmentsRpcArgs = { session_id: string };
-export type CloneLineItemCrewAssignmentsRpc = (args: CloneLineItemCrewAssignmentsRpcArgs) => Promise<void>;
-
-export type CloneLineItemEntriesRpcArgs = { session_id: string };
-export type CloneLineItemEntriesRpc = (args: CloneLineItemEntriesRpcArgs) => Promise<void>;
-
-export type CloneLineItemEquipmentAssignmentsRpcArgs = { session_id: string };
-export type CloneLineItemEquipmentAssignmentsRpc = (args: CloneLineItemEquipmentAssignmentsRpcArgs) => Promise<void>;
-
-export type CloneLineItemTemplatesRpcArgs = { session_id: string };
-export type CloneLineItemTemplatesRpc = (args: CloneLineItemTemplatesRpcArgs) => Promise<void>;
-
-export type CloneLineItemsForMapsRpcArgs = { session_id: string };
-export type CloneLineItemsForMapsRpc = (args: CloneLineItemsForMapsRpcArgs) => Promise<void>;
-
-export type CloneMapsForWbsRpcArgs = { session_id: string };
-export type CloneMapsForWbsRpc = (args: CloneMapsForWbsRpcArgs) => Promise<void>;
-
-export type CloneWbsForContractsRpcArgs = { session_id: string };
-export type CloneWbsForContractsRpc = (args: CloneWbsForContractsRpcArgs) => Promise<void>;
-
-export type CreateDemoEnvironmentRpcArgs = { base_profile_email: string };
-export type CreateDemoEnvironmentRpc = (args: CreateDemoEnvironmentRpcArgs) => Promise<{ created_session_id: string; created_profile_id: string }>
 
 // --- Update RPCs ---
 export type UpdateContractRpcArgs = {

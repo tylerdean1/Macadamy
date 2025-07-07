@@ -5,7 +5,6 @@ import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { supabase } from '@/lib/supabase';
 import { UnitMeasureType } from '@/lib/enums';
-import { getDemoSession } from '@/lib/utils/cloneDemoData';
 import { LineItemsWithWktRow, WbsWithWktRow, MapsWithWktRow } from '../../../lib/rpc.types';
 
 interface EditableLineItemsTableProps {
@@ -74,7 +73,6 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
     }
     try {
       const lineItemId = uuidv4();
-      const demoSession = getDemoSession();
       // Use direct RPC call with correct argument structure
       const { error } = await supabase.rpc('insert_line_item', {
         _contract_id: contractId,
@@ -85,8 +83,7 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
         _unit_measure: newItem.unit_measure,
         _quantity: newItem.quantity,
         _unit_price: newItem.unit_price,
-        _reference_doc: newItem.reference_doc ? newItem.reference_doc : undefined,
-        ...(demoSession ? { _session_id: demoSession.sessionId } : {})
+        _reference_doc: newItem.reference_doc ? newItem.reference_doc : undefined
       });
       if (error) throw error;
       // Get the created line item to ensure we have all fields

@@ -8,7 +8,6 @@ import { useAuthStore } from '@/lib/store';
 import type { Database } from '@/lib/database.types';
 import type { EnrichedProfile } from '@/lib/store';
 import { rpcClient } from '@/lib/rpc.client';
-import { useDemoLogin } from '@/hooks/useDemoLogin';
 
 type UserRole = Database['public']['Enums']['user_role'];
 
@@ -43,7 +42,6 @@ interface UseAuthReturn {
   signup: (email: string, password: string, input: AuthEnrichedProfileInput) => Promise<EnrichedProfile | null>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<boolean>;
-  loginAsDemoUser: () => Promise<EnrichedProfile | null>;
 
   loading: boolean;
   error: string | null;
@@ -71,7 +69,6 @@ export function useAuth(): UseAuthReturn {
   } = useAuthStore();
 
   const navigate = useNavigate();
-  const { loginAsDemoUser: demoLogin } = useDemoLogin();
 
   /* local state – throttled login attempts */
   const [loginAttempts, setLoginAttempts] = useState<number>(0);
@@ -330,10 +327,6 @@ export function useAuth(): UseAuthReturn {
     [setLoading, setError],
   );
 
-  /* ── DEMO LOGIN (delegated) ─────────────────────────────────── */
-  const loginAsDemoUser = useCallback(async (): Promise<EnrichedProfile | null> => {
-    return demoLogin();
-  }, [demoLogin]);
 
   /* ── RETURN SHAPE ───────────────────────────────────────────── */
   return {
@@ -343,9 +336,8 @@ export function useAuth(): UseAuthReturn {
     signup,
     logout,
     resetPassword,
-    loginAsDemoUser,
 
-    loading: loading.initialization || loading.auth || loading.profile || loading.demo,
+    loading: loading.initialization || loading.auth || loading.profile,
     error: storeError,
 
     isLoggedIn: user !== null,
