@@ -107,13 +107,6 @@ class RpcClient {
     return this.callRpc<void>('update_contract', args);
   }
 
-  async removeProfileFromContract(args: { _contract_id: string; _profile_id: string }): Promise<void> {
-    return this.callRpc<void>('remove_profile_from_contract', args);
-  }
-
-  async updateProfileContractRole(args: { _contract_id: string; _profile_id: string; _role: string }): Promise<void> {
-    return this.callRpc<void>('update_profile_contract_role', args);
-  }
 
   async deleteContracts(args: RPC.DeleteContractsRpcArgs): Promise<void> {
     return this.callRpc<void>('delete_contract', args);
