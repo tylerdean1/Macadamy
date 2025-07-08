@@ -78,6 +78,7 @@ This project uses Supabase with RPC-first design for secure, typed, and scalable
 - Add new columns? Just update RPCs — frontend stays untouched
 - Need WKT parsing? Always handle in frontend using `parseWktToGeoJson`
 - Use composite keys carefully (e.g. `user_contracts` needs `user_id + contract_id` for delete)
+- Outdated profile contract RPCs were removed from `rpc.client.ts`
 
 ---
 This structure gives you a true API-less, secure backend with full control and complete type safety.

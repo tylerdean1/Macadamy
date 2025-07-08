@@ -454,6 +454,21 @@ export type InsertChangeOrderRpcArgs = {
 };
 export type InsertChangeOrderRpc = (args: InsertChangeOrderRpcArgs) => Promise<string>;
 
+export type InsertContractRpcArgs = {
+  title: string;
+  location: string;
+  start_date: string;
+  end_date: string;
+  status?: Database["public"]["Enums"]["contract_status"];
+  budget?: number;
+  description?: string;
+  coordinates?: Record<string, unknown>;
+  created_by?: string;
+};
+export type InsertContractRpc = (
+  args: InsertContractRpcArgs
+) => Promise<string>;
+
 export type InsertContractOrganizationRpcArgs = {
   contract_id: string;
   organization_id: string;
@@ -709,6 +724,83 @@ export type UpdateContractRpcArgs = {
   _coordinates?: unknown;
 };
 export type UpdateContractRpc = (args: UpdateContractRpcArgs) => Promise<void>;
+
+export type UpdateAsphaltTypeRpcArgs = {
+  _id: string;
+  _name?: string;
+  _compaction_min?: number;
+  _jmf_temp_max?: number;
+  _jmf_temp_min?: number;
+  _lift_depth_inches?: number;
+  _notes?: string;
+  _target_spread_rate_lbs_per_sy?: number;
+};
+export type UpdateAsphaltTypeRpc = (
+  args: UpdateAsphaltTypeRpcArgs
+) => Promise<void>;
+
+export type UpdateChangeOrderRpcArgs = {
+  _id: string;
+  _title?: string;
+  _description?: string;
+  _attachments?: string[];
+  _new_quantity?: number;
+  _new_unit_price?: number;
+  _status?: Database["public"]["Enums"]["change_order_status"];
+  _approved_by?: string;
+  _approved_date?: string;
+  _updated_by?: string;
+};
+export type UpdateChangeOrderRpc = (
+  args: UpdateChangeOrderRpcArgs
+) => Promise<void>;
+
+export type UpdateContractOrganizationRpcArgs = {
+  _id: string;
+  _role?: Database["public"]["Enums"]["organization_role"];
+  _notes?: string;
+  _updated_at?: string;
+};
+export type UpdateContractOrganizationRpc = (
+  args: UpdateContractOrganizationRpcArgs
+) => Promise<void>;
+
+export type UpdateDumpTruckRpcArgs = {
+  _id: string;
+  _payload_capacity_tons?: number;
+  _truck_identifier?: string;
+  _axle_count?: number;
+  _bed_height?: number;
+  _bed_length?: number;
+  _bed_volume?: number;
+  _bed_width?: number;
+  _contract_id?: string;
+  _equipment_id?: string;
+  _hoist_bottom?: number;
+  _hoist_top?: number;
+  _hoist_width?: number;
+  _notes?: string;
+  _weight_capacity_tons?: number;
+};
+export type UpdateDumpTruckRpc = (
+  args: UpdateDumpTruckRpcArgs
+) => Promise<void>;
+
+export type UpdateLineItemEntryRpcArgs = {
+  _id: string;
+  _computed_output?: number;
+  _contract_id?: string;
+  _line_item_id?: string;
+  _map_id?: string;
+  _input_variables?: Record<string, unknown>;
+  _notes?: string;
+  _output_unit?: Database["public"]["Enums"]["unit_measure_type"];
+  _entered_by?: string;
+  _wbs_id?: string;
+};
+export type UpdateLineItemEntryRpc = (
+  args: UpdateLineItemEntryRpcArgs
+) => Promise<void>;
 
 export type UpdateLaborRecordRpcArgs = {
   id: string;
