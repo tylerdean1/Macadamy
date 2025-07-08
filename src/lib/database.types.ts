@@ -3821,38 +3821,21 @@ export type Database = {
         Returns: string
       }
       insert_dump_truck: {
-        Args:
-          | {
-              _payload_capacity_tons: number
-              _truck_identifier: string
-              _axle_count?: number
-              _bed_height?: number
-              _bed_length?: number
+        Args: {
+            _payload_capacity_tons: number
+            _truck_identifier: string
+            _axle_count?: number
+            _bed_height?: number
+            _bed_length?: number
               _bed_volume?: number
               _bed_width?: number
               _contract_id?: string
               _equipment_id?: string
-              _hoist_bottom?: number
-              _hoist_top?: number
-              _hoist_width?: number
-              _notes?: string
-            }
-          | {
-              _payload_capacity_tons: number
-              _truck_identifier: string
-              _axle_count?: number
-              _bed_height?: number
-              _bed_length?: number
-              _bed_volume?: number
-              _bed_width?: number
-              _contract_id?: string
-              _equipment_id?: string
-              _hoist_bottom?: number
-              _hoist_top?: number
-              _hoist_width?: number
-              _notes?: string
-              _weight_capacity_tons?: number
-            }
+            _hoist_bottom?: number
+            _hoist_top?: number
+            _hoist_width?: number
+            _notes?: string
+        }
         Returns: string
       }
       insert_equipment: {
@@ -5429,40 +5412,23 @@ export type Database = {
         }
         Returns: undefined
       }
-        Args:
-          | {
-              _id: string
-              _payload_capacity_tons?: number
-              _truck_identifier?: string
-              _axle_count?: number
-              _bed_height?: number
-              _bed_length?: number
-              _bed_volume?: number
-              _bed_width?: number
-              _contract_id?: string
-              _equipment_id?: string
-              _hoist_bottom?: number
-              _hoist_top?: number
-              _hoist_width?: number
-              _notes?: string
-            }
-          | {
-              _id: string
-              _payload_capacity_tons?: number
-              _truck_identifier?: string
-              _axle_count?: number
-              _bed_height?: number
-              _bed_length?: number
-              _bed_volume?: number
-              _bed_width?: number
-              _contract_id?: string
-              _equipment_id?: string
-              _hoist_bottom?: number
-              _hoist_top?: number
-              _hoist_width?: number
-              _notes?: string
-              _weight_capacity_tons?: number
-            }
+      update_dump_truck: {
+        Args: {
+          _id: string
+          _payload_capacity_tons?: number
+          _truck_identifier?: string
+          _axle_count?: number
+          _bed_height?: number
+          _bed_length?: number
+          _bed_volume?: number
+          _bed_width?: number
+          _contract_id?: string
+          _equipment_id?: string
+          _hoist_bottom?: number
+          _hoist_top?: number
+          _hoist_width?: number
+          _notes?: string
+        }
         Returns: undefined
       }
       update_equipment: {
