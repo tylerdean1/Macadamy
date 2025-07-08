@@ -826,3 +826,56 @@ export type UpdateProfileRpcArgs = {
   _organization_id?: string;
 };
 export type UpdateProfileRpc = (args: UpdateProfileRpcArgs) => Promise<void>;
+
+// ----- Core Feature RPC Types -----
+export type InsertProjectRpcArgs = {
+  _external_id: string;
+  _contract_id: string;
+  _name: string;
+  _start_date: string;
+  _end_date: string;
+};
+export type InsertProjectRpc = (args: InsertProjectRpcArgs) => Promise<string>;
+
+export type UpdateProjectRpcArgs = {
+  _id: string;
+  _name?: string;
+  _start_date?: string;
+  _end_date?: string;
+};
+export type UpdateProjectRpc = (args: UpdateProjectRpcArgs) => Promise<void>;
+
+export type DeleteProjectRpcArgs = { _id: string };
+export type DeleteProjectRpc = (args: DeleteProjectRpcArgs) => Promise<void>;
+
+export type InsertEstimateRpcArgs = {
+  _external_id: string;
+  _contract_id: string;
+  _title: string;
+  _amount: number;
+  _status: string;
+};
+export type InsertEstimateRpc = (args: InsertEstimateRpcArgs) => Promise<string>;
+
+export type DeleteEstimateRpcArgs = { _id: string };
+export type DeleteEstimateRpc = (args: DeleteEstimateRpcArgs) => Promise<void>;
+
+export type InsertCostCodeRpcArgs = {
+  _external_id: string;
+  _contract_id: string;
+  _code: string;
+  _description: string;
+};
+export type InsertCostCodeRpc = (args: InsertCostCodeRpcArgs) => Promise<string>;
+
+export type InsertScheduleTaskRpcArgs = {
+  _external_id: string;
+  _contract_id: string;
+  _name: string;
+  _start_date: string;
+  _end_date: string;
+  _percent_complete: number;
+};
+export type InsertScheduleTaskRpc = (
+  args: InsertScheduleTaskRpcArgs
+) => Promise<string>;

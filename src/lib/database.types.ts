@@ -1678,6 +1678,146 @@ export type Database = {
           },
         ]
       }
+      projects: {
+        Row: {
+          id: string
+          external_id: string
+          contract_id: string
+          name: string
+          start_date: string | null
+          end_date: string | null
+        }
+        Insert: {
+          id?: string
+          external_id: string
+          contract_id: string
+          name: string
+          start_date?: string | null
+          end_date?: string | null
+        }
+        Update: {
+          id?: string
+          external_id?: string
+          contract_id?: string
+          name?: string
+          start_date?: string | null
+          end_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      estimates: {
+        Row: {
+          id: string
+          external_id: string
+          contract_id: string
+          title: string
+          amount: number
+          status: string | null
+        }
+        Insert: {
+          id?: string
+          external_id: string
+          contract_id: string
+          title: string
+          amount: number
+          status?: string | null
+        }
+        Update: {
+          id?: string
+          external_id?: string
+          contract_id?: string
+          title?: string
+          amount?: number
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimates_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      cost_codes: {
+        Row: {
+          id: string
+          external_id: string
+          contract_id: string
+          code: string
+          description: string | null
+        }
+        Insert: {
+          id?: string
+          external_id: string
+          contract_id: string
+          code: string
+          description?: string | null
+        }
+        Update: {
+          id?: string
+          external_id?: string
+          contract_id?: string
+          code?: string
+          description?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_codes_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      schedule_tasks: {
+        Row: {
+          id: string
+          external_id: string
+          contract_id: string
+          name: string
+          start_date: string | null
+          end_date: string | null
+          percent_complete: number | null
+        }
+        Insert: {
+          id?: string
+          external_id: string
+          contract_id: string
+          name: string
+          start_date?: string | null
+          end_date?: string | null
+          percent_complete?: number | null
+        }
+        Update: {
+          id?: string
+          external_id?: string
+          contract_id?: string
+          name?: string
+          start_date?: string | null
+          end_date?: string | null
+          percent_complete?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_tasks_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       geography_columns: {

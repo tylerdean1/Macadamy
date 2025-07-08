@@ -30,6 +30,11 @@ const Inspections        = lazy(() => import('@/pages/Contract/Inspections'));
 const Issues             = lazy(() => import('@/pages/Contract/Issues'));
 const DailyReports       = lazy(() => import('@/pages/Contract/DailyReports'));
 
+const Projects           = lazy(() => import('@/pages/Features/Projects'));
+const Estimates          = lazy(() => import('@/pages/Features/Estimates'));
+const CostCodes          = lazy(() => import('@/pages/Features/CostCodes'));
+const ScheduleTasks      = lazy(() => import('@/pages/Features/ScheduleTasks'));
+
 const NotFoundPage       = lazy(() => import('@/pages/StandardPages/NotFoundPage'));
 
 /* ── component ─────────────────────────────────────────────────── */
@@ -212,6 +217,40 @@ export default function App(): JSX.Element {
             element={
               <ProtectedRoute>
                 <DailyReports />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Core features */}
+          <Route
+            path="/projects"
+            element={
+              <ProtectedRoute>
+                <Projects />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/estimates"
+            element={
+              <ProtectedRoute>
+                <Estimates />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cost-codes"
+            element={
+              <ProtectedRoute>
+                <CostCodes />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/schedule-tasks"
+            element={
+              <ProtectedRoute>
+                <ScheduleTasks />
               </ProtectedRoute>
             }
           />

@@ -130,6 +130,35 @@ class RpcClient {
   async deleteLaborRecord(args: RPC.DeleteLaborRecordRpcArgs): Promise<void> {
     return this.callRpc<void>('delete_labor_record', args);
   }
+
+  // ----- Core Feature RPCs -----
+  async insertProject(args: RPC.InsertProjectRpcArgs): Promise<string> {
+    return this.callRpc<string>('insert_project', args);
+  }
+
+  async updateProject(args: RPC.UpdateProjectRpcArgs): Promise<void> {
+    await this.callRpc<void>('update_project', args);
+  }
+
+  async deleteProject(args: RPC.DeleteProjectRpcArgs): Promise<void> {
+    await this.callRpc<void>('delete_project', args);
+  }
+
+  async insertEstimate(args: RPC.InsertEstimateRpcArgs): Promise<string> {
+    return this.callRpc<string>('insert_estimate', args);
+  }
+
+  async deleteEstimate(args: RPC.DeleteEstimateRpcArgs): Promise<void> {
+    await this.callRpc<void>('delete_estimate', args);
+  }
+
+  async insertCostCode(args: RPC.InsertCostCodeRpcArgs): Promise<string> {
+    return this.callRpc<string>('insert_cost_code', args);
+  }
+
+  async insertScheduleTask(args: RPC.InsertScheduleTaskRpcArgs): Promise<string> {
+    return this.callRpc<string>('insert_schedule_task', args);
+  }
 }
 
 export const rpcClient = new RpcClient();
