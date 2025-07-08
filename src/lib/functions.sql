@@ -6095,3 +6095,77 @@ ALTER TABLE public.wbs ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
+-- Simple CRUD functions for new feature tables
+
+CREATE FUNCTION public.insert_project(
+  _external_id text,
+  _contract_id uuid,
+  _name text,
+  _start_date date,
+  _end_date date
+) RETURNS uuid LANGUAGE sql AS $$
+  INSERT INTO projects (external_id, contract_id, name, start_date, end_date)
+  VALUES (_external_id, _contract_id, _name, _start_date, _end_date)
+  RETURNING id;
+$$;
+
+CREATE FUNCTION public.update_project(
+  _id uuid,
+  _name text,
+  _start_date date,
+  _end_date date
+) RETURNS void LANGUAGE sql AS $$
+  UPDATE projects
+  SET name = COALESCE(_name, name),
+      start_date = COALESCE(_start_date, start_date),
+      end_date = COALESCE(_end_date, end_date)
+  WHERE id = _id;
+$$;
+
+CREATE FUNCTION public.delete_project(_id uuid) RETURNS void LANGUAGE sql AS $$
+  DELETE FROM projects WHERE id = _id;
+$$;
+
+CREATE FUNCTION public.insert_estimate(
+  _external_id text,
+  _contract_id uuid,
+  _title text,
+  _amount numeric,
+  _status text
+) RETURNS uuid LANGUAGE sql AS $$
+  INSERT INTO estimates (external_id, contract_id, title, amount, status)
+  VALUES (_external_id, _contract_id, _title, _amount, _status)
+  RETURNING id;
+$$;
+
+CREATE FUNCTION public.delete_estimate(_id uuid) RETURNS void LANGUAGE sql AS $$
+  DELETE FROM estimates WHERE id = _id;
+$$;
+
+CREATE FUNCTION public.insert_cost_code(
+  _external_id text,
+  _contract_id uuid,
+  _code text,
+  _description text
+) RETURNS uuid LANGUAGE sql AS $$
+  INSERT INTO cost_codes (external_id, contract_id, code, description)
+  VALUES (_external_id, _contract_id, _code, _description)
+  RETURNING id;
+$$;
+
+CREATE FUNCTION public.insert_schedule_task(
+  _external_id text,
+  _contract_id uuid,
+  _name text,
+  _start_date date,
+  _end_date date,
+  _percent_complete numeric
+) RETURNS uuid LANGUAGE sql AS $$
+  INSERT INTO schedule_tasks (
+    external_id, contract_id, name, start_date, end_date, percent_complete
+  ) VALUES (
+    _external_id, _contract_id, _name, _start_date, _end_date, _percent_complete
+  )
+  RETURNING id;
+$$;
+

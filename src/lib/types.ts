@@ -422,3 +422,9 @@ export interface Calculation {
   created_at?: string;
   created_by?: string;
 }
+
+// Core Feature Types
+export type { Project } from './features/project.types';
+export type { Estimate } from './features/estimate.types';
+export type { CostCode } from './features/cost-code.types';
+export type { ScheduleTask } from './features/schedule-task.types';

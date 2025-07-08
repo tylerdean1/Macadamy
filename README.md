@@ -85,3 +85,12 @@ This project uses Supabase with RPC-first design for secure, typed, and scalable
 
 ---
 This structure gives you a true API-less, secure backend with full control and complete type safety.
+## 🏗 Core Feature Types
+Typed interfaces for project management, estimating, cost codes, and scheduling live in `src/lib/features`.
+
+## 🚀 Built-in Feature Pages
+Macadamy includes pages for these core construction features:
+- `/projects` &mdash; manage projects
+- `/estimates` &mdash; track estimates and contracts
+- `/cost-codes` &mdash; maintain cost codes
+- `/schedule-tasks` &mdash; review schedules
