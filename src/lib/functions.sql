@@ -5456,10 +5456,6 @@ CREATE POLICY "Admins can manage contracts" ON public.contracts USING ((auth.rol
 
 --
 -- TOC entry 5318 (class 3256 OID 20059)
--- Name: contracts Allow access to demo template; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Allow access to demo template" ON public.contracts FOR SELECT USING (((created_by = '00000000-0000-0000-0000-000000000000'::uuid) AND (title = 'Demo Contract Template'::text)));
 
 
 --
@@ -5557,52 +5553,6 @@ CREATE POLICY "Allow contract or org members" ON public.issues FOR SELECT USING 
 
 
 --
--- TOC entry 5331 (class 3256 OID 20074)
--- Name: wbs Allow demo or contract owner access; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Allow demo or contract owner access" ON public.wbs FOR SELECT USING ((contract_id IN ( SELECT contracts.id
-   FROM public.contracts
-
-
---
--- TOC entry 5332 (class 3256 OID 20075)
--- Name: contracts Allow demo or owner access; Type: POLICY; Schema: public; Owner: -
---
-
-
-
---
--- TOC entry 5333 (class 3256 OID 20076)
--- Name: avatars Allow demo session access; Type: POLICY; Schema: public; Owner: -
---
-
-
-
---
--- TOC entry 5334 (class 3256 OID 20077)
--- Name: crew_members Allow demo session access; Type: POLICY; Schema: public; Owner: -
---
-
-
-
---
--- TOC entry 5335 (class 3256 OID 20078)
--- Name: crews Allow demo session access; Type: POLICY; Schema: public; Owner: -
---
-
-
-
---
--- TOC entry 5336 (class 3256 OID 20079)
--- Name: job_titles Allow demo session access; Type: POLICY; Schema: public; Owner: -
---
-
-
-
---
--- TOC entry 5337 (class 3256 OID 20080)
--- Name: organizations Allow demo session access; Type: POLICY; Schema: public; Owner: -
 --
 
 
@@ -5613,14 +5563,6 @@ CREATE POLICY "Allow demo or contract owner access" ON public.wbs FOR SELECT USI
 --
 
 CREATE POLICY "Allow insert for own user_id" ON public.contracts FOR INSERT TO authenticated WITH CHECK ((auth.uid() = created_by));
-
-
---
--- TOC entry 5339 (class 3256 OID 20082)
--- Name: contract_organizations Allow inserts from clone function; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Allow inserts from clone function" ON public.contract_organizations FOR INSERT WITH CHECK (((auth.uid() = '00000000-0000-0000-0000-000000000000'::uuid) OR (((current_setting('request.jwt.claims'::text, true))::jsonb ->> 'sub'::text) = '00000000-0000-0000-0000-000000000000'::text)));
 
 
 --

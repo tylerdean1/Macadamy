@@ -3,9 +3,9 @@ import { toast } from 'react-hot-toast';
 import { rpcClient } from '@/lib/rpc.client';
 import { useAuthStore } from '@/lib/store';
 import type { EnrichedUserContract } from '@/lib/types';
-import { UserRole, ContractStatusValue } from '@/lib/enums'; // Fix: Import UserRole and ContractStatusValue
+import { UserRole, ContractStatusValue } from '@/lib/enums';
 
-// Helper to check if a value is a valid ContractStatusValue (copied from Dashboard.tsx)
+// Helper to check if a value is a valid ContractStatusValue
 function isContractStatusValue(val: unknown): val is ContractStatusValue {
     return (
         typeof val === 'string' &&
@@ -17,7 +17,7 @@ function isContractStatusValue(val: unknown): val is ContractStatusValue {
     );
 }
 
-// isJson (copied from Dashboard.tsx)
+// Check if a value is valid JSON
 function isJson(val: unknown): val is import('@/lib/types').Json {
     if (val === null || typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') return true;
     if (Array.isArray(val)) return val.every(isJson);
@@ -27,9 +27,7 @@ function isJson(val: unknown): val is import('@/lib/types').Json {
     return false;
 }
 
-// validateUserRole (assuming it's simple, otherwise import from utils if it's complex)
-// For simplicity, let's assume it just returns the role or a default.
-// If it's more complex, it should be in '@/lib/utils/validate-user-role' and imported.
+// Validate user role value
 function validateUserRole(role: string | null | undefined): UserRole | null {
     if (role !== null && role !== undefined && Object.values(UserRole).includes(role as UserRole)) {
         return role as UserRole;
@@ -38,7 +36,7 @@ function validateUserRole(role: string | null | undefined): UserRole | null {
 }
 
 
-// Safe normalization for EnrichedUserContract (copied and adapted from Dashboard.tsx)
+// Normalize unknown object into EnrichedUserContract
 function normalizeEnrichedUserContract(obj: unknown): EnrichedUserContract {
     const o = typeof obj === 'object' && obj !== null ? obj as Record<string, unknown> : {};
     return {
@@ -54,10 +52,9 @@ function normalizeEnrichedUserContract(obj: unknown): EnrichedUserContract {
         budget: typeof o.budget === 'number' ? o.budget : null,
         status: isContractStatusValue(o.status) ? o.status : null,
         coordinates: isJson(o.coordinates) ? o.coordinates : null,
-        user_contract_role: validateUserRole(typeof o.user_contract_role === 'string' ? o.user_contract_role : null),
-        // Ensure all fields from EnrichedUserContract are present
-        // user_id: typeof o.user_id === 'string' ? o.user_id : null, // REMOVE
-        // Add any other missing fields from EnrichedUserContract with appropriate defaults
+        user_contract_role: validateUserRole(
+            typeof o.user_contract_role === 'string' ? o.user_contract_role : null
+        ),
     };
 }
 
@@ -103,7 +100,6 @@ export function useContractsData(): {
         void loadContracts();
     }, [loadContracts]);
 
-    // Fix: Ensure filteredContracts returns full EnrichedUserContract objects, not a mapped subset
     const filteredContracts = useMemo(() => {
         return contracts.filter(c => {
             const lowerSearchQuery = searchQuery.toLowerCase();
@@ -122,7 +118,7 @@ export function useContractsData(): {
     }, []);
 
     return {
-        contracts: filteredContracts, // Return the filtered and mapped contracts
+        contracts: filteredContracts,
         loading,
         error,
         searchQuery,

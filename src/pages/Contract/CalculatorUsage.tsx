@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, RefreshCw } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
 import { rpcClient } from '@/lib/rpc.client';
 import { useAuthStore } from '@/lib/store';
 import { evaluate } from 'mathjs'; // Import mathjs
@@ -46,7 +45,6 @@ interface Calculation {
 export default function CalculatorUsage() {
   const { id, templateId } = useParams(); // Extract contract ID and template ID from route parameters
   const navigate = useNavigate();
-  const { currentSessionId } = useAuth();
 
   const [template, setTemplate] = useState<CalculatorTemplate | null>(null);
   const [calculations, setCalculations] = useState<Calculation[]>([]);
@@ -61,7 +59,7 @@ export default function CalculatorUsage() {
 
   // Fetch the calculator template from the database using RPC
   const fetchTemplate = useCallback(async () => {
-    if (typeof currentSessionId !== 'string' || currentSessionId.length === 0 || typeof templateId !== 'string' || templateId.length === 0) return;
+    if (typeof templateId !== 'string' || templateId.length === 0) return;
     try {
       const data = await rpcClient.getAllLineItemTemplates();
       const found = Array.isArray(data) ? data.find((t) => t.id === templateId) : undefined;
@@ -113,7 +111,7 @@ export default function CalculatorUsage() {
       console.error('Error fetching template:', error);
       setError('Error loading calculator template');
     }
-  }, [templateId, currentSessionId]);
+  }, [templateId]);
 
   // Fetch previously saved calculations from the database (TODO: refactor to RPC if available)
   // Add runtime guard for id and templateId

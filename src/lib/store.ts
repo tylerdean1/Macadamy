@@ -21,8 +21,6 @@ export interface EnrichedProfile {
   avatar_url: string | null;
   job_title: string | null;
   organization_name: string | null;
-  // session_id removed from schema
-  session_id?: string | null;
 }
 
 export interface LoadingState {

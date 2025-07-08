@@ -44,13 +44,8 @@ export function FormulaModal({ open, onClose, calculator }: FormulaModalProps) {
   const calculateResult = () => {
     if (!calculator?.formula) return;
 
-    // TODO: Use mathjs or similar to evaluate calculator.formulas[0].expression with variableValues
-
-    // Mock calculation for demonstration purposes
-    // In a real app, you'd evaluate each formula using the variableValues
-    // For example, using mathjs: math.evaluate(calculator.formulas[0].expression, variableValues)
-
-    // Simple calculation demo
+  // TODO: Use mathjs or similar to evaluate calculator.formulas[0].expression with variableValues
+  // Temporary sample calculation until evaluation logic is implemented
     const total = Object.values(variableValues).reduce((sum, value) => sum + value, 0);
     setCalculatedResult(total);
   };
