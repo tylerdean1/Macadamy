@@ -93,3 +93,11 @@ Macadamy includes pages for these core construction features:
 - `/estimates` &mdash; track estimates and contracts
 - `/cost-codes` &mdash; maintain cost codes
 - `/schedule-tasks` &mdash; review schedules
+
+## 🐛 Troubleshooting Authentication
+If you see an error like `error running hook URI: pg-functions://postgres/public/custom-access-token_hook` during sign-in, the database function for custom access tokens may be missing.
+Run the migrations to recreate it:
+```bash
+npx supabase db reset
+```
+This applies `supabase/migrations/20250708223500_update_access_token_hook.sql` so authentication works.
