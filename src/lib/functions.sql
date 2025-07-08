@@ -2969,33 +2969,6 @@ end;
 $$;
 
 
---
--- TOC entry 1045 (class 1255 OID 19023)
--- Name: insert_dump_truck(numeric, text, numeric, numeric, numeric, numeric, numeric, uuid, uuid, numeric, numeric, numeric, text, numeric); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.insert_dump_truck(_payload_capacity_tons numeric, _truck_identifier text, _axle_count numeric DEFAULT NULL::numeric, _bed_height numeric DEFAULT NULL::numeric, _bed_length numeric DEFAULT NULL::numeric, _bed_volume numeric DEFAULT NULL::numeric, _bed_width numeric DEFAULT NULL::numeric, _contract_id uuid DEFAULT NULL::uuid, _equipment_id uuid DEFAULT NULL::uuid, _hoist_bottom numeric DEFAULT NULL::numeric, _hoist_top numeric DEFAULT NULL::numeric, _hoist_width numeric DEFAULT NULL::numeric, _notes text DEFAULT NULL::text, _weight_capacity_tons numeric DEFAULT NULL::numeric) RETURNS uuid
-    LANGUAGE plpgsql
-    AS $$
-declare
-  new_id uuid;
-begin
-  insert into dump_trucks (
-    id, payload_capacity_tons, truck_identifier, axle_count,
-    bed_height, bed_length, bed_volume, bed_width,
-    contract_id, equipment_id, hoist_bottom, hoist_top, hoist_width,
-    notes, weight_capacity_tons, created_at
-  )
-  values (
-    gen_random_uuid(), _payload_capacity_tons, _truck_identifier, _axle_count,
-    _bed_height, _bed_length, _bed_volume, _bed_width,
-    _contract_id, _equipment_id, _hoist_bottom, _hoist_top, _hoist_width,
-    _notes, _weight_capacity_tons, now()
-  )
-  returning id into new_id;
-  return new_id;
-end;
-$$;
 
 
 --
@@ -3642,34 +3615,6 @@ $$;
 
 
 --
--- TOC entry 1431 (class 1255 OID 19051)
--- Name: update_dump_truck(uuid, numeric, text, numeric, numeric, numeric, numeric, numeric, uuid, uuid, numeric, numeric, numeric, text, numeric); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.update_dump_truck(_id uuid, _payload_capacity_tons numeric DEFAULT NULL::numeric, _truck_identifier text DEFAULT NULL::text, _axle_count numeric DEFAULT NULL::numeric, _bed_height numeric DEFAULT NULL::numeric, _bed_length numeric DEFAULT NULL::numeric, _bed_volume numeric DEFAULT NULL::numeric, _bed_width numeric DEFAULT NULL::numeric, _contract_id uuid DEFAULT NULL::uuid, _equipment_id uuid DEFAULT NULL::uuid, _hoist_bottom numeric DEFAULT NULL::numeric, _hoist_top numeric DEFAULT NULL::numeric, _hoist_width numeric DEFAULT NULL::numeric, _notes text DEFAULT NULL::text, _weight_capacity_tons numeric DEFAULT NULL::numeric) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-begin
-  update dump_trucks
-  set
-    payload_capacity_tons = coalesce(_payload_capacity_tons, payload_capacity_tons),
-    truck_identifier = coalesce(_truck_identifier, truck_identifier),
-    axle_count = coalesce(_axle_count, axle_count),
-    bed_height = coalesce(_bed_height, bed_height),
-    bed_length = coalesce(_bed_length, bed_length),
-    bed_volume = coalesce(_bed_volume, bed_volume),
-    bed_width = coalesce(_bed_width, bed_width),
-    contract_id = coalesce(_contract_id, contract_id),
-    equipment_id = coalesce(_equipment_id, equipment_id),
-    hoist_bottom = coalesce(_hoist_bottom, hoist_bottom),
-    hoist_top = coalesce(_hoist_top, hoist_top),
-    hoist_width = coalesce(_hoist_width, hoist_width),
-    notes = coalesce(_notes, notes),
-    weight_capacity_tons = coalesce(_weight_capacity_tons, weight_capacity_tons),
-    updated_at = now()
-  where id = _id;
-end;
-$$;
 
 
 --

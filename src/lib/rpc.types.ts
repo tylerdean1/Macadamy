@@ -526,7 +526,6 @@ export type InsertDumpTruckRpcArgs = {
   hoist_top?: number;
   hoist_width?: number;
   notes?: string;
-  weight_capacity_tons?: number;
 };
 export type InsertDumpTruckRpc = (args: InsertDumpTruckRpcArgs) => Promise<string>;
 
