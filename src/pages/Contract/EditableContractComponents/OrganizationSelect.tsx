@@ -6,7 +6,6 @@ import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import type { Organization } from '@/lib/types';
 import { Search, Plus } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
 
 interface OrganizationSelectProps {
   selectedId: string | null;
@@ -23,7 +22,6 @@ export default function OrganizationSelect({
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { currentSessionId } = useAuth();
 
   useEffect(() => {
     const fetchOrganizations = async () => {
@@ -39,7 +37,7 @@ export default function OrganizationSelect({
     };
 
     void fetchOrganizations();
-  }, [currentSessionId]);
+  }, []);
 
   const filtered = organizations.filter((org) =>
     org.name.toLowerCase().includes(search.toLowerCase())

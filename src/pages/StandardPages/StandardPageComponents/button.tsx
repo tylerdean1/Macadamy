@@ -22,10 +22,8 @@ export function Button({
   ...props
 }: ButtonProps): JSX.Element {
   const isDisabled: boolean = Boolean(disabled) || Boolean(isLoading);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
-  const variantClasses = (getVariantClasses as any)(variant, 'button') as string;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
-  const sizeClasses = (getSizeClasses as any)(size, 'button') as string;
+  const variantClasses = getVariantClasses(variant, 'button');
+  const sizeClasses = getSizeClasses(size, 'button');
 
   return (
     <button

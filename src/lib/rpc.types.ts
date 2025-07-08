@@ -246,7 +246,7 @@ export type AllLineItemTemplatesRow = {
   formula: Record<string, unknown>;
   instructions: string;
 };
-export type GetAllLineItemTemplatesRpcArgs = {};
+export type GetAllLineItemTemplatesRpcArgs = Record<string, never>;
 export type GetAllLineItemTemplatesRpc = (args: GetAllLineItemTemplatesRpcArgs) => Promise<AllLineItemTemplatesRow[]>;
 
 export type OrganizationsRow = {
@@ -288,7 +288,7 @@ export type AllProfilesRow = {
   avatar_id: string;
   avatar_url: string;
 };
-export type GetAllProfilesRpcArgs = {};
+export type GetAllProfilesRpcArgs = Record<string, never>;
 export type GetAllProfilesRpc = (args: GetAllProfilesRpcArgs) => Promise<AllProfilesRow[]>;
 
 export type ProfilesByContractRow = {

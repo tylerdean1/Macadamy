@@ -30,8 +30,8 @@ export function useDashboardMetrics() {
             const metricsData = await rpcClient.getDashboardMetrics({ _user_id: profile.id });
             setMetrics({
                 activeContracts: metricsData.active_contracts || 0,
-                openIssues: metricsData.total_issues || 0, // Assuming total_issues maps to openIssues
-                pendingInspections: metricsData.total_inspections || 0, // Assuming total_inspections maps to pendingInspections
+                openIssues: metricsData.total_issues || 0,
+                pendingInspections: metricsData.total_inspections || 0,
             });
         } catch (err) {
             console.error('Error loading dashboard metrics:', err);
@@ -50,6 +50,6 @@ export function useDashboardMetrics() {
         metrics,
         loading,
         error,
-        reloadMetrics: loadMetrics, // Expose a way to reload metrics
+        reloadMetrics: loadMetrics,
     };
 }

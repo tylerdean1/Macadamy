@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { rpcClient } from "@/lib/rpc.client";
 import type { EnrichedProfile } from "@/lib/store";
 import type { UpdateProfileRpcArgs } from "@/lib/rpc.types";
@@ -31,12 +30,6 @@ const useProfileEdit = (): ReturnType => {
     }
 
     try {
-      const session = (await supabase.auth.getSession()).data.session;
-      if (!session) {
-        setError(new Error("No active session found"));
-        setLoading(false);
-        return;
-      }
 
       const { id, ...profileData } = updates;
       // Map frontend fields to backend RPC args
