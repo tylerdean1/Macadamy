@@ -29,7 +29,7 @@ This project uses Supabase with RPC-first design for secure, typed, and scalable
 - `get_equipment_usage`
 - `get_inspections`
 - `get_issues`
-- `get_labor_records`
+- `get_labor_records(line_item_id uuid) -> LaborRecordsRow[]` - fetch labor records for a line item
 - `get_job_titles`
 - `get_line_item_entries`
 - `get_line_item_templates_by_organization`
@@ -46,6 +46,9 @@ This project uses Supabase with RPC-first design for secure, typed, and scalable
   - `insert_<table>`
   - `update_<table>`
   - `delete_<table>`
+  - `insert_labor_record(line_item_id uuid, worker_count integer, hours_worked numeric, work_date date, work_type text, notes text?) -> uuid`
+  - `update_labor_record(id uuid, worker_count?, hours_worked?, work_date?, work_type?, notes?) -> void`
+  - `delete_labor_record(id uuid) -> void`
 
 ## ✅ Fully Covered Editable Tables
 - contracts
