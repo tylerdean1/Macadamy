@@ -159,7 +159,7 @@ export function useProfileData(): {
             const allOrgsData = await rpcClient.getOrganizations();
             const allJobsData = await rpcClient.getJobTitles();
 
-            let filteredOrganizations: OrganizationsRow[] = Array.isArray(allOrgsData) ? allOrgsData : [];
+            const filteredOrganizations: OrganizationsRow[] = Array.isArray(allOrgsData) ? allOrgsData : [];
             setOrganizations(filteredOrganizations);
 
             let filteredJobTitlesRpcData: JobTitlesRow[] = Array.isArray(allJobsData) ? allJobsData : [];
@@ -305,10 +305,11 @@ const handleImageCroppedAndUpload = useCallback(async (croppedFile: File) => {
             });
         }
         toast.success('Avatar image processed. Save profile to apply changes.');
-    } catch (e: any) {
-        console.error('Avatar upload error:', e);
-        toast.error(`Avatar upload failed: ${e.message}`);
-    }
+        } catch (e: unknown) {
+            console.error('Avatar upload error:', e);
+            const message = e instanceof Error ? e.message : 'Unknown error';
+            toast.error(`Avatar upload failed: ${message}`);
+        }
 }, [setProfile]);
 
 const handleSaveProfile = useCallback(async () => {

@@ -9,7 +9,7 @@ const SUPABASE_URL: string  = getRequiredEnv('VITE_SUPABASE_URL');
 const SUPABASE_ANON: string = getRequiredEnv('VITE_SUPABASE_ANON_KEY');
 
 /* ── typed client ──────────────────────────────────────────────
-   - persistSession keeps demo users logged in on refresh
+   - persistSession keeps users logged in on refresh
    - autoRefreshToken silently renews JWTs when they near expiry
    - detectSessionInUrl handles OAuth redirect flows out-of-box  */
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON, {
@@ -22,5 +22,4 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON, {
   global: { fetch },
 });
 
-/* Optional: re-export the client type for hooks & tests */
-export type SupabaseClient = typeof supabase;
+/* Optional: re-export the client type for hooks & tests */export type SupabaseClient = typeof supabase;

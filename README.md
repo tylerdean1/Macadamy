@@ -2,7 +2,6 @@
 
 This project uses Supabase with RPC-first design for secure, typed, and scalable backend operations.
 
-**Note:** Demo mode and `session_id` columns have been removed from the schema.
 
 ## ✅ Key Design Principles
 - All table reads use `get_*` RPCs with `SELECT ...` + optional `ST_AsText(...)` for WKT geometry

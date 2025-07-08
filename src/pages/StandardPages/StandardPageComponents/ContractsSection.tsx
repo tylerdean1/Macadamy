@@ -110,14 +110,10 @@ export function ContractsSection({
             if (typeof contract?.id !== 'string' || contract.id.length === 0)
               return null;
 
-            // Title and demo logic can remain if contract structure from hook supports it
             const title =
               typeof contract.title === 'string'
-                ? contract.title.replace(/\s*\(Demo:.*?\)/i, '').trim()
+                ? contract.title
                 : 'N/A';
-            const hasDemo =
-              typeof contract.title === 'string' &&
-              contract.title.includes('(Demo:');
             const description = contract.description ?? '';
             const location = contract.location ?? '';
             const startDate =
@@ -163,11 +159,6 @@ export function ContractsSection({
                   <div>
                     <h3 className="text-lg font-medium text-white mb-2">
                       {title}
-                      {hasDemo && (
-                        <span className="ml-2 text-xs text-yellow-400 font-semibold">
-                          Demo
-                        </span>
-                      )}
                     </h3>
 
                     <p className="text-gray-400 mb-4">{description}</p>
