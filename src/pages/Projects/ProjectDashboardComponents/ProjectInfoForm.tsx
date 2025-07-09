@@ -1,4 +1,4 @@
-// filepath: src\pages\Contract\ProjectDashboardComponents\ContractInfoForm.tsx
+// filepath: src\pages\Projects\ProjectDashboardComponents\ProjectInfoForm.tsx
 import { useState, useEffect } from 'react';
 import { GeometryButton } from '@/pages/Projects/SharedComponents/GoogleMaps/GeometryButton';
 import type { ContractWithWktRow } from '@/lib/rpc.types';
@@ -11,18 +11,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 
-interface ContractInfoFormProps {
+interface ProjectInfoFormProps {
   contractData: ContractWithWktRow;
 }
 
 /**
- * ContractInfoForm Component
+ * ProjectInfoForm Component
  * 
  * Displays contract information with compact/detailed view toggle.
  * Enhanced with map integration, document viewer, and real-time updates.
  * This is a view-only component.
  */
-export function ContractInfoForm({ contractData }: ContractInfoFormProps) {
+export function ProjectInfoForm({ contractData }: ProjectInfoFormProps) {
   const [isDetailedView, setIsDetailedView] = useState(false);
   const [attachments, setAttachments] = useState<Array<{ name: string, url: string, type: string, size: number }>>([]);
   const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);

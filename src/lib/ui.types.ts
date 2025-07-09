@@ -105,9 +105,9 @@ export interface DashboardComponentBase {
 }
 
 /**
- * Common contract header props
+ * Common project header props
  */
-export interface ContractHeaderProps extends DashboardComponentBase {
+export interface ProjectHeaderProps extends DashboardComponentBase {
   /**
    * Contract data
    */
@@ -127,9 +127,9 @@ export interface ContractHeaderProps extends DashboardComponentBase {
 }
 
 /**
- * Contract info form props
+ * Project info form props
  */
-export interface ContractInfoFormProps extends DashboardComponentBase {
+export interface ProjectInfoFormProps extends DashboardComponentBase {
   /**
    * Contract data
    */
@@ -149,9 +149,9 @@ export interface ContractInfoFormProps extends DashboardComponentBase {
 }
 
 /**
- * Contract totals panel props
+ * Project totals panel props
  */
-export interface ContractTotalsPanelProps extends DashboardComponentBase {
+export interface ProjectTotalsPanelProps extends DashboardComponentBase {
   /**
    * Total budget for the contract
    */

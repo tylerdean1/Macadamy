@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Page, SectionContainer } from '@/components/Layout';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
-import { ContractInfoForm } from './ProjectDashboardComponents/ContractInfoForm';
+import { ProjectInfoForm } from './ProjectDashboardComponents/ProjectInfoForm';
 import { MapModal } from './SharedComponents/MapModal';
 import { MapPreview } from './SharedComponents/GoogleMaps/MapPreview';
 import { parseWktToGeoJson, geometryToWKT } from '@/lib/utils/geometryUtils';
@@ -102,7 +102,7 @@ export const ContractCreation = () => {
             <div className="p-6">
               <h1 className="text-2xl font-bold mb-6">Create New Contract</h1>
 
-              <ContractInfoForm contractData={contractData as ContractWithWktRow} />
+              <ProjectInfoForm contractData={contractData as ContractWithWktRow} />
 
               <div className="mt-6 border-t border-gray-700 pt-6">
                 <h2 className="text-lg font-semibold mb-4">Location</h2>
