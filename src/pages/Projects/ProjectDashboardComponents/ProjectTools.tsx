@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-interface ContractToolsProps {
+interface ProjectToolsProps {
   contractId: string;
   issuesCount?: number; // Added to receive as prop
   changeOrdersCount?: number; // Added to receive as prop
@@ -19,13 +19,13 @@ export interface ToolButton {
 }
 
 /**
- * ContractToolbar Component - Now View-Only
+ * ProjectToolbar Component - Now View-Only
  * 
  * Provides quick access to various contract management features.
  * All tools are navigational and do not perform write operations directly.
  * Badge counts are for display purposes only.
  */
-export const ContractTools: React.FC<ContractToolsProps> = ({
+export const ProjectTools: React.FC<ProjectToolsProps> = ({
   contractId,
   issuesCount = 0, // Default to 0 if not provided
   changeOrdersCount = 0, // Default to 0

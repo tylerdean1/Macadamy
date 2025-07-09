@@ -2,10 +2,10 @@
  * Project Dashboard
  * 
  * Enhanced with comprehensive improvements across all components:
- * - ContractHeader: Converted to functional component with hooks, improved error handling
- * - ContractTools: Added tooltips, permission checks, badges, and real-time updates
- * - ContractTotalsPanel: Added trend visualization, forecasting, drill-down, and export
- * - ContractInfoForm: Added compact/detailed view toggle, edit capabilities
+ * - ProjectHeader: Converted to functional component with hooks, improved error handling
+ * - ProjectTools: Added tooltips, permission checks, badges, and real-time updates
+ * - ProjectTotalsPanel: Added trend visualization, forecasting, drill-down, and export
+ * - ProjectInfoForm: Added compact/detailed view toggle, edit capabilities
  * - WbsSection: Added expand/collapse, sorting, filtering, and improved UI
  * - LineItemsTable: Added pagination, sorting, filtering, and improved accessibility
  */
@@ -19,12 +19,12 @@ import { EmptyState } from '@/components/ui/empty-state';
 import type { ContractWithWktRow, WbsWithWktRow, LineItemsWithWktRow } from '@/lib/rpc.types';
 import { UnitMeasureType } from '@/lib/enums';
 
-import { ContractHeader } from './ProjectDashboardComponents/ContractHeader';
-import { ContractInfoForm } from './ProjectDashboardComponents/ContractInfoForm';
-import { ContractTotalsPanel } from './ProjectDashboardComponents/ContractTotalsPanel';
+import { ProjectHeader } from './ProjectDashboardComponents/ProjectHeader';
+import { ProjectInfoForm } from './ProjectDashboardComponents/ProjectInfoForm';
+import { ProjectTotalsPanel } from './ProjectDashboardComponents/ProjectTotalsPanel';
 import { WbsSection } from './ProjectDashboardComponents/WbsSection';
 import { LineItemsTable } from './ProjectDashboardComponents/LineItemsTable';
-import { ContractTools } from './ProjectDashboardComponents/ContractTools';
+import { ProjectTools } from './ProjectDashboardComponents/ProjectTools';
 
 export default function ProjectDashboard() {
   const { contractId } = useParams<{ contractId: string }>();
@@ -231,11 +231,11 @@ export default function ProjectDashboard() {
     <Page>
       <PageContainer>
         <SectionContainer className="py-6">
-          <ContractHeader
+          <ProjectHeader
             contract={contract}
           />
 
-          <ContractTools
+          <ProjectTools
             contractId={contract.id}
             issuesCount={issuesCount}
             changeOrdersCount={changeOrdersCount}
@@ -244,12 +244,12 @@ export default function ProjectDashboard() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             <div className="lg:col-span-2">
-              <ContractInfoForm
+              <ProjectInfoForm
                 contractData={contract}
               />
             </div>
             <div className="lg:col-span-1">
-              <ContractTotalsPanel
+              <ProjectTotalsPanel
                 totalBudget={typeof contract.budget === 'number' ? contract.budget : 0}
                 lineItemsTotal={lineItems.reduce((acc, item) => acc + (typeof item.quantity === 'number' && typeof item.unit_price === 'number' ? item.quantity * item.unit_price : 0), 0)}
                 budgetRemaining={(typeof contract.budget === 'number' ? contract.budget : 0) - lineItems.reduce((acc, item) => acc + (typeof item.quantity === 'number' && typeof item.unit_price === 'number' ? item.quantity * item.unit_price : 0), 0)}
