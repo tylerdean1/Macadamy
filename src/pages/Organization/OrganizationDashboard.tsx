@@ -1,28 +1,17 @@
-import { useEffect, useState } from 'react';
 import { Page, PageContainer } from '@/components/Layout';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
-import { rpcClient } from '@/lib/rpc.client';
-import type { OrganizationsRow } from '@/lib/rpc.types';
+import { Input } from '@/pages/StandardPages/StandardPageComponents/input';
+import { Search } from 'lucide-react';
+import { useOrganizationsData } from '@/hooks/useOrganizationsData';
 
 export default function OrganizationDashboard() {
-  const [organizations, setOrganizations] = useState<OrganizationsRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const loadOrgs = async () => {
-      try {
-        const data = await rpcClient.getOrganizations();
-        setOrganizations(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error('Error loading organizations', err);
-        setError('Failed to load organizations.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    void loadOrgs();
-  }, []);
+  const {
+    organizations,
+    loading,
+    error,
+    searchQuery,
+    handleSearchChange,
+  } = useOrganizationsData();
 
   if (loading) {
     return (
@@ -44,6 +33,15 @@ export default function OrganizationDashboard() {
     <Page>
       <PageContainer>
         <h1 className="text-2xl font-bold mb-4">Organizations</h1>
+        <div className="mb-6 max-w-sm">
+          <Input
+            placeholder="Search organizations"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            startAdornment={<Search className="w-4 h-4 text-gray-400" />}
+            fullWidth
+          />
+        </div>
         <div className="space-y-4">
           {organizations.map(org => (
             <Card key={org.id} className="p-4">

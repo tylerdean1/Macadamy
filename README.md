@@ -84,6 +84,7 @@ This project uses Supabase with RPC-first design for secure, typed, and scalable
 - New `ProjectsSection` and `OrganizationDashboard` components support project and organization views
 - Shared layout components (`Page`, `PageContainer`, `SectionContainer`) live in `src/components/Layout.tsx`
 - `FeatureListPage` simplifies our feature pages. Find it in `src/components/FeatureListPage.tsx`
+- `useProjectsData` and `useOrganizationsData` hooks provide searchable data for dashboards
 
 ---
 This structure gives you a true API-less, secure backend with full control and complete type safety.
