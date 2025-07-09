@@ -139,7 +139,7 @@ export default function CalculatorCreation() {
       });
       if (insertError) throw insertError;
 
-      navigate(`/contracts/${id}/line-items`);
+      navigate(`/projects/${id}/line-items`);
     } catch (error: unknown) {
       console.error('Error creating calculator template:', error);
       if (error instanceof Error) {
@@ -156,7 +156,7 @@ export default function CalculatorCreation() {
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate(`/contracts/${id}/calculators`)}
+              onClick={() => navigate(`/projects/${id}/calculators`)}
               className="p-2 text-gray-400 hover:text-white hover:bg-background-lighter rounded-lg transition-colors"
               aria-label="Go back to calculators list"
               title="Go back"

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Input } from '@/pages/StandardPages/StandardPageComponents/input';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
-import { ContractStatusSelect } from '@/pages/Contract/SharedComponents/ContractStatusSelect';
+import { ContractStatusSelect } from '@/pages/Projects/SharedComponents/ContractStatusSelect';
 import { MapPin, Save } from 'lucide-react';
 import type { Contracts } from '@/lib/types';
 import type { ContractStatusValue } from '@/lib/enums';

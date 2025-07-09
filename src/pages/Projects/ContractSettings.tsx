@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 
-import { Page } from '@/pages/StandardPages/StandardPageComponents/Page';
+import { Page } from '@/components/Layout';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { ContractStatusSelect } from './SharedComponents/ContractStatusSelect';

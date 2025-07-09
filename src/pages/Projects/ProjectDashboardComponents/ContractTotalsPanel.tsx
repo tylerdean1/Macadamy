@@ -1,4 +1,4 @@
-// filepath: src\pages\Contract\ContractDasboardComponents\ContractTotalsPanel.tsx
+// filepath: src\pages\Contract\ProjectDashboardComponents\ContractTotalsPanel.tsx
 import React, { useState } from 'react';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { BudgetTracker } from '../SharedComponents/BudgetProgressBar';

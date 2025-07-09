@@ -179,7 +179,7 @@ export default function DailyReports() {
         <div className="flex justify-between items-center mb-6"> {/* Header section */}
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate(`/contracts/${contract_id}`)} // Back to contract dashboard
+              onClick={() => navigate(`/projects/${contract_id}`)} // Back to project dashboard
               className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
               aria-label="Go back to contract"
             >

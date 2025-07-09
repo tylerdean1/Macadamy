@@ -19,7 +19,7 @@ const UpdatePassword     = lazy(() => import('@/pages/StandardPages/UpdatePasswo
 const UserOnboarding     = lazy(() => import('@/pages/StandardPages/UserOnboarding'));
 const Dashboard          = lazy(() => import('@/pages/StandardPages/Dashboard'));
 
-const ContractDashboard  = lazy(() => import('@/pages/Contract/ContractDashboard'));
+const ProjectDashboard  = lazy(() => import('@/pages/Contract/ProjectDashboard'));
 const ContractSettings   = lazy(() => import('@/pages/Contract/ContractSettings'));
 const Calculators        = lazy(() => import('@/pages/Contract/Calculators'));
 const CalculatorUsage    = lazy(() => import('@/pages/Contract/CalculatorUsage'));
@@ -34,6 +34,16 @@ const Projects           = lazy(() => import('@/pages/Features/Projects'));
 const Estimates          = lazy(() => import('@/pages/Features/Estimates'));
 const CostCodes          = lazy(() => import('@/pages/Features/CostCodes'));
 const ScheduleTasks      = lazy(() => import('@/pages/Features/ScheduleTasks'));
+const PreconstructionBidding = lazy(() => import('@/pages/Features/PreconstructionBidding'));
+const DocumentManagement = lazy(() => import('@/pages/Features/DocumentManagement'));
+const FinancialManagement = lazy(() => import('@/pages/Features/FinancialManagement'));
+const FieldOperations    = lazy(() => import('@/pages/Features/FieldOperations'));
+const AccountingPayroll  = lazy(() => import('@/pages/Features/AccountingPayroll'));
+const ResourcePlanning   = lazy(() => import('@/pages/Features/ResourcePlanning'));
+const ReportingCollaboration = lazy(() => import('@/pages/Features/ReportingCollaboration'));
+const OrganizationDashboard = lazy(() => import('@/pages/Organization/OrganizationDashboard'));
+const QualitySafety = lazy(() => import("@/pages/Features/QualitySafety"));
+const SubcontractorManagement = lazy(() => import("@/pages/Features/SubcontractorManagement"));
 
 const NotFoundPage       = lazy(() => import('@/pages/StandardPages/NotFoundPage'));
 
@@ -137,21 +147,29 @@ export default function App(): JSX.Element {
 
           {/* Contract stack */}
           <Route
-            path="/contracts/:id"
+            path="/projects/:id"
             element={
               <ProtectedRoute>
-                <ContractDashboard />
+                <ProjectDashboard />
               </ProtectedRoute>
             }
           />
           <Route
-            path="/contracts/:id/contractsettings"
+            path="/projects/:id/settings"
             element={
               <ProtectedRoute>
                 <ContractSettings />
               </ProtectedRoute>
             }
           />
+            <Route
+              path="/projects/create"
+              element={
+                <ProtectedRoute>
+                  <ContractCreation />
+                </ProtectedRoute>
+              }
+            />
 
           {/* Calculator stack */}
           <Route
@@ -251,6 +269,86 @@ export default function App(): JSX.Element {
             element={
               <ProtectedRoute>
                 <ScheduleTasks />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/preconstruction"
+            element={
+              <ProtectedRoute>
+                <PreconstructionBidding />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/document-management"
+            element={
+              <ProtectedRoute>
+                <DocumentManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/financial-management"
+            element={
+              <ProtectedRoute>
+                <FinancialManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/field-operations"
+            element={
+              <ProtectedRoute>
+                <FieldOperations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/accounting-payroll"
+            element={
+              <ProtectedRoute>
+                <AccountingPayroll />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/resource-planning"
+            element={
+              <ProtectedRoute>
+                <ResourcePlanning />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reporting"
+            element={
+              <ProtectedRoute>
+                <ReportingCollaboration />
+              </ProtectedRoute>
+            }
+          />
+            <Route
+              path="/quality-safety"
+              element={
+                <ProtectedRoute>
+                  <QualitySafety />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/subcontractors"
+              element={
+                <ProtectedRoute>
+                  <SubcontractorManagement />
+                </ProtectedRoute>
+              }
+            />
+          <Route
+            path="/organizations"
+            element={
+              <ProtectedRoute>
+                <OrganizationDashboard />
               </ProtectedRoute>
             }
           />

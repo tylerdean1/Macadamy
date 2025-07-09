@@ -4,6 +4,7 @@ import { Logo } from '@/pages/StandardPages/StandardPageComponents/Logo';
 import { FeatureSection } from '@/pages/StandardPages/StandardPageComponents/FeatureSection';
 import { FEATURE_SECTIONS } from '@/pages/StandardPages/StandardPageComponents/LandingPage.features';
 import { AuthForm } from '@/pages/StandardPages/StandardPageComponents/AuthForm';
+import { Page, SectionContainer } from '@/components/Layout';
 import { Building2, ShieldCheck, Clock, Users } from 'lucide-react';
 
 export default function LandingPage() {
@@ -36,10 +37,10 @@ export default function LandingPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <Page>
       {/* Hero + Auth */}
       <div className="bg-background-light border-b border-background-lighter">
-        <div className="container mx-auto px-4 py-16 flex flex-col xl:flex-row items-start gap-16 xl:gap-24 min-w-0">
+        <SectionContainer className="py-16 flex flex-col xl:flex-row items-start gap-16 xl:gap-24 min-w-0">
           {/* Left column */}
           <div className="flex-grow shrink min-w-0 space-y-8">
             <div className="scale-90 sm:scale-100 md:scale-100 lg:scale-100 xl:scale-110 origin-left transition-transform">
@@ -62,24 +63,26 @@ export default function LandingPage() {
               onNavigateToResetPassword={() => navigate('/reset-password')}
             />
           </div>
-        </div>
+        </SectionContainer>
       </div>
 
       {/* Main Feature Grid */}
-      <section className="container mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-center mb-12 text-white">
-          Comprehensive Project Management
-        </h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {FEATURE_SECTIONS.map((section) => (
-            <FeatureSection key={section.title} {...section} />
-          ))}
-        </div>
+      <section>
+        <SectionContainer className="py-16">
+          <h2 className="text-3xl font-bold text-center mb-12 text-white">
+            Comprehensive Project Management
+          </h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {FEATURE_SECTIONS.map((section) => (
+              <FeatureSection key={section.title} {...section} />
+            ))}
+          </div>
+        </SectionContainer>
       </section>
 
       {/* Why Choose Our Platform */}
       <section className="bg-background-light py-16">
-        <div className="container mx-auto px-4">
+        <SectionContainer>
           <h2 className="text-3xl font-bold text-center mb-12 text-white">
             Why Choose Our Platform?
           </h2>
@@ -92,8 +95,8 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-        </div>
+        </SectionContainer>
       </section>
-    </div>
+    </Page>
   );
 }

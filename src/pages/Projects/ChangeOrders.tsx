@@ -191,7 +191,7 @@ export default function ChangeOrders() {
       {/* Navigation back to contract dashboard */}
       <div className="mb-4 flex items-center gap-4">
         <button
-          onClick={() => navigate(`/contracts/${contract_id}`)} // Navigate back to contract
+          onClick={() => navigate(`/projects/${contract_id}`)} // Navigate back to project
           className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
           aria-label="Go back to contract"
         >
@@ -275,7 +275,7 @@ export default function ChangeOrders() {
                 <tr
                   key={order.id}
                   className="hover:bg-gray-100 cursor-pointer"
-                  onClick={() => navigate(`/contracts/${contract_id}/change-orders/${order.id}`)} // Navigate to order details
+                  onClick={() => navigate(`/projects/${contract_id}/change-orders/${order.id}`)} // Navigate to order details
                 >
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">{order.title}</td> {/* Render order title */}
                   <td className="px-6 py-4 text-sm text-gray-700">{(() => { const found = lineItems.find(li => li.id === order.line_item_id); return (found && typeof found.description === 'string' && found.description.length > 0) ? found.description : 'Unknown'; })()}</td> {/* Render line item description */}
@@ -294,5 +294,4 @@ export default function ChangeOrders() {
         </div>
       )}
     </div>
-  );
-}
+  );}

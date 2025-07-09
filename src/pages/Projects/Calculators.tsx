@@ -73,7 +73,7 @@ export default function Calculators() {
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate(`/contracts/${id}`)} // Navigate back to the contract details
+              onClick={() => navigate(`/projects/${id}`)} // Navigate back to the project details
               className="p-2 text-gray-400 hover:text-white hover:bg-background-lighter rounded-lg transition-colors"
               title="Go back to contract details" // Add a title attribute for accessibility
             >
@@ -82,7 +82,7 @@ export default function Calculators() {
             <h1 className="text-2xl font-bold text-white">Calculators</h1>
           </div>
           <button
-            onClick={() => navigate(`/contracts/${id}/calculators/new`)} // Navigate to create a new calculator
+            onClick={() => navigate(`/projects/${id}/calculators/new`)} // Navigate to create a new calculator
             className="flex items-center px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors"
           >
             <Plus className="w-5 h-5 mr-2" />
@@ -98,7 +98,7 @@ export default function Calculators() {
               <h3 className="text-lg font-medium text-white mb-2">No Calculators</h3>
               <p className="text-gray-400 mb-6">Create custom calculators for your line items.</p>
               <button
-                onClick={() => navigate(`/contracts/${id}/calculators/new`)} // Navigate to create a calculator
+                onClick={() => navigate(`/projects/${id}/calculators/new`)} // Navigate to create a calculator
                 className="inline-flex items-center px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors"
               >
                 <Plus className="w-5 h-5 mr-2" />
@@ -110,7 +110,7 @@ export default function Calculators() {
               <div
                 key={template.id} // Unique key for each template
                 className="bg-background-light rounded-lg border border-background-lighter p-6 hover:border-primary transition-colors cursor-pointer"
-                onClick={() => navigate(`/contracts/${id}/calculators/${template.id}`)} // Navigate to calculator details on click
+                onClick={() => navigate(`/projects/${id}/calculators/${template.id}`)} // Navigate to calculator details on click
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="p-3 rounded-lg bg-indigo-500/10">
@@ -134,5 +134,4 @@ export default function Calculators() {
         </div>
       </div>
     </div>
-  );
-}
+  );}

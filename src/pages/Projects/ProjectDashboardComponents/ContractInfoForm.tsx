@@ -1,6 +1,6 @@
-// filepath: src\pages\Contract\ContractDasboardComponents\ContractInfoForm.tsx
+// filepath: src\pages\Contract\ProjectDashboardComponents\ContractInfoForm.tsx
 import { useState, useEffect } from 'react';
-import { GeometryButton } from '@/pages/Contract/SharedComponents/GoogleMaps/GeometryButton';
+import { GeometryButton } from '@/pages/Projects/SharedComponents/GoogleMaps/GeometryButton';
 import type { ContractWithWktRow } from '@/lib/rpc.types';
 import {
   Share2, ChevronUp, ChevronDown, MapPin, Calendar,

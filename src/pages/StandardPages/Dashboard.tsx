@@ -1,14 +1,14 @@
 import { useRequireProfile } from '@/hooks/useRequireProfile';
 import { useProfileData } from '@/hooks/useProfileData';
-import { useContractsData } from '@/hooks/useContractsData';
+import { useProjectsData } from '@/hooks/useProjectsData';
 import { useDashboardMetrics } from '@/hooks/useDashboardMetrics';
 
-import { Page } from './StandardPageComponents/Page';
-import { PageContainer } from './StandardPageComponents/PageContainer';
+import { Page } from '@/components/Layout';
+import { PageContainer } from '@/components/Layout';
 import { ProfileSection } from './StandardPageComponents/ProfileSection';
 import { EditProfileModal } from './StandardPageComponents/EditProfileModal';
 import { DashboardMetrics } from './StandardPageComponents/DashboardMetrics';
-import { ContractsSection } from './StandardPageComponents/ContractsSection';
+import { ProjectsSection } from './StandardPageComponents/ProjectsSection';
 import type { Area } from 'react-easy-crop'; // Ensure this type is available or defined if needed by EditProfileModal directly
 
 export default function Dashboard() {
@@ -39,12 +39,12 @@ export default function Dashboard() {
   } = useProfileData();
 
   const {
-    contracts,
-    loading: contractsLoading,
-    error: contractsError,
+    projects,
+    loading: projectsLoading,
+    error: projectsError,
     searchQuery,
     handleSearchChange,
-  } = useContractsData();
+  } = useProjectsData();
 
   const {
     metrics,
@@ -52,11 +52,11 @@ export default function Dashboard() {
     error: metricsError,
   } = useDashboardMetrics();
 
-  const loading = profileLoading || contractsLoading || metricsLoading;
+  const loading = profileLoading || projectsLoading || metricsLoading;
   // Explicitly check for non-empty error strings and provide a default empty string if none are found.
   // Fix: Remove null/undefined from array before .find()
   // Final fix: filter out null/undefined and empty strings before .find()
-  const errorList = [profileError, contractsError, metricsError].filter((e): e is string => typeof e === 'string' && e != null && e.trim() !== '');
+  const errorList = [profileError, projectsError, metricsError].filter((e): e is string => typeof e === 'string' && e != null && e.trim() !== '');
   const combinedError = errorList.length > 0 ? errorList[0] : null;
 
   if (loading) {
@@ -117,8 +117,8 @@ export default function Dashboard() {
           pendingInspections={metrics.pendingInspections}
         />
 
-        <ContractsSection
-          filteredContracts={contracts.map(contract => ({
+        <ProjectsSection
+          filteredProjects={projects.map(contract => ({
             id: contract.id,
             title: contract.title ?? null,
             description: contract.description ?? null,
@@ -135,5 +135,4 @@ export default function Dashboard() {
         />
       </PageContainer>
     </Page>
-  );
-}
+  );}

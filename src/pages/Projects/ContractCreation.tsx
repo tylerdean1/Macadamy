@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { v4 as uuidv4 } from 'uuid';
 
-import { Page } from '@/pages/StandardPages/StandardPageComponents/Page';
+import { Page, SectionContainer } from '@/components/Layout';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
-import { ContractInfoForm } from './ContractDasboardComponents/ContractInfoForm';
+import { ContractInfoForm } from './ProjectDashboardComponents/ContractInfoForm';
 import { MapModal } from './SharedComponents/MapModal';
 import { MapPreview } from './SharedComponents/GoogleMaps/MapPreview';
 import { parseWktToGeoJson, geometryToWKT } from '@/lib/utils/geometryUtils';
@@ -85,7 +85,7 @@ export const ContractCreation = () => {
       if (assignError) throw assignError;
 
       toast.success('Contract created successfully!');
-      navigate(`/contracts/${contractId}/dashboard`);
+      navigate(`/projects/${contractId}`);
     } catch (error) {
       console.error('Error creating contract:', error);
       toast.error('Failed to create contract');
@@ -96,7 +96,7 @@ export const ContractCreation = () => {
 
   return (
     <Page>
-      <div className="container mx-auto px-4 py-8">
+      <SectionContainer>
         <div className="max-w-4xl mx-auto">
           <Card className="mb-6">
             <div className="p-6">
@@ -150,7 +150,7 @@ export const ContractCreation = () => {
             </div>
           </Card>
         </div>
-      </div>
+      </SectionContainer>
 
       <MapModal
         isOpen={showMapModal}

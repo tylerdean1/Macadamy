@@ -189,7 +189,7 @@ export default function CalculatorUsage() {
         <div className="text-center">
           <p className="text-xl text-gray-400">Calculator template not found</p>
           <button
-            onClick={() => navigate(`/contracts/${id}/calculators`)}
+            onClick={() => navigate(`/projects/${id}/calculators`)}
             className="mt-4 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-md transition-colors"
             aria-label="Return to calculators"
           >
@@ -207,7 +207,7 @@ export default function CalculatorUsage() {
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate(`/contracts/${id}/calculators`)}
+            onClick={() => navigate(`/projects/${id}/calculators`)}
               className="p-2 text-gray-400 hover:text-white hover:bg-background-lighter rounded-lg transition-colors"
               aria-label="Go back to calculators list"
               title="Go back"
