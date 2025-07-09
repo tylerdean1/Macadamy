@@ -1,18 +1,18 @@
-// filepath: src\pages\Contract\ContractDasboardComponents\ContractTotalsPanel.tsx
+// filepath: src\pages\Contract\ContractDasboardComponents\ProjectTotalsPanel.tsx
 import React, { useState } from 'react';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { BudgetTracker } from '../SharedComponents/BudgetProgressBar';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-interface ContractTotalsPanelProps {
+interface ProjectTotalsPanelProps {
   totalBudget: number;
   lineItemsTotal: number;
   budgetRemaining: number;
   percentUsed: number;
 }
 
-export const ContractTotalsPanel: React.FC<ContractTotalsPanelProps> = ({
+export const ProjectTotalsPanel: React.FC<ProjectTotalsPanelProps> = ({
   totalBudget,
   lineItemsTotal,
   budgetRemaining,

@@ -7,7 +7,7 @@ import type { ContractWithWktRow } from '@/lib/rpc.types';
 import { ErrorBoundary } from 'react-error-boundary';
 import { CalendarRange, MapPin } from 'lucide-react';
 
-interface ContractHeaderProps {
+interface ProjectHeaderProps {
   /**
    * Contract data
    */
@@ -31,23 +31,23 @@ const ErrorFallback = ({ error, resetErrorBoundary }: { error: Error; resetError
       <ErrorState
         error={error}
         onRetry={resetErrorBoundary}
-        title="Error Loading Contract Header"
+        title="Error Loading Project Header"
       />
     </div>
   </Card>
 );
 
 /**
- * ContractHeader Component
+ * ProjectHeader Component
  * 
  * Displays the contract header information including title, status, location,
  * description, map button, and contract period.
  */
-export function ContractHeader({
+export function ProjectHeader({
   contract,
   isLoading = false,
   error = null
-}: ContractHeaderProps) {
+}: ProjectHeaderProps) {
   const [contractData, setContractData] = useState<ContractWithWktRow>(contract);
 
   // Update local state when contract prop changes
@@ -82,7 +82,7 @@ export function ContractHeader({
       <Card className="mb-6">
         <ErrorState
           error={error instanceof Error ? error : String(error)}
-          title="Error Loading Contract Header"
+          title="Error Loading Project Header"
         />
       </Card>
     );
