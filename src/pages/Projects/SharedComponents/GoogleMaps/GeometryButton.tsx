@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { MapPinned } from 'lucide-react';
-import { MapPreview } from '@/pages/Contract/SharedComponents/GoogleMaps/MapPreview';
-import { MapModal } from '@/pages/Contract/SharedComponents/GoogleMaps/GeometryEditorModal';
+import { MapPreview } from '@/pages/Projects/SharedComponents/GoogleMaps/MapPreview';
+import { MapModal } from '@/pages/Projects/SharedComponents/GoogleMaps/GeometryEditorModal';
 import type { GeometryData } from '@/lib/types';
 
 interface GeometryButtonProps {
