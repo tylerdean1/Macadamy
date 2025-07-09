@@ -44,6 +44,9 @@ const ReportingCollaboration = lazy(() => import('@/pages/Features/ReportingColl
 const OrganizationDashboard = lazy(() => import('@/pages/Organization/OrganizationDashboard'));
 const QualitySafety = lazy(() => import("@/pages/Features/QualitySafety"));
 const SubcontractorManagement = lazy(() => import("@/pages/Features/SubcontractorManagement"));
+const EquipmentManagement = lazy(() => import('@/pages/Features/EquipmentManagement'));
+const DesignReviews = lazy(() => import('@/pages/Features/DesignReviews'));
+const EquipmentMaintenance = lazy(() => import('@/pages/Features/EquipmentMaintenance'));
 
 const NotFoundPage       = lazy(() => import('@/pages/StandardPages/NotFoundPage'));
 
@@ -301,6 +304,30 @@ export default function App(): JSX.Element {
             element={
               <ProtectedRoute>
                 <FieldOperations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/equipment-management"
+            element={
+              <ProtectedRoute>
+                <EquipmentManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/design-reviews"
+            element={
+              <ProtectedRoute>
+                <DesignReviews />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/equipment-maintenance"
+            element={
+              <ProtectedRoute>
+                <EquipmentMaintenance />
               </ProtectedRoute>
             }
           />

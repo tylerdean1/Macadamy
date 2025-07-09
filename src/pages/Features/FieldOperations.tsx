@@ -3,6 +3,7 @@ import FeatureListPage from '@/components/FeatureListPage';
 const features = [
   'Timecards and production quantity tracking',
   'Equipment assignments and usage logs',
+  'Equipment maintenance scheduling and service history',
   'Safety inspections and incident reporting',
 ];
 
