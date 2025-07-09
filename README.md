@@ -96,6 +96,13 @@ Macadamy includes pages for these core construction features:
 - `/cost-codes` &mdash; maintain cost codes
 - `/schedule-tasks` &mdash; review schedules
 - `/organizations` &mdash; manage organizations
+- `/preconstruction` &mdash; estimating and bid management
+- `/document-management` &mdash; drawings, RFIs and submittals
+- `/financial-management` &mdash; budgets and billing
+- `/field-operations` &mdash; timecards and equipment logs
+- `/accounting-payroll` &mdash; AP/AR and payroll tracking
+- `/resource-planning` &mdash; schedules and resource allocation
+- `/reporting` &mdash; dashboards and analytics
 
 ## 🚧 Comprehensive Feature Vision
 Our long-term roadmap aims to match the capabilities of leading construction and project management platforms. Major areas include:
