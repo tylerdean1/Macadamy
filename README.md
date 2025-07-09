@@ -97,6 +97,47 @@ Macadamy includes pages for these core construction features:
 - `/schedule-tasks` &mdash; review schedules
 - `/organizations` &mdash; manage organizations
 
+## 🚧 Comprehensive Feature Vision
+Our long-term roadmap aims to match the capabilities of leading construction and project management platforms. Major areas include:
+
+### Preconstruction & Bidding
+- Detailed estimating with resource-based pricing
+- Bid package creation and vendor tracking
+- Qualification and procurement workflows
+
+### Project & Document Management
+- Drawing version control and centralized file storage
+- RFI, submittal, and meeting minutes workflows
+- Daily logs, change orders, and punch lists
+
+### Financial Management
+- Budgets, commitments, and contract tracking
+- Progress billing and payment applications
+- Job cost forecasting with real-time dashboards
+- Integration with accounting and payroll modules
+
+### Field Operations
+- Timecards and production quantity tracking
+- Equipment assignments and usage logs
+- Safety inspections and incident reporting
+
+### Accounting & Payroll
+- Accounts payable/receivable and general ledger
+- Payroll processing with certified payroll support
+- HR onboarding and equipment cost tracking
+- Inventory management and purchase orders
+
+### Scheduling & Resource Planning
+- Gantt-style schedules with dependencies
+- Resource allocation across projects
+- Baselines and percent-complete reporting
+- Portfolio-level dashboards
+
+### Reporting & Collaboration
+- Custom dashboards and analytics
+- Mobile access to tasks and documents
+- Centralized contact directory and communications
+
 ## 🐛 Troubleshooting Authentication
 If you see an error like `error running hook URI: pg-functions://postgres/public/custom-access-token_hook` during sign-in, the database function for custom access tokens may be missing.
 Run the migrations to recreate it:
