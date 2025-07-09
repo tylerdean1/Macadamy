@@ -1,4 +1,4 @@
-import { Page } from '@/components/Layout';
+import FeatureListPage from '@/components/FeatureListPage';
 
 const features = [
   'Timecards and production quantity tracking',
@@ -7,16 +7,5 @@ const features = [
 ];
 
 export default function FieldOperations() {
-  return (
-    <Page>
-      <h1 className="text-2xl font-bold mb-4">Field Operations</h1>
-      <ul className="space-y-2">
-        {features.map((f, i) => (
-          <li key={i} className="border p-2 rounded">
-            {f}
-          </li>
-        ))}
-      </ul>
-    </Page>
-  );
+  return <FeatureListPage title="Field Operations" features={features} />;
 }

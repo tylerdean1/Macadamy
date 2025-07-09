@@ -1,4 +1,4 @@
-import { Page } from '@/components/Layout';
+import FeatureListPage from '@/components/FeatureListPage';
 
 const features = [
   'Drawing version control and centralized file storage',
@@ -7,16 +7,5 @@ const features = [
 ];
 
 export default function DocumentManagement() {
-  return (
-    <Page>
-      <h1 className="text-2xl font-bold mb-4">Project & Document Management</h1>
-      <ul className="space-y-2">
-        {features.map((f, i) => (
-          <li key={i} className="border p-2 rounded">
-            {f}
-          </li>
-        ))}
-      </ul>
-    </Page>
-  );
+  return <FeatureListPage title="Project & Document Management" features={features} />;
 }
