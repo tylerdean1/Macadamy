@@ -51,7 +51,7 @@ export function ProjectsSection({
           Start by creating your first project.
         </p>
         <Button
-          onClick={() => navigate('/ContractCreation')}
+          onClick={() => navigate('/projects/create')}
           className="flex items-center gap-2 mx-auto"
         >
           <Plus className="w-5 h-5" />
@@ -82,7 +82,7 @@ export function ProjectsSection({
           </div>
 
           <Button
-            onClick={() => navigate('/ContractCreation')}
+            onClick={() => navigate('/projects/create')}
             className="flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />

@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Page, SectionContainer } from '@/components/Layout';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
-import { ContractInfoForm } from './ContractDasboardComponents/ContractInfoForm';
+import { ContractInfoForm } from './ProjectDashboardComponents/ContractInfoForm';
 import { MapModal } from './SharedComponents/MapModal';
 import { MapPreview } from './SharedComponents/GoogleMaps/MapPreview';
 import { parseWktToGeoJson, geometryToWKT } from '@/lib/utils/geometryUtils';

@@ -19,12 +19,12 @@ import { EmptyState } from '@/components/ui/empty-state';
 import type { ContractWithWktRow, WbsWithWktRow, LineItemsWithWktRow } from '@/lib/rpc.types';
 import { UnitMeasureType } from '@/lib/enums';
 
-import { ContractHeader } from './ContractDasboardComponents/ContractHeader';
-import { ContractInfoForm } from './ContractDasboardComponents/ContractInfoForm';
-import { ContractTotalsPanel } from './ContractDasboardComponents/ContractTotalsPanel';
-import { WbsSection } from './ContractDasboardComponents/WbsSection';
-import { LineItemsTable } from './ContractDasboardComponents/LineItemsTable';
-import { ContractTools } from './ContractDasboardComponents/ContractTools';
+import { ContractHeader } from './ProjectDashboardComponents/ContractHeader';
+import { ContractInfoForm } from './ProjectDashboardComponents/ContractInfoForm';
+import { ContractTotalsPanel } from './ProjectDashboardComponents/ContractTotalsPanel';
+import { WbsSection } from './ProjectDashboardComponents/WbsSection';
+import { LineItemsTable } from './ProjectDashboardComponents/LineItemsTable';
+import { ContractTools } from './ProjectDashboardComponents/ContractTools';
 
 export default function ProjectDashboard() {
   const { contractId } = useParams<{ contractId: string }>();

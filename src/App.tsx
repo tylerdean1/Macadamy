@@ -42,6 +42,8 @@ const AccountingPayroll  = lazy(() => import('@/pages/Features/AccountingPayroll
 const ResourcePlanning   = lazy(() => import('@/pages/Features/ResourcePlanning'));
 const ReportingCollaboration = lazy(() => import('@/pages/Features/ReportingCollaboration'));
 const OrganizationDashboard = lazy(() => import('@/pages/Organization/OrganizationDashboard'));
+const QualitySafety = lazy(() => import("@/pages/Features/QualitySafety"));
+const SubcontractorManagement = lazy(() => import("@/pages/Features/SubcontractorManagement"));
 
 const NotFoundPage       = lazy(() => import('@/pages/StandardPages/NotFoundPage'));
 
@@ -160,6 +162,14 @@ export default function App(): JSX.Element {
               </ProtectedRoute>
             }
           />
+            <Route
+              path="/projects/create"
+              element={
+                <ProtectedRoute>
+                  <ContractCreation />
+                </ProtectedRoute>
+              }
+            />
 
           {/* Calculator stack */}
           <Route
@@ -318,6 +328,22 @@ export default function App(): JSX.Element {
               </ProtectedRoute>
             }
           />
+            <Route
+              path="/quality-safety"
+              element={
+                <ProtectedRoute>
+                  <QualitySafety />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/subcontractors"
+              element={
+                <ProtectedRoute>
+                  <SubcontractorManagement />
+                </ProtectedRoute>
+              }
+            />
           <Route
             path="/organizations"
             element={

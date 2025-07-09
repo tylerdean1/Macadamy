@@ -82,9 +82,11 @@ This project uses Supabase with RPC-first design for secure, typed, and scalable
 - Use composite keys carefully (e.g. `user_contracts` needs `user_id + contract_id` for delete)
 - Outdated profile contract RPCs were removed from `rpc.client.ts`
 - New `ProjectsSection` and `OrganizationDashboard` components support project and organization views
+- Project-related pages now live in `src/pages/Projects` (previously `Contract`)
 - Shared layout components (`Page`, `PageContainer`, `SectionContainer`) live in `src/components/Layout.tsx`
 - `FeatureListPage` simplifies our feature pages. Find it in `src/components/FeatureListPage.tsx`
 - `useProjectsData` and `useOrganizationsData` hooks provide searchable data for dashboards
+- New feature pages `QualitySafety` and `SubcontractorManagement` outline future compliance and vendor management modules
 
 ---
 This structure gives you a true API-less, secure backend with full control and complete type safety.
@@ -105,6 +107,8 @@ Macadamy includes pages for these core construction features:
 - `/accounting-payroll` &mdash; AP/AR and payroll tracking
 - `/resource-planning` &mdash; schedules and resource allocation
 - `/reporting` &mdash; dashboards and analytics
+- `/quality-safety` &mdash; compliance and safety tracking
+- `/subcontractors` &mdash; vendor onboarding and agreements
 
 ## 🚧 Comprehensive Feature Vision
 Our long-term roadmap aims to match the capabilities of leading construction and project management platforms. Major areas include:
