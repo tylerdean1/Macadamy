@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Page } from '@/pages/StandardPages/StandardPageComponents/Page';
+import { Page } from '@/components/Layout';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/lib/database.types';
 

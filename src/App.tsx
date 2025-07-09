@@ -19,7 +19,7 @@ const UpdatePassword     = lazy(() => import('@/pages/StandardPages/UpdatePasswo
 const UserOnboarding     = lazy(() => import('@/pages/StandardPages/UserOnboarding'));
 const Dashboard          = lazy(() => import('@/pages/StandardPages/Dashboard'));
 
-const ContractDashboard  = lazy(() => import('@/pages/Contract/ContractDashboard'));
+const ProjectDashboard  = lazy(() => import('@/pages/Contract/ProjectDashboard'));
 const ContractSettings   = lazy(() => import('@/pages/Contract/ContractSettings'));
 const Calculators        = lazy(() => import('@/pages/Contract/Calculators'));
 const CalculatorUsage    = lazy(() => import('@/pages/Contract/CalculatorUsage'));
@@ -34,6 +34,7 @@ const Projects           = lazy(() => import('@/pages/Features/Projects'));
 const Estimates          = lazy(() => import('@/pages/Features/Estimates'));
 const CostCodes          = lazy(() => import('@/pages/Features/CostCodes'));
 const ScheduleTasks      = lazy(() => import('@/pages/Features/ScheduleTasks'));
+const OrganizationDashboard = lazy(() => import('@/pages/Organization/OrganizationDashboard'));
 
 const NotFoundPage       = lazy(() => import('@/pages/StandardPages/NotFoundPage'));
 
@@ -137,15 +138,15 @@ export default function App(): JSX.Element {
 
           {/* Contract stack */}
           <Route
-            path="/contracts/:id"
+            path="/projects/:id"
             element={
               <ProtectedRoute>
-                <ContractDashboard />
+                <ProjectDashboard />
               </ProtectedRoute>
             }
           />
           <Route
-            path="/contracts/:id/contractsettings"
+            path="/projects/:id/settings"
             element={
               <ProtectedRoute>
                 <ContractSettings />
@@ -251,6 +252,14 @@ export default function App(): JSX.Element {
             element={
               <ProtectedRoute>
                 <ScheduleTasks />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organizations"
+            element={
+              <ProtectedRoute>
+                <OrganizationDashboard />
               </ProtectedRoute>
             }
           />

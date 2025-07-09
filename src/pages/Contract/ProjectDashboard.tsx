@@ -1,5 +1,5 @@
 /**
- * Contract Dashboard
+ * Project Dashboard
  * 
  * Enhanced with comprehensive improvements across all components:
  * - ContractHeader: Converted to functional component with hooks, improved error handling
@@ -13,8 +13,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FileText } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { Page } from '@/pages/StandardPages/StandardPageComponents/Page';
-import { PageContainer } from '@/pages/StandardPages/StandardPageComponents/PageContainer';
+import { Page, PageContainer, SectionContainer } from '@/components/Layout';
 import { LoadingState } from '@/components/ui/loading-state';
 import { EmptyState } from '@/components/ui/empty-state';
 import type { ContractWithWktRow, WbsWithWktRow, LineItemsWithWktRow } from '@/lib/rpc.types';
@@ -27,7 +26,7 @@ import { WbsSection } from './ContractDasboardComponents/WbsSection';
 import { LineItemsTable } from './ContractDasboardComponents/LineItemsTable';
 import { ContractTools } from './ContractDasboardComponents/ContractTools';
 
-export default function ContractDashboard() {
+export default function ProjectDashboard() {
   const { contractId } = useParams<{ contractId: string }>();
   const navigate = useNavigate();
   const [contract, setContract] = useState<ContractWithWktRow | null>(null);
@@ -165,9 +164,9 @@ export default function ContractDashboard() {
     return (
       <Page>
         <PageContainer>
-          <div className="flex justify-center items-center min-h-screen">
+          <SectionContainer className="flex justify-center items-center min-h-screen">
             <LoadingState size="lg" message="Loading contract data..." />
-          </div>
+          </SectionContainer>
         </PageContainer>
       </Page>
     );
@@ -177,7 +176,7 @@ export default function ContractDashboard() {
     return (
       <Page>
         <PageContainer>
-          <div className="container mx-auto px-4 py-8">
+          <SectionContainer className="py-8">
             <div className="max-w-2xl mx-auto">
               <div className="bg-gray-850 p-6 rounded-lg shadow-md">
                 <h2 className="text-xl font-semibold mb-4 text-red-400">Error Loading Contract</h2>
@@ -198,8 +197,8 @@ export default function ContractDashboard() {
                 </div>
               </div>
             </div>
-          </div>
-        </PageContainer>
+            </SectionContainer>
+          </PageContainer>
       </Page>
     );
   }
@@ -208,7 +207,7 @@ export default function ContractDashboard() {
     return (
       <Page>
         <PageContainer>
-          <div className="container mx-auto px-4 py-8">
+          <SectionContainer className="py-8">
             <EmptyState
               icon={<FileText size={48} className="opacity-50" />}
               message="Contract not found"
@@ -222,7 +221,7 @@ export default function ContractDashboard() {
                 </button>
               }
             />
-          </div>
+          </SectionContainer>
         </PageContainer>
       </Page>
     );
@@ -231,7 +230,7 @@ export default function ContractDashboard() {
   return (
     <Page>
       <PageContainer>
-        <div className="container mx-auto px-4 py-6">
+        <SectionContainer className="py-6">
           <ContractHeader
             contract={contract}
           />
@@ -275,7 +274,7 @@ export default function ContractDashboard() {
             wbsItems={wbsItems}
             contractId={contract.id} // Use contract.id for a guaranteed string
           />
-        </div>
+        </SectionContainer>
       </PageContainer>
     </Page>
   );

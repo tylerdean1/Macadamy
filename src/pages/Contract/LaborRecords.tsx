@@ -125,7 +125,7 @@ export default function LaborRecords() {
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate(`/contracts/${id}`)} // Navigate back to the contract details
+              onClick={() => navigate(`/projects/${id}`)} // Navigate back to the project details
               className="p-2 text-gray-400 hover:text-white hover:bg-background-lighter rounded-lg transition-colors"
               title="Go back to contract details"
             >
@@ -267,7 +267,7 @@ export default function LaborRecords() {
               <div
                 key={record.id}
                 className="bg-background-light rounded-lg border border-background-lighter p-6 hover:border-primary transition-colors cursor-pointer"
-                onClick={() => navigate(`/contracts/${id}/labor/${record.id}`)} // Navigate to labor record details
+                onClick={() => navigate(`/projects/${id}/labor/${record.id}`)} // Navigate to labor record details
               >
                 <div className="flex items-start justify-between mb-4">
                   <div>

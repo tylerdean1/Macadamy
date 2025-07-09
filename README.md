@@ -81,6 +81,8 @@ This project uses Supabase with RPC-first design for secure, typed, and scalable
 - Need WKT parsing? Always handle in frontend using `parseWktToGeoJson`
 - Use composite keys carefully (e.g. `user_contracts` needs `user_id + contract_id` for delete)
 - Outdated profile contract RPCs were removed from `rpc.client.ts`
+- New `ProjectsSection` and `OrganizationDashboard` components support project and organization views
+- Shared layout components (`Page`, `PageContainer`, `SectionContainer`) live in `src/components/Layout.tsx`
 
 ---
 This structure gives you a true API-less, secure backend with full control and complete type safety.
@@ -93,6 +95,7 @@ Macadamy includes pages for these core construction features:
 - `/estimates` &mdash; track estimates and contracts
 - `/cost-codes` &mdash; maintain cost codes
 - `/schedule-tasks` &mdash; review schedules
+- `/organizations` &mdash; manage organizations
 
 ## 🐛 Troubleshooting Authentication
 If you see an error like `error running hook URI: pg-functions://postgres/public/custom-access-token_hook` during sign-in, the database function for custom access tokens may be missing.
