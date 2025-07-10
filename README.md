@@ -2,6 +2,8 @@
 
 This project uses Supabase with RPC-first design for secure, typed, and scalable backend operations.
 
+The name **Macadamy** comes from the verb **"macadamize,"** which means _to pave a road with compacted layers of stone bound with asphalt_. Just as a macadamized surface provides a solid foundation for travel, Macadamy strives to lay the groundwork for streamlined construction management.
+
 
 ## ✅ Key Design Principles
 - All table reads use `get_*` RPCs with `SELECT ...` + optional `ST_AsText(...)` for WKT geometry
@@ -104,6 +106,9 @@ Macadamy includes pages for these core construction features:
 - `/document-management` &mdash; drawings, RFIs and submittals
 - `/financial-management` &mdash; budgets and billing
 - `/field-operations` &mdash; timecards and equipment logs
+- `/equipment-management` &mdash; inventory, maintenance, and service history
+- `/design-reviews` &mdash; track model coordination reviews
+- `/equipment-maintenance` &mdash; schedule service and log repairs
 - `/accounting-payroll` &mdash; AP/AR and payroll tracking
 - `/resource-planning` &mdash; schedules and resource allocation
 - `/reporting` &mdash; dashboards and analytics
@@ -111,7 +116,7 @@ Macadamy includes pages for these core construction features:
 - `/subcontractors` &mdash; vendor onboarding and agreements
 
 ## 🚧 Comprehensive Feature Vision
-Our long-term roadmap aims to match the capabilities of leading construction and project management platforms. Major areas include:
+Our long-term roadmap aims to match the capabilities of leading construction and project management solutions while implementing everything natively without external API dependencies. Major areas include:
 
 ### Preconstruction & Bidding
 - Detailed estimating with resource-based pricing
@@ -120,6 +125,7 @@ Our long-term roadmap aims to match the capabilities of leading construction and
 
 ### Project & Document Management
 - Drawing version control and centralized file storage
+- Model coordination and design review
 - RFI, submittal, and meeting minutes workflows
 - Daily logs, change orders, and punch lists
 
@@ -132,6 +138,7 @@ Our long-term roadmap aims to match the capabilities of leading construction and
 ### Field Operations
 - Timecards and production quantity tracking
 - Equipment assignments and usage logs
+- Equipment maintenance scheduling and service history
 - Safety inspections and incident reporting
 
 ### Accounting & Payroll
@@ -150,6 +157,12 @@ Our long-term roadmap aims to match the capabilities of leading construction and
 - Custom dashboards and analytics
 - Mobile access to tasks and documents
 - Centralized contact directory and communications
+
+### Future Enhancements (TODO)
+- BIM coordination and model federation
+- Drone & sensor data integration
+- Regulatory compliance tracking
+- 3rd-party app integrations
 
 ## 🐛 Troubleshooting Authentication
 If you see an error like `error running hook URI: pg-functions://postgres/public/custom-access-token_hook` during sign-in, the database function for custom access tokens may be missing.

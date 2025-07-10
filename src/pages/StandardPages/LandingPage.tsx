@@ -97,6 +97,22 @@ export default function LandingPage() {
           </div>
         </SectionContainer>
       </section>
+
+      {/* The Macadamy Story */}
+      <section className="py-12">
+        <SectionContainer>
+          <h2 className="text-3xl font-bold text-center mb-6 text-white">
+            The Macadamy Story
+          </h2>
+          <p className="text-center text-gray-400 text-sm max-w-2xl mx-auto">
+            The name <strong>Macadamy</strong> comes from the verb
+            <em>macadamize</em>, which means "to pave a road with compacted layers
+            of stone bound with asphalt." Like that durable surface, Macadamy
+            aims to provide a solid foundation for streamlined construction
+            management.
+          </p>
+        </SectionContainer>
+      </section>
     </Page>
   );
 }
