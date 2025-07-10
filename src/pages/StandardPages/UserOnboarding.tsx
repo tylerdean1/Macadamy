@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/lib/store';
 import { rpcClient } from '@/lib/rpc.client';
+import { useLocationSuggestions } from '@/hooks/useLocationSuggestions';
 import type { AuthEnrichedProfileInput } from '@/hooks/useAuth';
 
 type UserRole = AuthEnrichedProfileInput['role'];
@@ -17,6 +18,7 @@ export default function UserOnboarding() {
   const isLoading = loading.auth || loading.profile;
   const roleOptions = useEnumOptions('user_role');
   const { user, profile } = useAuthStore();
+  const locationSuggestions = useLocationSuggestions(form.location ?? '');
 
   // Check if user is already logged in with a complete profile
   useEffect(() => {
@@ -151,6 +153,15 @@ export default function UserOnboarding() {
               />
             </div>
 
+            <ul className="text-xs text-gray-400 mt-2 space-y-1">
+              <li className={/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) ? 'text-green-500' : 'text-red-500'}>
+                {/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) ? '✔' : '✖'} Valid email
+              </li>
+              <li className={form.password.length >= 6 ? 'text-green-500' : 'text-red-500'}>
+                {form.password.length >= 6 ? '✔' : '✖'} Password at least 6 characters
+              </li>
+            </ul>
+
             <div className="mt-4 flex justify-end">
               <button
                 type="button"
@@ -233,9 +244,27 @@ export default function UserOnboarding() {
                 placeholder="e.g. New York, NY"
                 value={form.location ?? ''}
                 onChange={(e) => setForm({ ...form, location: e.target.value })}
+                list="location-suggestions"
                 className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded"
               />
+              <datalist id="location-suggestions">
+                {locationSuggestions.map((loc) => (
+                  <option key={loc.display_name} value={loc.display_name} />
+                ))}
+              </datalist>
             </div>
+
+            <ul className="text-xs text-gray-400 mt-2 space-y-1">
+              <li className={form.full_name.trim() ? 'text-green-500' : 'text-red-500'}>
+                {form.full_name.trim() ? '✔' : '✖'} Full name
+              </li>
+              <li className={form.username.trim().length >= 3 ? 'text-green-500' : 'text-red-500'}>
+                {form.username.trim().length >= 3 ? '✔' : '✖'} Username (min 3 chars)
+              </li>
+              <li className={usernameAvailable === true ? 'text-green-500' : 'text-red-500'}>
+                {usernameAvailable === true ? '✔ Username available' : usernameAvailable === false ? '✖ Username taken' : '… Checking username'}
+              </li>
+            </ul>
 
             <div className="mt-4 flex justify-between">
               <button
@@ -271,7 +300,7 @@ export default function UserOnboarding() {
                   }
                   setStep(3);
                 }}
-                disabled={Boolean(usernameAvailable !== true || isLoading)}
+                disabled={isLoading || usernameAvailable === false}
                 className="px-4 py-2 bg-primary hover:bg-primary-hover rounded disabled:opacity-50"
               >
                 Next
