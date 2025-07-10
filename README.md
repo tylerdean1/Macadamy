@@ -2,6 +2,8 @@
 
 This project uses Supabase with RPC-first design for secure, typed, and scalable backend operations.
 
+The name **Macadamy** comes from the verb **"macadamize,"** which means _to pave a road with compacted layers of stone bound with asphalt_. Just as a macadamized surface provides a solid foundation for travel, Macadamy strives to lay the groundwork for streamlined construction management.
+
 
 ## ✅ Key Design Principles
 - All table reads use `get_*` RPCs with `SELECT ...` + optional `ST_AsText(...)` for WKT geometry
