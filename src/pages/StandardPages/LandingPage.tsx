@@ -98,13 +98,18 @@ export default function LandingPage() {
         </SectionContainer>
       </section>
 
-      {/* Name Origin */}
+      {/* The Macadamy Story */}
       <section className="py-12">
         <SectionContainer>
+          <h2 className="text-3xl font-bold text-center mb-6 text-white">
+            The Macadamy Story
+          </h2>
           <p className="text-center text-gray-400 text-sm max-w-2xl mx-auto">
-            The name <strong>Macadamy</strong> derives from the verb <em>macadamize</em>,
-            meaning "to pave a road with compacted layers of stone bound with asphalt."<br />
-            Our platform aspires to provide that same solid foundation for your projects.
+            The name <strong>Macadamy</strong> comes from the verb
+            <em>macadamize</em>, which means "to pave a road with compacted layers
+            of stone bound with asphalt." Like that durable surface, Macadamy
+            aims to provide a solid foundation for streamlined construction
+            management.
           </p>
         </SectionContainer>
       </section>
