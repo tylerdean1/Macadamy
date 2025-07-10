@@ -21,6 +21,7 @@ const Dashboard          = lazy(() => import('@/pages/StandardPages/Dashboard'))
 
 const ProjectDashboard  = lazy(() => import('@/pages/Projects/ProjectDashboard'));
 const ContractSettings   = lazy(() => import('@/pages/Projects/ContractSettings'));
+const ContractCreation   = lazy(() => import('@/pages/Projects/ContractCreation'));
 const Calculators        = lazy(() => import('@/pages/Projects/Calculators'));
 const CalculatorUsage    = lazy(() => import('@/pages/Projects/CalculatorUsage'));
 const CalculatorCreation = lazy(() => import('@/pages/Projects/CalculatorCreation'));

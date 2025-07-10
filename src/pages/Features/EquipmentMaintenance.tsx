@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Page } from '@/components/Layout';
 import { supabase } from '@/lib/supabase';
-import type { Database } from '@/lib/database.types';
 
 interface MaintenanceRecord {
   id: string;
