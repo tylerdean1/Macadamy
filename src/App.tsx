@@ -19,16 +19,16 @@ const UpdatePassword     = lazy(() => import('@/pages/StandardPages/UpdatePasswo
 const UserOnboarding     = lazy(() => import('@/pages/StandardPages/UserOnboarding'));
 const Dashboard          = lazy(() => import('@/pages/StandardPages/Dashboard'));
 
-const ProjectDashboard  = lazy(() => import('@/pages/Contract/ProjectDashboard'));
-const ContractSettings   = lazy(() => import('@/pages/Contract/ContractSettings'));
-const Calculators        = lazy(() => import('@/pages/Contract/Calculators'));
-const CalculatorUsage    = lazy(() => import('@/pages/Contract/CalculatorUsage'));
-const CalculatorCreation = lazy(() => import('@/pages/Contract/CalculatorCreation'));
-const ChangeOrders       = lazy(() => import('@/pages/Contract/ChangeOrders'));
-const EquipmentLog       = lazy(() => import('@/pages/Contract/EquipmentLog'));
-const Inspections        = lazy(() => import('@/pages/Contract/Inspections'));
-const Issues             = lazy(() => import('@/pages/Contract/Issues'));
-const DailyReports       = lazy(() => import('@/pages/Contract/DailyReports'));
+const ProjectDashboard  = lazy(() => import('@/pages/Projects/ProjectDashboard'));
+const ContractSettings   = lazy(() => import('@/pages/Projects/ContractSettings'));
+const Calculators        = lazy(() => import('@/pages/Projects/Calculators'));
+const CalculatorUsage    = lazy(() => import('@/pages/Projects/CalculatorUsage'));
+const CalculatorCreation = lazy(() => import('@/pages/Projects/CalculatorCreation'));
+const ChangeOrders       = lazy(() => import('@/pages/Projects/ChangeOrders'));
+const EquipmentLog       = lazy(() => import('@/pages/Projects/EquipmentLog'));
+const Inspections        = lazy(() => import('@/pages/Projects/Inspections'));
+const Issues             = lazy(() => import('@/pages/Projects/Issues'));
+const DailyReports       = lazy(() => import('@/pages/Projects/DailyReports'));
 
 const Projects           = lazy(() => import('@/pages/Features/Projects'));
 const Estimates          = lazy(() => import('@/pages/Features/Estimates'));
