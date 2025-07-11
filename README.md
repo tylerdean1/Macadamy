@@ -168,6 +168,10 @@ Our long-term roadmap aims to match the capabilities of leading construction and
 
 - `useLocationSuggestions(query)` – returns an array of location names from OpenStreetMap based on the query. Useful for building autocomplete inputs so user-entered locations are standardized.
 
+## 🐞 Error Logging
+
+Call `initGlobalErrorLogger()` during startup to capture uncaught errors and promise rejections. Logs include the error message and stack trace for easier debugging.
+
 ## 🐛 Troubleshooting Authentication
 If you see an error like `error running hook URI: pg-functions://postgres/public/custom-access-token_hook` during sign-in, the database function for custom access tokens may be missing.
 Run the migrations to recreate it:
