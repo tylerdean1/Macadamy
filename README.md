@@ -170,7 +170,7 @@ Our long-term roadmap aims to match the capabilities of leading construction and
 
 ## 🐞 Error Logging
 
-Call `initGlobalErrorLogger()` during startup to capture uncaught errors and promise rejections. Logs include the error message and stack trace for easier debugging.
+Call `initGlobalErrorLogger()` during startup to capture uncaught errors and promise rejections. Logs include the error message and stack trace for easier debugging, and a toast notification alerts users that something went wrong.
 
 ## 🐛 Troubleshooting Authentication
 If you see an error like `error running hook URI: pg-functions://postgres/public/custom-access-token_hook` during sign-in, the database function for custom access tokens may be missing.
