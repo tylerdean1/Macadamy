@@ -1,6 +1,9 @@
+import { toast } from 'sonner';
+
 export function logError(scope: string, error: unknown): void {
   const err = error instanceof Error ? error : new Error(String(error));
-  console.error(`[${scope}] ${err.message}`, {
+  const timestamp = new Date().toISOString();
+  console.error(`[${timestamp}] [${scope}] ${err.message}`, {
     stack: err.stack,
     full: error,
   });
@@ -20,9 +23,11 @@ export function initGlobalErrorLogger(scope = 'global'): void {
 
   window.addEventListener('error', (event) => {
     logError(`${scope}:error`, event.error ?? event.message);
+    toast.error('An unexpected error occurred. Check console for details.');
   });
 
   window.addEventListener('unhandledrejection', (event) => {
     logError(`${scope}:unhandledrejection`, event.reason);
+    toast.error('A background error occurred. Check console for details.');
   });
 }

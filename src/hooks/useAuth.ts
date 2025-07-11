@@ -8,6 +8,7 @@ import { useAuthStore } from '@/lib/store';
 import type { Database } from '@/lib/database.types';
 import type { EnrichedProfile } from '@/lib/store';
 import { rpcClient } from '@/lib/rpc.client';
+import { logError } from '@/utils/errorLogger';
 
 type UserRole = Database['public']['Enums']['user_role'];
 
@@ -110,7 +111,13 @@ export function useAuth(): UseAuthReturn {
 
         if (hasAuthError || userMissing) {
           const rawMsg = hasAuthError && typeof authErr!.message === 'string' ? authErr!.message.trim() : '';
-          const msg = rawMsg !== '' ? rawMsg : 'Invalid login credentials';
+          const isServerError = hasAuthError && typeof (authErr as any).status === 'number' && (authErr as any).status >= 500;
+          const msg = isServerError
+            ? 'Server error during login. Please try again later.'
+            : rawMsg !== ''
+              ? rawMsg
+              : 'Invalid login credentials';
+          logError('login', authErr);
           setError(msg);
           toast.error(msg);
 
