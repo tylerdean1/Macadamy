@@ -63,8 +63,8 @@ export default function UserOnboarding() {
     }
   }, [form.username, step]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (evt: React.FormEvent) => {
+    evt.preventDefault();
 
     if (!form.email || !form.password || !form.full_name || !form.username) {
       toast.error('Please fill out all required fields');
@@ -126,7 +126,7 @@ export default function UserOnboarding() {
     <div className="max-w-xl mx-auto mt-16 p-6 bg-background-light rounded shadow border border-background-lighter">
       <h1 className="text-2xl font-bold mb-6 text-white">Create Your Account</h1>
 
-      <form onSubmit={e => { void handleSubmit(e); }} className="space-y-6">
+      <form onSubmit={evt => { void handleSubmit(evt); }} className="space-y-6">
         {step === 1 && (
           <>
             <div>
@@ -135,7 +135,7 @@ export default function UserOnboarding() {
                 type="email"
                 placeholder="you@example.com"
                 value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                onChange={(event) => setForm({ ...form, email: event.target.value })}
                 className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded"
                 required
               />
@@ -147,7 +147,7 @@ export default function UserOnboarding() {
                 type="password"
                 placeholder="••••••••"
                 value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                onChange={(event) => setForm({ ...form, password: event.target.value })}
                 className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded"
                 required
               />
@@ -205,7 +205,7 @@ export default function UserOnboarding() {
                 type="text"
                 placeholder="e.g. John Smith"
                 value={form.full_name}
-                onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                onChange={(event) => setForm({ ...form, full_name: event.target.value })}
                 className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded"
                 required
               />
@@ -217,7 +217,7 @@ export default function UserOnboarding() {
                 type="text"
                 placeholder="e.g. J.SMITH"
                 value={form.username}
-                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                onChange={(event) => setForm({ ...form, username: event.target.value })}
                 className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded"
                 required
               />
@@ -232,7 +232,7 @@ export default function UserOnboarding() {
                 type="tel"
                 placeholder="e.g. (555) 123-4567"
                 value={form.phone ?? ''}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                onChange={(event) => setForm({ ...form, phone: event.target.value })}
                 className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded"
               />
             </div>
@@ -243,8 +243,8 @@ export default function UserOnboarding() {
                 type="text"
                 placeholder="e.g. New York, NY"
                 value={form.location ?? ''}
-                onChange={(e) => setForm({ ...form, location: e.target.value })}
-                list="location-suggestions"
+
+                onChange={(event) => setForm({ ...form, location: event.target.value })}
                 className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded"
               />
               <datalist id="location-suggestions">
@@ -316,7 +316,7 @@ export default function UserOnboarding() {
               <select
                 id="role-select"
                 value={form.role}
-                onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })}
+                onChange={(event) => setForm({ ...form, role: event.target.value as UserRole })}
                 className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded"
               >
                 <option value="" disabled>Select your role</option>
@@ -334,7 +334,7 @@ export default function UserOnboarding() {
                 type="text"
                 placeholder="e.g. Acme Infrastructure, LLC"
                 value={form.custom_organization_name}
-                onChange={(e) => setForm({ ...form, custom_organization_name: e.target.value })}
+                onChange={(event) => setForm({ ...form, custom_organization_name: event.target.value })}
                 className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded"
               />
             </div>
