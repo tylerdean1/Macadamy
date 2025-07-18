@@ -18,6 +18,24 @@ export default function UserOnboarding() {
   const isLoading = loading.auth || loading.profile;
   const roleOptions = useEnumOptions('user_role');
   const { user, profile } = useAuthStore();
+
+  const [form, setForm] = useState<AuthEnrichedProfileInput & { password: string }>(
+    {
+      full_name: '',
+      username: '',
+      email: '',
+      password: '',
+      role: 'Contractor', // Default role
+      phone: '',
+      location: '',
+      // job_title_id: undefined, // These are optional in AuthEnrichedProfileInput
+      // custom_job_title: '',
+      // organization_id: undefined,
+      // custom_organization_name: '',
+      // avatar_id: undefined,
+    },
+  );
+
   const locationSuggestions = useLocationSuggestions(form.location ?? '');
 
   // Check if user is already logged in with a complete profile
@@ -28,21 +46,6 @@ export default function UserOnboarding() {
       navigate('/dashboard');
     }
   }, [user, profile, navigate]);
-
-  const [form, setForm] = useState<AuthEnrichedProfileInput & { password: string }>({
-    full_name: '',
-    username: '',
-    email: '',
-    password: '',
-    role: 'Contractor', // Default role
-    phone: '',
-    location: '',
-    // job_title_id: undefined, // These are optional in AuthEnrichedProfileInput
-    // custom_job_title: '',
-    // organization_id: undefined,
-    // custom_organization_name: '',
-    // avatar_id: undefined,
-  });
 
   const [step, setStep] = useState(1);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
