@@ -6,6 +6,6 @@ const features = [
   'Centralized contact directory and communications',
 ];
 
-export default function ReportingCollaboration() {
+export default function Reporting() {
   return <FeatureListPage title="Reporting & Collaboration" features={features} />;
 }

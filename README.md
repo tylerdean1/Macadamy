@@ -99,8 +99,12 @@ wbs                       workflows
 - Shared layout components (`Page`, `PageContainer`, `SectionContainer`) live in `src/components/Layout.tsx`
 - `FeatureListPage` simplifies our feature pages. Find it in `src/components/FeatureListPage.tsx`
 - `useProjectsData` and `useOrganizationsData` hooks provide searchable data for dashboards
-- New feature pages `QualitySafety` and `SubcontractorManagement` outline future compliance and vendor management modules
+- `useProjectsData` now subscribes to project changes via Supabase for real-time updates
+- New feature pages `QualitySafety` and `Subcontractors` outline future compliance and vendor management modules
 - Added `Payments` page to list project payments
+- Added `ActionCenter` component to surface open issues and recent inspections
+- EquipmentLog now refreshes automatically via realtime subscriptions
+- New feature pages `BIM`, `SensorData`, `Compliance`, and `Integrations` lay groundwork for advanced modules
 
 ---
 This structure gives you a true API-less, secure backend with full control and complete type safety.
@@ -129,6 +133,10 @@ Macadamy includes pages for these core construction features:
 - `/reporting` &mdash; dashboards and analytics
 - `/quality-safety` &mdash; compliance and safety tracking
 - `/subcontractors` &mdash; vendor onboarding and agreements
+- `/bim` &mdash; model coordination in 3D
+- `/sensor-data` &mdash; drone imagery and IoT sensors
+- `/compliance` &mdash; regulatory documentation
+- `/integrations` &mdash; connect third-party apps
 
 ## 🚧 Comprehensive Feature Vision
 Our long-term roadmap aims to match the capabilities of leading construction and project management solutions while implementing everything natively without external API dependencies. Major areas include:
@@ -174,10 +182,8 @@ Our long-term roadmap aims to match the capabilities of leading construction and
 - Centralized contact directory and communications
 
 ### Future Enhancements (TODO)
-- BIM coordination and model federation
-- Drone & sensor data integration
-- Regulatory compliance tracking
-- 3rd-party app integrations
+- Scheduling optimization and AI forecasting
+- Mobile offline mode for field crews
 
 ## 🧩 Custom Hooks
 

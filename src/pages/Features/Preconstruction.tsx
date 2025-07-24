@@ -6,6 +6,6 @@ const features = [
   'Qualification and procurement workflows',
 ];
 
-export default function PreconstructionBidding() {
+export default function Preconstruction() {
   return <FeatureListPage title="Preconstruction & Bidding" features={features} />;
 }

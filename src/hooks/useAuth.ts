@@ -235,12 +235,6 @@ export function useAuth(): UseAuthReturn {
           toast.error(msg);
           return null;
         }
-        if (newProfile === null) {
-          const msg = 'Profile creation failed';
-          setError(msg);
-          toast.error(msg);
-          return null;
-        }
 
         toast.success('Signup successful! Redirecting to onboarding…');
         navigate('/onboarding');

@@ -92,6 +92,24 @@ export default function EquipmentLog() {
     void fetchEquipment();
   }, [fetchLogs, fetchOperators, fetchEquipment]);
 
+  // realtime updates for equipment usage
+  useEffect(() => {
+    const channel = supabase
+      .channel('equipment-log')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'equipment_usage' },
+        () => {
+          void fetchLogs();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void channel.unsubscribe();
+    };
+  }, [fetchLogs]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
