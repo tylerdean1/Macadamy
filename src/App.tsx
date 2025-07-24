@@ -48,6 +48,9 @@ const SubcontractorManagement = lazy(() => import("@/pages/Features/Subcontracto
 const EquipmentManagement = lazy(() => import('@/pages/Features/EquipmentManagement'));
 const DesignReviews = lazy(() => import('@/pages/Features/DesignReviews'));
 const EquipmentMaintenance = lazy(() => import('@/pages/Features/EquipmentMaintenance'));
+const AccountsPayable = lazy(() => import('@/pages/Features/AccountsPayable'));
+const AccountsReceivable = lazy(() => import('@/pages/Features/AccountsReceivable'));
+const Payments = lazy(() => import('@/pages/Features/Payments'));
 
 const NotFoundPage       = lazy(() => import('@/pages/StandardPages/NotFoundPage'));
 
@@ -337,6 +340,30 @@ export default function App(): JSX.Element {
             element={
               <ProtectedRoute>
                 <AccountingPayroll />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/accounts-payable"
+            element={
+              <ProtectedRoute>
+                <AccountsPayable />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/accounts-receivable"
+            element={
+              <ProtectedRoute>
+                <AccountsReceivable />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payments"
+            element={
+              <ProtectedRoute>
+                <Payments />
               </ProtectedRoute>
             }
           />
