@@ -7,6 +7,6 @@ const features = [
   'Subcontract agreement generation',
 ];
 
-export default function SubcontractorManagement() {
+export default function Subcontractors() {
   return <FeatureListPage title="Subcontractor Management" features={features} />;
 }

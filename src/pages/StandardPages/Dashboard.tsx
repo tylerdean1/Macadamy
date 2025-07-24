@@ -9,6 +9,7 @@ import { ProfileSection } from './StandardPageComponents/ProfileSection';
 import { EditProfileModal } from './StandardPageComponents/EditProfileModal';
 import { DashboardMetrics } from './StandardPageComponents/DashboardMetrics';
 import { ProjectsSection } from './StandardPageComponents/ProjectsSection';
+import { ActionCenter } from './StandardPageComponents/ActionCenter';
 import type { Area } from 'react-easy-crop'; // Ensure this type is available or defined if needed by EditProfileModal directly
 
 export default function Dashboard() {
@@ -117,6 +118,8 @@ export default function Dashboard() {
           pendingInspections={metrics.pendingInspections}
         />
 
+        <ActionCenter />
+
         <ProjectsSection
           filteredProjects={projects.map(contract => ({
             id: contract.id,
@@ -135,4 +138,5 @@ export default function Dashboard() {
         />
       </PageContainer>
     </Page>
-  );}
+  );
+}

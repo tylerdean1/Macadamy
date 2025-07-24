@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'react-hot-toast';
 import { rpcClient } from '@/lib/rpc.client';
 import { useAuthStore } from '@/lib/store';
@@ -99,6 +100,30 @@ export function useProjectsData(): {
     useEffect(() => {
         void loadProjects();
     }, [loadProjects]);
+
+    // subscribe to real-time changes so project list stays fresh
+    useEffect(() => {
+        if (!profile?.id) return;
+
+        const channel = supabase
+            .channel(`projects-list-${profile.id}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'user_contracts',
+                filter: `user_id=eq.${profile.id}`,
+            }, () => { void loadProjects(); })
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'contracts',
+            }, () => { void loadProjects(); })
+            .subscribe();
+
+        return () => {
+            void channel.unsubscribe();
+        };
+    }, [profile?.id, loadProjects]);
 
     const filteredProjects = useMemo(() => {
         return projects.filter(c => {

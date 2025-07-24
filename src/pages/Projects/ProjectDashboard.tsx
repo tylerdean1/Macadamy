@@ -27,7 +27,8 @@ import { LineItemsTable } from './ProjectDashboardComponents/LineItemsTable';
 import { ProjectTools } from './ProjectDashboardComponents/ProjectTools';
 
 export default function ProjectDashboard() {
-  const { contractId } = useParams<{ contractId: string }>();
+  // Route param is defined as /projects/:id in App.tsx
+  const { id: contractId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [contract, setContract] = useState<ContractWithWktRow | null>(null);
   const [wbsItems, setWbsItems] = useState<WbsWithWktRow[]>([]);

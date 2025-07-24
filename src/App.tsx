@@ -35,16 +35,20 @@ const Projects           = lazy(() => import('@/pages/Features/Projects'));
 const Estimates          = lazy(() => import('@/pages/Features/Estimates'));
 const CostCodes          = lazy(() => import('@/pages/Features/CostCodes'));
 const ScheduleTasks      = lazy(() => import('@/pages/Features/ScheduleTasks'));
-const PreconstructionBidding = lazy(() => import('@/pages/Features/PreconstructionBidding'));
+const Preconstruction = lazy(() => import('@/pages/Features/Preconstruction'));
 const DocumentManagement = lazy(() => import('@/pages/Features/DocumentManagement'));
 const FinancialManagement = lazy(() => import('@/pages/Features/FinancialManagement'));
 const FieldOperations    = lazy(() => import('@/pages/Features/FieldOperations'));
 const AccountingPayroll  = lazy(() => import('@/pages/Features/AccountingPayroll'));
 const ResourcePlanning   = lazy(() => import('@/pages/Features/ResourcePlanning'));
-const ReportingCollaboration = lazy(() => import('@/pages/Features/ReportingCollaboration'));
+const Reporting = lazy(() => import('@/pages/Features/Reporting'));
 const OrganizationDashboard = lazy(() => import('@/pages/Organization/OrganizationDashboard'));
 const QualitySafety = lazy(() => import("@/pages/Features/QualitySafety"));
-const SubcontractorManagement = lazy(() => import("@/pages/Features/SubcontractorManagement"));
+const Subcontractors = lazy(() => import("@/pages/Features/Subcontractors"));
+const BIM = lazy(() => import('@/pages/Features/BIM'));
+const SensorData = lazy(() => import('@/pages/Features/SensorData'));
+const Compliance = lazy(() => import('@/pages/Features/Compliance'));
+const Integrations = lazy(() => import('@/pages/Features/Integrations'));
 const EquipmentManagement = lazy(() => import('@/pages/Features/EquipmentManagement'));
 const DesignReviews = lazy(() => import('@/pages/Features/DesignReviews'));
 const EquipmentMaintenance = lazy(() => import('@/pages/Features/EquipmentMaintenance'));
@@ -283,7 +287,7 @@ export default function App(): JSX.Element {
             path="/preconstruction"
             element={
               <ProtectedRoute>
-                <PreconstructionBidding />
+                <Preconstruction />
               </ProtectedRoute>
             }
           />
@@ -379,7 +383,7 @@ export default function App(): JSX.Element {
             path="/reporting"
             element={
               <ProtectedRoute>
-                <ReportingCollaboration />
+                <Reporting />
               </ProtectedRoute>
             }
           />
@@ -395,7 +399,39 @@ export default function App(): JSX.Element {
               path="/subcontractors"
               element={
                 <ProtectedRoute>
-                  <SubcontractorManagement />
+                  <Subcontractors />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bim"
+              element={
+                <ProtectedRoute>
+                  <BIM />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sensor-data"
+              element={
+                <ProtectedRoute>
+                  <SensorData />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/compliance"
+              element={
+                <ProtectedRoute>
+                  <Compliance />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/integrations"
+              element={
+                <ProtectedRoute>
+                  <Integrations />
                 </ProtectedRoute>
               }
             />
