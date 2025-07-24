@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import type * as RPC from "./rpc.types";
 import type { EnrichedUserContract } from "./types";
+import type { RpcName } from "./rpc.definitions";
 
 /**
  * Type-safe RPC client for Supabase database functions
@@ -8,7 +9,7 @@ import type { EnrichedUserContract } from "./types";
 class RpcClient {
   // Helper method to call RPCs with proper typing
   private async callRpc<T = unknown>(
-    rpcName: string,
+    rpcName: RpcName,
     args: Record<string, unknown>,
     options?: { single?: boolean }
   ): Promise<T> {

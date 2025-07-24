@@ -51,32 +51,43 @@ The name **Macadamy** comes from the verb **"macadamize,"** which means _to pave
   - `update_labor_record(id uuid, worker_count?, hours_worked?, work_date?, work_type?, notes?) -> void`
   - `delete_labor_record(id uuid) -> void`
 
-## ✅ Fully Covered Editable Tables
-- contracts
-- wbs
-- maps
-- line_items
-- line_item_templates
-- line_item_entries
-- inspections
-- change_orders
-- contract_organizations
-- crew_members
-- crews
-- daily_logs
-- equipment
-- equipment_assignments
-- equipment_usage
-- issues
-- job_titles
-- labor_records
-- organizations
-- profiles
-- user_contracts
-- avatars
-- asphalt_types
-- dump_trucks
-- tack_rates
+## 🗄 Database Tables
+The backend schema was recently overhauled. It now spans dozens of tables to
+support accounting, HR, field operations, document management, and more. Below
+is the full list of tables after the revamp:
+
+```
+accounts_payable          accounts_receivable       activity_logs
+asphalt_types             audit_logs                avatars
+bid_packages              bid_vendors               bids
+bim_models                certifications            change_orders
+commitments               compliance_checks         compliance_tracking
+cost_codes                crew_assignments          crew_members
+crews                     daily_logs                dashboard_configs
+document_references       documents                 drawing_versions
+dump_trucks               employees                 equipment
+equipment_assignments     equipment_maintenance     equipment_usage
+estimate_line_items       estimates                 financial_documents
+general_ledger            hr_documents              inspections
+integration_tokens        inventory_transactions    issues
+job_titles                labor_records             line_item_entries
+line_item_templates       line_items                maps
+material_inventory        material_orders           material_receipts
+materials                 meeting_minutes           notifications
+organization_members      organization_projects     organizations
+payments                  payroll                   photos
+prequalifications         procurement_workflows     profiles
+progress_billings         projects                  punch_lists
+purchase_orders           quality_reviews           regulatory_documents
+reports                   rfis                      safety_incidents
+sensor_data               subcontractor_agreements  subcontracts
+submittals                tack_rates                task_dependencies
+task_status_logs          tasks                     training_records
+user_projects             vendor_bid_packages       vendor_contacts
+vendor_documents          vendor_qualifications     vendors
+wbs                       workflows
+```
+
 
 ## ⚙️ Developer Tips
 - Add new columns? Just update RPCs — frontend stays untouched
@@ -89,6 +100,7 @@ The name **Macadamy** comes from the verb **"macadamize,"** which means _to pave
 - `FeatureListPage` simplifies our feature pages. Find it in `src/components/FeatureListPage.tsx`
 - `useProjectsData` and `useOrganizationsData` hooks provide searchable data for dashboards
 - New feature pages `QualitySafety` and `SubcontractorManagement` outline future compliance and vendor management modules
+- Added `Payments` page to list project payments
 
 ---
 This structure gives you a true API-less, secure backend with full control and complete type safety.
@@ -110,6 +122,9 @@ Macadamy includes pages for these core construction features:
 - `/design-reviews` &mdash; track model coordination reviews
 - `/equipment-maintenance` &mdash; schedule service and log repairs
 - `/accounting-payroll` &mdash; AP/AR and payroll tracking
+- `/accounts-payable` &mdash; view accounts payable
+- `/accounts-receivable` &mdash; view accounts receivable
+- `/payments` &mdash; record payments against commitments
 - `/resource-planning` &mdash; schedules and resource allocation
 - `/reporting` &mdash; dashboards and analytics
 - `/quality-safety` &mdash; compliance and safety tracking
