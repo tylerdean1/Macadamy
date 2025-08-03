@@ -6,6 +6,8 @@ The name **Macadamy** comes from the verb **"macadamize,"** which means _to pave
 
 
 ## ✅ Key Design Principles
+- Row Level Security (RLS) is enabled on every table with no policies, so direct table access is denied by default.
+- Each RPC begins with a `check_auth` call that scopes what the current user can do before any action is taken.
 - All table reads use `get_*` RPCs with `SELECT ...` + optional `ST_AsText(...)` for WKT geometry
 - All inserts/updates/deletes go through `insert_*`, `update_*`, `delete_*` RPCs with flexible JSONB inputs
 - Frontend only handles clean, typed calls — no direct `.from(...).update()` access
