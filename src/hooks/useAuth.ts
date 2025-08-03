@@ -111,7 +111,8 @@ export function useAuth(): UseAuthReturn {
 
         if (hasAuthError || userMissing) {
           const rawMsg = hasAuthError && typeof authErr!.message === 'string' ? authErr!.message.trim() : '';
-          const isServerError = hasAuthError && typeof (authErr as any).status === 'number' && (authErr as any).status >= 500;
+          const status = (authErr as { status?: number } | null)?.status;
+          const isServerError = hasAuthError && typeof status === 'number' && status >= 500;
           const msg = isServerError
             ? 'Server error during login. Please try again later.'
             : rawMsg !== ''

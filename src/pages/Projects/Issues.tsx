@@ -5,32 +5,11 @@ import { useAuthStore } from '@/lib/store'; // Import the auth store for user st
 import { useParams } from 'react-router-dom'; // Import React Router hooks
 import jsPDF from 'jspdf'; // Import jsPDF for PDF generation
 import type { Database } from '@/lib/database.types';
+import AttachmentHandler from '@/components/ui/attachment-handler';
 
-/** 
- * Interface representing an issue in the system.
- */
-interface Issue {
-  id?: string; // Optional ID of the issue
-  contract_id: string; // ID of the associated contract
-  title: string; // Title of the issue
-  description: string; // Description of the issue
-  priority: Database['public']['Enums']['priority']; // Priority level of the issue
-  status: string; // Current status of the issue
-  assigned_to?: string; // Optional ID of the user the issue is assigned to
-  due_date?: string; // Optional due date for the issue
-  resolution?: string; // Optional resolution of the issue
-  wbs_id?: string; // Optional ID of the WBS associated with the issue
-  map_id?: string; // Optional ID of the map associated with the issue
-  line_item_id?: string; // Optional ID of the line item associated with the issue
-  equipment_id?: string; // Optional ID of the equipment associated with the issue
-  photo_urls: string[]; // Array of URLs for photos related to the issue
-  updated_by?: string; // Optional ID of the user who last updated the issue
-  updated_at?: string; // Optional timestamp of when the issue was last updated
-  profiles?: {
-    full_name: string; // Full name of the user associated with the issue
-    email: string; // Email of the user associated with the issue
-  };
-}
+type Issue = Database['public']['Tables']['issues']['Row'];
+type IssueWithProfile = Issue & { profiles: { full_name: string; email: string } | null };
+type Attachment = Parameters<typeof AttachmentHandler>[0]['attachments'][number];
 
 /** 
  * Interface representing an option for selection.
@@ -62,8 +41,8 @@ export default function Issues() {
   const user = useAuthStore((state) => state.user); // Get current user from auth store
   const canEdit = typeof user?.role === 'string' && ['admin', 'engineer', 'inspector'].includes(user.role); // Determine if the user can edit issues
 
-  const [issues, setIssues] = useState<Issue[]>([]); // State for fetched issues
-  const [filteredIssues, setFilteredIssues] = useState<Issue[]>([]); // State for filtered issues
+  const [issues, setIssues] = useState<IssueWithProfile[]>([]); // State for fetched issues
+  const [filteredIssues, setFilteredIssues] = useState<IssueWithProfile[]>([]); // State for filtered issues
   const [editingId, setEditingId] = useState<string | null>(null); // State for the currently editing issue ID
   const [form, setForm] = useState<Partial<Issue>>({ // State for the form data
     contract_id,
@@ -74,7 +53,7 @@ export default function Issues() {
     due_date: new Date().toISOString().split('T')[0], // Set initial due date to today
     photo_urls: [] // Array for photo URLs
   });
-  const [photoFiles, setPhotoFiles] = useState<FileList | null>(null); // State for uploaded files
+  const [attachments, setAttachments] = useState<Attachment[]>([]); // Attachment state
   const [searchTerm, setSearchTerm] = useState(''); // State for search term
 
   const [assignees, setAssignees] = useState<Option[]>([]); // State for assignee options
@@ -90,7 +69,7 @@ export default function Issues() {
       .select('*, profiles:profiles!assigned_to(full_name,email)')
       .eq('contract_id', contract_id ?? '')
       .order('created_at', { ascending: false })
-      .returns<Issue[]>();
+      .returns<IssueWithProfile[]>();
 
     if (Array.isArray(data)) {
       setIssues(data);
@@ -238,29 +217,10 @@ export default function Issues() {
     }
   };
 
-  // Upload files to Supabase storage and return their public URLs
-  const uploadFiles = async (files: FileList | null): Promise<string[]> => {
-    if (!files) return []; // Return empty array if no files
-    const urls: string[] = []; // Array for URLs
-
-    // Loop through uploaded files
-    for (const file of Array.from(files)) {
-      const path = `issues/${crypto.randomUUID()}-${file.name}`; // Create unique file path
-      const { error } = await supabase.storage.from('documents').upload(path, file); // Upload file
-      if (!error) {
-        const { data } = supabase.storage.from('documents').getPublicUrl(path); // Get public URL
-        if (data?.publicUrl) urls.push(data.publicUrl); // Add URL to list
-      }
-    }
-    return urls; // Return list of URLs
-  };
-
   // Handle save action for form submission
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault(); // Prevent default form submission
     if (!user) return; // Ensure user is authenticated
-
-    const uploaded = await uploadFiles(photoFiles); // Upload any photos
     const updated = {
       assigned_to: form.assigned_to === '' ? null : form.assigned_to ?? null,
       contract_id: form.contract_id === '' ? null : form.contract_id ?? null,
@@ -273,7 +233,7 @@ export default function Issues() {
       map_id: form.map_id === '' ? null : form.map_id ?? null,
       line_item_id: form.line_item_id === '' ? null : form.line_item_id ?? null,
       equipment_id: form.equipment_id === '' ? null : form.equipment_id ?? null,
-      photo_urls: [...(form.photo_urls || []), ...uploaded],
+      photo_urls: attachments.map(a => a.url),
       updated_by: user.id,
       updated_at: new Date().toISOString(),
     };
@@ -283,7 +243,7 @@ export default function Issues() {
       const { error } = await supabase.from('issues').update(updated).eq('id', editingId);
       if (!error) {
         setEditingId(null); // Clear editing ID
-        setPhotoFiles(null); // Clear photo files
+        setAttachments([]); // Clear attachments
         void fetchIssues(); // Refresh issues list
       } else {
         alert('Error saving issue'); // Notify user of save error
@@ -306,7 +266,7 @@ export default function Issues() {
           photo_urls: []
         });
         setEditingId(null); // Clear editing ID
-        setPhotoFiles(null); // Clear photo files
+        setAttachments([]); // Clear attachments
         void fetchIssues(); // Refresh issues list
       } else {
         alert('Error saving issue'); // Notify user of save error
@@ -315,9 +275,17 @@ export default function Issues() {
   };
 
   // Start editing an existing issue
-  const startEdit = (issue: Issue) => {
+  const startEdit = (issue: IssueWithProfile) => {
     setEditingId(issue.id!); // Set editing ID
     setForm(issue); // Populate form with issue data
+    setAttachments(
+      (issue.photo_urls ?? []).map(url => ({
+        name: url.split('/').pop() ?? 'file',
+        url,
+        type: '',
+        size: 0,
+      }))
+    );
   };
 
   // Handle searching for issues
@@ -355,7 +323,22 @@ export default function Issues() {
             <Download className="w-4 h-4" /> Export PDF {/* Button to export issues as PDF */}
           </button>
           {canEdit && (
-            <button onClick={() => setEditingId('new')} className="bg-primary px-4 py-2 rounded flex items-center gap-2">
+            <button
+              onClick={() => {
+                setEditingId('new');
+                setForm({
+                  contract_id,
+                  title: '',
+                  description: '',
+                  priority: 'Medium',
+                  status: 'Open',
+                  due_date: new Date().toISOString().split('T')[0],
+                  photo_urls: [],
+                });
+                setAttachments([]);
+              }}
+              className="bg-primary px-4 py-2 rounded flex items-center gap-2"
+            >
               <Plus className="w-4 h-4" /> New {/* Button to add new issue */}
             </button>
           )}
@@ -392,10 +375,16 @@ export default function Issues() {
               <option value="">Unassigned</option>
               {assignees.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
-            <label htmlFor="photoUpload" className="sr-only">Upload Photos</label>
-            <input id="photoUpload" type="file" multiple accept="image/*"
-              onChange={(e) => setPhotoFiles(e.target.files)} className="text-white" />
           </div>
+          <AttachmentHandler
+            parentId={contract_id ?? ''}
+            storageBucket="documents"
+            folderPath="issues"
+            attachments={attachments}
+            onAttachmentsChange={setAttachments}
+            canEdit={canEdit}
+            label="Photos"
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label htmlFor="wbsSelect" className="sr-only">Work Breakdown Structure</label>

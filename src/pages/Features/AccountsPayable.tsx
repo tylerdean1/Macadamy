@@ -1,14 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Page } from '@/components/Layout';
 import { supabase } from '@/lib/supabase';
+import type { Database } from '@/lib/database.types';
 
-interface AccountsPayableRow {
-  id: string;
-  project_id: string | null;
-  amount_due: number | null;
-  due_date: string | null;
-  status: string | null;
-}
+type AccountsPayableRow = Database['public']['Tables']['accounts_payable']['Row'];
 
 export default function AccountsPayable() {
   const [rows, setRows] = useState<AccountsPayableRow[]>([]);
@@ -18,11 +13,12 @@ export default function AccountsPayable() {
     const fetchData = async () => {
       const { data, error } = await supabase
         .from('accounts_payable')
-        .select('*');
+        .select('*')
+        .returns<AccountsPayableRow[]>();
       if (error) {
         console.error('Error fetching accounts payable', error);
       } else {
-        setRows(data as AccountsPayableRow[]);
+        setRows(data);
       }
       setLoading(false);
     };
