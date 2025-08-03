@@ -1,2 +1,3 @@
-// Legacy export - now sourced from database.types.ts
-export type { RpcName } from './rpc.definitions';
+import type { Database } from './database.types';
+
+export type RpcName = keyof Database['public']['Functions'];

@@ -1,4 +1,5 @@
 import type { Database } from "./database.types";
+export type { Database } from "./database.types";
 
 /**
  * Convenient type aliases for database enums
@@ -61,162 +62,12 @@ export type Json =
 /**
  * Types for Tables
  */
+export type Tables = Database['public']['Tables'];
+export type Enums = Database['public']['Enums'];
 
-// Asphalt Types Table
-export type AsphaltTypes = Database["public"]["Tables"]["asphalt_types"]["Row"];
-export type AsphaltTypesInsert =
-  Database["public"]["Tables"]["asphalt_types"]["Insert"];
-export type AsphaltTypesUpdate =
-  Database["public"]["Tables"]["asphalt_types"]["Update"];
-
-// Avatars Table
-export type Avatars = Database["public"]["Tables"]["avatars"]["Row"];
-export type AvatarsInsert = Database["public"]["Tables"]["avatars"]["Insert"];
-export type AvatarsUpdate = Database["public"]["Tables"]["avatars"]["Update"];
-
-// Change Orders Table
-export type ChangeOrders = Database["public"]["Tables"]["change_orders"]["Row"];
-export type ChangeOrdersInsert =
-  Database["public"]["Tables"]["change_orders"]["Insert"];
-export type ChangeOrdersUpdate =
-  Database["public"]["Tables"]["change_orders"]["Update"];
-
-// Contract Organizations Table - Removed (table not found in database.types.ts)
-
-// Contracts Table - Removed (table not found in database.types.ts)
-
-// Crew Members Table
-export type CrewMembers = Database["public"]["Tables"]["crew_members"]["Row"];
-export type CrewMembersInsert =
-  Database["public"]["Tables"]["crew_members"]["Insert"];
-export type CrewMembersUpdate =
-  Database["public"]["Tables"]["crew_members"]["Update"];
-
-// Crews Table
-export type Crews = Database["public"]["Tables"]["crews"]["Row"];
-export type CrewsInsert = Database["public"]["Tables"]["crews"]["Insert"];
-export type CrewsUpdate = Database["public"]["Tables"]["crews"]["Update"];
-
-// Daily Logs Table
-export type DailyLogs = Database["public"]["Tables"]["daily_logs"]["Row"];
-export type DailyLogsInsert =
-  Database["public"]["Tables"]["daily_logs"]["Insert"];
-export type DailyLogsUpdate =
-  Database["public"]["Tables"]["daily_logs"]["Update"];
-
-// Dump Trucks Table
-export type DumpTrucks = Database["public"]["Tables"]["dump_trucks"]["Row"];
-export type DumpTrucksInsert =
-  Database["public"]["Tables"]["dump_trucks"]["Insert"];
-export type DumpTrucksUpdate =
-  Database["public"]["Tables"]["dump_trucks"]["Update"];
-
-// Equipment Table
-export type Equipment = Database["public"]["Tables"]["equipment"]["Row"];
-export type EquipmentInsert =
-  Database["public"]["Tables"]["equipment"]["Insert"];
-export type EquipmentUpdate =
-  Database["public"]["Tables"]["equipment"]["Update"];
-
-// Equipment Assignments Table
-export type EquipmentAssignments =
-  Database["public"]["Tables"]["equipment_assignments"]["Row"];
-export type EquipmentAssignmentsInsert =
-  Database["public"]["Tables"]["equipment_assignments"]["Insert"];
-export type EquipmentAssignmentsUpdate =
-  Database["public"]["Tables"]["equipment_assignments"]["Update"];
-
-// Equipment Usage Table
-export type EquipmentUsage =
-  Database["public"]["Tables"]["equipment_usage"]["Row"];
-export type EquipmentUsageInsert =
-  Database["public"]["Tables"]["equipment_usage"]["Insert"];
-export type EquipmentUsageUpdate =
-  Database["public"]["Tables"]["equipment_usage"]["Update"];
-
-// Inspections Table
-export type Inspections = Database["public"]["Tables"]["inspections"]["Row"];
-export type InspectionsInsert =
-  Database["public"]["Tables"]["inspections"]["Insert"];
-export type InspectionsUpdate =
-  Database["public"]["Tables"]["inspections"]["Update"];
-
-// Issues Table
-export type Issues = Database["public"]["Tables"]["issues"]["Row"];
-export type IssuesInsert = Database["public"]["Tables"]["issues"]["Insert"];
-export type IssuesUpdate = Database["public"]["Tables"]["issues"]["Update"];
-
-// Job Titles Table
-export type JobTitles = Database["public"]["Tables"]["job_titles"]["Row"];
-export type JobTitlesInsert =
-  Database["public"]["Tables"]["job_titles"]["Insert"];
-export type JobTitlesUpdate =
-  Database["public"]["Tables"]["job_titles"]["Update"];
-
-// Labor Records Table
-export type LaborRecords = Database["public"]["Tables"]["labor_records"]["Row"];
-export type LaborRecordsInsert =
-  Database["public"]["Tables"]["labor_records"]["Insert"];
-export type LaborRecordsUpdate =
-  Database["public"]["Tables"]["labor_records"]["Update"];
-
-// Line Item Entries Table
-export type LineItemEntries =
-  Database["public"]["Tables"]["line_item_entries"]["Row"];
-export type LineItemEntriesInsert =
-  Database["public"]["Tables"]["line_item_entries"]["Insert"];
-export type LineItemEntriesUpdate =
-  Database["public"]["Tables"]["line_item_entries"]["Update"];
-
-// Line Item Templates Table
-export type LineItemTemplates =
-  Database["public"]["Tables"]["line_item_templates"]["Row"];
-export type LineItemTemplatesInsert =
-  Database["public"]["Tables"]["line_item_templates"]["Insert"];
-export type LineItemTemplatesUpdate =
-  Database["public"]["Tables"]["line_item_templates"]["Update"];
-
-// Line Items Table
-export type LineItems = Database["public"]["Tables"]["line_items"]["Row"];
-export type LineItemsInsert =
-  Database["public"]["Tables"]["line_items"]["Insert"];
-export type LineItemsUpdate =
-  Database["public"]["Tables"]["line_items"]["Update"];
-
-// Maps Table
-export type Maps = Database["public"]["Tables"]["maps"]["Row"];
-export type MapsInsert = Database["public"]["Tables"]["maps"]["Insert"];
-export type MapsUpdate = Database["public"]["Tables"]["maps"]["Update"];
-
-// Organizations Table
-export type Organizations =
-  Database["public"]["Tables"]["organizations"]["Row"];
-export type OrganizationsInsert =
-  Database["public"]["Tables"]["organizations"]["Insert"];
-export type OrganizationsUpdate =
-  Database["public"]["Tables"]["organizations"]["Update"];
-
-// Profiles Table
-export type Profiles = Database["public"]["Tables"]["profiles"]["Row"];
-export type ProfilesInsert = Database["public"]["Tables"]["profiles"]["Insert"];
-export type ProfilesUpdate = Database["public"]["Tables"]["profiles"]["Update"];
-
-// Spatial Ref Sys Table - Removed (table not found in database.types.ts)
-
-// Tack Rates Table
-export type TackRates = Database["public"]["Tables"]["tack_rates"]["Row"];
-export type TackRatesInsert =
-  Database["public"]["Tables"]["tack_rates"]["Insert"];
-export type TackRatesUpdate =
-  Database["public"]["Tables"]["tack_rates"]["Update"];
-
-// User Contracts Table - Removed (table not found in database.types.ts)
-
-// WBS Table
-export type WBS = Database["public"]["Tables"]["wbs"]["Row"];
-export type WBSInsert = Database["public"]["Tables"]["wbs"]["Insert"];
-export type WBSUpdate = Database["public"]["Tables"]["wbs"]["Update"];
-
+export type TableRow<T extends keyof Tables> = Tables[T]['Row'];
+export type TableInsert<T extends keyof Tables> = Tables[T]['Insert'];
+export type TableUpdate<T extends keyof Tables> = Tables[T]['Update'];
 /**
  * Map Location Types
  */

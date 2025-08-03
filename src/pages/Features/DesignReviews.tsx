@@ -3,14 +3,7 @@ import { Page } from '@/components/Layout';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/lib/database.types';
 
-// Row type for design_reviews table
-interface DesignReview extends Pick<Database['public']['Tables']['projects']['Row'], 'id'> {
-  title: string;
-  status: string | null;
-  notes: string | null;
-  review_date: string | null;
-  created_at: string | null;
-}
+type DesignReview = Database['public']['Tables']['design_reviews']['Row'];
 
 export default function DesignReviews() {
   const [reviews, setReviews] = useState<DesignReview[]>([]);
@@ -18,9 +11,12 @@ export default function DesignReviews() {
 
   useEffect(() => {
     const fetchReviews = async () => {
-      const { data, error } = await supabase.from('design_reviews').select('*');
+      const { data, error } = await supabase
+        .from('design_reviews')
+        .select('*')
+        .returns<DesignReview[]>();
       if (!error && Array.isArray(data)) {
-        setReviews(data as unknown as DesignReview[]);
+        setReviews(data);
       }
       setLoading(false);
     };

@@ -5,6 +5,9 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
 import { initGlobalErrorLogger } from './utils/errorLogger';
+import { validateEnvVariables } from './utils/env-validator';
+
+validateEnvVariables(['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY']);
 
 initGlobalErrorLogger();
 
