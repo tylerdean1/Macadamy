@@ -17,7 +17,7 @@ import { Page, PageContainer, SectionContainer } from '@/components/Layout';
 import { LoadingState } from '@/components/ui/loading-state';
 import { EmptyState } from '@/components/ui/empty-state';
 import type { ContractWithWktRow, WbsWithWktRow, LineItemsWithWktRow } from '@/lib/rpc.types';
-import { UnitMeasureType } from '@/lib/enums';
+import type { UnitMeasure } from '@/lib/types';
 
 import { ProjectHeader } from './ProjectDashboardComponents/ProjectHeader';
 import { ProjectInfoForm } from './ProjectDashboardComponents/ProjectInfoForm';
@@ -82,10 +82,16 @@ export default function ProjectDashboard() {
       if (lineItemsError) throw lineItemsError;
       const lineItemsRows: LineItemsWithWktRow[] = Array.isArray(lineItemsData) ? lineItemsData.map(item => {
         // Validate unit_measure against enum
-        const validUnitMeasures = Object.values(UnitMeasureType);
-        let safeUnit: UnitMeasureType | null = null;
-        if (typeof item.unit_measure === 'string' && validUnitMeasures.includes(item.unit_measure as UnitMeasureType)) {
-          safeUnit = item.unit_measure as UnitMeasureType;
+        const validUnitMeasures: UnitMeasure[] = [
+          "Feet (FT)", "Inches (IN)", "Linear Feet (LF)", "Mile (MI)", "Shoulder Mile (SMI)",
+          "Square Feet (SF)", "Square Yard (SY)", "Acre (AC)", "Cubic Foot (CF)", "Cubic Yard (CY)",
+          "Gallon (GAL)", "Pounds (LBS)", "TON", "Each (EA)", "Lump Sum (LS)", "Hour (HR)", "DAY",
+          "Station (STA)", "MSF (1000SF)", "MLF (1000LF)", "Cubic Feet per Second (CFS)",
+          "Pounds per Square Inch (PSI)", "Percent (%)", "Degrees (*)"
+        ];
+        let safeUnit: UnitMeasure | null = null;
+        if (typeof item.unit_measure === 'string' && validUnitMeasures.includes(item.unit_measure as UnitMeasure)) {
+          safeUnit = item.unit_measure as UnitMeasure;
         }
         // Fix: Use item.line_code for legacy, otherwise item.item_code, and always assign to item_code for LineItemsWithWktRow
         return {
@@ -197,8 +203,8 @@ export default function ProjectDashboard() {
                 </div>
               </div>
             </div>
-            </SectionContainer>
-          </PageContainer>
+          </SectionContainer>
+        </PageContainer>
       </Page>
     );
   }

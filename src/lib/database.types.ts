@@ -7,242 +7,713 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
-      asphalt_types: {
+      accounts_payable: {
         Row: {
-          compaction_min: number | null
-          created_at: string | null
+          amount_due: number | null
+          created_at: string
+          due_date: string | null
           id: string
-          jmf_temp_max: number | null
-          jmf_temp_min: number | null
-          lift_depth_inches: number | null
-          name: string
-          notes: string | null
-          target_spread_rate_lbs_per_sy: number | null
+          project_id: string | null
+          status: string | null
+          updated_at: string
         }
         Insert: {
-          compaction_min?: number | null
-          created_at?: string | null
+          amount_due?: number | null
+          created_at?: string
+          due_date?: string | null
           id?: string
-          jmf_temp_max?: number | null
-          jmf_temp_min?: number | null
-          lift_depth_inches?: number | null
-          name: string
-          notes?: string | null
-          target_spread_rate_lbs_per_sy?: number | null
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
         }
         Update: {
-          compaction_min?: number | null
-          created_at?: string | null
+          amount_due?: number | null
+          created_at?: string
+          due_date?: string | null
           id?: string
-          jmf_temp_max?: number | null
-          jmf_temp_min?: number | null
-          lift_depth_inches?: number | null
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ap_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_ap_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounts_receivable: {
+        Row: {
+          amount_due: number | null
+          created_at: string
+          due_date: string | null
+          id: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_due?: number | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_due?: number | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ar_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_ar_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_logs: {
+        Row: {
+          activity_at: string | null
+          activity_type: string | null
+          created_at: string
+          id: string
+          profile_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          activity_at?: string | null
+          activity_type?: string | null
+          created_at?: string
+          id?: string
+          profile_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activity_at?: string | null
+          activity_type?: string | null
+          created_at?: string
+          id?: string
+          profile_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_activity_logs_profile"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asphalt_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
           name?: string
-          notes?: string | null
-          target_spread_rate_lbs_per_sy?: number | null
+          updated_at?: string
         }
         Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          action: string | null
+          created_at: string
+          id: string
+          performed_at: string | null
+          performed_by: string | null
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string
+          id?: string
+          performed_at?: string | null
+          performed_by?: string | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action?: string | null
+          created_at?: string
+          id?: string
+          performed_at?: string | null
+          performed_by?: string | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_audit_logs_performed_by"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_audit_logs_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_audit_logs_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       avatars: {
         Row: {
           created_at: string | null
           id: string
-          is_preset: boolean
-          name: string
+          updated_at: string
           url: string
         }
         Insert: {
           created_at?: string | null
           id?: string
-          is_preset?: boolean
-          name: string
+          updated_at?: string
           url: string
         }
         Update: {
           created_at?: string | null
           id?: string
-          is_preset?: boolean
-          name?: string
+          updated_at?: string
           url?: string
         }
         Relationships: []
       }
-      change_orders: {
+      bid_packages: {
         Row: {
-          approved_by: string | null
-          approved_date: string | null
-          attachments: string[] | null
-          contract_id: string | null
-          created_at: string
-          created_by: string | null
-          description: string | null
-          id: string
-          line_item_id: string | null
-          new_quantity: number
-          new_unit_price: number | null
-          status: Database["public"]["Enums"]["change_order_status"]
-          submitted_date: string
-          title: string
-          updated_at: string | null
-          updated_by: string | null
-        }
-        Insert: {
-          approved_by?: string | null
-          approved_date?: string | null
-          attachments?: string[] | null
-          contract_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          line_item_id?: string | null
-          new_quantity: number
-          new_unit_price?: number | null
-          status?: Database["public"]["Enums"]["change_order_status"]
-          submitted_date?: string
-          title: string
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Update: {
-          approved_by?: string | null
-          approved_date?: string | null
-          attachments?: string[] | null
-          contract_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          line_item_id?: string | null
-          new_quantity?: number
-          new_unit_price?: number | null
-          status?: Database["public"]["Enums"]["change_order_status"]
-          submitted_date?: string
-          title?: string
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "change_orders_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "change_orders_line_item_id_fkey"
-            columns: ["line_item_id"]
-            isOneToOne: false
-            referencedRelation: "line_items"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contract_organizations: {
-        Row: {
-          contract_id: string
           created_at: string | null
-          created_by: string
+          created_by: string | null
           id: string
-          notes: string | null
-          organization_id: string
-          role: Database["public"]["Enums"]["organization_role"] | null
-          updated_at: string | null
+          name: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
         }
         Insert: {
-          contract_id: string
           created_at?: string | null
-          created_by: string
+          created_by?: string | null
           id?: string
-          notes?: string | null
-          organization_id: string
-          role?: Database["public"]["Enums"]["organization_role"] | null
-          updated_at?: string | null
+          name: string
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
         }
         Update: {
-          contract_id?: string
           created_at?: string | null
-          created_by?: string
+          created_by?: string | null
           id?: string
-          notes?: string | null
-          organization_id?: string
-          role?: Database["public"]["Enums"]["organization_role"] | null
-          updated_at?: string | null
+          name?: string
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "contract_organizations_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contract_organizations_created_by_fkey"
+            foreignKeyName: "fk_bid_packages_created_by"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "contract_organizations_organization_id_fkey"
-            columns: ["organization_id"]
+            foreignKeyName: "fk_bid_packages_project"
+            columns: ["project_id"]
             isOneToOne: false
-            referencedRelation: "organizations"
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_bid_packages_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
       }
-      contracts: {
+      bid_vendors: {
         Row: {
-          budget: number | null
-          coordinates: unknown | null
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          end_date: string
+          bid_package_id: string | null
+          created_at: string
           id: string
-          location: string
-          start_date: string
-          status: Database["public"]["Enums"]["contract_status"]
-          title: string
-          updated_at: string | null
+          invited_at: string | null
+          updated_at: string
+          vendor_id: string | null
         }
         Insert: {
-          budget?: number | null
-          coordinates?: unknown | null
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          end_date: string
+          bid_package_id?: string | null
+          created_at?: string
           id?: string
-          location: string
-          start_date: string
-          status?: Database["public"]["Enums"]["contract_status"]
-          title: string
-          updated_at?: string | null
+          invited_at?: string | null
+          updated_at?: string
+          vendor_id?: string | null
         }
         Update: {
-          budget?: number | null
-          coordinates?: unknown | null
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          end_date?: string
+          bid_package_id?: string | null
+          created_at?: string
           id?: string
-          location?: string
-          start_date?: string
-          status?: Database["public"]["Enums"]["contract_status"]
-          title?: string
-          updated_at?: string | null
+          invited_at?: string | null
+          updated_at?: string
+          vendor_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "contracts_created_by_fkey"
-            columns: ["created_by"]
+            foreignKeyName: "fk_bid_vendors_bid_package"
+            columns: ["bid_package_id"]
+            isOneToOne: false
+            referencedRelation: "bid_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_bid_vendors_vendor"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bids: {
+        Row: {
+          amount: number | null
+          bid_package_id: string | null
+          created_at: string
+          id: string
+          status: Database["public"]["Enums"]["general_status"] | null
+          submitted_at: string | null
+          updated_at: string
+          vendor_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          bid_package_id?: string | null
+          created_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["general_status"] | null
+          submitted_at?: string | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          bid_package_id?: string | null
+          created_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["general_status"] | null
+          submitted_at?: string | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_bids_bid_package"
+            columns: ["bid_package_id"]
+            isOneToOne: false
+            referencedRelation: "bid_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_bids_vendor"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bim_models: {
+        Row: {
+          created_at: string
+          id: string
+          name: string | null
+          project_id: string | null
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          project_id?: string | null
+          updated_at?: string
+          uploaded_at?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          project_id?: string | null
+          updated_at?: string
+          uploaded_at?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_bim_models_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_bim_models_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      certifications: {
+        Row: {
+          certification_type: string | null
+          created_at: string
+          employee_id: string | null
+          expiry_date: string | null
+          id: string
+          issue_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          certification_type?: string | null
+          created_at?: string
+          employee_id?: string | null
+          expiry_date?: string | null
+          id?: string
+          issue_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          certification_type?: string | null
+          created_at?: string
+          employee_id?: string | null
+          expiry_date?: string | null
+          id?: string
+          issue_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_certifications_employee"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      change_orders: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          description: string | null
+          id: string
+          number: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          number: string
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          number?: string
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_change_orders_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_change_orders_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commitments: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          id: string
+          project_id: string | null
+          status: string | null
+          type: Database["public"]["Enums"]["commitment_type"] | null
+          updated_at: string
+          vendor_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          status?: string | null
+          type?: Database["public"]["Enums"]["commitment_type"] | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          status?: string | null
+          type?: Database["public"]["Enums"]["commitment_type"] | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_commitments_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_commitments_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_commitments_vendor"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_checks: {
+        Row: {
+          check_date: string | null
+          created_at: string
+          description: string | null
+          id: string
+          project_id: string | null
+          result: string | null
+          updated_at: string
+        }
+        Insert: {
+          check_date?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          project_id?: string | null
+          result?: string | null
+          updated_at?: string
+        }
+        Update: {
+          check_date?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          project_id?: string | null
+          result?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_compliance_checks_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_compliance_checks_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_tracking: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          project_id: string | null
+          status: string | null
+          tracking_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+          status?: string | null
+          tracking_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+          status?: string | null
+          tracking_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_compliance_tracking_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_compliance_tracking_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cost_codes: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crew_assignments: {
+        Row: {
+          assigned_date: string | null
+          created_at: string | null
+          crew_id: string | null
+          id: string
+          profile_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_date?: string | null
+          created_at?: string | null
+          crew_id?: string | null
+          id?: string
+          profile_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_date?: string | null
+          created_at?: string | null
+          crew_id?: string | null
+          id?: string
+          profile_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_crew_assignments_crew"
+            columns: ["crew_id"]
+            isOneToOne: false
+            referencedRelation: "crews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_crew_assignments_profile"
+            columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -251,75 +722,45 @@ export type Database = {
       }
       crew_members: {
         Row: {
-          assigned_at: string | null
           created_at: string | null
-          created_by: string
-          crew_id: string
+          crew_id: string | null
+          end_date: string | null
           id: string
-          location_notes: string | null
-          map_location_id: string | null
-          organization_id: string | null
-          profile_id: string
+          profile_id: string | null
           role: string | null
-          updated_at: string | null
+          start_date: string | null
+          updated_at: string
         }
         Insert: {
-          assigned_at?: string | null
           created_at?: string | null
-          created_by: string
-          crew_id: string
+          crew_id?: string | null
+          end_date?: string | null
           id?: string
-          location_notes?: string | null
-          map_location_id?: string | null
-          organization_id?: string | null
-          profile_id: string
+          profile_id?: string | null
           role?: string | null
-          updated_at?: string | null
+          start_date?: string | null
+          updated_at?: string
         }
         Update: {
-          assigned_at?: string | null
           created_at?: string | null
-          created_by?: string
-          crew_id?: string
+          crew_id?: string | null
+          end_date?: string | null
           id?: string
-          location_notes?: string | null
-          map_location_id?: string | null
-          organization_id?: string | null
-          profile_id?: string
+          profile_id?: string | null
           role?: string | null
-          updated_at?: string | null
+          start_date?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "crew_members_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crew_members_crew_id_fkey"
+            foreignKeyName: "fk_crew_members_crew"
             columns: ["crew_id"]
             isOneToOne: false
             referencedRelation: "crews"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "crew_members_map_location_id_fkey"
-            columns: ["map_location_id"]
-            isOneToOne: false
-            referencedRelation: "maps"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crew_members_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crew_members_profile_id_fkey"
+            foreignKeyName: "fk_crew_members_profile"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -330,51 +771,288 @@ export type Database = {
       crews: {
         Row: {
           created_at: string | null
-          created_by: string
-          description: string | null
-          foreman_id: string | null
           id: string
           name: string
-          organization_id: string
-          updated_at: string | null
+          project_id: string | null
+          updated_at: string
         }
         Insert: {
           created_at?: string | null
-          created_by: string
-          description?: string | null
-          foreman_id?: string | null
           id?: string
           name: string
-          organization_id: string
-          updated_at?: string | null
+          project_id?: string | null
+          updated_at?: string
         }
         Update: {
           created_at?: string | null
-          created_by?: string
-          description?: string | null
-          foreman_id?: string | null
           id?: string
           name?: string
-          organization_id?: string
-          updated_at?: string | null
+          project_id?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "crews_created_by_fkey"
-            columns: ["created_by"]
+            foreignKeyName: "fk_crews_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_crews_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_logs: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          notes: string | null
+          project_id: string | null
+          updated_at: string
+          weather: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+          updated_at?: string
+          weather?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+          updated_at?: string
+          weather?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_daily_logs_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_daily_logs_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_configs: {
+        Row: {
+          config: Json | null
+          created_at: string | null
+          id: string
+          profile_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          profile_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          profile_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_dashboard_configs_profile"
+            columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      document_references: {
+        Row: {
+          created_at: string | null
+          document_id: string | null
+          id: string
+          reference_id: string | null
+          reference_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          document_id?: string | null
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          document_id?: string | null
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
           {
-            foreignKeyName: "crews_foreman_id_fkey"
-            columns: ["foreman_id"]
+            foreignKeyName: "fk_document_references_document"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          project_id: string | null
+          type: string | null
+          updated_at: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          project_id?: string | null
+          type?: string | null
+          updated_at?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          project_id?: string | null
+          type?: string | null
+          updated_at?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_documents_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_documents_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_documents_uploaded_by"
+            columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      drawing_versions: {
+        Row: {
+          created_at: string
+          document_id: string | null
+          id: string
+          updated_at: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+          version: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_id?: string | null
+          id?: string
+          updated_at?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          version?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_id?: string | null
+          id?: string
+          updated_at?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          version?: string | null
+        }
+        Relationships: [
           {
-            foreignKeyName: "crews_organization_id_fkey"
+            foreignKeyName: "fk_drawing_versions_document"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_drawing_versions_uploaded_by"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dump_trucks: {
+        Row: {
+          capacity: number | null
+          created_at: string
+          id: string
+          make: string | null
+          model: string | null
+          organization_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number | null
+          created_at?: string
+          id?: string
+          make?: string | null
+          model?: string | null
+          organization_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number | null
+          created_at?: string
+          id?: string
+          make?: string | null
+          model?: string | null
+          organization_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_dump_trucks_organization"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -382,259 +1060,47 @@ export type Database = {
           },
         ]
       }
-      daily_logs: {
+      employees: {
         Row: {
-          contract_id: string
           created_at: string
-          created_by: string | null
-          delays_encountered: string | null
+          hire_date: string | null
           id: string
-          log_date: string
-          safety_incidents: string | null
-          temperature: number | null
-          updated_at: string | null
-          updated_by: string | null
-          visitors: string | null
-          weather_conditions: string | null
-          work_performed: string | null
+          organization_id: string | null
+          profile_id: string | null
+          status: string | null
+          updated_at: string
         }
         Insert: {
-          contract_id: string
           created_at?: string
-          created_by?: string | null
-          delays_encountered?: string | null
+          hire_date?: string | null
           id?: string
-          log_date?: string
-          safety_incidents?: string | null
-          temperature?: number | null
-          updated_at?: string | null
-          updated_by?: string | null
-          visitors?: string | null
-          weather_conditions?: string | null
-          work_performed?: string | null
+          organization_id?: string | null
+          profile_id?: string | null
+          status?: string | null
+          updated_at?: string
         }
         Update: {
-          contract_id?: string
           created_at?: string
-          created_by?: string | null
-          delays_encountered?: string | null
+          hire_date?: string | null
           id?: string
-          log_date?: string
-          safety_incidents?: string | null
-          temperature?: number | null
-          updated_at?: string | null
-          updated_by?: string | null
-          visitors?: string | null
-          weather_conditions?: string | null
-          work_performed?: string | null
+          organization_id?: string | null
+          profile_id?: string | null
+          status?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "daily_logs_contract_id_fkey"
-            columns: ["contract_id"]
+            foreignKeyName: "fk_employees_organization"
+            columns: ["organization_id"]
             isOneToOne: false
-            referencedRelation: "contracts"
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "daily_logs_created_by_fkey"
-            columns: ["created_by"]
+            foreignKeyName: "fk_employees_profile"
+            columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "daily_logs_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-        Row: {
-          created_at: string | null
-          new_change_order_ids: string[] | null
-          new_contract_ids: string[] | null
-          new_contract_org_ids: string[] | null
-          new_crew_ids: string[] | null
-          new_crew_member_ids: string[] | null
-          new_daily_log_ids: string[] | null
-          new_entry_ids: string[] | null
-          new_equipment_assignment_ids: string[] | null
-          new_equipment_ids: string[] | null
-          new_inspection_ids: string[] | null
-          new_issue_ids: string[] | null
-          new_li_crew_ids: string[] | null
-          new_li_equipment_ids: string[] | null
-          new_line_item_ids: string[] | null
-          new_map_ids: string[] | null
-          new_organization_ids: string[] | null
-          new_profile_id: string | null
-          new_template_ids: string[] | null
-          new_wbs_ids: string[] | null
-          old_change_order_ids: string[] | null
-          old_contract_ids: string[] | null
-          old_contract_org_ids: string[] | null
-          old_crew_ids: string[] | null
-          old_crew_member_ids: string[] | null
-          old_daily_log_ids: string[] | null
-          old_entry_ids: string[] | null
-          old_equipment_assignment_ids: string[] | null
-          old_equipment_ids: string[] | null
-          old_inspection_ids: string[] | null
-          old_issue_ids: string[] | null
-          old_li_crew_ids: string[] | null
-          old_li_equipment_ids: string[] | null
-          old_line_item_ids: string[] | null
-          old_map_ids: string[] | null
-          old_organization_ids: string[] | null
-          old_profile_id: string | null
-          old_template_ids: string[] | null
-          old_wbs_ids: string[] | null
-        }
-        Insert: {
-          created_at?: string | null
-          new_change_order_ids?: string[] | null
-          new_contract_ids?: string[] | null
-          new_contract_org_ids?: string[] | null
-          new_crew_ids?: string[] | null
-          new_crew_member_ids?: string[] | null
-          new_daily_log_ids?: string[] | null
-          new_entry_ids?: string[] | null
-          new_equipment_assignment_ids?: string[] | null
-          new_equipment_ids?: string[] | null
-          new_inspection_ids?: string[] | null
-          new_issue_ids?: string[] | null
-          new_li_crew_ids?: string[] | null
-          new_li_equipment_ids?: string[] | null
-          new_line_item_ids?: string[] | null
-          new_map_ids?: string[] | null
-          new_organization_ids?: string[] | null
-          new_profile_id?: string | null
-          new_template_ids?: string[] | null
-          new_wbs_ids?: string[] | null
-          old_change_order_ids?: string[] | null
-          old_contract_ids?: string[] | null
-          old_contract_org_ids?: string[] | null
-          old_crew_ids?: string[] | null
-          old_crew_member_ids?: string[] | null
-          old_daily_log_ids?: string[] | null
-          old_entry_ids?: string[] | null
-          old_equipment_assignment_ids?: string[] | null
-          old_equipment_ids?: string[] | null
-          old_inspection_ids?: string[] | null
-          old_issue_ids?: string[] | null
-          old_li_crew_ids?: string[] | null
-          old_li_equipment_ids?: string[] | null
-          old_line_item_ids?: string[] | null
-          old_map_ids?: string[] | null
-          old_organization_ids?: string[] | null
-          old_profile_id?: string | null
-          old_template_ids?: string[] | null
-          old_wbs_ids?: string[] | null
-        }
-        Update: {
-          created_at?: string | null
-          new_change_order_ids?: string[] | null
-          new_contract_ids?: string[] | null
-          new_contract_org_ids?: string[] | null
-          new_crew_ids?: string[] | null
-          new_crew_member_ids?: string[] | null
-          new_daily_log_ids?: string[] | null
-          new_entry_ids?: string[] | null
-          new_equipment_assignment_ids?: string[] | null
-          new_equipment_ids?: string[] | null
-          new_inspection_ids?: string[] | null
-          new_issue_ids?: string[] | null
-          new_li_crew_ids?: string[] | null
-          new_li_equipment_ids?: string[] | null
-          new_line_item_ids?: string[] | null
-          new_map_ids?: string[] | null
-          new_organization_ids?: string[] | null
-          new_profile_id?: string | null
-          new_template_ids?: string[] | null
-          new_wbs_ids?: string[] | null
-          old_change_order_ids?: string[] | null
-          old_contract_ids?: string[] | null
-          old_contract_org_ids?: string[] | null
-          old_crew_ids?: string[] | null
-          old_crew_member_ids?: string[] | null
-          old_daily_log_ids?: string[] | null
-          old_entry_ids?: string[] | null
-          old_equipment_assignment_ids?: string[] | null
-          old_equipment_ids?: string[] | null
-          old_inspection_ids?: string[] | null
-          old_issue_ids?: string[] | null
-          old_li_crew_ids?: string[] | null
-          old_li_equipment_ids?: string[] | null
-          old_line_item_ids?: string[] | null
-          old_map_ids?: string[] | null
-          old_organization_ids?: string[] | null
-          old_profile_id?: string | null
-          old_template_ids?: string[] | null
-          old_wbs_ids?: string[] | null
-        }
-        Relationships: []
-      }
-      dump_trucks: {
-        Row: {
-          axle_count: number | null
-          bed_height: number | null
-          bed_length: number | null
-          bed_volume: number | null
-          bed_width: number | null
-          contract_id: string | null
-          created_at: string | null
-          equipment_id: string | null
-          hoist_bottom: number | null
-          hoist_top: number | null
-          hoist_width: number | null
-          id: string
-          notes: string | null
-          payload_capacity_tons: number
-          truck_identifier: string
-        }
-        Insert: {
-          axle_count?: number | null
-          bed_height?: number | null
-          bed_length?: number | null
-          bed_volume?: number | null
-          bed_width?: number | null
-          contract_id?: string | null
-          created_at?: string | null
-          equipment_id?: string | null
-          hoist_bottom?: number | null
-          hoist_top?: number | null
-          hoist_width?: number | null
-          id?: string
-          notes?: string | null
-          payload_capacity_tons: number
-          truck_identifier: string
-        }
-        Update: {
-          axle_count?: number | null
-          bed_height?: number | null
-          bed_length?: number | null
-          bed_volume?: number | null
-          bed_width?: number | null
-          contract_id?: string | null
-          created_at?: string | null
-          equipment_id?: string | null
-          hoist_bottom?: number | null
-          hoist_top?: number | null
-          hoist_width?: number | null
-          id?: string
-          notes?: string | null
-          payload_capacity_tons?: number
-          truck_identifier?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dump_trucks_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
         ]
@@ -642,61 +1108,40 @@ export type Database = {
       equipment: {
         Row: {
           created_at: string | null
-          created_by: string | null
-          description: string | null
           id: string
+          model: string | null
           name: string
-          operator_id: string | null
           organization_id: string | null
-          standard_pay_rate: number | null
-          standard_pay_unit: Database["public"]["Enums"]["pay_rate_unit"] | null
-          user_defined_id: string | null
+          serial_number: string | null
+          status: string | null
+          type: Database["public"]["Enums"]["equipment_type"] | null
+          updated_at: string
         }
         Insert: {
           created_at?: string | null
-          created_by?: string | null
-          description?: string | null
           id?: string
+          model?: string | null
           name: string
-          operator_id?: string | null
           organization_id?: string | null
-          standard_pay_rate?: number | null
-          standard_pay_unit?:
-            | Database["public"]["Enums"]["pay_rate_unit"]
-            | null
-          user_defined_id?: string | null
+          serial_number?: string | null
+          status?: string | null
+          type?: Database["public"]["Enums"]["equipment_type"] | null
+          updated_at?: string
         }
         Update: {
           created_at?: string | null
-          created_by?: string | null
-          description?: string | null
           id?: string
+          model?: string | null
           name?: string
-          operator_id?: string | null
           organization_id?: string | null
-          standard_pay_rate?: number | null
-          standard_pay_unit?:
-            | Database["public"]["Enums"]["pay_rate_unit"]
-            | null
-          user_defined_id?: string | null
+          serial_number?: string | null
+          status?: string | null
+          type?: Database["public"]["Enums"]["equipment_type"] | null
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "equipment_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "equipment_operator_id_fkey"
-            columns: ["operator_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "equipment_organization_id_fkey"
+            foreignKeyName: "fk_equipment_organization"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -706,482 +1151,647 @@ export type Database = {
       }
       equipment_assignments: {
         Row: {
-          bid_rate: number | null
-          contract_id: string
-          created_at: string | null
-          created_by: string
-          end_date: string | null
-          equipment_id: string
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          notes: string | null
-          operator_id: string | null
-          start_date: string
-          status: string | null
-          updated_at: string | null
-          wbs_id: string | null
-        }
-        Insert: {
-          bid_rate?: number | null
-          contract_id: string
-          created_at?: string | null
-          created_by: string
-          end_date?: string | null
-          equipment_id: string
-          id?: string
-          line_item_id?: string | null
-          map_id?: string | null
-          notes?: string | null
-          operator_id?: string | null
-          start_date: string
-          status?: string | null
-          updated_at?: string | null
-          wbs_id?: string | null
-        }
-        Update: {
-          bid_rate?: number | null
-          contract_id?: string
-          created_at?: string | null
-          created_by?: string
-          end_date?: string | null
-          equipment_id?: string
-          id?: string
-          line_item_id?: string | null
-          map_id?: string | null
-          notes?: string | null
-          operator_id?: string | null
-          start_date?: string
-          status?: string | null
-          updated_at?: string | null
-          wbs_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "equipment_assignments_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "equipment_assignments_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "equipment_assignments_line_item_id_fkey"
-            columns: ["line_item_id"]
-            isOneToOne: false
-            referencedRelation: "line_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "equipment_assignments_map_id_fkey"
-            columns: ["map_id"]
-            isOneToOne: false
-            referencedRelation: "maps"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "equipment_assignments_operator_id_fkey"
-            columns: ["operator_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "equipment_assignments_wbs_id_fkey"
-            columns: ["wbs_id"]
-            isOneToOne: false
-            referencedRelation: "wbs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      equipment_usage: {
-        Row: {
-          contract_id: string | null
-          created_at: string | null
-          created_by: string | null
-          equipment_id: string | null
-          hours_used: number
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          notes: string | null
-          operator_id: string | null
-          updated_at: string | null
-          updated_by: string | null
-          usage_date: string
-          wbs_id: string | null
-        }
-        Insert: {
-          contract_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          equipment_id?: string | null
-          hours_used: number
-          id?: string
-          line_item_id?: string | null
-          map_id?: string | null
-          notes?: string | null
-          operator_id?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-          usage_date?: string
-          wbs_id?: string | null
-        }
-        Update: {
-          contract_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          equipment_id?: string | null
-          hours_used?: number
-          id?: string
-          line_item_id?: string | null
-          map_id?: string | null
-          notes?: string | null
-          operator_id?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-          usage_date?: string
-          wbs_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "equipment_usage_contract_fk"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "equipment_usage_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "equipment_usage_line_item_id_fkey"
-            columns: ["line_item_id"]
-            isOneToOne: false
-            referencedRelation: "line_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "equipment_usage_map_id_fkey"
-            columns: ["map_id"]
-            isOneToOne: false
-            referencedRelation: "maps"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "equipment_usage_operator_id_fkey"
-            columns: ["operator_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "equipment_usage_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "equipment_usage_wbs_id_fkey"
-            columns: ["wbs_id"]
-            isOneToOne: false
-            referencedRelation: "wbs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      inspections: {
-        Row: {
-          contract_id: string
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          name: string
-          pdf_url: string | null
-          photo_urls: string[] | null
-          updated_at: string | null
-          updated_by: string | null
-          wbs_id: string | null
-        }
-        Insert: {
-          contract_id: string
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          line_item_id?: string | null
-          map_id?: string | null
-          name: string
-          pdf_url?: string | null
-          photo_urls?: string[] | null
-          updated_at?: string | null
-          updated_by?: string | null
-          wbs_id?: string | null
-        }
-        Update: {
-          contract_id?: string
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          line_item_id?: string | null
-          map_id?: string | null
-          name?: string
-          pdf_url?: string | null
-          photo_urls?: string[] | null
-          updated_at?: string | null
-          updated_by?: string | null
-          wbs_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "inspections_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inspections_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inspections_line_item_id_fkey"
-            columns: ["line_item_id"]
-            isOneToOne: false
-            referencedRelation: "line_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inspections_map_id_fkey"
-            columns: ["map_id"]
-            isOneToOne: false
-            referencedRelation: "maps"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inspections_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inspections_wbs_id_fkey"
-            columns: ["wbs_id"]
-            isOneToOne: false
-            referencedRelation: "wbs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      issues: {
-        Row: {
+          assigned_date: string | null
           assigned_to: string | null
-          contract_id: string | null
           created_at: string | null
-          created_by: string | null
-          description: string
-          due_date: string | null
           equipment_id: string | null
           id: string
-          line_item_id: string | null
-          map_id: string | null
-          photo_urls: string[] | null
-          priority: Database["public"]["Enums"]["priority"] | null
-          resolution: string | null
-          status: string
-          title: string
-          updated_at: string | null
-          updated_by: string | null
-          wbs_id: string | null
+          notes: string | null
+          project_id: string | null
+          released_date: string | null
+          updated_at: string
         }
         Insert: {
+          assigned_date?: string | null
           assigned_to?: string | null
-          contract_id?: string | null
           created_at?: string | null
-          created_by?: string | null
-          description: string
-          due_date?: string | null
           equipment_id?: string | null
           id?: string
-          line_item_id?: string | null
-          map_id?: string | null
-          photo_urls?: string[] | null
-          priority?: Database["public"]["Enums"]["priority"] | null
-          resolution?: string | null
-          status: string
-          title: string
-          updated_at?: string | null
-          updated_by?: string | null
-          wbs_id?: string | null
+          notes?: string | null
+          project_id?: string | null
+          released_date?: string | null
+          updated_at?: string
         }
         Update: {
+          assigned_date?: string | null
           assigned_to?: string | null
-          contract_id?: string | null
           created_at?: string | null
-          created_by?: string | null
-          description?: string
-          due_date?: string | null
           equipment_id?: string | null
           id?: string
-          line_item_id?: string | null
-          map_id?: string | null
-          photo_urls?: string[] | null
-          priority?: Database["public"]["Enums"]["priority"] | null
-          resolution?: string | null
-          status?: string
-          title?: string
-          updated_at?: string | null
-          updated_by?: string | null
-          wbs_id?: string | null
+          notes?: string | null
+          project_id?: string | null
+          released_date?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "issues_assigned_to_fkey"
+            foreignKeyName: "fk_equipment_assignments_assigned_to"
             columns: ["assigned_to"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "crews"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "issues_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "issues_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "issues_equipment_id_fkey"
+            foreignKeyName: "fk_equipment_assignments_equipment"
             columns: ["equipment_id"]
             isOneToOne: false
             referencedRelation: "equipment"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "issues_line_item_id_fkey"
-            columns: ["line_item_id"]
+            foreignKeyName: "fk_equipment_assignments_project"
+            columns: ["project_id"]
             isOneToOne: false
-            referencedRelation: "line_items"
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_equipment_assignments_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_maintenance: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          equipment_id: string | null
+          id: string
+          maintenance_date: string | null
+          performed_by: string | null
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          equipment_id?: string | null
+          id?: string
+          maintenance_date?: string | null
+          performed_by?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          equipment_id?: string | null
+          id?: string
+          maintenance_date?: string | null
+          performed_by?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_equipment_maintenance_equipment"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "issues_map_id_fkey"
-            columns: ["map_id"]
+            foreignKeyName: "fk_equipment_maintenance_performed_by"
+            columns: ["performed_by"]
             isOneToOne: false
-            referencedRelation: "maps"
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_usage: {
+        Row: {
+          created_at: string | null
+          date: string
+          equipment_id: string | null
+          hours_used: number | null
+          id: string
+          notes: string | null
+          quantity: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          equipment_id?: string | null
+          hours_used?: number | null
+          id?: string
+          notes?: string | null
+          quantity?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          equipment_id?: string | null
+          hours_used?: number | null
+          id?: string
+          notes?: string | null
+          quantity?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_equipment_usage_equipment"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimate_line_items: {
+        Row: {
+          cost_code_id: string | null
+          created_at: string | null
+          estimate_id: string | null
+          id: string
+          name: string | null
+          quantity: number | null
+          total_cost: number | null
+          unit_measure: string | null
+          unit_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          cost_code_id?: string | null
+          created_at?: string | null
+          estimate_id?: string | null
+          id?: string
+          name?: string | null
+          quantity?: number | null
+          total_cost?: number | null
+          unit_measure?: string | null
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          cost_code_id?: string | null
+          created_at?: string | null
+          estimate_id?: string | null
+          id?: string
+          name?: string | null
+          quantity?: number | null
+          total_cost?: number | null
+          unit_measure?: string | null
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_estimate_line_items_cost_code"
+            columns: ["cost_code_id"]
+            isOneToOne: false
+            referencedRelation: "cost_codes"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "issues_updated_by_fkey"
-            columns: ["updated_by"]
+            foreignKeyName: "fk_estimate_line_items_estimate"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimates: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name: string
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name?: string
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_estimates_created_by"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "issues_wbs_id_fkey"
-            columns: ["wbs_id"]
+            foreignKeyName: "fk_estimates_project"
+            columns: ["project_id"]
             isOneToOne: false
-            referencedRelation: "wbs"
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_estimates_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_documents: {
+        Row: {
+          created_at: string
+          document_type: string | null
+          id: string
+          project_id: string | null
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_type?: string | null
+          id?: string
+          project_id?: string | null
+          updated_at?: string
+          uploaded_at?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_type?: string | null
+          id?: string
+          project_id?: string | null
+          updated_at?: string
+          uploaded_at?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_financial_documents_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_financial_documents_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      general_ledger: {
+        Row: {
+          balance: number | null
+          created_at: string
+          credit: number | null
+          debit: number | null
+          description: string | null
+          entry_date: string | null
+          id: string
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          balance?: number | null
+          created_at?: string
+          credit?: number | null
+          debit?: number | null
+          description?: string | null
+          entry_date?: string | null
+          id?: string
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          balance?: number | null
+          created_at?: string
+          credit?: number | null
+          debit?: number | null
+          description?: string | null
+          entry_date?: string | null
+          id?: string
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_gl_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_gl_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_documents: {
+        Row: {
+          created_at: string
+          document_type: string | null
+          employee_id: string | null
+          id: string
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_type?: string | null
+          employee_id?: string | null
+          id?: string
+          updated_at?: string
+          uploaded_at?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_type?: string | null
+          employee_id?: string | null
+          id?: string
+          updated_at?: string
+          uploaded_at?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_hr_documents_employee"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspections: {
+        Row: {
+          created_at: string | null
+          date: string | null
+          id: string
+          inspection_type: string | null
+          name: string
+          notes: string | null
+          project_id: string | null
+          result: Json | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          inspection_type?: string | null
+          name: string
+          notes?: string | null
+          project_id?: string | null
+          result?: Json | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          inspection_type?: string | null
+          name?: string
+          notes?: string | null
+          project_id?: string | null
+          result?: Json | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_inspections_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_inspections_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_tokens: {
+        Row: {
+          created_at: string | null
+          id: string
+          profile_id: string | null
+          service_name: string | null
+          token: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          profile_id?: string | null
+          service_name?: string | null
+          token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          profile_id?: string | null
+          service_name?: string | null
+          token?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_integration_tokens_profile"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_transactions: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string | null
+          notes: string | null
+          quantity: number | null
+          transaction_date: string | null
+          transaction_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id?: string | null
+          notes?: string | null
+          quantity?: number | null
+          transaction_date?: string | null
+          transaction_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string | null
+          notes?: string | null
+          quantity?: number | null
+          transaction_date?: string | null
+          transaction_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_inventory_transactions_material"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      issues: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          project_id: string | null
+          reported_by: string | null
+          resolved: boolean | null
+          status: string | null
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          project_id?: string | null
+          reported_by?: string | null
+          resolved?: boolean | null
+          status?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          project_id?: string | null
+          reported_by?: string | null
+          resolved?: boolean | null
+          status?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_issues_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_issues_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_issues_reported_by"
+            columns: ["reported_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
       }
       job_titles: {
         Row: {
-          created_at: string | null
-          created_by: string | null
+          created_at: string
           id: string
-          is_custom: boolean | null
-          title: string
-          updated_at: string | null
+          name: string
+          updated_at: string
         }
         Insert: {
-          created_at?: string | null
-          created_by?: string | null
+          created_at?: string
           id?: string
-          is_custom?: boolean | null
-          title: string
-          updated_at?: string | null
+          name: string
+          updated_at?: string
         }
         Update: {
-          created_at?: string | null
-          created_by?: string | null
+          created_at?: string
           id?: string
-          is_custom?: boolean | null
-          title?: string
-          updated_at?: string | null
+          name?: string
+          updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "job_titles_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       labor_records: {
         Row: {
-          id: string
-          line_item_id: string
-          worker_count: number
-          hours_worked: number
-          work_date: string
-          work_type: string
-          notes: string | null
           created_at: string | null
+          hours_worked: number | null
+          id: string
+          line_item_id: string | null
+          notes: string | null
+          updated_at: string
+          work_date: string | null
+          work_type: string | null
+          worker_count: number | null
         }
         Insert: {
-          id?: string
-          line_item_id: string
-          worker_count?: number
-          hours_worked?: number
-          work_date?: string
-          work_type?: string
-          notes?: string | null
           created_at?: string | null
+          hours_worked?: number | null
+          id?: string
+          line_item_id?: string | null
+          notes?: string | null
+          updated_at?: string
+          work_date?: string | null
+          work_type?: string | null
+          worker_count?: number | null
         }
         Update: {
-          id?: string
-          line_item_id?: string
-          worker_count?: number
-          hours_worked?: number
-          work_date?: string
-          work_type?: string
-          notes?: string | null
           created_at?: string | null
+          hours_worked?: number | null
+          id?: string
+          line_item_id?: string | null
+          notes?: string | null
+          updated_at?: string
+          work_date?: string | null
+          work_type?: string | null
+          worker_count?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "labor_records_line_item_id_fkey"
+            foreignKeyName: "fk_labor_records_line_item"
             columns: ["line_item_id"]
             isOneToOne: false
             referencedRelation: "line_items"
@@ -1191,199 +1801,164 @@ export type Database = {
       }
       line_item_entries: {
         Row: {
-          computed_output: number | null
-          contract_id: string
           created_at: string | null
-          entered_by: string | null
+          date: string
           id: string
-          input_variables: Json
-          line_item_id: string
-          map_id: string
+          line_item_id: string | null
           notes: string | null
-          output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
-          wbs_id: string
+          quantity_completed: number | null
+          updated_at: string
         }
         Insert: {
-          computed_output?: number | null
-          contract_id: string
           created_at?: string | null
-          entered_by?: string | null
+          date: string
           id?: string
-          input_variables: Json
-          line_item_id: string
-          map_id: string
+          line_item_id?: string | null
           notes?: string | null
-          output_unit?: Database["public"]["Enums"]["unit_measure_type"] | null
-          wbs_id: string
+          quantity_completed?: number | null
+          updated_at?: string
         }
         Update: {
-          computed_output?: number | null
-          contract_id?: string
           created_at?: string | null
-          entered_by?: string | null
+          date?: string
           id?: string
-          input_variables?: Json
-          line_item_id?: string
-          map_id?: string
+          line_item_id?: string | null
           notes?: string | null
-          output_unit?: Database["public"]["Enums"]["unit_measure_type"] | null
-          wbs_id?: string
+          quantity_completed?: number | null
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "line_item_entries_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "line_item_entries_line_item_id_fkey"
+            foreignKeyName: "fk_line_item_entries_line_item"
             columns: ["line_item_id"]
             isOneToOne: false
             referencedRelation: "line_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "line_item_entries_map_id_fkey"
-            columns: ["map_id"]
-            isOneToOne: false
-            referencedRelation: "maps"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "line_item_entries_wbs_id_fkey"
-            columns: ["wbs_id"]
-            isOneToOne: false
-            referencedRelation: "wbs"
             referencedColumns: ["id"]
           },
         ]
       }
       line_item_templates: {
         Row: {
-          created_at: string
+          created_at: string | null
           created_by: string | null
-          description: string | null
           formula: Json | null
           id: string
-          instructions: string | null
-          name: string | null
-          organization_id: string | null
-          output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
+          name: string
+          updated_at: string
+          variables: Json | null
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           created_by?: string | null
-          description?: string | null
-          formula?: Json | null
-          id: string
-          instructions?: string | null
-          name?: string | null
-          organization_id?: string | null
-          output_unit?: Database["public"]["Enums"]["unit_measure_type"] | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
           formula?: Json | null
           id?: string
-          instructions?: string | null
-          name?: string | null
-          organization_id?: string | null
-          output_unit?: Database["public"]["Enums"]["unit_measure_type"] | null
+          name: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          formula?: Json | null
+          id?: string
+          name?: string
+          updated_at?: string
+          variables?: Json | null
         }
         Relationships: [
           {
-            foreignKeyName: "line_item_templates_created_by_fkey"
+            foreignKeyName: "fk_line_item_templates_created_by"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "line_item_templates_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
       }
       line_items: {
         Row: {
-          contract_id: string | null
-          coordinates: unknown | null
+          cost_code_id: string | null
           created_at: string | null
-          description: string
+          description: string | null
           id: string
-          line_code: string
           map_id: string | null
-          quantity: number
-          reference_doc: string | null
+          name: string
+          project_id: string | null
+          quantity: number | null
           template_id: string | null
-          unit_measure: Database["public"]["Enums"]["unit_measure_type"]
-          unit_price: number
-          updated_at: string | null
-          wbs_id: string
+          unit_measure: string
+          unit_price: number | null
+          updated_at: string
+          wbs_id: string | null
         }
         Insert: {
-          contract_id?: string | null
-          coordinates?: unknown | null
+          cost_code_id?: string | null
           created_at?: string | null
-          description: string
+          description?: string | null
           id?: string
-          line_code: string
           map_id?: string | null
-          quantity: number
-          reference_doc?: string | null
+          name: string
+          project_id?: string | null
+          quantity?: number | null
           template_id?: string | null
-          unit_measure: Database["public"]["Enums"]["unit_measure_type"]
-          unit_price: number
-          updated_at?: string | null
-          wbs_id: string
+          unit_measure: string
+          unit_price?: number | null
+          updated_at?: string
+          wbs_id?: string | null
         }
         Update: {
-          contract_id?: string | null
-          coordinates?: unknown | null
+          cost_code_id?: string | null
           created_at?: string | null
-          description?: string
+          description?: string | null
           id?: string
-          line_code?: string
           map_id?: string | null
-          quantity?: number
-          reference_doc?: string | null
+          name?: string
+          project_id?: string | null
+          quantity?: number | null
           template_id?: string | null
-          unit_measure?: Database["public"]["Enums"]["unit_measure_type"]
-          unit_price?: number
-          updated_at?: string | null
-          wbs_id?: string
+          unit_measure?: string
+          unit_price?: number | null
+          updated_at?: string
+          wbs_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "line_items_contract_id_fkey"
-            columns: ["contract_id"]
+            foreignKeyName: "fk_line_items_cost_code"
+            columns: ["cost_code_id"]
             isOneToOne: false
-            referencedRelation: "contracts"
+            referencedRelation: "cost_codes"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "line_items_map_id_fkey"
+            foreignKeyName: "fk_line_items_map"
             columns: ["map_id"]
             isOneToOne: false
             referencedRelation: "maps"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "line_items_template_id_fkey"
+            foreignKeyName: "fk_line_items_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_line_items_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_line_items_template"
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "line_item_templates"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "line_items_wbs_id_fkey"
+            foreignKeyName: "fk_line_items_wbs"
             columns: ["wbs_id"]
             isOneToOne: false
             referencedRelation: "wbs"
@@ -1393,159 +1968,103 @@ export type Database = {
       }
       maps: {
         Row: {
-          budget: number | null
-          contract_id: string | null
-          coordinates: unknown | null
+          coordinates: string | null
           created_at: string | null
+          description: string | null
           id: string
-          location: string | null
-          map_number: string
+          name: string
+          order_num: number | null
+          project_id: string | null
           scope: string | null
-          updated_at: string | null
-          wbs_id: string
+          updated_at: string
+          wbs_id: string | null
         }
         Insert: {
-          budget?: number | null
-          contract_id?: string | null
-          coordinates?: unknown | null
+          coordinates?: string | null
           created_at?: string | null
+          description?: string | null
           id?: string
-          location?: string | null
-          map_number: string
+          name: string
+          order_num?: number | null
+          project_id?: string | null
           scope?: string | null
-          updated_at?: string | null
-          wbs_id: string
+          updated_at?: string
+          wbs_id?: string | null
         }
         Update: {
-          budget?: number | null
-          contract_id?: string | null
-          coordinates?: unknown | null
+          coordinates?: string | null
           created_at?: string | null
+          description?: string | null
           id?: string
-          location?: string | null
-          map_number?: string
+          name?: string
+          order_num?: number | null
+          project_id?: string | null
           scope?: string | null
-          updated_at?: string | null
-          wbs_id?: string
+          updated_at?: string
+          wbs_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "map_locations_wbs_id_fkey"
+            foreignKeyName: "fk_maps_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_maps_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_maps_wbs"
             columns: ["wbs_id"]
             isOneToOne: false
             referencedRelation: "wbs"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "maps_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
         ]
       }
-      organizations: {
+      material_inventory: {
         Row: {
-          address: string | null
-          created_at: string | null
-          created_by: string
+          created_at: string
           id: string
-          name: string
-          phone: string | null
-          updated_at: string | null
-          website: string | null
-        }
-        Insert: {
-          address?: string | null
-          created_at?: string | null
-          created_by: string
-          id?: string
-          name: string
-          phone?: string | null
-          updated_at?: string | null
-          website?: string | null
-        }
-        Update: {
-          address?: string | null
-          created_at?: string | null
-          created_by?: string
-          id?: string
-          name?: string
-          phone?: string | null
-          updated_at?: string | null
-          website?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "organizations_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      profiles: {
-        Row: {
-          avatar_id: string | null
-          created_at: string | null
-          email: string | null
-          full_name: string
-          id: string
-          job_title_id: string | null
-          location: string | null
+          last_updated: string | null
+          material_id: string | null
           organization_id: string | null
-          phone: string | null
-          role: Database["public"]["Enums"]["user_role"]
-          updated_at: string | null
-          username: string | null
+          quantity: number | null
+          updated_at: string
         }
         Insert: {
-          avatar_id?: string | null
-          created_at?: string | null
-          email?: string | null
-          full_name: string
-          id: string
-          job_title_id?: string | null
-          location?: string | null
+          created_at?: string
+          id?: string
+          last_updated?: string | null
+          material_id?: string | null
           organization_id?: string | null
-          phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string | null
-          username?: string | null
+          quantity?: number | null
+          updated_at?: string
         }
         Update: {
-          avatar_id?: string | null
-          created_at?: string | null
-          email?: string | null
-          full_name?: string
+          created_at?: string
           id?: string
-          job_title_id?: string | null
-          location?: string | null
+          last_updated?: string | null
+          material_id?: string | null
           organization_id?: string | null
-          phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string | null
-          username?: string | null
+          quantity?: number | null
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "profiles_avatar_id_fkey"
-            columns: ["avatar_id"]
+            foreignKeyName: "fk_material_inventory_material"
+            columns: ["material_id"]
             isOneToOne: false
-            referencedRelation: "avatars"
+            referencedRelation: "materials"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "profiles_job_title_id_fkey"
-            columns: ["job_title_id"]
-            isOneToOne: false
-            referencedRelation: "job_titles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_organization_id_fkey"
+            foreignKeyName: "fk_material_inventory_organization"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1553,80 +2072,1574 @@ export type Database = {
           },
         ]
       }
-      spatial_ref_sys: {
+      material_orders: {
         Row: {
-          auth_name: string | null
-          auth_srid: number | null
-          proj4text: string | null
-          srid: number
-          srtext: string | null
-        }
-        Insert: {
-          auth_name?: string | null
-          auth_srid?: number | null
-          proj4text?: string | null
-          srid: number
-          srtext?: string | null
-        }
-        Update: {
-          auth_name?: string | null
-          auth_srid?: number | null
-          proj4text?: string | null
-          srid?: number
-          srtext?: string | null
-        }
-        Relationships: []
-      }
-      tack_rates: {
-        Row: {
-          application_rate: number
-          created_at: string | null
+          created_at: string
           id: string
-          notes: string | null
-          surface_type: string
+          material_id: string | null
+          order_date: string | null
+          project_id: string | null
+          quantity: number | null
+          status: string | null
+          updated_at: string
         }
         Insert: {
-          application_rate: number
-          created_at?: string | null
+          created_at?: string
           id?: string
-          notes?: string | null
-          surface_type: string
+          material_id?: string | null
+          order_date?: string | null
+          project_id?: string | null
+          quantity?: number | null
+          status?: string | null
+          updated_at?: string
         }
         Update: {
-          application_rate?: number
-          created_at?: string | null
+          created_at?: string
           id?: string
-          notes?: string | null
-          surface_type?: string
-        }
-        Relationships: []
-      }
-      user_contracts: {
-        Row: {
-          contract_id: string
-          role: Database["public"]["Enums"]["user_role"] | null
-          user_id: string
-        }
-        Insert: {
-          contract_id: string
-          role?: Database["public"]["Enums"]["user_role"] | null
-          user_id: string
-        }
-        Update: {
-          contract_id?: string
-          role?: Database["public"]["Enums"]["user_role"] | null
-          user_id?: string
+          material_id?: string | null
+          order_date?: string | null
+          project_id?: string | null
+          quantity?: number | null
+          status?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "user_contracts_contract_id_fkey"
-            columns: ["contract_id"]
+            foreignKeyName: "fk_material_orders_material"
+            columns: ["material_id"]
             isOneToOne: false
-            referencedRelation: "contracts"
+            referencedRelation: "materials"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "user_contracts_user_id_fkey"
+            foreignKeyName: "fk_material_orders_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_material_orders_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_receipts: {
+        Row: {
+          created_at: string
+          id: string
+          material_order_id: string | null
+          quantity: number | null
+          received_by: string | null
+          received_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_order_id?: string | null
+          quantity?: number | null
+          received_by?: string | null
+          received_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_order_id?: string | null
+          quantity?: number | null
+          received_by?: string | null
+          received_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_material_receipts_material_order"
+            columns: ["material_order_id"]
+            isOneToOne: false
+            referencedRelation: "material_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_material_receipts_received_by"
+            columns: ["received_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      materials: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          organization_id: string | null
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          organization_id?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          organization_id?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_materials_organization"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_minutes: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          meeting_date: string | null
+          notes: string | null
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          meeting_date?: string | null
+          notes?: string | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          meeting_date?: string | null
+          notes?: string | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_meeting_minutes_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_meeting_minutes_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_meeting_minutes_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          category: Database["public"]["Enums"]["notification_category"]
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          payload: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["notification_category"]
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          payload?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["notification_category"]
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          payload?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      organization_members: {
+        Row: {
+          created_at: string | null
+          id: string
+          organization_id: string | null
+          profile_id: string | null
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          organization_id?: string | null
+          profile_id?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          organization_id?: string | null
+          profile_id?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_org_members_org"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_org_members_profile"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_projects: {
+        Row: {
+          created_at: string | null
+          id: string
+          organization_id: string | null
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          organization_id?: string | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          organization_id?: string | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_org_projects_org"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_org_projects_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_org_projects_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number | null
+          commitment_id: string | null
+          created_at: string
+          id: string
+          paid_at: string | null
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          commitment_id?: string | null
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          commitment_id?: string | null
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_payments_commitment"
+            columns: ["commitment_id"]
+            isOneToOne: false
+            referencedRelation: "commitments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_payments_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_payments_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll: {
+        Row: {
+          created_at: string | null
+          employee_id: string | null
+          gross_pay: number | null
+          id: string
+          net_pay: number | null
+          pay_period_end: string | null
+          pay_period_start: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          employee_id?: string | null
+          gross_pay?: number | null
+          id?: string
+          net_pay?: number | null
+          pay_period_end?: string | null
+          pay_period_start?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          employee_id?: string | null
+          gross_pay?: number | null
+          id?: string
+          net_pay?: number | null
+          pay_period_end?: string | null
+          pay_period_start?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_payroll_employee"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          project_id: string | null
+          updated_at: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+          url: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          updated_at?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          url: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          updated_at?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_photos_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_photos_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_photos_uploaded_by"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prequalifications: {
+        Row: {
+          created_at: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          updated_at: string
+          vendor_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_prequalifications_reviewed_by"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_prequalifications_vendor"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      procurement_workflows: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string | null
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name?: string | null
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string | null
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_procurement_workflows_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_procurement_workflows_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          job_title_id: string | null
+          organization_id: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role_type"] | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          job_title_id?: string | null
+          organization_id?: string | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role_type"] | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          job_title_id?: string | null
+          organization_id?: string | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role_type"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_profiles_job_titles"
+            columns: ["job_title_id"]
+            isOneToOne: false
+            referencedRelation: "job_titles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_profiles_organizations"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      progress_billings: {
+        Row: {
+          amount: number | null
+          billing_number: string | null
+          created_at: string | null
+          id: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          billing_number?: string | null
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          billing_number?: string | null
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_progress_billings_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_progress_billings_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_inspectors: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          profile_id: string
+          project_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          profile_id: string
+          project_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          profile_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_inspectors_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_inspectors_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_inspectors_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_inspectors_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          organization_id: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["project_status"] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          organization_id?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          organization_id?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_projects_organizations"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      punch_lists: {
+        Row: {
+          assigned_to: string | null
+          created_at: string | null
+          id: string
+          item: string | null
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string | null
+          id?: string
+          item?: string | null
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string | null
+          id?: string
+          item?: string | null
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_punch_lists_assigned_to"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_punch_lists_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_punch_lists_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          amount: number | null
+          created_at: string
+          id: string
+          order_date: string | null
+          order_number: string | null
+          project_id: string | null
+          status: string | null
+          updated_at: string
+          vendor_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          id?: string
+          order_date?: string | null
+          order_number?: string | null
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          id?: string
+          order_date?: string | null
+          order_number?: string | null
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_purchase_orders_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_purchase_orders_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_purchase_orders_vendor"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quality_reviews: {
+        Row: {
+          created_at: string
+          findings: Json | null
+          id: string
+          project_id: string | null
+          review_date: string | null
+          reviewer: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          findings?: Json | null
+          id?: string
+          project_id?: string | null
+          review_date?: string | null
+          reviewer?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          findings?: Json | null
+          id?: string
+          project_id?: string | null
+          review_date?: string | null
+          reviewer?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_quality_reviews_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_quality_reviews_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_quality_reviews_reviewer"
+            columns: ["reviewer"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regulatory_documents: {
+        Row: {
+          created_at: string
+          document_type: string | null
+          id: string
+          project_id: string | null
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_type?: string | null
+          id?: string
+          project_id?: string | null
+          updated_at?: string
+          uploaded_at?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_type?: string | null
+          id?: string
+          project_id?: string | null
+          updated_at?: string
+          uploaded_at?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_regulatory_documents_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_regulatory_documents_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          created_at: string
+          generated_at: string | null
+          id: string
+          project_id: string | null
+          report_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          generated_at?: string | null
+          id?: string
+          project_id?: string | null
+          report_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          generated_at?: string | null
+          id?: string
+          project_id?: string | null
+          report_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_reports_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_reports_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfis: {
+        Row: {
+          answer: string | null
+          created_at: string
+          id: string
+          project_id: string | null
+          question: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          subject: string | null
+          submitted_at: string | null
+          submitted_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          answer?: string | null
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          question?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          subject?: string | null
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          answer?: string | null
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          question?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          subject?: string | null
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_rfis_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_rfis_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_rfis_reviewed_by"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_rfis_submitted_by"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      safety_incidents: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          incident_date: string | null
+          project_id: string | null
+          reported_by: string | null
+          resolved: boolean | null
+          severity: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          incident_date?: string | null
+          project_id?: string | null
+          reported_by?: string | null
+          resolved?: boolean | null
+          severity?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          incident_date?: string | null
+          project_id?: string | null
+          reported_by?: string | null
+          resolved?: boolean | null
+          severity?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_safety_incidents_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_safety_incidents_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_safety_incidents_reported_by"
+            columns: ["reported_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sensor_data: {
+        Row: {
+          collected_at: string | null
+          created_at: string
+          data: Json | null
+          id: string
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          collected_at?: string | null
+          created_at?: string
+          data?: Json | null
+          id?: string
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          collected_at?: string | null
+          created_at?: string
+          data?: Json | null
+          id?: string
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_sensor_data_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_sensor_data_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subcontractor_agreements: {
+        Row: {
+          agreement_url: string | null
+          created_at: string
+          id: string
+          signed_at: string | null
+          subcontract_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          agreement_url?: string | null
+          created_at?: string
+          id?: string
+          signed_at?: string | null
+          subcontract_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agreement_url?: string | null
+          created_at?: string
+          id?: string
+          signed_at?: string | null
+          subcontract_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_subcontractor_agreements_subcontract"
+            columns: ["subcontract_id"]
+            isOneToOne: false
+            referencedRelation: "subcontracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subcontracts: {
+        Row: {
+          amount: number | null
+          created_at: string
+          id: string
+          project_id: string | null
+          signed_at: string | null
+          status: string | null
+          updated_at: string
+          vendor_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          signed_at?: string | null
+          status?: string | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          signed_at?: string | null
+          status?: string | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_subcontracts_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_subcontracts_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_subcontracts_vendor"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submittals: {
+        Row: {
+          created_at: string
+          id: string
+          name: string | null
+          project_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["general_status"] | null
+          submitted_at: string | null
+          submitted_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          project_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["general_status"] | null
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          project_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["general_status"] | null
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_submittals_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_submittals_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_submittals_reviewed_by"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_submittals_submitted_by"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tack_rates: {
+        Row: {
+          created_at: string
+          id: string
+          material_type: string | null
+          project_id: string | null
+          rate: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_type?: string | null
+          project_id?: string | null
+          rate?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_type?: string | null
+          project_id?: string | null
+          rate?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_tack_rates_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_tack_rates_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_dependencies: {
+        Row: {
+          created_at: string
+          depends_on_task_id: string
+          id: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          depends_on_task_id: string
+          id?: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          depends_on_task_id?: string
+          id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_dependencies_depends_on_task_id_fkey"
+            columns: ["depends_on_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_dependencies_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_status_logs: {
+        Row: {
+          changed_at: string
+          status: Database["public"]["Enums"]["task_status"]
+          task_id: string
+        }
+        Insert: {
+          changed_at?: string
+          status: Database["public"]["Enums"]["task_status"]
+          task_id: string
+        }
+        Update: {
+          changed_at?: string
+          status?: Database["public"]["Enums"]["task_status"]
+          task_id?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          project_id: string
+          start_date: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          project_id: string
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          project_id?: string
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_records: {
+        Row: {
+          completion_date: string | null
+          created_at: string
+          employee_id: string | null
+          id: string
+          training_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          completion_date?: string | null
+          created_at?: string
+          employee_id?: string | null
+          id?: string
+          training_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          completion_date?: string | null
+          created_at?: string
+          employee_id?: string | null
+          id?: string
+          training_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_training_records_employee"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_projects: {
+        Row: {
+          created_at: string | null
+          id: string
+          project_id: string | null
+          role: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          role?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          role?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_user_projects_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_user_projects_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_user_projects_user"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1634,469 +3647,335 @@ export type Database = {
           },
         ]
       }
-      wbs: {
+      vendor_bid_packages: {
         Row: {
-          budget: number | null
-          contract_id: string
-          coordinates: unknown | null
+          bid_package_id: string | null
           created_at: string | null
           id: string
-          location: string | null
-          scope: string | null
-          updated_at: string | null
-          wbs_number: string
+          updated_at: string
+          vendor_id: string | null
         }
         Insert: {
-          budget?: number | null
-          contract_id: string
-          coordinates?: unknown | null
+          bid_package_id?: string | null
           created_at?: string | null
           id?: string
-          location?: string | null
-          scope?: string | null
-          updated_at?: string | null
-          wbs_number: string
+          updated_at?: string
+          vendor_id?: string | null
         }
         Update: {
-          budget?: number | null
-          contract_id?: string
-          coordinates?: unknown | null
+          bid_package_id?: string | null
           created_at?: string | null
           id?: string
-          location?: string | null
-          scope?: string | null
-          updated_at?: string | null
-          wbs_number?: string
+          updated_at?: string
+          vendor_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "wbs_contract_id_fkey"
-            columns: ["contract_id"]
+            foreignKeyName: "fk_vendor_bid_packages_bid_package"
+            columns: ["bid_package_id"]
             isOneToOne: false
-            referencedRelation: "contracts"
+            referencedRelation: "bid_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_vendor_bid_packages_vendor"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
       }
-      projects: {
+      vendor_contacts: {
         Row: {
+          created_at: string
+          email: string | null
           id: string
-          external_id: string
-          contract_id: string
-          name: string
-          start_date: string | null
-          end_date: string | null
+          name: string | null
+          phone: string | null
+          updated_at: string
+          vendor_id: string | null
         }
         Insert: {
+          created_at?: string
+          email?: string | null
           id?: string
-          external_id: string
-          contract_id: string
-          name: string
-          start_date?: string | null
-          end_date?: string | null
+          name?: string | null
+          phone?: string | null
+          updated_at?: string
+          vendor_id?: string | null
         }
         Update: {
+          created_at?: string
+          email?: string | null
           id?: string
-          external_id?: string
-          contract_id?: string
-          name?: string
-          start_date?: string | null
-          end_date?: string | null
+          name?: string | null
+          phone?: string | null
+          updated_at?: string
+          vendor_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "projects_contract_id_fkey"
-            columns: ["contract_id"]
+            foreignKeyName: "fk_vendor_contacts_vendor"
+            columns: ["vendor_id"]
             isOneToOne: false
-            referencedRelation: "contracts"
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
-      estimates: {
+      vendor_documents: {
         Row: {
+          created_at: string
+          document_type: string | null
           id: string
-          external_id: string
-          contract_id: string
-          title: string
-          amount: number
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_type?: string | null
+          id?: string
+          updated_at?: string
+          uploaded_at?: string | null
+          url?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_type?: string | null
+          id?: string
+          updated_at?: string
+          uploaded_at?: string | null
+          url?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_vendor_documents_vendor"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_qualifications: {
+        Row: {
+          created_at: string
+          id: string
+          qualification_type: string | null
+          reviewed_at: string | null
           status: string | null
+          updated_at: string
+          vendor_id: string | null
         }
         Insert: {
+          created_at?: string
           id?: string
-          external_id: string
-          contract_id: string
-          title: string
-          amount: number
+          qualification_type?: string | null
+          reviewed_at?: string | null
           status?: string | null
+          updated_at?: string
+          vendor_id?: string | null
         }
         Update: {
+          created_at?: string
           id?: string
-          external_id?: string
-          contract_id?: string
-          title?: string
-          amount?: number
+          qualification_type?: string | null
+          reviewed_at?: string | null
           status?: string | null
+          updated_at?: string
+          vendor_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "estimates_contract_id_fkey"
-            columns: ["contract_id"]
+            foreignKeyName: "fk_vendor_qualifications_vendor"
+            columns: ["vendor_id"]
             isOneToOne: false
-            referencedRelation: "contracts"
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
-      cost_codes: {
+      vendors: {
         Row: {
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
           id: string
-          external_id: string
-          contract_id: string
-          code: string
-          description: string | null
+          name: string
+          organization_id: string | null
+          status: Database["public"]["Enums"]["general_status"] | null
+          updated_at: string
         }
         Insert: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
           id?: string
-          external_id: string
-          contract_id: string
-          code: string
-          description?: string | null
+          name: string
+          organization_id?: string | null
+          status?: Database["public"]["Enums"]["general_status"] | null
+          updated_at?: string
         }
         Update: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
           id?: string
-          external_id?: string
-          contract_id?: string
-          code?: string
-          description?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cost_codes_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      schedule_tasks: {
-        Row: {
-          id: string
-          external_id: string
-          contract_id: string
-          name: string
-          start_date: string | null
-          end_date: string | null
-          percent_complete: number | null
-        }
-        Insert: {
-          id?: string
-          external_id: string
-          contract_id: string
-          name: string
-          start_date?: string | null
-          end_date?: string | null
-          percent_complete?: number | null
-        }
-        Update: {
-          id?: string
-          external_id?: string
-          contract_id?: string
           name?: string
-          start_date?: string | null
-          end_date?: string | null
-          percent_complete?: number | null
+          organization_id?: string | null
+          status?: Database["public"]["Enums"]["general_status"] | null
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "schedule_tasks_contract_id_fkey"
-            columns: ["contract_id"]
+            foreignKeyName: "fk_vendors_organization"
+            columns: ["organization_id"]
             isOneToOne: false
-            referencedRelation: "contracts"
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
-    }
-    Views: {
-      geography_columns: {
+      wbs: {
         Row: {
-          coord_dimension: number | null
-          f_geography_column: unknown | null
-          f_table_catalog: unknown | null
-          f_table_name: unknown | null
-          f_table_schema: unknown | null
-          srid: number | null
-          type: string | null
+          created_at: string | null
+          id: string
+          location: string | null
+          name: string
+          order_num: number | null
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          order_num?: number | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          order_num?: number | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_wbs_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "fk_wbs_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflows: {
+        Row: {
+          created_at: string
+          current_state: string
+          entity_id: string
+          entity_schema: string
+          entity_table: string
+          id: string
+          updated_at: string
+          workflow_name: Database["public"]["Enums"]["workflow_name"]
+        }
+        Insert: {
+          created_at?: string
+          current_state: string
+          entity_id: string
+          entity_schema: string
+          entity_table: string
+          id?: string
+          updated_at?: string
+          workflow_name?: Database["public"]["Enums"]["workflow_name"]
+        }
+        Update: {
+          created_at?: string
+          current_state?: string
+          entity_id?: string
+          entity_schema?: string
+          entity_table?: string
+          id?: string
+          updated_at?: string
+          workflow_name?: Database["public"]["Enums"]["workflow_name"]
         }
         Relationships: []
       }
-      geometry_columns: {
+    }
+    Views: {
+      project_cost_summary: {
         Row: {
-          coord_dimension: number | null
-          f_geometry_column: unknown | null
-          f_table_catalog: string | null
-          f_table_name: unknown | null
-          f_table_schema: unknown | null
-          srid: number | null
-          type: string | null
-        }
-        Insert: {
-          coord_dimension?: number | null
-          f_geometry_column?: unknown | null
-          f_table_catalog?: string | null
-          f_table_name?: unknown | null
-          f_table_schema?: unknown | null
-          srid?: number | null
-          type?: string | null
-        }
-        Update: {
-          coord_dimension?: number | null
-          f_geometry_column?: unknown | null
-          f_table_catalog?: string | null
-          f_table_name?: unknown | null
-          f_table_schema?: unknown | null
-          srid?: number | null
-          type?: string | null
+          project_id: string | null
+          project_name: string | null
+          total_billed_amount: number | null
+          total_commitment_amount: number | null
+          total_estimated_cost: number | null
         }
         Relationships: []
       }
     }
     Functions: {
-      _postgis_deprecate: {
-        Args: { oldname: string; newname: string; version: string }
-        Returns: undefined
-      }
-      _postgis_index_extent: {
-        Args: { tbl: unknown; col: string }
-        Returns: unknown
-      }
-      _postgis_pgsql_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      _postgis_scripts_pgsql_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      _postgis_selectivity: {
-        Args: { tbl: unknown; att_name: string; geom: unknown; mode?: string }
-        Returns: number
-      }
-      _st_3dintersects: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_bestsrid: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      _st_contains: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_containsproperly: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_coveredby: {
-        Args:
-          | { geog1: unknown; geog2: unknown }
-          | { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_covers: {
-        Args:
-          | { geog1: unknown; geog2: unknown }
-          | { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_crosses: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_dwithin: {
-        Args: {
-          geog1: unknown
-          geog2: unknown
-          tolerance: number
-          use_spheroid?: boolean
+      advance_workflow: {
+        Args: { _id: string; _new_state: string }
+        Returns: {
+          created_at: string
+          current_state: string
+          entity_id: string
+          entity_schema: string
+          entity_table: string
+          id: string
+          updated_at: string
+          workflow_name: Database["public"]["Enums"]["workflow_name"]
         }
-        Returns: boolean
       }
-      _st_equals: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_intersects: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_linecrossingdirection: {
-        Args: { line1: unknown; line2: unknown }
-        Returns: number
-      }
-      _st_longestline: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      _st_maxdistance: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      _st_orderingequals: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_overlaps: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_pointoutside: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      _st_sortablehash: {
-        Args: { geom: unknown }
-        Returns: number
-      }
-      _st_touches: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      _st_voronoi: {
+      check_access: {
         Args: {
-          g1: unknown
-          clip?: unknown
-          tolerance?: number
-          return_polygons?: boolean
+          _action: string
+          _resource: string
+          _project_id?: string
+          _organization_id?: string
         }
-        Returns: unknown
+        Returns: undefined
       }
-      _st_within: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      addauth: {
-        Args: { "": string }
-        Returns: boolean
-      }
-      addgeometrycolumn: {
-        Args:
-          | {
-              catalog_name: string
-              schema_name: string
-              table_name: string
-              column_name: string
-              new_srid_in: number
-              new_type: string
-              new_dim: number
-              use_typmod?: boolean
-            }
-          | {
-              schema_name: string
-              table_name: string
-              column_name: string
-              new_srid: number
-              new_type: string
-              new_dim: number
-              use_typmod?: boolean
-            }
-          | {
-              table_name: string
-              column_name: string
-              new_srid: number
-              new_type: string
-              new_dim: number
-              use_typmod?: boolean
-            }
-        Returns: string
-      }
-      box: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: unknown
-      }
-      box2d: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: unknown
-      }
-      box2d_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      box2d_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      box2df_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      box2df_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      box3d: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: unknown
-      }
-      box3d_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      box3d_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      box3dtobox: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      bytea: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: string
-      }
-      calculate_cy: {
-        Args: { length: number; width: number; depth: number }
-        Returns: number
-      }
-      calculate_sy: {
-        Args: { length: number; width: number }
-        Returns: number
-      }
-      calculate_tons: {
-        Args: { volume: number; density: number }
-        Returns: number
-      }
-      check_is_admin: {
+      count_unread_notifications: {
         Args: Record<PropertyKey, never>
-        Returns: boolean
+        Returns: number
       }
+      delete_accounts_payable: {
+        Args: { _id: string }
         Returns: undefined
       }
+      delete_accounts_receivable: {
+        Args: { _id: string }
         Returns: undefined
       }
+      delete_activity_logs: {
+        Args: { _id: string }
         Returns: undefined
       }
+      delete_asphalt_types: {
+        Args: { _id: string }
         Returns: undefined
       }
-        Returns: undefined
-      }
-        Returns: undefined
-      }
-        Returns: undefined
-      }
-        Returns: undefined
-      }
-        Args: { base_profile_email: string }
-        Returns: Json
-      }
-      custom_access_token_hook: {
-        Args: { claims: Json }
-        Returns: Json
-      }
-      delete_asphalt_type: {
+      delete_audit_logs: {
         Args: { _id: string }
         Returns: undefined
       }
@@ -2104,23 +3983,51 @@ export type Database = {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_change_order: {
+      delete_bid_packages: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_contract: {
+      delete_bid_vendors: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_contract_organization: {
+      delete_bids: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_crew: {
+      delete_bim_models: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_crew_member: {
+      delete_certifications: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_change_orders: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_commitments: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_compliance_checks: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_compliance_tracking: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_cost_codes: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_crew_assignments: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_crew_members: {
         Args: { _id: string }
         Returns: undefined
       }
@@ -2128,11 +4035,31 @@ export type Database = {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_daily_log: {
+      delete_daily_logs: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_dump_truck: {
+      delete_dashboard_configs: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_document_references: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_documents: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_drawing_versions: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_dump_trucks: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_employees: {
         Args: { _id: string }
         Returns: undefined
       }
@@ -2140,7 +4067,11 @@ export type Database = {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_equipment_assignment: {
+      delete_equipment_assignments: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_equipment_maintenance: {
         Args: { _id: string }
         Returns: undefined
       }
@@ -2148,11 +4079,35 @@ export type Database = {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_inspection: {
+      delete_estimate_line_items: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_issue: {
+      delete_estimates: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_financial_documents: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_general_ledger: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_hr_documents: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_inspections: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_integration_tokens: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_inventory_transactions: {
         Args: { _id: string }
         Returns: undefined
       }
@@ -2160,35 +4115,143 @@ export type Database = {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_job_title: {
+      delete_job_titles: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_labor_record: {
+      delete_labor_records: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_line_item: {
+      delete_line_item_entries: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_line_item_entry: {
+      delete_line_item_templates: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_line_item_template: {
+      delete_line_items: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_map: {
+      delete_maps: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_organization: {
+      delete_material_inventory: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_profile: {
+      delete_material_orders: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_material_receipts: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_materials: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_meeting_minutes: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_notifications: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_organization_members: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_organization_projects: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_organizations: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_payments: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_payroll: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_photos: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_prequalifications: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_procurement_workflows: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_profiles: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_progress_billings: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_project_inspectors: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_projects: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_punch_lists: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_purchase_orders: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_quality_reviews: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_regulatory_documents: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_reports: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_rfis: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_safety_incidents: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_sensor_data: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_subcontractor_agreements: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_subcontracts: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_submittals: {
         Args: { _id: string }
         Returns: undefined
       }
@@ -2196,3650 +4259,4145 @@ export type Database = {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_user_contract: {
-        Args: { _user_id: string; _contract_id: string }
+      delete_task_dependencies: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_task_status_logs: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_tasks: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_training_records: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_user_projects: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_vendor_bid_packages: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_vendor_contacts: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_vendor_documents: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_vendor_qualifications: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_vendors: {
+        Args: { _id: string }
         Returns: undefined
       }
       delete_wbs: {
         Args: { _id: string }
         Returns: undefined
       }
-      disablelongtransactions: {
+      delete_workflows: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      fn_cashflow_curve: {
+        Args: { p_project_id: string }
+        Returns: {
+          cur_date: string
+          billed: number
+          cost: number
+        }[]
+      }
+      fn_eqp_7d_avg_hours: {
+        Args: { p_equipment_id: string }
+        Returns: {
+          day: string
+          avg_hours: number
+        }[]
+      }
+      fn_find_rpc_dupes: {
         Args: Record<PropertyKey, never>
-        Returns: string
+        Returns: {
+          fname: string
+          args: string
+          cnt: number
+        }[]
       }
-      dropgeometrycolumn: {
-        Args:
-          | {
-              catalog_name: string
-              schema_name: string
-              table_name: string
-              column_name: string
-            }
-          | { schema_name: string; table_name: string; column_name: string }
-          | { table_name: string; column_name: string }
-        Returns: string
+      fn_inventory_balance: {
+        Args: { _material_id: string }
+        Returns: {
+          day: string
+          balance: number
+        }[]
       }
-      dropgeometrytable: {
-        Args:
-          | { catalog_name: string; schema_name: string; table_name: string }
-          | { schema_name: string; table_name: string }
-          | { table_name: string }
-        Returns: string
-      }
-      enablelongtransactions: {
+      fn_list_tables_and_columns: {
         Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      equals: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      filtered_by_axle_count_dump_trucks: {
-        Args: { _axle_count: number }
         Returns: {
-          axle_count: number | null
-          bed_height: number | null
-          bed_length: number | null
-          bed_volume: number | null
-          bed_width: number | null
-          contract_id: string | null
-          created_at: string | null
-          equipment_id: string | null
-          hoist_bottom: number | null
-          hoist_top: number | null
-          hoist_width: number | null
-          id: string
-          notes: string | null
-          payload_capacity_tons: number
-          truck_identifier: string
+          table_name: string
+          column_name: string
         }[]
       }
-      filtered_by_contract_daily_logs: {
-        Args: { _contract_id: string }
+      fn_materials_on_hand: {
+        Args: { p_material_id: string }
         Returns: {
-          contract_id: string
-          created_at: string
-          created_by: string | null
-          delays_encountered: string | null
-          id: string
-          log_date: string
-          safety_incidents: string | null
-          temperature: number | null
-          updated_at: string | null
-          updated_by: string | null
-          visitors: string | null
-          weather_conditions: string | null
-          work_performed: string | null
+          trans_date: string
+          on_hand: number
         }[]
       }
-      filtered_by_contract_dump_trucks: {
-        Args: { _contract_id: string }
+      fn_task_cycle_time: {
+        Args: { p_task_id: string }
         Returns: {
-          axle_count: number | null
-          bed_height: number | null
-          bed_length: number | null
-          bed_volume: number | null
-          bed_width: number | null
-          contract_id: string | null
-          created_at: string | null
-          equipment_id: string | null
-          hoist_bottom: number | null
-          hoist_top: number | null
-          hoist_width: number | null
-          id: string
-          notes: string | null
-          payload_capacity_tons: number
-          truck_identifier: string
-        }[]
-      }
-      filtered_by_contract_equipment_assignments: {
-        Args: { _contract_id: string }
-        Returns: {
-          bid_rate: number | null
-          contract_id: string
-          created_at: string | null
-          created_by: string
-          end_date: string | null
-          equipment_id: string
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          notes: string | null
-          operator_id: string | null
-          start_date: string
-          status: string | null
-          updated_at: string | null
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_contract_equipment_usage: {
-        Args: { _contract_id: string }
-        Returns: {
-          contract_id: string | null
-          created_at: string | null
-          created_by: string | null
-          equipment_id: string | null
-          hours_used: number
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          notes: string | null
-          operator_id: string | null
-          updated_at: string | null
-          updated_by: string | null
-          usage_date: string
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_contract_inspections: {
-        Args: { _contract_id: string }
-        Returns: {
-          contract_id: string
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          name: string
-          pdf_url: string | null
-          photo_urls: string[] | null
-          updated_at: string | null
-          updated_by: string | null
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_contract_issues: {
-        Args: { _contract_id: string }
-        Returns: {
-          assigned_to: string | null
-          contract_id: string | null
-          created_at: string | null
-          created_by: string | null
-          description: string
-          due_date: string | null
-          equipment_id: string | null
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          photo_urls: string[] | null
-          priority: Database["public"]["Enums"]["priority"] | null
-          resolution: string | null
           status: string
-          title: string
-          updated_at: string | null
-          updated_by: string | null
-          wbs_id: string | null
+          days_in_phase: number
         }[]
       }
-      filtered_by_contract_line_item_entries: {
-        Args: { _contract_id: string }
+      fn_top5_cost_codes: {
+        Args: { p_project_id: string }
         Returns: {
-          computed_output: number | null
-          contract_id: string
-          created_at: string | null
-          entered_by: string | null
-          id: string
-          input_variables: Json
-          line_item_id: string
-          map_id: string
-          notes: string | null
-          output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
-          wbs_id: string
+          cost_code_id: string
+          total_spend: number
+          rank: number
         }[]
       }
-      filtered_by_contract_line_items: {
-        Args: { _contract_id: string }
+      fn_weekly_receipt_perf: {
+        Args: { p_project_id: string }
         Returns: {
-          id: string
-          contract_id: string
-          wbs_id: string
-          map_id: string
-          description: string
-          line_code: string
-          quantity: number
-          reference_doc: string
-          template_id: string
-          unit_measure: Database["public"]["Enums"]["unit_measure_type"]
-          unit_price: number
-          created_at: string
-          updated_at: string
-          coordinates_wkt: string
+          week_start: string
+          on_time_count: number
+          late_count: number
         }[]
       }
-      filtered_by_contract_maps: {
-        Args: { _contract_id: string }
+      fn_worst10_crews_by_incidents: {
+        Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          contract_id: string
-          wbs_id: string
-          map_number: string
-          location: string
-          scope: string
-          budget: number
-          created_at: string
-          updated_at: string
-          coordinates_wkt: string
-        }[]
-      }
-      filtered_by_contract_user_contracts: {
-        Args: { _contract_id: string }
-        Returns: {
-          contract_id: string
-          role: Database["public"]["Enums"]["user_role"] | null
-          user_id: string
-        }[]
-      }
-      filtered_by_contract_wbs: {
-        Args: { _contract_id: string }
-        Returns: {
-          id: string
-          contract_id: string
-          wbs_number: string
-          location: string
-          budget: number
-          scope: string
-          created_at: string
-          updated_at: string
-          coordinates_wkt: string
-        }[]
-      }
-      filtered_by_crew_crew_members: {
-        Args: { _crew_id: string }
-        Returns: {
-          assigned_at: string | null
-          created_at: string | null
-          created_by: string
           crew_id: string
-          id: string
-          location_notes: string | null
-          map_location_id: string | null
-          organization_id: string | null
-          profile_id: string
-          role: string | null
-          updated_at: string | null
+          incident_count: number
+          rank: number
         }[]
       }
-      filtered_by_entered_by_line_item_entries: {
-        Args: { _entered_by: string }
-        Returns: {
-          computed_output: number | null
-          contract_id: string
-          created_at: string | null
-          entered_by: string | null
-          id: string
-          input_variables: Json
-          line_item_id: string
-          map_id: string
-          notes: string | null
-          output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
-          wbs_id: string
-        }[]
-      }
-      filtered_by_equipment_equipment_assignments: {
-        Args: { _equipment_id: string }
-        Returns: {
-          bid_rate: number | null
-          contract_id: string
-          created_at: string | null
-          created_by: string
-          end_date: string | null
-          equipment_id: string
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          notes: string | null
-          operator_id: string | null
-          start_date: string
-          status: string | null
-          updated_at: string | null
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_equipment_equipment_usage: {
-        Args: { _equipment_id: string }
-        Returns: {
-          contract_id: string | null
-          created_at: string | null
-          created_by: string | null
-          equipment_id: string | null
-          hours_used: number
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          notes: string | null
-          operator_id: string | null
-          updated_at: string | null
-          updated_by: string | null
-          usage_date: string
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_equipment_issues: {
-        Args: { _equipment_id: string }
-        Returns: {
-          assigned_to: string | null
-          contract_id: string | null
-          created_at: string | null
-          created_by: string | null
-          description: string
-          due_date: string | null
-          equipment_id: string | null
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          photo_urls: string[] | null
-          priority: Database["public"]["Enums"]["priority"] | null
-          resolution: string | null
-          status: string
-          title: string
-          updated_at: string | null
-          updated_by: string | null
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_line_code_line_items: {
-        Args: { _line_code: string }
-        Returns: {
-          contract_id: string | null
-          coordinates: unknown | null
-          created_at: string | null
-          description: string
-          id: string
-          line_code: string
-          map_id: string | null
-          quantity: number
-          reference_doc: string | null
-          template_id: string | null
-          unit_measure: Database["public"]["Enums"]["unit_measure_type"]
-          unit_price: number
-          updated_at: string | null
-          wbs_id: string
-        }[]
-      }
-      filtered_by_line_item_equipment_assignments: {
-        Args: { _line_item_id: string }
-        Returns: {
-          bid_rate: number | null
-          contract_id: string
-          created_at: string | null
-          created_by: string
-          end_date: string | null
-          equipment_id: string
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          notes: string | null
-          operator_id: string | null
-          start_date: string
-          status: string | null
-          updated_at: string | null
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_line_item_equipment_usage: {
-        Args: { _line_item_id: string }
-        Returns: {
-          contract_id: string | null
-          created_at: string | null
-          created_by: string | null
-          equipment_id: string | null
-          hours_used: number
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          notes: string | null
-          operator_id: string | null
-          updated_at: string | null
-          updated_by: string | null
-          usage_date: string
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_line_item_inspections: {
-        Args: { _line_item_id: string }
-        Returns: {
-          contract_id: string
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          name: string
-          pdf_url: string | null
-          photo_urls: string[] | null
-          updated_at: string | null
-          updated_by: string | null
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_line_item_issues: {
-        Args: { _line_item_id: string }
-        Returns: {
-          assigned_to: string | null
-          contract_id: string | null
-          created_at: string | null
-          created_by: string | null
-          description: string
-          due_date: string | null
-          equipment_id: string | null
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          photo_urls: string[] | null
-          priority: Database["public"]["Enums"]["priority"] | null
-          resolution: string | null
-          status: string
-          title: string
-          updated_at: string | null
-          updated_by: string | null
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_line_item_line_item_entries: {
-        Args: { _line_item_id: string }
-        Returns: {
-          computed_output: number | null
-          contract_id: string
-          created_at: string | null
-          entered_by: string | null
-          id: string
-          input_variables: Json
-          line_item_id: string
-          map_id: string
-          notes: string | null
-          output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
-          wbs_id: string
-        }[]
-      }
-      filtered_by_map_equipment_assignments: {
-        Args: { _map_id: string }
-        Returns: {
-          bid_rate: number | null
-          contract_id: string
-          created_at: string | null
-          created_by: string
-          end_date: string | null
-          equipment_id: string
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          notes: string | null
-          operator_id: string | null
-          start_date: string
-          status: string | null
-          updated_at: string | null
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_map_equipment_usage: {
-        Args: { _map_id: string }
-        Returns: {
-          contract_id: string | null
-          created_at: string | null
-          created_by: string | null
-          equipment_id: string | null
-          hours_used: number
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          notes: string | null
-          operator_id: string | null
-          updated_at: string | null
-          updated_by: string | null
-          usage_date: string
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_map_inspections: {
-        Args: { _map_id: string }
-        Returns: {
-          contract_id: string
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          name: string
-          pdf_url: string | null
-          photo_urls: string[] | null
-          updated_at: string | null
-          updated_by: string | null
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_map_issues: {
-        Args: { _map_id: string }
-        Returns: {
-          assigned_to: string | null
-          contract_id: string | null
-          created_at: string | null
-          created_by: string | null
-          description: string
-          due_date: string | null
-          equipment_id: string | null
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          photo_urls: string[] | null
-          priority: Database["public"]["Enums"]["priority"] | null
-          resolution: string | null
-          status: string
-          title: string
-          updated_at: string | null
-          updated_by: string | null
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_map_line_item_entries: {
-        Args: { _map_id: string }
-        Returns: {
-          computed_output: number | null
-          contract_id: string
-          created_at: string | null
-          entered_by: string | null
-          id: string
-          input_variables: Json
-          line_item_id: string
-          map_id: string
-          notes: string | null
-          output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
-          wbs_id: string
-        }[]
-      }
-      filtered_by_map_line_items: {
-        Args: { _map_id: string }
-        Returns: {
-          id: string
-          contract_id: string
-          wbs_id: string
-          map_id: string
-          description: string
-          line_code: string
-          quantity: number
-          reference_doc: string
-          template_id: string
-          unit_measure: Database["public"]["Enums"]["unit_measure_type"]
-          unit_price: number
-          created_at: string
-          updated_at: string
-          coordinates_wkt: string
-        }[]
-      }
-      filtered_by_max_volume_dump_trucks: {
-        Args: { _max_volume: number }
-        Returns: {
-          axle_count: number | null
-          bed_height: number | null
-          bed_length: number | null
-          bed_volume: number | null
-          bed_width: number | null
-          contract_id: string | null
-          created_at: string | null
-          equipment_id: string | null
-          hoist_bottom: number | null
-          hoist_top: number | null
-          hoist_width: number | null
-          id: string
-          notes: string | null
-          payload_capacity_tons: number
-          truck_identifier: string
-        }[]
-      }
-      filtered_by_operator_equipment_assignments: {
-        Args: { _operator_id: string }
-        Returns: {
-          bid_rate: number | null
-          contract_id: string
-          created_at: string | null
-          created_by: string
-          end_date: string | null
-          equipment_id: string
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          notes: string | null
-          operator_id: string | null
-          start_date: string
-          status: string | null
-          updated_at: string | null
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_operator_equipment_usage: {
-        Args: { _operator_id: string }
-        Returns: {
-          contract_id: string | null
-          created_at: string | null
-          created_by: string | null
-          equipment_id: string | null
-          hours_used: number
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          notes: string | null
-          operator_id: string | null
-          updated_at: string | null
-          updated_by: string | null
-          usage_date: string
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_organization_contracts: {
-        Args: { _organization_id: string }
-        Returns: {
-          budget: number | null
-          coordinates: unknown | null
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          end_date: string
-          id: string
-          location: string
-          start_date: string
-          status: Database["public"]["Enums"]["contract_status"]
-          title: string
-          updated_at: string | null
-        }[]
-      }
-      filtered_by_organization_crews: {
-        Args: { _organization_id: string }
-        Returns: {
-          created_at: string | null
-          created_by: string
-          description: string | null
-          foreman_id: string | null
-          id: string
-          name: string
-          organization_id: string
-          updated_at: string | null
-        }[]
-      }
-      filtered_by_organization_equipment: {
-        Args: { _organization_id: string }
-        Returns: {
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          id: string
-          name: string
-          operator_id: string | null
-          organization_id: string | null
-          standard_pay_rate: number | null
-          standard_pay_unit: Database["public"]["Enums"]["pay_rate_unit"] | null
-          user_defined_id: string | null
-        }[]
-      }
-      filtered_by_organization_line_item_templates: {
-        Args: { _organization_id: string }
-        Returns: {
-          created_at: string
-          created_by: string | null
-          description: string | null
-          formula: Json | null
-          id: string
-          instructions: string | null
-          name: string | null
-          organization_id: string | null
-          output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
-        }[]
-      }
-      filtered_by_organization_profiles: {
-        Args: { _organization_id: string }
-        Returns: {
-          avatar_id: string | null
-          created_at: string | null
-          email: string | null
-          full_name: string
-          id: string
-          job_title_id: string | null
-          location: string | null
-          organization_id: string | null
-          phone: string | null
-          role: Database["public"]["Enums"]["user_role"]
-          updated_at: string | null
-          username: string | null
-        }[]
-      }
-      filtered_by_output_unit_line_item_templates: {
-        Args: { _output_unit: Database["public"]["Enums"]["unit_measure_type"] }
-        Returns: {
-          created_at: string
-          created_by: string | null
-          description: string | null
-          formula: Json | null
-          id: string
-          instructions: string | null
-          name: string | null
-          organization_id: string | null
-          output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
-        }[]
-      }
-      filtered_by_payload_capacity_dump_trucks: {
-        Args: { _payload_capacity_tons: number }
-        Returns: {
-          axle_count: number | null
-          bed_height: number | null
-          bed_length: number | null
-          bed_volume: number | null
-          bed_width: number | null
-          contract_id: string | null
-          created_at: string | null
-          equipment_id: string | null
-          hoist_bottom: number | null
-          hoist_top: number | null
-          hoist_width: number | null
-          id: string
-          notes: string | null
-          payload_capacity_tons: number
-          truck_identifier: string
-        }[]
-      }
-      filtered_by_priority_issues: {
-        Args: { _priority: Database["public"]["Enums"]["priority"] }
-        Returns: {
-          assigned_to: string | null
-          contract_id: string | null
-          created_at: string | null
-          created_by: string | null
-          description: string
-          due_date: string | null
-          equipment_id: string | null
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          photo_urls: string[] | null
-          priority: Database["public"]["Enums"]["priority"] | null
-          resolution: string | null
-          status: string
-          title: string
-          updated_at: string | null
-          updated_by: string | null
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_role_profiles: {
-        Args: { _role: Database["public"]["Enums"]["user_role"] }
-        Returns: {
-          avatar_id: string | null
-          created_at: string | null
-          email: string | null
-          full_name: string
-          id: string
-          job_title_id: string | null
-          location: string | null
-          organization_id: string | null
-          phone: string | null
-          role: Database["public"]["Enums"]["user_role"]
-          updated_at: string | null
-          username: string | null
-        }[]
-      }
-      filtered_by_role_user_contracts: {
-        Args: { _role: Database["public"]["Enums"]["user_role"] }
-        Returns: {
-          contract_id: string
-          role: Database["public"]["Enums"]["user_role"] | null
-          user_id: string
-        }[]
-      }
-        Returns: {
-          created_at: string | null
-          new_change_order_ids: string[] | null
-          new_contract_ids: string[] | null
-          new_contract_org_ids: string[] | null
-          new_crew_ids: string[] | null
-          new_crew_member_ids: string[] | null
-          new_daily_log_ids: string[] | null
-          new_entry_ids: string[] | null
-          new_equipment_assignment_ids: string[] | null
-          new_equipment_ids: string[] | null
-          new_inspection_ids: string[] | null
-          new_issue_ids: string[] | null
-          new_li_crew_ids: string[] | null
-          new_li_equipment_ids: string[] | null
-          new_line_item_ids: string[] | null
-          new_map_ids: string[] | null
-          new_organization_ids: string[] | null
-          new_profile_id: string | null
-          new_template_ids: string[] | null
-          new_wbs_ids: string[] | null
-          old_change_order_ids: string[] | null
-          old_contract_ids: string[] | null
-          old_contract_org_ids: string[] | null
-          old_crew_ids: string[] | null
-          old_crew_member_ids: string[] | null
-          old_daily_log_ids: string[] | null
-          old_entry_ids: string[] | null
-          old_equipment_assignment_ids: string[] | null
-          old_equipment_ids: string[] | null
-          old_inspection_ids: string[] | null
-          old_issue_ids: string[] | null
-          old_li_crew_ids: string[] | null
-          old_li_equipment_ids: string[] | null
-          old_line_item_ids: string[] | null
-          old_map_ids: string[] | null
-          old_organization_ids: string[] | null
-          old_profile_id: string | null
-          old_template_ids: string[] | null
-          old_wbs_ids: string[] | null
-        }[]
-      }
-      filtered_by_status_contracts: {
-        Args: { _status: Database["public"]["Enums"]["contract_status"] }
-        Returns: {
-          budget: number | null
-          coordinates: unknown | null
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          end_date: string
-          id: string
-          location: string
-          start_date: string
-          status: Database["public"]["Enums"]["contract_status"]
-          title: string
-          updated_at: string | null
-        }[]
-      }
-      filtered_by_unit_measure_line_items: {
-        Args: {
-          _unit_measure: Database["public"]["Enums"]["unit_measure_type"]
-        }
-        Returns: {
-          contract_id: string | null
-          coordinates: unknown | null
-          created_at: string | null
-          description: string
-          id: string
-          line_code: string
-          map_id: string | null
-          quantity: number
-          reference_doc: string | null
-          template_id: string | null
-          unit_measure: Database["public"]["Enums"]["unit_measure_type"]
-          unit_price: number
-          updated_at: string | null
-          wbs_id: string
-        }[]
-      }
-      filtered_by_user_user_contracts: {
-        Args: { _user_id: string }
-        Returns: {
-          contract_id: string
-          role: Database["public"]["Enums"]["user_role"] | null
-          user_id: string
-        }[]
-      }
-      filtered_by_wbs_equipment_assignments: {
-        Args: { _wbs_id: string }
-        Returns: {
-          bid_rate: number | null
-          contract_id: string
-          created_at: string | null
-          created_by: string
-          end_date: string | null
-          equipment_id: string
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          notes: string | null
-          operator_id: string | null
-          start_date: string
-          status: string | null
-          updated_at: string | null
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_wbs_equipment_usage: {
-        Args: { _wbs_id: string }
-        Returns: {
-          contract_id: string | null
-          created_at: string | null
-          created_by: string | null
-          equipment_id: string | null
-          hours_used: number
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          notes: string | null
-          operator_id: string | null
-          updated_at: string | null
-          updated_by: string | null
-          usage_date: string
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_wbs_inspections: {
-        Args: { _wbs_id: string }
-        Returns: {
-          contract_id: string
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          name: string
-          pdf_url: string | null
-          photo_urls: string[] | null
-          updated_at: string | null
-          updated_by: string | null
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_wbs_issues: {
-        Args: { _wbs_id: string }
-        Returns: {
-          assigned_to: string | null
-          contract_id: string | null
-          created_at: string | null
-          created_by: string | null
-          description: string
-          due_date: string | null
-          equipment_id: string | null
-          id: string
-          line_item_id: string | null
-          map_id: string | null
-          photo_urls: string[] | null
-          priority: Database["public"]["Enums"]["priority"] | null
-          resolution: string | null
-          status: string
-          title: string
-          updated_at: string | null
-          updated_by: string | null
-          wbs_id: string | null
-        }[]
-      }
-      filtered_by_wbs_line_item_entries: {
-        Args: { _wbs_id: string }
-        Returns: {
-          computed_output: number | null
-          contract_id: string
-          created_at: string | null
-          entered_by: string | null
-          id: string
-          input_variables: Json
-          line_item_id: string
-          map_id: string
-          notes: string | null
-          output_unit: Database["public"]["Enums"]["unit_measure_type"] | null
-          wbs_id: string
-        }[]
-      }
-      filtered_by_wbs_line_items: {
-        Args: { _wbs_id: string }
-        Returns: {
-          id: string
-          contract_id: string
-          wbs_id: string
-          map_id: string
-          description: string
-          line_code: string
-          quantity: number
-          reference_doc: string
-          template_id: string
-          unit_measure: Database["public"]["Enums"]["unit_measure_type"]
-          unit_price: number
-          created_at: string
-          updated_at: string
-          coordinates_wkt: string
-        }[]
-      }
-      filtered_by_wbs_maps: {
-        Args: { _wbs_id: string }
-        Returns: {
-          id: string
-          contract_id: string
-          wbs_id: string
-          map_number: string
-          location: string
-          scope: string
-          budget: number
-          created_at: string
-          updated_at: string
-          coordinates_wkt: string
-        }[]
-      }
-      geography: {
-        Args: { "": string } | { "": unknown }
-        Returns: unknown
-      }
-      geography_analyze: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      geography_gist_compress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geography_gist_decompress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geography_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geography_send: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      geography_spgist_compress_nd: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geography_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
-      }
-      geography_typmod_out: {
-        Args: { "": number }
-        Returns: unknown
-      }
-      geometry: {
-        Args:
-          | { "": string }
-          | { "": string }
-          | { "": unknown }
-          | { "": unknown }
-          | { "": unknown }
-          | { "": unknown }
-          | { "": unknown }
-          | { "": unknown }
-        Returns: unknown
-      }
-      geometry_above: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_analyze: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      geometry_below: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_cmp: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      geometry_contained_3d: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_contains: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_contains_3d: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_distance_box: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      geometry_distance_centroid: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      geometry_eq: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_ge: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_gist_compress_2d: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_gist_compress_nd: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_gist_decompress_2d: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_gist_decompress_nd: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_gist_sortsupport_2d: {
-        Args: { "": unknown }
-        Returns: undefined
-      }
-      geometry_gt: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_hash: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      geometry_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_le: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_left: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_lt: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_overabove: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_overbelow: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_overlaps: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_overlaps_3d: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_overleft: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_overright: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_recv: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_right: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_same: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_same_3d: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometry_send: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      geometry_sortsupport: {
-        Args: { "": unknown }
-        Returns: undefined
-      }
-      geometry_spgist_compress_2d: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_spgist_compress_3d: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_spgist_compress_nd: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      geometry_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
-      }
-      geometry_typmod_out: {
-        Args: { "": number }
-        Returns: unknown
-      }
-      geometry_within: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      geometrytype: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: string
-      }
-      geomfromewkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      geomfromewkt: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      get_all_line_item_templates: {
+      get_accounts_payable: {
         Args: Record<PropertyKey, never>
         Returns: {
+          amount_due: number | null
+          created_at: string
+          due_date: string | null
           id: string
-          name: string
-          description: string
-          unit_type: Database["public"]["Enums"]["unit_measure_type"]
-          formula: Json
-          instructions: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
         }[]
       }
-      get_all_profiles: {
+      get_accounts_receivable: {
         Args: Record<PropertyKey, never>
         Returns: {
+          amount_due: number | null
+          created_at: string
+          due_date: string | null
           id: string
-          full_name: string
-          username: string
-          email: string
-          phone: string
-          location: string
-          role: Database["public"]["Enums"]["user_role"]
-          job_title_id: string
-          organization_id: string
-          avatar_id: string
-          avatar_url: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      get_activity_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          activity_at: string | null
+          activity_type: string | null
+          created_at: string
+          id: string
+          profile_id: string | null
+          updated_at: string
         }[]
       }
       get_asphalt_types: {
         Args: Record<PropertyKey, never>
         Returns: {
-          compaction_min: number | null
-          created_at: string | null
+          created_at: string
+          description: string | null
           id: string
-          jmf_temp_max: number | null
-          jmf_temp_min: number | null
-          lift_depth_inches: number | null
           name: string
-          notes: string | null
-          target_spread_rate_lbs_per_sy: number | null
+          updated_at: string
         }[]
       }
-      get_avatars_for_profile: {
-        Args: { _profile_id: string }
+      get_audit_logs: {
+        Args: Record<PropertyKey, never>
         Returns: {
+          action: string | null
+          created_at: string
           id: string
+          performed_at: string | null
+          performed_by: string | null
+          project_id: string | null
+          updated_at: string
+        }[]
+      }
+      get_avatars: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          id: string
+          updated_at: string
           url: string
-          is_preset: boolean
+        }[]
+      }
+      get_bid_packages: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      get_bid_vendors: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          bid_package_id: string | null
+          created_at: string
+          id: string
+          invited_at: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      get_bids: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          amount: number | null
+          bid_package_id: string | null
+          created_at: string
+          id: string
+          status: Database["public"]["Enums"]["general_status"] | null
+          submitted_at: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      get_bim_models: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          id: string
+          name: string | null
+          project_id: string | null
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+        }[]
+      }
+      get_certifications: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          certification_type: string | null
+          created_at: string
+          employee_id: string | null
+          expiry_date: string | null
+          id: string
+          issue_date: string | null
+          updated_at: string
         }[]
       }
       get_change_orders: {
-        Args:
-          | {
-              _contract_id?: string
-              _line_item_id?: string
-            }
-          | { contract_id: string }
+        Args: Record<PropertyKey, never>
         Returns: {
-          approved_by: string | null
-          approved_date: string | null
-          attachments: string[] | null
-          contract_id: string | null
-          created_at: string
-          created_by: string | null
+          amount: number | null
+          created_at: string | null
           description: string | null
           id: string
-          line_item_id: string | null
-          new_quantity: number
-          new_unit_price: number | null
-          status: Database["public"]["Enums"]["change_order_status"]
-          submitted_date: string
-          title: string
-          updated_at: string | null
-          updated_by: string | null
+          number: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
         }[]
       }
-      get_change_orders_count_for_contract: {
-        Args: { contract_id_param: string }
-        Returns: number
-      }
-      get_contract_organizations: {
-        Args: { contract_id: string }
+      get_commitments: {
+        Args: Record<PropertyKey, never>
         Returns: {
-          organization_id: string
-          notes: string
-          role: Database["public"]["Enums"]["organization_role"]
-        }[]
-      }
-      get_contract_with_wkt: {
-        Args: { contract_id: string }
-        Returns: {
+          amount: number | null
+          created_at: string | null
           id: string
-          title: string
-          description: string
-          location: string
-          start_date: string
-          end_date: string
-          budget: number
-          status: Database["public"]["Enums"]["contract_status"]
-          coordinates_wkt: string
+          project_id: string | null
+          status: string | null
+          type: Database["public"]["Enums"]["commitment_type"] | null
+          updated_at: string
+          vendor_id: string | null
         }[]
       }
-      get_crew_members_by_organization: {
-        Args: { _organization_id: string }
+      get_compliance_checks: {
+        Args: Record<PropertyKey, never>
         Returns: {
-          crew_id: string
-          profile_id: string
-          role: string
-          assigned_at: string
-          created_by: string
-          map_location_id: string
-          location_notes: string
+          check_date: string | null
+          created_at: string
+          description: string | null
+          id: string
+          project_id: string | null
+          result: string | null
+          updated_at: string
         }[]
       }
-      get_crews_by_organization: {
-        Args: { _organization_id: string }
+      get_compliance_tracking: {
+        Args: Record<PropertyKey, never>
         Returns: {
+          created_at: string
+          id: string
+          notes: string | null
+          project_id: string | null
+          status: string | null
+          tracking_type: string | null
+          updated_at: string
+        }[]
+      }
+      get_cost_codes: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          updated_at: string
+        }[]
+      }
+      get_crew_assignments: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          assigned_date: string | null
+          created_at: string | null
+          crew_id: string | null
+          id: string
+          profile_id: string | null
+          updated_at: string
+        }[]
+      }
+      get_crew_members: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          crew_id: string | null
+          end_date: string | null
+          id: string
+          profile_id: string | null
+          role: string | null
+          start_date: string | null
+          updated_at: string
+        }[]
+      }
+      get_crews: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
           id: string
           name: string
-          description: string
-          foreman_id: string
-          created_by: string
+          project_id: string | null
+          updated_at: string
         }[]
       }
       get_daily_logs: {
-        Args: { _contract_id: string }
+        Args: Record<PropertyKey, never>
         Returns: {
+          created_at: string | null
+          date: string
           id: string
-          log_date: string
-          weather_conditions: string
-          temperature: string
-          work_performed: string
-          delays_encountered: string
-          visitors: string
-          safety_incidents: string
-          created_by: string
-        }[]
-      }
-      get_dashboard_metrics: {
-        Args: { _user_id: string }
-        Returns: {
-          active_contracts: number
-          total_issues: number
-          total_inspections: number
-        }[]
-      }
-      get_enriched_profile: {
-        Args: { _user_id: string }
-        Returns: {
-          id: string
-          full_name: string
-          username: string
-          email: string
-          phone: string
-          location: string
-          role: Database["public"]["Enums"]["user_role"]
-          job_title_id: string
-          organization_id: string
-          avatar_id: string
-          avatar_url: string
-          job_title: string
-          organization_name: string
-        }[]
-      }
-      get_enriched_profile_by_username: {
-        Args: { _username: string }
-        Returns: {
-          id: string
-          full_name: string
-          username: string
-          email: string
-          phone: string
-          location: string
-          role: Database["public"]["Enums"]["user_role"]
-          job_title_id: string
-          organization_id: string
-          avatar_id: string
-          avatar_url: string
-          job_title: string
-          organization_name: string
-        }[]
-      }
-      get_enriched_user_contracts: {
-        Args: { _user_id: string }
-        Returns: {
-          id: string
-          title: string
-          description: string
-          location: string
-          start_date: string
-          end_date: string
-          created_by: string
-          created_at: string
+          notes: string | null
+          project_id: string | null
           updated_at: string
-          budget: number
-          status: Database["public"]["Enums"]["contract_status"]
-          coordinates_wkt: string
-          user_contract_role: Database["public"]["Enums"]["user_role"]
+          weather: Json | null
         }[]
       }
-      get_enum_values: {
-        Args: { enum_type: string }
+      get_dashboard_configs: {
+        Args: Record<PropertyKey, never>
         Returns: {
-          value: string
+          config: Json | null
+          created_at: string | null
+          id: string
+          profile_id: string | null
+          updated_at: string
+        }[]
+      }
+      get_document_references: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          document_id: string | null
+          id: string
+          reference_id: string | null
+          reference_type: string | null
+          updated_at: string
+        }[]
+      }
+      get_documents: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+          project_id: string | null
+          type: string | null
+          updated_at: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+          url: string | null
+        }[]
+      }
+      get_drawing_versions: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          document_id: string | null
+          id: string
+          updated_at: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+          version: string | null
+        }[]
+      }
+      get_dump_trucks: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          capacity: number | null
+          created_at: string
+          id: string
+          make: string | null
+          model: string | null
+          organization_id: string | null
+          updated_at: string
+        }[]
+      }
+      get_employees: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          hire_date: string | null
+          id: string
+          organization_id: string | null
+          profile_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      get_equipment: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          id: string
+          model: string | null
+          name: string
+          organization_id: string | null
+          serial_number: string | null
+          status: string | null
+          type: Database["public"]["Enums"]["equipment_type"] | null
+          updated_at: string
         }[]
       }
       get_equipment_assignments: {
-        Args: { _contract_id: string }
+        Args: Record<PropertyKey, never>
         Returns: {
+          assigned_date: string | null
+          assigned_to: string | null
+          created_at: string | null
+          equipment_id: string | null
           id: string
-          equipment_id: string
-          operator_id: string
-          start_date: string
-          end_date: string
-          status: string
-          notes: string
+          notes: string | null
+          project_id: string | null
+          released_date: string | null
+          updated_at: string
         }[]
       }
-      get_equipment_by_organization: {
-        Args: { _organization_id: string }
+      get_equipment_maintenance: {
+        Args: Record<PropertyKey, never>
         Returns: {
+          created_at: string | null
+          description: string | null
+          equipment_id: string | null
           id: string
-          user_defined_id: string
-          name: string
-          description: string
-          operator_id: string
+          maintenance_date: string | null
+          performed_by: string | null
+          type: string | null
+          updated_at: string
         }[]
       }
       get_equipment_usage: {
-        Args: { _contract_id: string }
+        Args: Record<PropertyKey, never>
         Returns: {
-          equipment_id: string
-          wbs_id: string
-          map_id: string
-          line_item_id: string
-          usage_date: string
-          hours_used: number
-          operator_id: string
+          created_at: string | null
+          date: string
+          equipment_id: string | null
+          hours_used: number | null
+          id: string
+          notes: string | null
+          quantity: number | null
+          updated_at: string
         }[]
       }
-      get_inspections_count_for_contract: {
-        Args: { contract_id_param: string }
-        Returns: number
+      get_estimate_line_items: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          cost_code_id: string | null
+          created_at: string | null
+          estimate_id: string | null
+          id: string
+          name: string | null
+          quantity: number | null
+          total_cost: number | null
+          unit_measure: string | null
+          unit_price: number | null
+          updated_at: string
+        }[]
+      }
+      get_estimates: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      get_financial_documents: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          document_type: string | null
+          id: string
+          project_id: string | null
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+        }[]
+      }
+      get_general_ledger: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          balance: number | null
+          created_at: string
+          credit: number | null
+          debit: number | null
+          description: string | null
+          entry_date: string | null
+          id: string
+          project_id: string | null
+          updated_at: string
+        }[]
+      }
+      get_hr_documents: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          document_type: string | null
+          employee_id: string | null
+          id: string
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+        }[]
+      }
+      get_inspections: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          date: string | null
+          id: string
+          inspection_type: string | null
+          name: string
+          notes: string | null
+          project_id: string | null
+          result: Json | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      get_integration_tokens: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          id: string
+          profile_id: string | null
+          service_name: string | null
+          token: string | null
+          updated_at: string
+        }[]
+      }
+      get_inventory_running_balance: {
+        Args: { material_uuid: string }
+        Returns: {
+          txn_date: string
+          change: number
+          balance: number
+        }[]
+      }
+      get_inventory_transactions: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          id: string
+          material_id: string | null
+          notes: string | null
+          quantity: number | null
+          transaction_date: string | null
+          transaction_type: string | null
+          updated_at: string
+        }[]
       }
       get_issues: {
-        Args: { _contract_id: string }
+        Args: Record<PropertyKey, never>
         Returns: {
+          created_at: string | null
+          description: string | null
           id: string
-          wbs_id: string
-          map_id: string
-          line_item_id: string
-          equipment_id: string
-          title: string
-          description: string
-          priority: string
-          status: string
-          due_date: string
-          resolution: string
-          assigned_to: string
-          created_by: string
-          photo_urls: string[]
+          name: string
+          project_id: string | null
+          reported_by: string | null
+          resolved: boolean | null
+          status: string | null
+          type: string | null
+          updated_at: string
         }[]
-      }
-      get_issues_count_for_contract: {
-        Args: { contract_id_param: string }
-        Returns: number
       }
       get_job_titles: {
         Args: Record<PropertyKey, never>
         Returns: {
-          title: string
-          is_custom: boolean
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
         }[]
       }
       get_labor_records: {
-        Args: { _line_item_id: string }
+        Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          line_item_id: string
-          worker_count: number
-          hours_worked: number
-          work_date: string
-          work_type: string
-          notes: string | null
           created_at: string | null
+          hours_worked: number | null
+          id: string
+          line_item_id: string | null
+          notes: string | null
+          updated_at: string
+          work_date: string | null
+          work_type: string | null
+          worker_count: number | null
         }[]
       }
       get_line_item_entries: {
-        Args: { _contract_id: string }
+        Args: Record<PropertyKey, never>
         Returns: {
+          created_at: string | null
+          date: string
           id: string
-          wbs_id: string
-          map_id: string
-          line_item_id: string
-          entered_by: string
-          input_variables: Json
-          computed_output: number
-          notes: string
-          output_unit: Database["public"]["Enums"]["unit_measure_type"]
+          line_item_id: string | null
+          notes: string | null
+          quantity_completed: number | null
+          updated_at: string
         }[]
       }
-      get_line_item_templates_by_organization: {
-        Args: { _organization_id: string }
+      get_line_item_templates: {
+        Args: Record<PropertyKey, never>
         Returns: {
+          created_at: string | null
+          created_by: string | null
+          formula: Json | null
           id: string
           name: string
-          description: string
-          unit_type: Database["public"]["Enums"]["unit_measure_type"]
-          formula: Json
-          instructions: string
+          updated_at: string
+          variables: Json | null
         }[]
       }
-      get_line_items_with_wkt: {
-        Args:
-          | { contract_id_param: string }
+      get_line_items: {
+        Args: Record<PropertyKey, never>
         Returns: {
+          cost_code_id: string | null
+          created_at: string | null
+          description: string | null
           id: string
-          contract_id: string
-          wbs_id: string
-          description: string
-          quantity: number
-          unit: Database["public"]["Enums"]["unit_measure_type"]
-          unit_price: number
-          total_price: number
-          notes: string
-          status: string
-          start_date: string
-          end_date: string
-          actual_quantity: number
-          actual_cost: number
-          created_at: string
-          updated_at: string
-          coordinates_wkt: string
-          line_code: string
-          map_id: string
+          map_id: string | null
+          name: string
+          project_id: string | null
+          quantity: number | null
+          template_id: string | null
           unit_measure: string
-          reference_doc: string
-          template_id: string
+          unit_price: number | null
+          updated_at: string
+          wbs_id: string | null
         }[]
       }
-      get_maps_with_wkt: {
-        Args:
-          | { contract_id: string }
+      get_maps: {
+        Args: Record<PropertyKey, never>
         Returns: {
+          coordinates: string | null
+          created_at: string | null
+          description: string | null
           id: string
-          contract_id: string
-          wbs_id: string
-          map_number: string
-          location: string
-          scope: string
-          budget: number
-          created_at: string
+          name: string
+          order_num: number | null
+          project_id: string | null
+          scope: string | null
           updated_at: string
-          coordinates_wkt: string
+          wbs_id: string | null
+        }[]
+      }
+      get_material_inventory: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          id: string
+          last_updated: string | null
+          material_id: string | null
+          organization_id: string | null
+          quantity: number | null
+          updated_at: string
+        }[]
+      }
+      get_material_orders: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          id: string
+          material_id: string | null
+          order_date: string | null
+          project_id: string | null
+          quantity: number | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      get_material_receipts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          id: string
+          material_order_id: string | null
+          quantity: number | null
+          received_by: string | null
+          received_date: string | null
+          updated_at: string
+        }[]
+      }
+      get_materials: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          organization_id: string | null
+          unit: string | null
+          updated_at: string
+        }[]
+      }
+      get_meeting_minutes: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          meeting_date: string | null
+          notes: string | null
+          project_id: string | null
+          updated_at: string
+        }[]
+      }
+      get_notifications: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          category: Database["public"]["Enums"]["notification_category"]
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          payload: Json | null
+          updated_at: string
+          user_id: string
+        }[]
+      }
+      get_open_punch_counts: {
+        Args: { p_project_id: string }
+        Returns: {
+          open_count: number
+        }[]
+      }
+      get_organization_members: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          id: string
+          organization_id: string | null
+          profile_id: string | null
+          role: string | null
+          updated_at: string
+        }[]
+      }
+      get_organization_projects: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          id: string
+          organization_id: string | null
+          project_id: string | null
+          updated_at: string
         }[]
       }
       get_organizations: {
         Args: Record<PropertyKey, never>
         Returns: {
+          created_at: string | null
+          description: string | null
           id: string
           name: string
-          address: string
-          phone: string
-          website: string
-        }[]
-      }
-      get_profiles_by_contract: {
-        Args: { _contract_id: string }
-        Returns: {
-          id: string
-          full_name: string
-          username: string
-          email: string
-          phone: string
-          location: string
-          role: Database["public"]["Enums"]["user_role"]
-          job_title_id: string
-          organization_id: string
-          avatar_id: string
-          avatar_url: string
-        }[]
-      }
-      get_profiles_by_organization: {
-        Args: { _organization_id: string }
-        Returns: {
-          id: string
-          full_name: string
-          username: string
-          email: string
-          phone: string
-          location: string
-          role: Database["public"]["Enums"]["user_role"]
-          job_title_id: string
-          organization_id: string
-          avatar_id: string
-          avatar_url: string
-        }[]
-      }
-      get_proj4_from_srid: {
-        Args: { "": number }
-        Returns: string
-      }
-      get_user_contracts: {
-        Args: { _user_id: string }
-        Returns: {
-          contract_id: string
-          role: Database["public"]["Enums"]["user_role"]
-        }[]
-      }
-      get_wbs_with_wkt: {
-        Args:
-          | { contract_id_param: string }
-        Returns: {
-          id: string
-          contract_id: string
-          wbs_number: string
-          location: string
-          budget: number
-          scope: string
-          created_at: string
           updated_at: string
-          coordinates_wkt: string
         }[]
       }
-      gettransactionid: {
+      get_payables_aging: {
+        Args: { p_project_id: string }
+        Returns: {
+          age_bucket: string
+          total_due: number
+        }[]
+      }
+      get_payments: {
         Args: Record<PropertyKey, never>
-        Returns: unknown
+        Returns: {
+          amount: number | null
+          commitment_id: string | null
+          created_at: string
+          id: string
+          paid_at: string | null
+          project_id: string | null
+          updated_at: string
+        }[]
       }
-      gidx_in: {
-        Args: { "": unknown }
-        Returns: unknown
+      get_payroll: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          employee_id: string | null
+          gross_pay: number | null
+          id: string
+          net_pay: number | null
+          pay_period_end: string | null
+          pay_period_start: string | null
+          updated_at: string
+        }[]
       }
-      gidx_out: {
-        Args: { "": unknown }
-        Returns: unknown
+      get_photos: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          caption: string | null
+          created_at: string
+          id: string
+          project_id: string | null
+          updated_at: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+          url: string
+        }[]
       }
-      insert_asphalt_type: {
-        Args: {
-          _name: string
-          _compaction_min?: number
-          _jmf_temp_max?: number
-          _jmf_temp_min?: number
-          _lift_depth_inches?: number
-          _notes?: string
-          _target_spread_rate_lbs_per_sy?: number
-        }
-        Returns: string
+      get_prequalifications: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
       }
-      insert_avatar: {
-        Args: {
-          _id: string
-          _name: string
-          _url: string
-          _is_preset?: boolean
-        }
-        Returns: string
+      get_procurement_workflows: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          id: string
+          name: string | null
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
       }
-      insert_change_order: {
-        Args: {
-          _contract_id: string
-          _line_item_id?: string
-          _title?: string
-          _description?: string
-          _attachments?: string[]
-          _new_quantity?: number
-          _new_unit_price?: number
-          _status?: Database["public"]["Enums"]["change_order_status"]
-          _submitted_date?: string
-          _created_by?: string
-        }
-        Returns: string
+      get_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          job_title_id: string | null
+          organization_id: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role_type"] | null
+          updated_at: string
+        }[]
       }
-      insert_contract: {
-        Args: {
-          _title: string
-          _location: string
-          _start_date: string
-          _end_date: string
-          _status?: Database["public"]["Enums"]["contract_status"]
-          _budget?: number
-          _description?: string
-          _coordinates?: Json
-          _created_by?: string
-        }
-        Returns: string
+      get_progress_billings: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          amount: number | null
+          billing_number: string | null
+          created_at: string | null
+          id: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
       }
-      insert_contract_organization: {
-        Args: {
-          _contract_id: string
-          _organization_id: string
-          _created_by: string
-          _role?: Database["public"]["Enums"]["organization_role"]
-          _notes?: string
-        }
-        Returns: string
+      get_project_inspectors: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          assigned_at: string | null
+          assigned_by: string | null
+          profile_id: string
+          project_id: string
+        }[]
       }
-      insert_crew: {
-        Args: {
-          _name: string
-          _organization_id: string
-          _created_by: string
-          _description?: string
-          _foreman_id?: string
-        }
-        Returns: string
+      get_project_receivables_total: {
+        Args: { p_project_id: string }
+        Returns: number
       }
-      insert_crew_member: {
-        Args: {
-          _created_by: string
-          _crew_id: string
-          _profile_id: string
-          _role?: string
-          _location_notes?: string
-          _organization_id?: string
-          _map_location_id?: string
-          _assigned_at?: string
-        }
-        Returns: string
+      get_projects: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          organization_id: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["project_status"] | null
+          updated_at: string
+        }[]
       }
-      insert_daily_log: {
-        Args: {
-          _contract_id: string
-          _log_date: string
-          _created_by?: string
-          _work_performed?: string
-          _weather_conditions?: string
-          _temperature?: number
-          _delays_encountered?: string
-          _safety_incidents?: string
-          _visitors?: string
-        }
-        Returns: string
+      get_punch_lists: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          assigned_to: string | null
+          created_at: string | null
+          id: string
+          item: string | null
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
       }
-      insert_dump_truck: {
-        Args: {
-            _payload_capacity_tons: number
-            _truck_identifier: string
-            _axle_count?: number
-            _bed_height?: number
-            _bed_length?: number
-              _bed_volume?: number
-              _bed_width?: number
-              _contract_id?: string
-              _equipment_id?: string
-            _hoist_bottom?: number
-            _hoist_top?: number
-            _hoist_width?: number
-            _notes?: string
-        }
-        Returns: string
+      get_purchase_orders: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          amount: number | null
+          created_at: string
+          id: string
+          order_date: string | null
+          order_number: string | null
+          project_id: string | null
+          status: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      get_quality_reviews: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          findings: Json | null
+          id: string
+          project_id: string | null
+          review_date: string | null
+          reviewer: string | null
+          updated_at: string
+        }[]
+      }
+      get_regulatory_documents: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          document_type: string | null
+          id: string
+          project_id: string | null
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+        }[]
+      }
+      get_reports: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          generated_at: string | null
+          id: string
+          project_id: string | null
+          report_type: string | null
+          updated_at: string
+        }[]
+      }
+      get_rfis: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          answer: string | null
+          created_at: string
+          id: string
+          project_id: string | null
+          question: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          subject: string | null
+          submitted_at: string | null
+          submitted_by: string | null
+          updated_at: string
+        }[]
+      }
+      get_safety_incidents: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          description: string | null
+          id: string
+          incident_date: string | null
+          project_id: string | null
+          reported_by: string | null
+          resolved: boolean | null
+          severity: string | null
+          updated_at: string
+        }[]
+      }
+      get_sensor_data: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          collected_at: string | null
+          created_at: string
+          data: Json | null
+          id: string
+          project_id: string | null
+          updated_at: string
+        }[]
+      }
+      get_subcontractor_agreements: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          agreement_url: string | null
+          created_at: string
+          id: string
+          signed_at: string | null
+          subcontract_id: string | null
+          updated_at: string
+        }[]
+      }
+      get_subcontracts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          amount: number | null
+          created_at: string
+          id: string
+          project_id: string | null
+          signed_at: string | null
+          status: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      get_submittals: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          id: string
+          name: string | null
+          project_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["general_status"] | null
+          submitted_at: string | null
+          submitted_by: string | null
+          updated_at: string
+        }[]
+      }
+      get_tack_rates: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          id: string
+          material_type: string | null
+          project_id: string | null
+          rate: number | null
+          updated_at: string
+        }[]
+      }
+      get_task_completion_rate: {
+        Args: { p_project_id: string }
+        Returns: {
+          day: string
+          completed: number
+          total: number
+          pct_complete: number
+        }[]
+      }
+      get_task_dependencies: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          depends_on_task_id: string
+          id: string
+          task_id: string
+        }[]
+      }
+      get_task_status_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          changed_at: string
+          status: Database["public"]["Enums"]["task_status"]
+          task_id: string
+        }[]
+      }
+      get_tasks: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          project_id: string
+          start_date: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          updated_at: string
+        }[]
+      }
+      get_training_records: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          completion_date: string | null
+          created_at: string
+          employee_id: string | null
+          id: string
+          training_type: string | null
+          updated_at: string
+        }[]
+      }
+      get_user_projects: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          id: string
+          project_id: string | null
+          role: string | null
+          updated_at: string
+          user_id: string | null
+        }[]
+      }
+      get_vendor_bid_packages: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          bid_package_id: string | null
+          created_at: string | null
+          id: string
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      get_vendor_contacts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          phone: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      get_vendor_documents: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          document_type: string | null
+          id: string
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+          vendor_id: string | null
+        }[]
+      }
+      get_vendor_qualifications: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          id: string
+          qualification_type: string | null
+          reviewed_at: string | null
+          status: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      get_vendors: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          id: string
+          name: string
+          organization_id: string | null
+          status: Database["public"]["Enums"]["general_status"] | null
+          updated_at: string
+        }[]
+      }
+      get_wbs: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          id: string
+          location: string | null
+          name: string
+          order_num: number | null
+          project_id: string | null
+          updated_at: string
+        }[]
+      }
+      get_weekly_labor: {
+        Args: { p_project_id: string }
+        Returns: {
+          week_start: string
+          total_hours: number
+        }[]
+      }
+      get_workflows: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          current_state: string
+          entity_id: string
+          entity_schema: string
+          entity_table: string
+          id: string
+          updated_at: string
+          workflow_name: Database["public"]["Enums"]["workflow_name"]
+        }[]
+      }
+      insert_accounts_payable: {
+        Args: { _input: Json }
+        Returns: {
+          amount_due: number | null
+          created_at: string
+          due_date: string | null
+          id: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      insert_accounts_receivable: {
+        Args: { _input: Json }
+        Returns: {
+          amount_due: number | null
+          created_at: string
+          due_date: string | null
+          id: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      insert_activity_logs: {
+        Args: { _input: Json }
+        Returns: {
+          activity_at: string | null
+          activity_type: string | null
+          created_at: string
+          id: string
+          profile_id: string | null
+          updated_at: string
+        }[]
+      }
+      insert_asphalt_types: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }[]
+      }
+      insert_audit_logs: {
+        Args: { _input: Json }
+        Returns: {
+          action: string | null
+          created_at: string
+          id: string
+          performed_at: string | null
+          performed_by: string | null
+          project_id: string | null
+          updated_at: string
+        }[]
+      }
+      insert_avatars: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          id: string
+          updated_at: string
+          url: string
+        }[]
+      }
+      insert_bid_packages: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      insert_bid_vendors: {
+        Args: { _input: Json }
+        Returns: {
+          bid_package_id: string | null
+          created_at: string
+          id: string
+          invited_at: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      insert_bids: {
+        Args: { _input: Json }
+        Returns: {
+          amount: number | null
+          bid_package_id: string | null
+          created_at: string
+          id: string
+          status: Database["public"]["Enums"]["general_status"] | null
+          submitted_at: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      insert_bim_models: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          id: string
+          name: string | null
+          project_id: string | null
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+        }[]
+      }
+      insert_certifications: {
+        Args: { _input: Json }
+        Returns: {
+          certification_type: string | null
+          created_at: string
+          employee_id: string | null
+          expiry_date: string | null
+          id: string
+          issue_date: string | null
+          updated_at: string
+        }[]
+      }
+      insert_change_orders: {
+        Args: { _input: Json }
+        Returns: {
+          amount: number | null
+          created_at: string | null
+          description: string | null
+          id: string
+          number: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      insert_commitments: {
+        Args: { _input: Json }
+        Returns: {
+          amount: number | null
+          created_at: string | null
+          id: string
+          project_id: string | null
+          status: string | null
+          type: Database["public"]["Enums"]["commitment_type"] | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      insert_compliance_checks: {
+        Args: { _input: Json }
+        Returns: {
+          check_date: string | null
+          created_at: string
+          description: string | null
+          id: string
+          project_id: string | null
+          result: string | null
+          updated_at: string
+        }[]
+      }
+      insert_compliance_tracking: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          id: string
+          notes: string | null
+          project_id: string | null
+          status: string | null
+          tracking_type: string | null
+          updated_at: string
+        }[]
+      }
+      insert_cost_codes: {
+        Args: { _input: Json }
+        Returns: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          updated_at: string
+        }[]
+      }
+      insert_crew_assignments: {
+        Args: { _input: Json }
+        Returns: {
+          assigned_date: string | null
+          created_at: string | null
+          crew_id: string | null
+          id: string
+          profile_id: string | null
+          updated_at: string
+        }[]
+      }
+      insert_crew_members: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          crew_id: string | null
+          end_date: string | null
+          id: string
+          profile_id: string | null
+          role: string | null
+          start_date: string | null
+          updated_at: string
+        }[]
+      }
+      insert_crews: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          id: string
+          name: string
+          project_id: string | null
+          updated_at: string
+        }[]
+      }
+      insert_daily_logs: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          date: string
+          id: string
+          notes: string | null
+          project_id: string | null
+          updated_at: string
+          weather: Json | null
+        }[]
+      }
+      insert_dashboard_configs: {
+        Args: { _input: Json }
+        Returns: {
+          config: Json | null
+          created_at: string | null
+          id: string
+          profile_id: string | null
+          updated_at: string
+        }[]
+      }
+      insert_document_references: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          document_id: string | null
+          id: string
+          reference_id: string | null
+          reference_type: string | null
+          updated_at: string
+        }[]
+      }
+      insert_documents: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+          project_id: string | null
+          type: string | null
+          updated_at: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+          url: string | null
+        }[]
+      }
+      insert_drawing_versions: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          document_id: string | null
+          id: string
+          updated_at: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+          version: string | null
+        }[]
+      }
+      insert_dump_trucks: {
+        Args: { _input: Json }
+        Returns: {
+          capacity: number | null
+          created_at: string
+          id: string
+          make: string | null
+          model: string | null
+          organization_id: string | null
+          updated_at: string
+        }[]
+      }
+      insert_employees: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          hire_date: string | null
+          id: string
+          organization_id: string | null
+          profile_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
       }
       insert_equipment: {
-        Args: {
-          _name: string
-          _created_by?: string
-          _operator_id?: string
-          _organization_id?: string
-          _standard_pay_rate?: number
-          _standard_pay_unit?: Database["public"]["Enums"]["pay_rate_unit"]
-          _description?: string
-          _user_defined_id?: string
-        }
-        Returns: string
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          id: string
+          model: string | null
+          name: string
+          organization_id: string | null
+          serial_number: string | null
+          status: string | null
+          type: Database["public"]["Enums"]["equipment_type"] | null
+          updated_at: string
+        }[]
+      }
+      insert_equipment_assignments: {
+        Args: { _input: Json }
+        Returns: {
+          assigned_date: string | null
+          assigned_to: string | null
+          created_at: string | null
+          equipment_id: string | null
+          id: string
+          notes: string | null
+          project_id: string | null
+          released_date: string | null
+          updated_at: string
+        }[]
+      }
+      insert_equipment_maintenance: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          description: string | null
+          equipment_id: string | null
+          id: string
+          maintenance_date: string | null
+          performed_by: string | null
+          type: string | null
+          updated_at: string
+        }[]
       }
       insert_equipment_usage: {
-        Args: {
-          _hours_used: number
-          _contract_id?: string
-          _created_by?: string
-          _equipment_id?: string
-          _line_item_id?: string
-          _map_id?: string
-          _operator_id?: string
-          _notes?: string
-          _updated_by?: string
-          _usage_date?: string
-          _wbs_id?: string
-        }
-        Returns: string
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          date: string
+          equipment_id: string | null
+          hours_used: number | null
+          id: string
+          notes: string | null
+          quantity: number | null
+          updated_at: string
+        }[]
       }
-      insert_inspection: {
-        Args: {
-          _contract_id: string
-          _name: string
-          _description?: string
-          _created_by?: string
-          _line_item_id?: string
-          _map_id?: string
-          _pdf_url?: string
-          _photo_urls?: string[]
-          _wbs_id?: string
-        }
-        Returns: string
+      insert_estimate_line_items: {
+        Args: { _input: Json }
+        Returns: {
+          cost_code_id: string | null
+          created_at: string | null
+          estimate_id: string | null
+          id: string
+          name: string | null
+          quantity: number | null
+          total_cost: number | null
+          unit_measure: string | null
+          unit_price: number | null
+          updated_at: string
+        }[]
       }
-      insert_issue: {
-        Args: {
-          _title: string
-          _description: string
-          _status: string
-          _priority?: Database["public"]["Enums"]["priority"]
-          _assigned_to?: string
-          _contract_id?: string
-          _created_by?: string
-          _equipment_id?: string
-          _line_item_id?: string
-          _map_id?: string
-          _photo_urls?: string[]
-          _resolution?: string
-          _due_date?: string
-          _updated_at?: string
-          _updated_by?: string
-          _wbs_id?: string
-        }
-        Returns: string
+      insert_estimates: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
       }
-      insert_job_title: {
-        Args: {
-          _title: string
-          _created_by?: string
-          _is_custom?: boolean
-        }
-        Returns: string
+      insert_financial_documents: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          document_type: string | null
+          id: string
+          project_id: string | null
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+        }[]
       }
-      insert_labor_record: {
-        Args: {
-          _line_item_id: string
-          _worker_count: number
-          _hours_worked: number
-          _work_date: string
-          _work_type: string
-          _notes?: string
-        }
-        Returns: string
+      insert_general_ledger: {
+        Args: { _input: Json }
+        Returns: {
+          balance: number | null
+          created_at: string
+          credit: number | null
+          debit: number | null
+          description: string | null
+          entry_date: string | null
+          id: string
+          project_id: string | null
+          updated_at: string
+        }[]
       }
-      insert_line_item: {
-        Args: {
-          _description: string
-          _line_code: string
-          _wbs_id: string
-          _unit_measure: Database["public"]["Enums"]["unit_measure_type"]
-          _quantity: number
-          _unit_price: number
-          _contract_id?: string
-          _map_id?: string
-          _reference_doc?: string
-          _template_id?: string
-          _coordinates?: string
-        }
-        Returns: string
+      insert_hr_documents: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          document_type: string | null
+          employee_id: string | null
+          id: string
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+        }[]
       }
-      insert_line_item_entry: {
-        Args: {
-          _contract_id: string
-          _line_item_id: string
-          _map_id: string
-          _input_variables: Json
-          _wbs_id: string
-          _computed_output?: number
-          _notes?: string
-          _output_unit?: Database["public"]["Enums"]["unit_measure_type"]
-          _entered_by?: string
-        }
-        Returns: string
+      insert_inspections: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          date: string | null
+          id: string
+          inspection_type: string | null
+          name: string
+          notes: string | null
+          project_id: string | null
+          result: Json | null
+          status: string | null
+          updated_at: string
+        }[]
       }
-      insert_line_item_template: {
-        Args: {
-          _id: string
-          _name?: string
-          _description?: string
-          _formula?: Json
-          _instructions?: string
-          _created_by?: string
-          _organization_id?: string
-          _output_unit?: Database["public"]["Enums"]["unit_measure_type"]
-        }
-        Returns: string
+      insert_integration_tokens: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          id: string
+          profile_id: string | null
+          service_name: string | null
+          token: string | null
+          updated_at: string
+        }[]
       }
-      insert_map: {
-        Args: {
-          _map_number: string
-          _wbs_id: string
-          _location?: string
-          _budget?: number
-          _scope?: string
-          _coordinates?: string
-          _contract_id?: string
-        }
-        Returns: string
+      insert_inventory_transactions: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          id: string
+          material_id: string | null
+          notes: string | null
+          quantity: number | null
+          transaction_date: string | null
+          transaction_type: string | null
+          updated_at: string
+        }[]
       }
-      insert_organization: {
-        Args: {
-          _name: string
-          _created_by: string
-          _address?: string
-          _phone?: string
-          _website?: string
-        }
-        Returns: string
+      insert_issues: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          project_id: string | null
+          reported_by: string | null
+          resolved: boolean | null
+          status: string | null
+          type: string | null
+          updated_at: string
+        }[]
       }
-      insert_profile: {
-        Args: {
-          _id: string
-          _full_name: string
-          _email?: string
-          _username?: string
-          _phone?: string
-          _avatar_id?: string
-          _job_title_id?: string
-          _location?: string
-          _role?: Database["public"]["Enums"]["user_role"]
-          _organization_id?: string
-        }
-        Returns: string
+      insert_job_titles: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }[]
       }
-      insert_profile_full: {
-        Args: {
-          _role: Database["public"]["Enums"]["user_role"]
-          _full_name: string
-          _email: string
-          _username: string
-          _id?: string
-          _phone?: string
-          _location?: string
-          _job_title_id?: string
-          _custom_job_title?: string
-          _organization_id?: string
-          _custom_organization_name?: string
-          _avatar_id?: string
-        }
-        Returns: string
+      insert_labor_records: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          hours_worked: number | null
+          id: string
+          line_item_id: string | null
+          notes: string | null
+          updated_at: string
+          work_date: string | null
+          work_type: string | null
+          worker_count: number | null
+        }[]
       }
-      insert_user_contract: {
-        Args: {
-          _user_id: string
-          _contract_id: string
-          _role?: Database["public"]["Enums"]["user_role"]
-        }
-        Returns: undefined
+      insert_line_item_entries: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          date: string
+          id: string
+          line_item_id: string | null
+          notes: string | null
+          quantity_completed: number | null
+          updated_at: string
+        }[]
+      }
+      insert_line_item_templates: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          formula: Json | null
+          id: string
+          name: string
+          updated_at: string
+          variables: Json | null
+        }[]
+      }
+      insert_line_items: {
+        Args: { _input: Json }
+        Returns: {
+          cost_code_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          map_id: string | null
+          name: string
+          project_id: string | null
+          quantity: number | null
+          template_id: string | null
+          unit_measure: string
+          unit_price: number | null
+          updated_at: string
+          wbs_id: string | null
+        }[]
+      }
+      insert_maps: {
+        Args: { _input: Json }
+        Returns: {
+          coordinates: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          order_num: number | null
+          project_id: string | null
+          scope: string | null
+          updated_at: string
+          wbs_id: string | null
+        }[]
+      }
+      insert_material_inventory: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          id: string
+          last_updated: string | null
+          material_id: string | null
+          organization_id: string | null
+          quantity: number | null
+          updated_at: string
+        }[]
+      }
+      insert_material_orders: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          id: string
+          material_id: string | null
+          order_date: string | null
+          project_id: string | null
+          quantity: number | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      insert_material_receipts: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          id: string
+          material_order_id: string | null
+          quantity: number | null
+          received_by: string | null
+          received_date: string | null
+          updated_at: string
+        }[]
+      }
+      insert_materials: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          organization_id: string | null
+          unit: string | null
+          updated_at: string
+        }[]
+      }
+      insert_meeting_minutes: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          meeting_date: string | null
+          notes: string | null
+          project_id: string | null
+          updated_at: string
+        }[]
+      }
+      insert_notifications: {
+        Args: { _input: Json }
+        Returns: {
+          category: Database["public"]["Enums"]["notification_category"]
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          payload: Json | null
+          updated_at: string
+          user_id: string
+        }[]
+      }
+      insert_organization_members: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          id: string
+          organization_id: string | null
+          profile_id: string | null
+          role: string | null
+          updated_at: string
+        }[]
+      }
+      insert_organization_projects: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          id: string
+          organization_id: string | null
+          project_id: string | null
+          updated_at: string
+        }[]
+      }
+      insert_organizations: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }[]
+      }
+      insert_payments: {
+        Args: { _input: Json }
+        Returns: {
+          amount: number | null
+          commitment_id: string | null
+          created_at: string
+          id: string
+          paid_at: string | null
+          project_id: string | null
+          updated_at: string
+        }[]
+      }
+      insert_payroll: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          employee_id: string | null
+          gross_pay: number | null
+          id: string
+          net_pay: number | null
+          pay_period_end: string | null
+          pay_period_start: string | null
+          updated_at: string
+        }[]
+      }
+      insert_photos: {
+        Args: { _input: Json }
+        Returns: {
+          caption: string | null
+          created_at: string
+          id: string
+          project_id: string | null
+          updated_at: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+          url: string
+        }[]
+      }
+      insert_prequalifications: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      insert_procurement_workflows: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          id: string
+          name: string | null
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      insert_profiles: {
+        Args: { _input: Json }
+        Returns: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          job_title_id: string | null
+          organization_id: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role_type"] | null
+          updated_at: string
+        }[]
+      }
+      insert_progress_billings: {
+        Args: { _input: Json }
+        Returns: {
+          amount: number | null
+          billing_number: string | null
+          created_at: string | null
+          id: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      insert_project_inspectors: {
+        Args: { _input: Json }
+        Returns: {
+          assigned_at: string | null
+          assigned_by: string | null
+          profile_id: string
+          project_id: string
+        }[]
+      }
+      insert_projects: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          organization_id: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["project_status"] | null
+          updated_at: string
+        }[]
+      }
+      insert_punch_lists: {
+        Args: { _input: Json }
+        Returns: {
+          assigned_to: string | null
+          created_at: string | null
+          id: string
+          item: string | null
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      insert_purchase_orders: {
+        Args: { _input: Json }
+        Returns: {
+          amount: number | null
+          created_at: string
+          id: string
+          order_date: string | null
+          order_number: string | null
+          project_id: string | null
+          status: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      insert_quality_reviews: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          findings: Json | null
+          id: string
+          project_id: string | null
+          review_date: string | null
+          reviewer: string | null
+          updated_at: string
+        }[]
+      }
+      insert_regulatory_documents: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          document_type: string | null
+          id: string
+          project_id: string | null
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+        }[]
+      }
+      insert_reports: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          generated_at: string | null
+          id: string
+          project_id: string | null
+          report_type: string | null
+          updated_at: string
+        }[]
+      }
+      insert_rfis: {
+        Args: { _input: Json }
+        Returns: {
+          answer: string | null
+          created_at: string
+          id: string
+          project_id: string | null
+          question: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          subject: string | null
+          submitted_at: string | null
+          submitted_by: string | null
+          updated_at: string
+        }[]
+      }
+      insert_safety_incidents: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          description: string | null
+          id: string
+          incident_date: string | null
+          project_id: string | null
+          reported_by: string | null
+          resolved: boolean | null
+          severity: string | null
+          updated_at: string
+        }[]
+      }
+      insert_sensor_data: {
+        Args: { _input: Json }
+        Returns: {
+          collected_at: string | null
+          created_at: string
+          data: Json | null
+          id: string
+          project_id: string | null
+          updated_at: string
+        }[]
+      }
+      insert_subcontractor_agreements: {
+        Args: { _input: Json }
+        Returns: {
+          agreement_url: string | null
+          created_at: string
+          id: string
+          signed_at: string | null
+          subcontract_id: string | null
+          updated_at: string
+        }[]
+      }
+      insert_subcontracts: {
+        Args: { _input: Json }
+        Returns: {
+          amount: number | null
+          created_at: string
+          id: string
+          project_id: string | null
+          signed_at: string | null
+          status: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      insert_submittals: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          id: string
+          name: string | null
+          project_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["general_status"] | null
+          submitted_at: string | null
+          submitted_by: string | null
+          updated_at: string
+        }[]
+      }
+      insert_tack_rates: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          id: string
+          material_type: string | null
+          project_id: string | null
+          rate: number | null
+          updated_at: string
+        }[]
+      }
+      insert_task_dependencies: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          depends_on_task_id: string
+          id: string
+          task_id: string
+        }[]
+      }
+      insert_task_status_logs: {
+        Args: { _input: Json }
+        Returns: {
+          changed_at: string
+          status: Database["public"]["Enums"]["task_status"]
+          task_id: string
+        }[]
+      }
+      insert_tasks: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          project_id: string
+          start_date: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          updated_at: string
+        }[]
+      }
+      insert_training_records: {
+        Args: { _input: Json }
+        Returns: {
+          completion_date: string | null
+          created_at: string
+          employee_id: string | null
+          id: string
+          training_type: string | null
+          updated_at: string
+        }[]
+      }
+      insert_user_projects: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          id: string
+          project_id: string | null
+          role: string | null
+          updated_at: string
+          user_id: string | null
+        }[]
+      }
+      insert_vendor_bid_packages: {
+        Args: { _input: Json }
+        Returns: {
+          bid_package_id: string | null
+          created_at: string | null
+          id: string
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      insert_vendor_contacts: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          phone: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      insert_vendor_documents: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          document_type: string | null
+          id: string
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+          vendor_id: string | null
+        }[]
+      }
+      insert_vendor_qualifications: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          id: string
+          qualification_type: string | null
+          reviewed_at: string | null
+          status: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      insert_vendors: {
+        Args: { _input: Json }
+        Returns: {
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          id: string
+          name: string
+          organization_id: string | null
+          status: Database["public"]["Enums"]["general_status"] | null
+          updated_at: string
+        }[]
       }
       insert_wbs: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          id: string
+          location: string | null
+          name: string
+          order_num: number | null
+          project_id: string | null
+          updated_at: string
+        }[]
+      }
+      insert_workflows: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          current_state: string
+          entity_id: string
+          entity_schema: string
+          entity_table: string
+          id: string
+          updated_at: string
+          workflow_name: Database["public"]["Enums"]["workflow_name"]
+        }[]
+      }
+      rank_equipment_usage: {
+        Args: { p_project_id: string }
+        Returns: {
+          equipment_id: string
+          total_hours: number
+          usage_rank: number
+        }[]
+      }
+      refresh_project_cost_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      update_accounts_payable: {
         Args: {
-          _wbs_number: string
-          _contract_id: string
-          _location?: string
-          _budget?: number
-          _scope?: string
-          _coordinates?: string
+          _id: string
+          _project_id?: string
+          _amount_due?: number
+          _due_date?: string
+          _status?: string
+          _created_at?: string
+          _updated_at?: string
         }
-        Returns: string
+        Returns: {
+          amount_due: number | null
+          created_at: string
+          due_date: string | null
+          id: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
       }
-      json: {
-        Args: { "": unknown }
-        Returns: Json
-      }
-      jsonb: {
-        Args: { "": unknown }
-        Returns: Json
-      }
-      longtransactionsenabled: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      path: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      pgis_asflatgeobuf_finalfn: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      pgis_asgeobuf_finalfn: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      pgis_asmvt_finalfn: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      pgis_asmvt_serialfn: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      pgis_geometry_clusterintersecting_finalfn: {
-        Args: { "": unknown }
-        Returns: unknown[]
-      }
-      pgis_geometry_clusterwithin_finalfn: {
-        Args: { "": unknown }
-        Returns: unknown[]
-      }
-      pgis_geometry_collect_finalfn: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      pgis_geometry_makeline_finalfn: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      pgis_geometry_polygonize_finalfn: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      pgis_geometry_union_parallel_finalfn: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      pgis_geometry_union_parallel_serialfn: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      point: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      polygon: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      populate_geometry_columns: {
-        Args:
-          | { tbl_oid: unknown; use_typmod?: boolean }
-          | { use_typmod?: boolean }
-        Returns: number
-      }
-      postgis_addbbox: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      postgis_constraint_dims: {
-        Args: { geomschema: string; geomtable: string; geomcolumn: string }
-        Returns: number
-      }
-      postgis_constraint_srid: {
-        Args: { geomschema: string; geomtable: string; geomcolumn: string }
-        Returns: number
-      }
-      postgis_constraint_type: {
-        Args: { geomschema: string; geomtable: string; geomcolumn: string }
-        Returns: string
-      }
-      postgis_dropbbox: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      postgis_extensions_upgrade: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_full_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_geos_noop: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      postgis_geos_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_getbbox: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      postgis_hasbbox: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      postgis_index_supportfn: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      postgis_lib_build_date: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_lib_revision: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_lib_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_libjson_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_liblwgeom_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_libprotobuf_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_libxml_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_noop: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      postgis_proj_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_scripts_build_date: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_scripts_installed: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_scripts_released: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_svn_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_type_name: {
+      update_accounts_receivable: {
         Args: {
-          geomname: string
-          coord_dimension: number
-          use_new_name?: boolean
+          _id: string
+          _project_id?: string
+          _amount_due?: number
+          _due_date?: string
+          _status?: string
+          _created_at?: string
+          _updated_at?: string
         }
-        Returns: string
+        Returns: {
+          amount_due: number | null
+          created_at: string
+          due_date: string | null
+          id: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
       }
-      postgis_typmod_dims: {
-        Args: { "": number }
-        Returns: number
-      }
-      postgis_typmod_srid: {
-        Args: { "": number }
-        Returns: number
-      }
-      postgis_typmod_type: {
-        Args: { "": number }
-        Returns: string
-      }
-      postgis_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      postgis_wagyu_version: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      spheroid_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      spheroid_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_3dclosestpoint: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_3ddistance: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      st_3dintersects: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_3dlength: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_3dlongestline: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_3dmakebox: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_3dmaxdistance: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      st_3dperimeter: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_3dshortestline: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_addpoint: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_angle: {
-        Args:
-          | { line1: unknown; line2: unknown }
-          | { pt1: unknown; pt2: unknown; pt3: unknown; pt4?: unknown }
-        Returns: number
-      }
-      st_area: {
-        Args:
-          | { "": string }
-          | { "": unknown }
-          | { geog: unknown; use_spheroid?: boolean }
-        Returns: number
-      }
-      st_area2d: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_asbinary: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: string
-      }
-      st_asencodedpolyline: {
-        Args: { geom: unknown; nprecision?: number }
-        Returns: string
-      }
-      st_asewkb: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      st_asewkt: {
-        Args: { "": string } | { "": unknown } | { "": unknown }
-        Returns: string
-      }
-      st_asgeojson: {
-        Args:
-          | { "": string }
-          | { geog: unknown; maxdecimaldigits?: number; options?: number }
-          | { geom: unknown; maxdecimaldigits?: number; options?: number }
-          | {
-              r: Record<string, unknown>
-              geom_column?: string
-              maxdecimaldigits?: number
-              pretty_bool?: boolean
-            }
-        Returns: string
-      }
-      st_asgml: {
-        Args:
-          | { "": string }
-          | {
-              geog: unknown
-              maxdecimaldigits?: number
-              options?: number
-              nprefix?: string
-              id?: string
-            }
-          | { geom: unknown; maxdecimaldigits?: number; options?: number }
-          | {
-              version: number
-              geog: unknown
-              maxdecimaldigits?: number
-              options?: number
-              nprefix?: string
-              id?: string
-            }
-          | {
-              version: number
-              geom: unknown
-              maxdecimaldigits?: number
-              options?: number
-              nprefix?: string
-              id?: string
-            }
-        Returns: string
-      }
-      st_ashexewkb: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      st_askml: {
-        Args:
-          | { "": string }
-          | { geog: unknown; maxdecimaldigits?: number; nprefix?: string }
-          | { geom: unknown; maxdecimaldigits?: number; nprefix?: string }
-        Returns: string
-      }
-      st_aslatlontext: {
-        Args: { geom: unknown; tmpl?: string }
-        Returns: string
-      }
-      st_asmarc21: {
-        Args: { geom: unknown; format?: string }
-        Returns: string
-      }
-      st_asmvtgeom: {
+      update_activity_logs: {
         Args: {
-          geom: unknown
-          bounds: unknown
-          extent?: number
-          buffer?: number
-          clip_geom?: boolean
+          _id: string
+          _profile_id?: string
+          _activity_type?: string
+          _activity_at?: string
+          _created_at?: string
+          _updated_at?: string
         }
-        Returns: unknown
-      }
-      st_assvg: {
-        Args:
-          | { "": string }
-          | { geog: unknown; rel?: number; maxdecimaldigits?: number }
-          | { geom: unknown; rel?: number; maxdecimaldigits?: number }
-        Returns: string
-      }
-      st_astext: {
-        Args: { "": string } | { "": unknown } | { "": unknown }
-        Returns: string
-      }
-      st_astwkb: {
-        Args:
-          | {
-              geom: unknown[]
-              ids: number[]
-              prec?: number
-              prec_z?: number
-              prec_m?: number
-              with_sizes?: boolean
-              with_boxes?: boolean
-            }
-          | {
-              geom: unknown
-              prec?: number
-              prec_z?: number
-              prec_m?: number
-              with_sizes?: boolean
-              with_boxes?: boolean
-            }
-        Returns: string
-      }
-      st_asx3d: {
-        Args: { geom: unknown; maxdecimaldigits?: number; options?: number }
-        Returns: string
-      }
-      st_azimuth: {
-        Args:
-          | { geog1: unknown; geog2: unknown }
-          | { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      st_boundary: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_boundingdiagonal: {
-        Args: { geom: unknown; fits?: boolean }
-        Returns: unknown
-      }
-      st_buffer: {
-        Args:
-          | { geom: unknown; radius: number; options?: string }
-          | { geom: unknown; radius: number; quadsegs: number }
-        Returns: unknown
-      }
-      st_buildarea: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_centroid: {
-        Args: { "": string } | { "": unknown }
-        Returns: unknown
-      }
-      st_cleangeometry: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_clipbybox2d: {
-        Args: { geom: unknown; box: unknown }
-        Returns: unknown
-      }
-      st_closestpoint: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_clusterintersecting: {
-        Args: { "": unknown[] }
-        Returns: unknown[]
-      }
-      st_collect: {
-        Args: { "": unknown[] } | { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_collectionextract: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_collectionhomogenize: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_concavehull: {
-        Args: {
-          param_geom: unknown
-          param_pctconvex: number
-          param_allow_holes?: boolean
-        }
-        Returns: unknown
-      }
-      st_contains: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_containsproperly: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_convexhull: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_coorddim: {
-        Args: { geometry: unknown }
-        Returns: number
-      }
-      st_coveredby: {
-        Args:
-          | { geog1: unknown; geog2: unknown }
-          | { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_covers: {
-        Args:
-          | { geog1: unknown; geog2: unknown }
-          | { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_crosses: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_curvetoline: {
-        Args: { geom: unknown; tol?: number; toltype?: number; flags?: number }
-        Returns: unknown
-      }
-      st_delaunaytriangles: {
-        Args: { g1: unknown; tolerance?: number; flags?: number }
-        Returns: unknown
-      }
-      st_difference: {
-        Args: { geom1: unknown; geom2: unknown; gridsize?: number }
-        Returns: unknown
-      }
-      st_dimension: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_disjoint: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_distance: {
-        Args:
-          | { geog1: unknown; geog2: unknown; use_spheroid?: boolean }
-          | { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      st_distancesphere: {
-        Args:
-          | { geom1: unknown; geom2: unknown }
-          | { geom1: unknown; geom2: unknown; radius: number }
-        Returns: number
-      }
-      st_distancespheroid: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      st_dump: {
-        Args: { "": unknown }
-        Returns: Database["public"]["CompositeTypes"]["geometry_dump"][]
-      }
-      st_dumppoints: {
-        Args: { "": unknown }
-        Returns: Database["public"]["CompositeTypes"]["geometry_dump"][]
-      }
-      st_dumprings: {
-        Args: { "": unknown }
-        Returns: Database["public"]["CompositeTypes"]["geometry_dump"][]
-      }
-      st_dumpsegments: {
-        Args: { "": unknown }
-        Returns: Database["public"]["CompositeTypes"]["geometry_dump"][]
-      }
-      st_dwithin: {
-        Args: {
-          geog1: unknown
-          geog2: unknown
-          tolerance: number
-          use_spheroid?: boolean
-        }
-        Returns: boolean
-      }
-      st_endpoint: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_envelope: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_equals: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_expand: {
-        Args:
-          | { box: unknown; dx: number; dy: number }
-          | { box: unknown; dx: number; dy: number; dz?: number }
-          | { geom: unknown; dx: number; dy: number; dz?: number; dm?: number }
-        Returns: unknown
-      }
-      st_exteriorring: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_flipcoordinates: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_force2d: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_force3d: {
-        Args: { geom: unknown; zvalue?: number }
-        Returns: unknown
-      }
-      st_force3dm: {
-        Args: { geom: unknown; mvalue?: number }
-        Returns: unknown
-      }
-      st_force3dz: {
-        Args: { geom: unknown; zvalue?: number }
-        Returns: unknown
-      }
-      st_force4d: {
-        Args: { geom: unknown; zvalue?: number; mvalue?: number }
-        Returns: unknown
-      }
-      st_forcecollection: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_forcecurve: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_forcepolygonccw: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_forcepolygoncw: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_forcerhr: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_forcesfs: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_generatepoints: {
-        Args:
-          | { area: unknown; npoints: number }
-          | { area: unknown; npoints: number; seed: number }
-        Returns: unknown
-      }
-      st_geogfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geogfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geographyfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geohash: {
-        Args:
-          | { geog: unknown; maxchars?: number }
-          | { geom: unknown; maxchars?: number }
-        Returns: string
-      }
-      st_geomcollfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geomcollfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geometricmedian: {
-        Args: {
-          g: unknown
-          tolerance?: number
-          max_iter?: number
-          fail_if_not_converged?: boolean
-        }
-        Returns: unknown
-      }
-      st_geometryfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geometrytype: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      st_geomfromewkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geomfromewkt: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geomfromgeojson: {
-        Args: { "": Json } | { "": Json } | { "": string }
-        Returns: unknown
-      }
-      st_geomfromgml: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geomfromkml: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geomfrommarc21: {
-        Args: { marc21xml: string }
-        Returns: unknown
-      }
-      st_geomfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geomfromtwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_geomfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_gmltosql: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_hasarc: {
-        Args: { geometry: unknown }
-        Returns: boolean
-      }
-      st_hausdorffdistance: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      st_hexagon: {
-        Args: { size: number; cell_i: number; cell_j: number; origin?: unknown }
-        Returns: unknown
-      }
-      st_hexagongrid: {
-        Args: { size: number; bounds: unknown }
-        Returns: Record<string, unknown>[]
-      }
-      st_interpolatepoint: {
-        Args: { line: unknown; point: unknown }
-        Returns: number
-      }
-      st_intersection: {
-        Args: { geom1: unknown; geom2: unknown; gridsize?: number }
-        Returns: unknown
-      }
-      st_intersects: {
-        Args:
-          | { geog1: unknown; geog2: unknown }
-          | { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_isclosed: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      st_iscollection: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      st_isempty: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      st_ispolygonccw: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      st_ispolygoncw: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      st_isring: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      st_issimple: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      st_isvalid: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      st_isvaliddetail: {
-        Args: { geom: unknown; flags?: number }
-        Returns: Database["public"]["CompositeTypes"]["valid_detail"]
-      }
-      st_isvalidreason: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      st_isvalidtrajectory: {
-        Args: { "": unknown }
-        Returns: boolean
-      }
-      st_length: {
-        Args:
-          | { "": string }
-          | { "": unknown }
-          | { geog: unknown; use_spheroid?: boolean }
-        Returns: number
-      }
-      st_length2d: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_letters: {
-        Args: { letters: string; font?: Json }
-        Returns: unknown
-      }
-      st_linecrossingdirection: {
-        Args: { line1: unknown; line2: unknown }
-        Returns: number
-      }
-      st_linefromencodedpolyline: {
-        Args: { txtin: string; nprecision?: number }
-        Returns: unknown
-      }
-      st_linefrommultipoint: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_linefromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_linefromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_linelocatepoint: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      st_linemerge: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_linestringfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_linetocurve: {
-        Args: { geometry: unknown }
-        Returns: unknown
-      }
-      st_locatealong: {
-        Args: { geometry: unknown; measure: number; leftrightoffset?: number }
-        Returns: unknown
-      }
-      st_locatebetween: {
-        Args: {
-          geometry: unknown
-          frommeasure: number
-          tomeasure: number
-          leftrightoffset?: number
-        }
-        Returns: unknown
-      }
-      st_locatebetweenelevations: {
-        Args: { geometry: unknown; fromelevation: number; toelevation: number }
-        Returns: unknown
-      }
-      st_longestline: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_m: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_makebox2d: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_makeline: {
-        Args: { "": unknown[] } | { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_makepolygon: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_makevalid: {
-        Args: { "": unknown } | { geom: unknown; params: string }
-        Returns: unknown
-      }
-      st_maxdistance: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: number
-      }
-      st_maximuminscribedcircle: {
-        Args: { "": unknown }
-        Returns: Record<string, unknown>
-      }
-      st_memsize: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_minimumboundingcircle: {
-        Args: { inputgeom: unknown; segs_per_quarter?: number }
-        Returns: unknown
-      }
-      st_minimumboundingradius: {
-        Args: { "": unknown }
-        Returns: Record<string, unknown>
-      }
-      st_minimumclearance: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_minimumclearanceline: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_mlinefromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_mlinefromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_mpointfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_mpointfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_mpolyfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_mpolyfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_multi: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_multilinefromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_multilinestringfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_multipointfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_multipointfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_multipolyfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_multipolygonfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_ndims: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_node: {
-        Args: { g: unknown }
-        Returns: unknown
-      }
-      st_normalize: {
-        Args: { geom: unknown }
-        Returns: unknown
-      }
-      st_npoints: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_nrings: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_numgeometries: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_numinteriorring: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_numinteriorrings: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_numpatches: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_numpoints: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_offsetcurve: {
-        Args: { line: unknown; distance: number; params?: string }
-        Returns: unknown
-      }
-      st_orderingequals: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_orientedenvelope: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_overlaps: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_perimeter: {
-        Args: { "": unknown } | { geog: unknown; use_spheroid?: boolean }
-        Returns: number
-      }
-      st_perimeter2d: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_pointfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_pointfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_pointm: {
-        Args: {
-          xcoordinate: number
-          ycoordinate: number
-          mcoordinate: number
-          srid?: number
-        }
-        Returns: unknown
-      }
-      st_pointonsurface: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_points: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_pointz: {
-        Args: {
-          xcoordinate: number
-          ycoordinate: number
-          zcoordinate: number
-          srid?: number
-        }
-        Returns: unknown
-      }
-      st_pointzm: {
-        Args: {
-          xcoordinate: number
-          ycoordinate: number
-          zcoordinate: number
-          mcoordinate: number
-          srid?: number
-        }
-        Returns: unknown
-      }
-      st_polyfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_polyfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_polygonfromtext: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_polygonfromwkb: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_polygonize: {
-        Args: { "": unknown[] }
-        Returns: unknown
-      }
-      st_project: {
-        Args: { geog: unknown; distance: number; azimuth: number }
-        Returns: unknown
-      }
-      st_quantizecoordinates: {
-        Args: {
-          g: unknown
-          prec_x: number
-          prec_y?: number
-          prec_z?: number
-          prec_m?: number
-        }
-        Returns: unknown
-      }
-      st_reduceprecision: {
-        Args: { geom: unknown; gridsize: number }
-        Returns: unknown
-      }
-      st_relate: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: string
-      }
-      st_removerepeatedpoints: {
-        Args: { geom: unknown; tolerance?: number }
-        Returns: unknown
-      }
-      st_reverse: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_segmentize: {
-        Args: { geog: unknown; max_segment_length: number }
-        Returns: unknown
-      }
-      st_setsrid: {
-        Args: { geog: unknown; srid: number } | { geom: unknown; srid: number }
-        Returns: unknown
-      }
-      st_sharedpaths: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_shiftlongitude: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_shortestline: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_simplifypolygonhull: {
-        Args: { geom: unknown; vertex_fraction: number; is_outer?: boolean }
-        Returns: unknown
-      }
-      st_split: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_square: {
-        Args: { size: number; cell_i: number; cell_j: number; origin?: unknown }
-        Returns: unknown
-      }
-      st_squaregrid: {
-        Args: { size: number; bounds: unknown }
-        Returns: Record<string, unknown>[]
-      }
-      st_srid: {
-        Args: { geog: unknown } | { geom: unknown }
-        Returns: number
-      }
-      st_startpoint: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      st_subdivide: {
-        Args: { geom: unknown; maxvertices?: number; gridsize?: number }
-        Returns: unknown[]
-      }
-      st_summary: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: string
-      }
-      st_swapordinates: {
-        Args: { geom: unknown; ords: unknown }
-        Returns: unknown
-      }
-      st_symdifference: {
-        Args: { geom1: unknown; geom2: unknown; gridsize?: number }
-        Returns: unknown
-      }
-      st_symmetricdifference: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: unknown
-      }
-      st_tileenvelope: {
-        Args: {
-          zoom: number
-          x: number
-          y: number
-          bounds?: unknown
-          margin?: number
-        }
-        Returns: unknown
-      }
-      st_touches: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_transform: {
-        Args:
-          | { geom: unknown; from_proj: string; to_proj: string }
-          | { geom: unknown; from_proj: string; to_srid: number }
-          | { geom: unknown; to_proj: string }
-        Returns: unknown
-      }
-      st_triangulatepolygon: {
-        Args: { g1: unknown }
-        Returns: unknown
-      }
-      st_union: {
-        Args:
-          | { "": unknown[] }
-          | { geom1: unknown; geom2: unknown }
-          | { geom1: unknown; geom2: unknown; gridsize: number }
-        Returns: unknown
-      }
-      st_voronoilines: {
-        Args: { g1: unknown; tolerance?: number; extend_to?: unknown }
-        Returns: unknown
-      }
-      st_voronoipolygons: {
-        Args: { g1: unknown; tolerance?: number; extend_to?: unknown }
-        Returns: unknown
-      }
-      st_within: {
-        Args: { geom1: unknown; geom2: unknown }
-        Returns: boolean
-      }
-      st_wkbtosql: {
-        Args: { wkb: string }
-        Returns: unknown
-      }
-      st_wkttosql: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      st_wrapx: {
-        Args: { geom: unknown; wrap: number; move: number }
-        Returns: unknown
-      }
-      st_x: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_xmax: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_xmin: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_y: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_ymax: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_ymin: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_z: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_zmax: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_zmflag: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      st_zmin: {
-        Args: { "": unknown }
-        Returns: number
-      }
-      text: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      unlockrows: {
-        Args: { "": string }
-        Returns: number
-      }
-      update_asphalt_type: {
+        Returns: {
+          activity_at: string | null
+          activity_type: string | null
+          created_at: string
+          id: string
+          profile_id: string | null
+          updated_at: string
+        }[]
+      }
+      update_asphalt_types: {
         Args: {
           _id: string
           _name?: string
-          _compaction_min?: number
-          _jmf_temp_max?: number
-          _jmf_temp_min?: number
-          _lift_depth_inches?: number
-          _notes?: string
-          _target_spread_rate_lbs_per_sy?: number
+          _description?: string
+          _created_at?: string
+          _updated_at?: string
         }
-        Returns: undefined
+        Returns: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }[]
       }
-      update_avatar: {
+      update_audit_logs: {
         Args: {
           _id: string
+          _project_id?: string
+          _action?: string
+          _performed_by?: string
+          _performed_at?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          action: string | null
+          created_at: string
+          id: string
+          performed_at: string | null
+          performed_by: string | null
+          project_id: string | null
+          updated_at: string
+        }[]
+      }
+      update_avatars: {
+        Args: {
+          _id: string
+          _url?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string | null
+          id: string
+          updated_at: string
+          url: string
+        }[]
+      }
+      update_bid_packages: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _name?: string
+          _status?: string
+          _created_by?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      update_bid_vendors: {
+        Args: {
+          _id: string
+          _bid_package_id?: string
+          _vendor_id?: string
+          _invited_at?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          bid_package_id: string | null
+          created_at: string
+          id: string
+          invited_at: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      update_bids: {
+        Args: {
+          _id: string
+          _bid_package_id?: string
+          _vendor_id?: string
+          _amount?: number
+          _submitted_at?: string
+          _status?: Database["public"]["Enums"]["general_status"]
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          amount: number | null
+          bid_package_id: string | null
+          created_at: string
+          id: string
+          status: Database["public"]["Enums"]["general_status"] | null
+          submitted_at: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      update_bim_models: {
+        Args: {
+          _id: string
+          _project_id?: string
           _name?: string
           _url?: string
-          _is_preset?: boolean
+          _uploaded_at?: string
+          _created_at?: string
+          _updated_at?: string
         }
-        Returns: undefined
+        Returns: {
+          created_at: string
+          id: string
+          name: string | null
+          project_id: string | null
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+        }[]
       }
-      update_change_order: {
+      update_certifications: {
         Args: {
           _id: string
-          _title?: string
+          _employee_id?: string
+          _certification_type?: string
+          _issue_date?: string
+          _expiry_date?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          certification_type: string | null
+          created_at: string
+          employee_id: string | null
+          expiry_date: string | null
+          id: string
+          issue_date: string | null
+          updated_at: string
+        }[]
+      }
+      update_change_orders: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _number?: string
           _description?: string
-          _attachments?: string[]
-          _new_quantity?: number
-          _new_unit_price?: number
-          _status?: Database["public"]["Enums"]["change_order_status"]
-          _approved_by?: string
-          _approved_date?: string
-          _updated_by?: string
+          _status?: string
+          _amount?: number
+          _created_at?: string
+          _updated_at?: string
         }
-        Returns: undefined
+        Returns: {
+          amount: number | null
+          created_at: string | null
+          description: string | null
+          id: string
+          number: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
       }
-      update_contract: {
+      update_commitments: {
         Args: {
           _id: string
-          _title?: string
-          _location?: string
+          _project_id?: string
+          _vendor_id?: string
+          _type?: Database["public"]["Enums"]["commitment_type"]
+          _amount?: number
+          _status?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          amount: number | null
+          created_at: string | null
+          id: string
+          project_id: string | null
+          status: string | null
+          type: Database["public"]["Enums"]["commitment_type"] | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      update_compliance_checks: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _check_date?: string
+          _description?: string
+          _result?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          check_date: string | null
+          created_at: string
+          description: string | null
+          id: string
+          project_id: string | null
+          result: string | null
+          updated_at: string
+        }[]
+      }
+      update_compliance_tracking: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _tracking_type?: string
+          _status?: string
+          _notes?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          notes: string | null
+          project_id: string | null
+          status: string | null
+          tracking_type: string | null
+          updated_at: string
+        }[]
+      }
+      update_cost_codes: {
+        Args: {
+          _id: string
+          _code?: string
+          _description?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          updated_at: string
+        }[]
+      }
+      update_crew_assignments: {
+        Args: {
+          _id: string
+          _crew_id?: string
+          _profile_id?: string
+          _assigned_date?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          assigned_date: string | null
+          created_at: string | null
+          crew_id: string | null
+          id: string
+          profile_id: string | null
+          updated_at: string
+        }[]
+      }
+      update_crew_members: {
+        Args: {
+          _id: string
+          _crew_id?: string
+          _profile_id?: string
+          _role?: string
           _start_date?: string
           _end_date?: string
-          _status?: Database["public"]["Enums"]["contract_status"]
-          _budget?: number
-          _description?: string
-          _coordinates?: Json
-        }
-        Returns: undefined
-      }
-      update_contract_organization: {
-        Args: {
-          _id: string
-          _role?: Database["public"]["Enums"]["organization_role"]
-          _notes?: string
+          _created_at?: string
           _updated_at?: string
         }
-        Returns: undefined
+        Returns: {
+          created_at: string | null
+          crew_id: string | null
+          end_date: string | null
+          id: string
+          profile_id: string | null
+          role: string | null
+          start_date: string | null
+          updated_at: string
+        }[]
       }
-      update_crew: {
+      update_crews: {
         Args: {
           _id: string
+          _project_id?: string
           _name?: string
-          _description?: string
-          _foreman_id?: string
+          _created_at?: string
           _updated_at?: string
         }
-        Returns: undefined
+        Returns: {
+          created_at: string | null
+          id: string
+          name: string
+          project_id: string | null
+          updated_at: string
+        }[]
       }
-      update_crew_member: {
+      update_daily_logs: {
         Args: {
           _id: string
-          _role?: string
-          _location_notes?: string
-          _organization_id?: string
-          _map_location_id?: string
-          _assigned_at?: string
-          _updated_at?: string
-        }
-        Returns: undefined
-      }
-      update_daily_log: {
-        Args: {
-          _id: string
-          _work_performed?: string
-          _weather_conditions?: string
-          _temperature?: number
-          _delays_encountered?: string
-          _safety_incidents?: string
-          _visitors?: string
-          _updated_by?: string
-          _updated_at?: string
-        }
-        Returns: undefined
-      }
-      update_dump_truck: {
-        Args: {
-          _id: string
-          _payload_capacity_tons?: number
-          _truck_identifier?: string
-          _axle_count?: number
-          _bed_height?: number
-          _bed_length?: number
-          _bed_volume?: number
-          _bed_width?: number
-          _contract_id?: string
-          _equipment_id?: string
-          _hoist_bottom?: number
-          _hoist_top?: number
-          _hoist_width?: number
+          _project_id?: string
+          _date?: string
+          _weather?: Json
           _notes?: string
+          _created_at?: string
+          _updated_at?: string
         }
-        Returns: undefined
+        Returns: {
+          created_at: string | null
+          date: string
+          id: string
+          notes: string | null
+          project_id: string | null
+          updated_at: string
+          weather: Json | null
+        }[]
+      }
+      update_dashboard_configs: {
+        Args: {
+          _id: string
+          _profile_id?: string
+          _config?: Json
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          config: Json | null
+          created_at: string | null
+          id: string
+          profile_id: string | null
+          updated_at: string
+        }[]
+      }
+      update_document_references: {
+        Args: {
+          _id: string
+          _document_id?: string
+          _reference_type?: string
+          _reference_id?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string | null
+          document_id: string | null
+          id: string
+          reference_id: string | null
+          reference_type: string | null
+          updated_at: string
+        }[]
+      }
+      update_documents: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _name?: string
+          _type?: string
+          _url?: string
+          _uploaded_by?: string
+          _uploaded_at?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+          project_id: string | null
+          type: string | null
+          updated_at: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+          url: string | null
+        }[]
+      }
+      update_drawing_versions: {
+        Args: {
+          _id: string
+          _document_id?: string
+          _version?: string
+          _uploaded_by?: string
+          _uploaded_at?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          document_id: string | null
+          id: string
+          updated_at: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+          version: string | null
+        }[]
+      }
+      update_dump_trucks: {
+        Args: {
+          _id: string
+          _organization_id?: string
+          _make?: string
+          _model?: string
+          _capacity?: number
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          capacity: number | null
+          created_at: string
+          id: string
+          make: string | null
+          model: string | null
+          organization_id: string | null
+          updated_at: string
+        }[]
+      }
+      update_employees: {
+        Args: {
+          _id: string
+          _organization_id?: string
+          _profile_id?: string
+          _hire_date?: string
+          _status?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          hire_date: string | null
+          id: string
+          organization_id: string | null
+          profile_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
       }
       update_equipment: {
         Args: {
           _id: string
-          _name?: string
-          _created_by?: string
-          _operator_id?: string
           _organization_id?: string
-          _standard_pay_rate?: number
-          _standard_pay_unit?: Database["public"]["Enums"]["pay_rate_unit"]
-          _description?: string
-          _user_defined_id?: string
+          _name?: string
+          _type?: Database["public"]["Enums"]["equipment_type"]
+          _model?: string
+          _serial_number?: string
+          _status?: string
+          _created_at?: string
+          _updated_at?: string
         }
-        Returns: undefined
+        Returns: {
+          created_at: string | null
+          id: string
+          model: string | null
+          name: string
+          organization_id: string | null
+          serial_number: string | null
+          status: string | null
+          type: Database["public"]["Enums"]["equipment_type"] | null
+          updated_at: string
+        }[]
       }
-      update_equipment_assignment: {
+      update_equipment_assignments: {
         Args: {
           _id: string
-          _bid_rate?: number
-          _contract_id?: string
-          _created_by?: string
-          _start_date?: string
-          _end_date?: string
           _equipment_id?: string
-          _line_item_id?: string
-          _map_id?: string
+          _project_id?: string
+          _assigned_to?: string
+          _assigned_date?: string
+          _released_date?: string
           _notes?: string
-          _operator_id?: string
-          _status?: string
+          _created_at?: string
           _updated_at?: string
-          _wbs_id?: string
         }
-        Returns: undefined
+        Returns: {
+          assigned_date: string | null
+          assigned_to: string | null
+          created_at: string | null
+          equipment_id: string | null
+          id: string
+          notes: string | null
+          project_id: string | null
+          released_date: string | null
+          updated_at: string
+        }[]
+      }
+      update_equipment_maintenance: {
+        Args: {
+          _id: string
+          _equipment_id?: string
+          _maintenance_date?: string
+          _type?: string
+          _description?: string
+          _performed_by?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string | null
+          description: string | null
+          equipment_id: string | null
+          id: string
+          maintenance_date: string | null
+          performed_by: string | null
+          type: string | null
+          updated_at: string
+        }[]
       }
       update_equipment_usage: {
         Args: {
           _id: string
-          _contract_id?: string
-          _created_by?: string
           _equipment_id?: string
-          _line_item_id?: string
+          _date?: string
           _hours_used?: number
-          _map_id?: string
-          _operator_id?: string
+          _quantity?: number
           _notes?: string
-          _updated_by?: string
-          _usage_date?: string
-          _wbs_id?: string
-        }
-        Returns: undefined
-      }
-      update_inspection: {
-        Args: {
-          _id: string
-          _contract_id?: string
-          _name?: string
-          _description?: string
-          _created_by?: string
-          _line_item_id?: string
-          _map_id?: string
-          _pdf_url?: string
-          _photo_urls?: string[]
-          _wbs_id?: string
-        }
-        Returns: undefined
-      }
-      update_issue: {
-        Args: {
-          _id: string
-          _title?: string
-          _description?: string
-          _priority?: Database["public"]["Enums"]["priority"]
-          _status?: string
-          _assigned_to?: string
-          _contract_id?: string
-          _created_by?: string
-          _equipment_id?: string
-          _line_item_id?: string
-          _map_id?: string
-          _photo_urls?: string[]
-          _resolution?: string
-          _due_date?: string
+          _created_at?: string
           _updated_at?: string
-          _updated_by?: string
-          _wbs_id?: string
         }
-        Returns: undefined
+        Returns: {
+          created_at: string | null
+          date: string
+          equipment_id: string | null
+          hours_used: number | null
+          id: string
+          notes: string | null
+          quantity: number | null
+          updated_at: string
+        }[]
       }
-      update_job_title: {
+      update_estimate_line_items: {
         Args: {
           _id: string
-          _title?: string
+          _estimate_id?: string
+          _cost_code_id?: string
+          _name?: string
+          _unit_measure?: string
+          _quantity?: number
+          _unit_price?: number
+          _total_cost?: number
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          cost_code_id: string | null
+          created_at: string | null
+          estimate_id: string | null
+          id: string
+          name: string | null
+          quantity: number | null
+          total_cost: number | null
+          unit_measure: string | null
+          unit_price: number | null
+          updated_at: string
+        }[]
+      }
+      update_estimates: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _name?: string
+          _status?: string
           _created_by?: string
-          _is_custom?: boolean
+          _created_at?: string
+          _updated_at?: string
         }
-        Returns: undefined
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
       }
-      update_labor_record: {
+      update_financial_documents: {
         Args: {
           _id: string
+          _project_id?: string
+          _document_type?: string
+          _url?: string
+          _uploaded_at?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          document_type: string | null
+          id: string
+          project_id: string | null
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+        }[]
+      }
+      update_general_ledger: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _entry_date?: string
+          _description?: string
+          _debit?: number
+          _credit?: number
+          _balance?: number
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          balance: number | null
+          created_at: string
+          credit: number | null
+          debit: number | null
+          description: string | null
+          entry_date: string | null
+          id: string
+          project_id: string | null
+          updated_at: string
+        }[]
+      }
+      update_hr_documents: {
+        Args: {
+          _id: string
+          _employee_id?: string
+          _document_type?: string
+          _url?: string
+          _uploaded_at?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          document_type: string | null
+          employee_id: string | null
+          id: string
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+        }[]
+      }
+      update_inspections: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _name?: string
+          _inspection_type?: string
+          _date?: string
+          _status?: string
+          _result?: Json
+          _notes?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string | null
+          date: string | null
+          id: string
+          inspection_type: string | null
+          name: string
+          notes: string | null
+          project_id: string | null
+          result: Json | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      update_integration_tokens: {
+        Args: {
+          _id: string
+          _profile_id?: string
+          _service_name?: string
+          _token?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string | null
+          id: string
+          profile_id: string | null
+          service_name: string | null
+          token: string | null
+          updated_at: string
+        }[]
+      }
+      update_inventory_transactions: {
+        Args: {
+          _id: string
+          _material_id?: string
+          _transaction_type?: string
+          _quantity?: number
+          _transaction_date?: string
+          _notes?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          material_id: string | null
+          notes: string | null
+          quantity: number | null
+          transaction_date: string | null
+          transaction_type: string | null
+          updated_at: string
+        }[]
+      }
+      update_issues: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _name?: string
+          _type?: string
+          _status?: string
+          _reported_by?: string
+          _description?: string
+          _resolved?: boolean
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          project_id: string | null
+          reported_by: string | null
+          resolved: boolean | null
+          status: string | null
+          type: string | null
+          updated_at: string
+        }[]
+      }
+      update_job_titles: {
+        Args: {
+          _id: string
+          _name?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }[]
+      }
+      update_labor_records: {
+        Args: {
+          _id: string
+          _line_item_id?: string
           _worker_count?: number
           _hours_worked?: number
           _work_date?: string
           _work_type?: string
           _notes?: string
+          _created_at?: string
+          _updated_at?: string
         }
-        Returns: undefined
+        Returns: {
+          created_at: string | null
+          hours_worked: number | null
+          id: string
+          line_item_id: string | null
+          notes: string | null
+          updated_at: string
+          work_date: string | null
+          work_type: string | null
+          worker_count: number | null
+        }[]
       }
-      update_line_item: {
+      update_line_item_entries: {
         Args: {
           _id: string
-          _description?: string
-          _line_code?: string
-          _wbs_id?: string
-          _contract_id?: string
+          _line_item_id?: string
+          _date?: string
+          _quantity_completed?: number
+          _notes?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string | null
+          date: string
+          id: string
+          line_item_id: string | null
+          notes: string | null
+          quantity_completed: number | null
+          updated_at: string
+        }[]
+      }
+      update_line_item_templates: {
+        Args: {
+          _id: string
+          _name?: string
+          _formula?: Json
+          _variables?: Json
+          _created_by?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          formula: Json | null
+          id: string
+          name: string
+          updated_at: string
+          variables: Json | null
+        }[]
+      }
+      update_line_items: {
+        Args: {
+          _id: string
           _map_id?: string
-          _reference_doc?: string
+          _wbs_id?: string
+          _project_id?: string
+          _cost_code_id?: string
           _template_id?: string
-          _unit_measure?: Database["public"]["Enums"]["unit_measure_type"]
+          _name?: string
+          _description?: string
+          _unit_measure?: string
           _quantity?: number
           _unit_price?: number
-          _coordinates?: string
+          _created_at?: string
+          _updated_at?: string
         }
-        Returns: undefined
+        Returns: {
+          cost_code_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          map_id: string | null
+          name: string
+          project_id: string | null
+          quantity: number | null
+          template_id: string | null
+          unit_measure: string
+          unit_price: number | null
+          updated_at: string
+          wbs_id: string | null
+        }[]
       }
-      update_line_item_entry: {
+      update_maps: {
         Args: {
           _id: string
-          _computed_output?: number
-          _contract_id?: string
-          _line_item_id?: string
-          _map_id?: string
-          _input_variables?: Json
-          _notes?: string
-          _output_unit?: Database["public"]["Enums"]["unit_measure_type"]
-          _entered_by?: string
           _wbs_id?: string
+          _project_id?: string
+          _name?: string
+          _description?: string
+          _coordinates?: string
+          _scope?: string
+          _order_num?: number
+          _created_at?: string
+          _updated_at?: string
         }
-        Returns: undefined
+        Returns: {
+          coordinates: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          order_num: number | null
+          project_id: string | null
+          scope: string | null
+          updated_at: string
+          wbs_id: string | null
+        }[]
       }
-      update_line_item_template: {
+      update_material_inventory: {
+        Args: {
+          _id: string
+          _material_id?: string
+          _organization_id?: string
+          _quantity?: number
+          _last_updated?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          last_updated: string | null
+          material_id: string | null
+          organization_id: string | null
+          quantity: number | null
+          updated_at: string
+        }[]
+      }
+      update_material_orders: {
+        Args: {
+          _id: string
+          _material_id?: string
+          _project_id?: string
+          _order_date?: string
+          _quantity?: number
+          _status?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          material_id: string | null
+          order_date: string | null
+          project_id: string | null
+          quantity: number | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      update_material_receipts: {
+        Args: {
+          _id: string
+          _material_order_id?: string
+          _received_date?: string
+          _quantity?: number
+          _received_by?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          material_order_id: string | null
+          quantity: number | null
+          received_by: string | null
+          received_date: string | null
+          updated_at: string
+        }[]
+      }
+      update_materials: {
+        Args: {
+          _id: string
+          _organization_id?: string
+          _name?: string
+          _description?: string
+          _unit?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          organization_id: string | null
+          unit: string | null
+          updated_at: string
+        }[]
+      }
+      update_meeting_minutes: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _meeting_date?: string
+          _notes?: string
+          _created_by?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          meeting_date: string | null
+          notes: string | null
+          project_id: string | null
+          updated_at: string
+        }[]
+      }
+      update_notifications: {
+        Args: {
+          _id: string
+          _user_id?: string
+          _category?: Database["public"]["Enums"]["notification_category"]
+          _message?: string
+          _payload?: Json
+          _is_read?: boolean
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          category: Database["public"]["Enums"]["notification_category"]
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          payload: Json | null
+          updated_at: string
+          user_id: string
+        }[]
+      }
+      update_organization_members: {
+        Args: {
+          _id: string
+          _profile_id?: string
+          _organization_id?: string
+          _role?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string | null
+          id: string
+          organization_id: string | null
+          profile_id: string | null
+          role: string | null
+          updated_at: string
+        }[]
+      }
+      update_organization_projects: {
+        Args: {
+          _id: string
+          _organization_id?: string
+          _project_id?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string | null
+          id: string
+          organization_id: string | null
+          project_id: string | null
+          updated_at: string
+        }[]
+      }
+      update_organizations: {
         Args: {
           _id: string
           _name?: string
           _description?: string
-          _formula?: Json
-          _instructions?: string
-          _created_by?: string
-          _organization_id?: string
-          _output_unit?: Database["public"]["Enums"]["unit_measure_type"]
+          _created_at?: string
+          _updated_at?: string
         }
-        Returns: undefined
+        Returns: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }[]
       }
-      update_map: {
+      update_payments: {
         Args: {
           _id: string
-          _map_number?: string
-          _wbs_id?: string
-          _location?: string
-          _budget?: number
-          _scope?: string
-          _coordinates?: string
-          _contract_id?: string
+          _project_id?: string
+          _commitment_id?: string
+          _amount?: number
+          _paid_at?: string
+          _created_at?: string
+          _updated_at?: string
         }
-        Returns: undefined
+        Returns: {
+          amount: number | null
+          commitment_id: string | null
+          created_at: string
+          id: string
+          paid_at: string | null
+          project_id: string | null
+          updated_at: string
+        }[]
       }
-      update_organization: {
+      update_payroll: {
         Args: {
           _id: string
+          _employee_id?: string
+          _pay_period_start?: string
+          _pay_period_end?: string
+          _gross_pay?: number
+          _net_pay?: number
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string | null
+          employee_id: string | null
+          gross_pay: number | null
+          id: string
+          net_pay: number | null
+          pay_period_end: string | null
+          pay_period_start: string | null
+          updated_at: string
+        }[]
+      }
+      update_photos: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _url?: string
+          _caption?: string
+          _uploaded_by?: string
+          _uploaded_at?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          caption: string | null
+          created_at: string
+          id: string
+          project_id: string | null
+          updated_at: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+          url: string
+        }[]
+      }
+      update_prequalifications: {
+        Args: {
+          _id: string
+          _vendor_id?: string
+          _status?: string
+          _reviewed_by?: string
+          _reviewed_at?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      update_procurement_workflows: {
+        Args: {
+          _id: string
+          _project_id?: string
           _name?: string
-          _created_by?: string
-          _address?: string
-          _phone?: string
-          _website?: string
+          _status?: string
+          _created_at?: string
+          _updated_at?: string
         }
-        Returns: undefined
+        Returns: {
+          created_at: string | null
+          id: string
+          name: string | null
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
       }
-      update_profile: {
+      update_profiles: {
         Args: {
           _id: string
-          _full_name?: string
           _email?: string
-          _username?: string
+          _full_name?: string
           _phone?: string
-          _avatar_id?: string
           _job_title_id?: string
-          _location?: string
-          _role?: Database["public"]["Enums"]["user_role"]
           _organization_id?: string
+          _avatar_url?: string
+          _created_at?: string
+          _updated_at?: string
+          _role?: Database["public"]["Enums"]["user_role_type"]
         }
-        Returns: undefined
+        Returns: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          job_title_id: string | null
+          organization_id: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role_type"] | null
+          updated_at: string
+        }[]
       }
-      update_user_contract: {
+      update_progress_billings: {
         Args: {
-          _user_id: string
-          _contract_id: string
-          _role?: Database["public"]["Enums"]["user_role"]
+          _id: string
+          _project_id?: string
+          _billing_number?: string
+          _amount?: number
+          _status?: string
+          _created_at?: string
+          _updated_at?: string
         }
-        Returns: undefined
+        Returns: {
+          amount: number | null
+          billing_number: string | null
+          created_at: string | null
+          id: string
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      update_project_inspectors: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _profile_id?: string
+          _assigned_by?: string
+          _assigned_at?: string
+        }
+        Returns: {
+          assigned_at: string | null
+          assigned_by: string | null
+          profile_id: string
+          project_id: string
+        }[]
+      }
+      update_projects: {
+        Args: {
+          _id: string
+          _organization_id?: string
+          _name?: string
+          _description?: string
+          _status?: Database["public"]["Enums"]["project_status"]
+          _start_date?: string
+          _end_date?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          organization_id: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["project_status"] | null
+          updated_at: string
+        }[]
+      }
+      update_punch_lists: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _item?: string
+          _status?: string
+          _assigned_to?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          assigned_to: string | null
+          created_at: string | null
+          id: string
+          item: string | null
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }[]
+      }
+      update_purchase_orders: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _vendor_id?: string
+          _order_number?: string
+          _order_date?: string
+          _amount?: number
+          _status?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          amount: number | null
+          created_at: string
+          id: string
+          order_date: string | null
+          order_number: string | null
+          project_id: string | null
+          status: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      update_quality_reviews: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _review_date?: string
+          _reviewer?: string
+          _findings?: Json
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          findings: Json | null
+          id: string
+          project_id: string | null
+          review_date: string | null
+          reviewer: string | null
+          updated_at: string
+        }[]
+      }
+      update_regulatory_documents: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _document_type?: string
+          _url?: string
+          _uploaded_at?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          document_type: string | null
+          id: string
+          project_id: string | null
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+        }[]
+      }
+      update_reports: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _report_type?: string
+          _generated_at?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          generated_at: string | null
+          id: string
+          project_id: string | null
+          report_type: string | null
+          updated_at: string
+        }[]
+      }
+      update_rfis: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _subject?: string
+          _status?: string
+          _question?: string
+          _answer?: string
+          _submitted_by?: string
+          _reviewed_by?: string
+          _submitted_at?: string
+          _reviewed_at?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          answer: string | null
+          created_at: string
+          id: string
+          project_id: string | null
+          question: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          subject: string | null
+          submitted_at: string | null
+          submitted_by: string | null
+          updated_at: string
+        }[]
+      }
+      update_safety_incidents: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _incident_date?: string
+          _description?: string
+          _reported_by?: string
+          _severity?: string
+          _resolved?: boolean
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          description: string | null
+          id: string
+          incident_date: string | null
+          project_id: string | null
+          reported_by: string | null
+          resolved: boolean | null
+          severity: string | null
+          updated_at: string
+        }[]
+      }
+      update_sensor_data: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _data?: Json
+          _collected_at?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          collected_at: string | null
+          created_at: string
+          data: Json | null
+          id: string
+          project_id: string | null
+          updated_at: string
+        }[]
+      }
+      update_subcontractor_agreements: {
+        Args: {
+          _id: string
+          _subcontract_id?: string
+          _agreement_url?: string
+          _signed_at?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          agreement_url: string | null
+          created_at: string
+          id: string
+          signed_at: string | null
+          subcontract_id: string | null
+          updated_at: string
+        }[]
+      }
+      update_subcontracts: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _vendor_id?: string
+          _amount?: number
+          _status?: string
+          _signed_at?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          amount: number | null
+          created_at: string
+          id: string
+          project_id: string | null
+          signed_at: string | null
+          status: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      update_submittals: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _name?: string
+          _status?: Database["public"]["Enums"]["general_status"]
+          _submitted_by?: string
+          _reviewed_by?: string
+          _submitted_at?: string
+          _reviewed_at?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          name: string | null
+          project_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["general_status"] | null
+          submitted_at: string | null
+          submitted_by: string | null
+          updated_at: string
+        }[]
+      }
+      update_tack_rates: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _rate?: number
+          _material_type?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          material_type: string | null
+          project_id: string | null
+          rate: number | null
+          updated_at: string
+        }[]
+      }
+      update_task_dependencies: {
+        Args: {
+          _id: string
+          _task_id?: string
+          _depends_on_task_id?: string
+          _created_at?: string
+        }
+        Returns: {
+          created_at: string
+          depends_on_task_id: string
+          id: string
+          task_id: string
+        }[]
+      }
+      update_task_status_logs: {
+        Args: {
+          _id: string
+          _task_id?: string
+          _status?: Database["public"]["Enums"]["task_status"]
+          _changed_at?: string
+        }
+        Returns: {
+          changed_at: string
+          status: Database["public"]["Enums"]["task_status"]
+          task_id: string
+        }[]
+      }
+      update_tasks: {
+        Args: {
+          _id: string
+          _project_id?: string
+          _name?: string
+          _description?: string
+          _start_date?: string
+          _end_date?: string
+          _status?: Database["public"]["Enums"]["task_status"]
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          project_id: string
+          start_date: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          updated_at: string
+        }[]
+      }
+      update_training_records: {
+        Args: {
+          _id: string
+          _employee_id?: string
+          _training_type?: string
+          _completion_date?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          completion_date: string | null
+          created_at: string
+          employee_id: string | null
+          id: string
+          training_type: string | null
+          updated_at: string
+        }[]
+      }
+      update_user_projects: {
+        Args: {
+          _id: string
+          _user_id?: string
+          _project_id?: string
+          _role?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string | null
+          id: string
+          project_id: string | null
+          role: string | null
+          updated_at: string
+          user_id: string | null
+        }[]
+      }
+      update_vendor_bid_packages: {
+        Args: {
+          _id: string
+          _bid_package_id?: string
+          _vendor_id?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          bid_package_id: string | null
+          created_at: string | null
+          id: string
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      update_vendor_contacts: {
+        Args: {
+          _id: string
+          _vendor_id?: string
+          _name?: string
+          _email?: string
+          _phone?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          phone: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      update_vendor_documents: {
+        Args: {
+          _id: string
+          _vendor_id?: string
+          _document_type?: string
+          _url?: string
+          _uploaded_at?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          document_type: string | null
+          id: string
+          updated_at: string
+          uploaded_at: string | null
+          url: string | null
+          vendor_id: string | null
+        }[]
+      }
+      update_vendor_qualifications: {
+        Args: {
+          _id: string
+          _vendor_id?: string
+          _qualification_type?: string
+          _status?: string
+          _reviewed_at?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          qualification_type: string | null
+          reviewed_at: string | null
+          status: string | null
+          updated_at: string
+          vendor_id: string | null
+        }[]
+      }
+      update_vendors: {
+        Args: {
+          _id: string
+          _organization_id?: string
+          _name?: string
+          _status?: Database["public"]["Enums"]["general_status"]
+          _contact_email?: string
+          _contact_phone?: string
+          _created_at?: string
+          _updated_at?: string
+        }
+        Returns: {
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          id: string
+          name: string
+          organization_id: string | null
+          status: Database["public"]["Enums"]["general_status"] | null
+          updated_at: string
+        }[]
       }
       update_wbs: {
         Args: {
           _id: string
-          _wbs_number?: string
-          _contract_id?: string
+          _project_id?: string
+          _name?: string
           _location?: string
-          _budget?: number
-          _scope?: string
-          _coordinates?: string
+          _order_num?: number
+          _created_at?: string
+          _updated_at?: string
         }
-        Returns: undefined
+        Returns: {
+          created_at: string | null
+          id: string
+          location: string | null
+          name: string
+          order_num: number | null
+          project_id: string | null
+          updated_at: string
+        }[]
       }
-      updategeometrysrid: {
+      update_workflows: {
         Args: {
-          catalogn_name: string
-          schema_name: string
-          table_name: string
-          column_name: string
-          new_srid_in: number
+          _id: string
+          _entity_schema?: string
+          _entity_table?: string
+          _entity_id?: string
+          _workflow_name?: Database["public"]["Enums"]["workflow_name"]
+          _current_state?: string
+          _created_at?: string
+          _updated_at?: string
         }
-        Returns: string
+        Returns: {
+          created_at: string
+          current_state: string
+          entity_id: string
+          entity_schema: string
+          entity_table: string
+          id: string
+          updated_at: string
+          workflow_name: Database["public"]["Enums"]["workflow_name"]
+        }[]
       }
     }
     Enums: {
-      asphalt_type:
-        | "SA-1"
-        | "S4.75A"
-        | "SF9.5A"
-        | "S9.5B"
-        | "S9.5C"
-        | "S9.5D"
-        | "S12.5C"
-        | "S12.5D"
-        | "I19.0B"
-        | "I19.0C"
-        | "I19.0D"
-        | "B25.0B"
-        | "B25.0C"
-      change_order_status: "draft" | "pending" | "approved" | "rejected"
-      contract_status:
-        | "Draft"
-        | "Awaiting Assignment"
-        | "Active"
-        | "On Hold"
-        | "Final Review"
-        | "Closed"
-        | "Bidding Solicitation"
-        | "Assigned(Partial)"
-        | "Assigned(Full)"
-        | "Completed"
-        | "Cancelled"
-      existing_surface:
-        | "New Asphalt"
-        | "Oxidized Asphalt"
-        | "Milled Asphalt"
-        | "Concrete"
-        | "Dirt/Soil"
-        | "Gravel"
-      organization_role:
-        | "Prime Contractor"
-        | "Subcontractor"
-        | "Auditor"
-        | "Engineering"
-        | "Inspection"
-        | "Other"
-      patch_status: "Proposed" | "Marked" | "Milled" | "Patched" | "Deleted"
-      pay_rate_unit: "day" | "hour"
-      priority: "High" | "Medium" | "Low" | "Note"
-      road_side: "Left" | "Right"
-      unit_measure_type:
+      certification_type:
+        | "osha_10"
+        | "osha_30"
+        | "cpr"
+        | "first_aid"
+        | "equipment_card"
+        | "other"
+      commitment_type: "subcontract" | "purchase_order" | "change_order"
+      document_type:
+        | "drawing"
+        | "spec"
+        | "rfi"
+        | "submittal"
+        | "change_order"
+        | "other"
+      equipment_type:
+        | "truck"
+        | "excavator"
+        | "grader"
+        | "roller"
+        | "loader"
+        | "misc"
+      general_status:
+        | "draft"
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "active"
+        | "inactive"
+        | "complete"
+        | "closed"
+      issue_type: "safety" | "quality" | "field" | "equipment" | "other"
+      notification_category:
+        | "bid_received"
+        | "approval_needed"
+        | "deadline_reminder"
+        | "task_assigned"
+        | "workflow_update"
+        | "general"
+      org_role:
+        | "admin"
+        | "manager"
+        | "superintendent"
+        | "foreman"
+        | "worker"
+        | "viewer"
+        | "accountant"
+        | "hr"
+        | "estimator"
+        | "guest"
+      project_status:
+        | "planned"
+        | "active"
+        | "complete"
+        | "archived"
+        | "on_hold"
+        | "canceled"
+      task_status: "not_started" | "in_progress" | "completed" | "blocked"
+      unit_measure:
         | "Feet (FT)"
         | "Inches (IN)"
         | "Linear Feet (LF)"
@@ -5864,42 +8422,48 @@ export type Database = {
         | "Pounds per Square Inch (PSI)"
         | "Percent (%)"
         | "Degrees (*)"
-      user_role:
-        | "Admin"
-        | "Contractor"
-        | "Engineer"
-        | "Project Manager"
-        | "Inspector"
+      user_role_type:
+        | "system_admin"
+        | "org_admin"
+        | "org_supervisor"
+        | "org_user"
+        | "org_viewer"
+        | "inspector"
+        | "auditor"
+      workflow_name:
+        | "estimate_submission"
+        | "bid_submission"
+        | "bid_review"
+        | "contract_award"
+        | "task_execution"
+        | "inspection"
+        | "project_closeout"
     }
     CompositeTypes: {
-      geometry_dump: {
-        path: number[] | null
-        geom: unknown | null
-      }
-      valid_detail: {
-        valid: boolean | null
-        reason: string | null
-        location: unknown | null
-      }
+      [_ in never]: never
     }
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -5917,14 +8481,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -5940,14 +8506,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -5963,14 +8531,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -5978,14 +8548,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
@@ -5993,56 +8565,72 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      asphalt_type: [
-        "SA-1",
-        "S4.75A",
-        "SF9.5A",
-        "S9.5B",
-        "S9.5C",
-        "S9.5D",
-        "S12.5C",
-        "S12.5D",
-        "I19.0B",
-        "I19.0C",
-        "I19.0D",
-        "B25.0B",
-        "B25.0C",
+      certification_type: [
+        "osha_10",
+        "osha_30",
+        "cpr",
+        "first_aid",
+        "equipment_card",
+        "other",
       ],
-      change_order_status: ["draft", "pending", "approved", "rejected"],
-      contract_status: [
-        "Draft",
-        "Awaiting Assignment",
-        "Active",
-        "On Hold",
-        "Final Review",
-        "Closed",
-        "Bidding Solicitation",
-        "Assigned(Partial)",
-        "Assigned(Full)",
-        "Completed",
-        "Cancelled",
+      commitment_type: ["subcontract", "purchase_order", "change_order"],
+      document_type: [
+        "drawing",
+        "spec",
+        "rfi",
+        "submittal",
+        "change_order",
+        "other",
       ],
-      existing_surface: [
-        "New Asphalt",
-        "Oxidized Asphalt",
-        "Milled Asphalt",
-        "Concrete",
-        "Dirt/Soil",
-        "Gravel",
+      equipment_type: [
+        "truck",
+        "excavator",
+        "grader",
+        "roller",
+        "loader",
+        "misc",
       ],
-      organization_role: [
-        "Prime Contractor",
-        "Subcontractor",
-        "Auditor",
-        "Engineering",
-        "Inspection",
-        "Other",
+      general_status: [
+        "draft",
+        "pending",
+        "approved",
+        "rejected",
+        "active",
+        "inactive",
+        "complete",
+        "closed",
       ],
-      patch_status: ["Proposed", "Marked", "Milled", "Patched", "Deleted"],
-      pay_rate_unit: ["day", "hour"],
-      priority: ["High", "Medium", "Low", "Note"],
-      road_side: ["Left", "Right"],
-      unit_measure_type: [
+      issue_type: ["safety", "quality", "field", "equipment", "other"],
+      notification_category: [
+        "bid_received",
+        "approval_needed",
+        "deadline_reminder",
+        "task_assigned",
+        "workflow_update",
+        "general",
+      ],
+      org_role: [
+        "admin",
+        "manager",
+        "superintendent",
+        "foreman",
+        "worker",
+        "viewer",
+        "accountant",
+        "hr",
+        "estimator",
+        "guest",
+      ],
+      project_status: [
+        "planned",
+        "active",
+        "complete",
+        "archived",
+        "on_hold",
+        "canceled",
+      ],
+      task_status: ["not_started", "in_progress", "completed", "blocked"],
+      unit_measure: [
         "Feet (FT)",
         "Inches (IN)",
         "Linear Feet (LF)",
@@ -6068,12 +8656,23 @@ export const Constants = {
         "Percent (%)",
         "Degrees (*)",
       ],
-      user_role: [
-        "Admin",
-        "Contractor",
-        "Engineer",
-        "Project Manager",
-        "Inspector",
+      user_role_type: [
+        "system_admin",
+        "org_admin",
+        "org_supervisor",
+        "org_user",
+        "org_viewer",
+        "inspector",
+        "auditor",
+      ],
+      workflow_name: [
+        "estimate_submission",
+        "bid_submission",
+        "bid_review",
+        "contract_award",
+        "task_execution",
+        "inspection",
+        "project_closeout",
       ],
     },
   },

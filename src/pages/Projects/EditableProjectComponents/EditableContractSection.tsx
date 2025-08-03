@@ -4,7 +4,7 @@ import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { ContractStatusSelect } from '@/pages/Projects/SharedComponents/ContractStatusSelect';
 import { MapPin, Save } from 'lucide-react';
 import type { Contracts } from '@/lib/types';
-import type { ContractStatusValue } from '@/lib/enums';
+import type { ProjectStatus } from '@/lib/types';
 
 interface EditableContractSectionProps {
   contract: Contracts;
@@ -20,7 +20,7 @@ export const EditableContractSection: React.FC<EditableContractSectionProps> = (
   onOpenMapModal,
 }) => {
   // Handle status change
-  const handleStatusChange = (status: ContractStatusValue) => {
+  const handleStatusChange = (status: ProjectStatus) => {
     onChange({ ...contract, status });
   };
 

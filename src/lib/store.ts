@@ -2,10 +2,9 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { rpcClient } from "@/lib/rpc.client";
-import type { Database } from "@/lib/database.types";
+import type { UserRoleType } from "@/lib/types";
 
-// Types
-type UserRole = Database["public"]["Enums"]["user_role"];
+// Types - using imported types from types.ts for consistency
 
 export interface EnrichedProfile {
   id: string;
@@ -14,7 +13,7 @@ export interface EnrichedProfile {
   email: string | null;
   phone: string | null;
   location: string | null;
-  role: UserRole | null; // Allow role to be null
+  role: UserRoleType | null; // Allow role to be null
   job_title_id: string | null;
   organization_id: string | null;
   avatar_id: string | null;

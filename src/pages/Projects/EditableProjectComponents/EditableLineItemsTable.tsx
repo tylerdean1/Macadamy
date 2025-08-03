@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { supabase } from '@/lib/supabase';
-import { UnitMeasureType } from '@/lib/enums';
+import type { UnitMeasure } from '@/lib/types';
 import { LineItemsWithWktRow, WbsWithWktRow, MapsWithWktRow } from '../../../lib/rpc.types';
 
 interface EditableLineItemsTableProps {
@@ -23,13 +23,13 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
   onLineItemCreate
 }) => {
   const [isCreating, setIsCreating] = useState(false);
-  const [unitOptions, setUnitOptions] = useState<UnitMeasureType[]>([]);
+  const [unitOptions, setUnitOptions] = useState<UnitMeasure[]>([]);
   const [newItem, setNewItem] = useState({
     wbs_id: '',
     map_id: '',
     item_code: '',
     description: '',
-    unit_measure: 'Feet (FT)' as UnitMeasureType,
+    unit_measure: 'Feet (FT)' as UnitMeasure,
     quantity: 1,
     unit_price: 0,
     reference_doc: ''
@@ -39,16 +39,11 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
   useEffect(() => {
     const fetchUnitOptions = async () => {
       try {
-        // Direct RPC call to get enum values
-        const { data, error } = await supabase.rpc('get_enum_values', {
-          enum_type: 'unit_measure_type'
-        });
-        if (error) throw error;
-        if (Array.isArray(data)) {
-          setUnitOptions(data.map(item => item.value as UnitMeasureType));
-        }
+        // Use the unit options from our database constants instead of calling RPC
+        const { UNIT_MEASURE_OPTIONS } = await import('@/lib/types');
+        setUnitOptions([...UNIT_MEASURE_OPTIONS]);
       } catch (error) {
-        console.error('Error fetching unit measure options:', error);
+        console.error('Error loading unit options:', error);
       }
     };
     void fetchUnitOptions();
@@ -94,13 +89,19 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
       type BackendLineItem = Omit<LineItemsWithWktRow, 'item_code' | 'unit_measure'> & { line_code: string; unit_measure?: string; unit?: string };
       const createdLineItem = (lineItemsData as BackendLineItem[]).find(item => item.id === lineItemId);
       if (createdLineItem && createdLineItem.id) {
-        const validUnitMeasures = Object.values(UnitMeasureType) as string[];
-        const fallbackUnit = UnitMeasureType.Feet;
-        let safeUnit = fallbackUnit;
-        if (typeof createdLineItem.unit_measure === 'string' && validUnitMeasures.includes(createdLineItem.unit_measure)) {
-          safeUnit = createdLineItem.unit_measure as UnitMeasureType;
-        } else if (typeof createdLineItem.unit === 'string' && validUnitMeasures.includes(createdLineItem.unit)) {
-          safeUnit = createdLineItem.unit as UnitMeasureType;
+        const validUnitMeasures: UnitMeasure[] = [
+          "Feet (FT)", "Inches (IN)", "Linear Feet (LF)", "Mile (MI)", "Shoulder Mile (SMI)",
+          "Square Feet (SF)", "Square Yard (SY)", "Acre (AC)", "Cubic Foot (CF)", "Cubic Yard (CY)",
+          "Gallon (GAL)", "Pounds (LBS)", "TON", "Each (EA)", "Lump Sum (LS)", "Hour (HR)", "DAY",
+          "Station (STA)", "MSF (1000SF)", "MLF (1000LF)", "Cubic Feet per Second (CFS)",
+          "Pounds per Square Inch (PSI)", "Percent (%)", "Degrees (*)"
+        ];
+        const fallbackUnit: UnitMeasure = "Feet (FT)";
+        let safeUnit: UnitMeasure = fallbackUnit;
+        if (typeof createdLineItem.unit_measure === 'string' && validUnitMeasures.includes(createdLineItem.unit_measure as UnitMeasure)) {
+          safeUnit = createdLineItem.unit_measure as UnitMeasure;
+        } else if (typeof createdLineItem.unit === 'string' && validUnitMeasures.includes(createdLineItem.unit as UnitMeasure)) {
+          safeUnit = createdLineItem.unit as UnitMeasure;
         }
         // When mapping backend line item, add 'item_code' property from 'line_code'
         const safeLineItem: LineItemsWithWktRow = {
@@ -309,7 +310,7 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
                       map_id: '',
                       item_code: '',
                       description: '',
-                      unit_measure: 'Each (EA)' as UnitMeasureType,
+                      unit_measure: 'Each (EA)' as UnitMeasure,
                       quantity: 1,
                       unit_price: 0,
                       reference_doc: ''

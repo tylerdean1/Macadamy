@@ -3,7 +3,7 @@ import { Database } from "./database.types";
 export interface Variable {
   name: string;
   type: 'input' | 'output' | 'constant';
-  unit?: Database["public"]["Enums"]["unit_measure_type"] | null;
+  unit?: Database["public"]["Enums"]["unit_measure"] | null;
   defaultValue?: number;
   value?: string | number;
 }

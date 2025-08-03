@@ -1,5 +1,51 @@
 import type { Database } from "./database.types";
-import type { ContractStatusValue, UserRole } from "./enums";
+
+/**
+ * Convenient type aliases for database enums
+ */
+export type GeneralStatus = Database["public"]["Enums"]["general_status"];
+export type ProjectStatus = Database["public"]["Enums"]["project_status"];
+export type TaskStatus = Database["public"]["Enums"]["task_status"];
+export type UnitMeasure = Database["public"]["Enums"]["unit_measure"];
+export type OrgRole = Database["public"]["Enums"]["org_role"];
+export type UserRoleType = Database["public"]["Enums"]["user_role_type"];
+export type EquipmentType = Database["public"]["Enums"]["equipment_type"];
+export type DocumentType = Database["public"]["Enums"]["document_type"];
+export type CertificationType = Database["public"]["Enums"]["certification_type"];
+export type CommitmentType = Database["public"]["Enums"]["commitment_type"];
+export type IssueType = Database["public"]["Enums"]["issue_type"];
+export type NotificationCategory = Database["public"]["Enums"]["notification_category"];
+export type WorkflowName = Database["public"]["Enums"]["workflow_name"];
+
+/**
+ * Convenient option arrays using database constants
+ */
+import { Constants } from "./database.types";
+
+export const GENERAL_STATUS_OPTIONS = Constants.public.Enums.general_status;
+export const PROJECT_STATUS_OPTIONS = Constants.public.Enums.project_status;
+export const TASK_STATUS_OPTIONS = Constants.public.Enums.task_status;
+export const UNIT_MEASURE_OPTIONS = Constants.public.Enums.unit_measure;
+export const ORG_ROLE_OPTIONS = Constants.public.Enums.org_role;
+export const USER_ROLE_TYPE_OPTIONS = Constants.public.Enums.user_role_type;
+export const EQUIPMENT_TYPE_OPTIONS = Constants.public.Enums.equipment_type;
+export const DOCUMENT_TYPE_OPTIONS = Constants.public.Enums.document_type;
+export const CERTIFICATION_TYPE_OPTIONS = Constants.public.Enums.certification_type;
+export const COMMITMENT_TYPE_OPTIONS = Constants.public.Enums.commitment_type;
+export const ISSUE_TYPE_OPTIONS = Constants.public.Enums.issue_type;
+export const NOTIFICATION_CATEGORY_OPTIONS = Constants.public.Enums.notification_category;
+export const WORKFLOW_NAME_OPTIONS = Constants.public.Enums.workflow_name;
+
+/**
+ * Enum utility functions
+ */
+export function getEnumOptions<T extends string>(enumArray: readonly T[]): Array<{ value: T; label: T }> {
+  return enumArray.map(value => ({ value, label: value }));
+}
+
+export function isValidEnumValue<T extends string>(value: unknown, enumArray: readonly T[]): value is T {
+  return typeof value === 'string' && enumArray.includes(value as T);
+}
 
 /**
  * General Utilities
@@ -35,20 +81,9 @@ export type ChangeOrdersInsert =
 export type ChangeOrdersUpdate =
   Database["public"]["Tables"]["change_orders"]["Update"];
 
-// Contract Organizations Table
-export type ContractOrganizations =
-  Database["public"]["Tables"]["contract_organizations"]["Row"];
-export type ContractOrganizationsInsert =
-  Database["public"]["Tables"]["contract_organizations"]["Insert"];
-export type ContractOrganizationsUpdate =
-  Database["public"]["Tables"]["contract_organizations"]["Update"];
+// Contract Organizations Table - Removed (table not found in database.types.ts)
 
-// Contracts Table
-export type Contracts = Database["public"]["Tables"]["contracts"]["Row"];
-export type ContractsInsert =
-  Database["public"]["Tables"]["contracts"]["Insert"];
-export type ContractsUpdate =
-  Database["public"]["Tables"]["contracts"]["Update"];
+// Contracts Table - Removed (table not found in database.types.ts)
 
 // Crew Members Table
 export type CrewMembers = Database["public"]["Tables"]["crew_members"]["Row"];
@@ -166,13 +201,7 @@ export type Profiles = Database["public"]["Tables"]["profiles"]["Row"];
 export type ProfilesInsert = Database["public"]["Tables"]["profiles"]["Insert"];
 export type ProfilesUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
-// Spatial Ref Sys Table
-export type SpatialRefSys =
-  Database["public"]["Tables"]["spatial_ref_sys"]["Row"];
-export type SpatialRefSysInsert =
-  Database["public"]["Tables"]["spatial_ref_sys"]["Insert"];
-export type SpatialRefSysUpdate =
-  Database["public"]["Tables"]["spatial_ref_sys"]["Update"];
+// Spatial Ref Sys Table - Removed (table not found in database.types.ts)
 
 // Tack Rates Table
 export type TackRates = Database["public"]["Tables"]["tack_rates"]["Row"];
@@ -181,13 +210,7 @@ export type TackRatesInsert =
 export type TackRatesUpdate =
   Database["public"]["Tables"]["tack_rates"]["Update"];
 
-// User Contracts Table
-export type UserContracts =
-  Database["public"]["Tables"]["user_contracts"]["Row"];
-export type UserContractsInsert =
-  Database["public"]["Tables"]["user_contracts"]["Insert"];
-export type UserContractsUpdate =
-  Database["public"]["Tables"]["user_contracts"]["Update"];
+// User Contracts Table - Removed (table not found in database.types.ts)
 
 // WBS Table
 export type WBS = Database["public"]["Tables"]["wbs"]["Row"];
@@ -297,7 +320,7 @@ export interface JobTitle {
 
 export interface Profile {
   id: string;
-  user_role: UserRole;
+  user_role: Database["public"]["Enums"]["user_role_type"];
   full_name: string;
   email: string;
   username: string | null;
@@ -332,7 +355,7 @@ export interface EnrichedUserProfile {
   email: string | null;
   phone: string | null;
   location: string | null;
-  role: UserRole | null;
+  role: Database["public"]["Enums"]["user_role_type"] | null;
   job_title_id: string | null;
   job_title: string | null;
   organization_id: string | null;
@@ -352,9 +375,9 @@ export interface EnrichedUserContract {
   created_at: string | null; // Timestamps are typically strings in ISO format
   updated_at: string | null; // Timestamps are typically strings in ISO format
   budget: number | null;
-  status: ContractStatusValue | null;
+  status: GeneralStatus | null;
   coordinates: Json | null; // Changed from any to Json
-  user_contract_role: UserRole | null;
+  user_contract_role: UserRoleType | null;
 }
 
 /**
@@ -400,7 +423,7 @@ export type LineItemsClean = Omit<LineItems, "line_code" | "description"> & {
 };
 
 export interface ContractRolePermission {
-  role: "Admin" | "Contractor" | "Engineer" | "Project Manager" | "Inspector";
+  role: Database["public"]["Enums"]["user_role_type"];
   can_view: boolean;
   can_edit: boolean;
   can_approve: boolean;

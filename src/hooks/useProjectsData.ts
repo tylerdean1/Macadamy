@@ -3,17 +3,13 @@ import { toast } from 'react-hot-toast';
 import { rpcClient } from '@/lib/rpc.client';
 import { useAuthStore } from '@/lib/store';
 import type { EnrichedUserContract } from '@/lib/types';
-import { UserRole, ContractStatusValue } from '@/lib/enums';
+import type { ProjectStatus, UserRoleType } from '@/lib/types';
 
-// Helper to check if a value is a valid ContractStatusValue
-function isContractStatusValue(val: unknown): val is ContractStatusValue {
+// Helper to check if a value is a valid ProjectStatus
+function isProjectStatusValue(val: unknown): val is ProjectStatus {
     return (
         typeof val === 'string' &&
-        [
-            'Draft', 'Awaiting Assignment', 'Active', 'On Hold', 'Final Review',
-            'Closed', 'Bidding Solicitation', 'Assigned(Partial)', 'Assigned(Full)',
-            'Completed', 'Cancelled',
-        ].includes(val)
+        ['planned', 'active', 'complete', 'archived', 'on_hold', 'canceled'].includes(val)
     );
 }
 
@@ -28,9 +24,13 @@ function isJson(val: unknown): val is import('@/lib/types').Json {
 }
 
 // Validate user role value
-function validateUserRole(role: string | null | undefined): UserRole | null {
-    if (role !== null && role !== undefined && Object.values(UserRole).includes(role as UserRole)) {
-        return role as UserRole;
+function validateUserRole(role: string | null | undefined): UserRoleType | null {
+    const validRoles: UserRoleType[] = [
+        'system_admin', 'org_admin', 'org_supervisor', 'org_user', 'org_viewer',
+        'contractor', 'inspector', 'auditor'
+    ];
+    if (role !== null && role !== undefined && validRoles.includes(role as UserRoleType)) {
+        return role as UserRoleType;
     }
     return null;
 }
@@ -50,7 +50,7 @@ function normalizeEnrichedUserContract(obj: unknown): EnrichedUserContract {
         created_at: typeof o.created_at === 'string' ? o.created_at : null,
         updated_at: typeof o.updated_at === 'string' ? o.updated_at : null,
         budget: typeof o.budget === 'number' ? o.budget : null,
-        status: isContractStatusValue(o.status) ? o.status : null,
+        status: isProjectStatusValue(o.status) ? o.status : null,
         coordinates: isJson(o.coordinates) ? o.coordinates : null,
         user_contract_role: validateUserRole(
             typeof o.user_contract_role === 'string' ? o.user_contract_role : null

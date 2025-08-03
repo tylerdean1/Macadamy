@@ -4,7 +4,7 @@ import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { Trash2 } from 'lucide-react';
 import { Modal } from '@/pages/StandardPages/StandardPageComponents/modal';
 import type { CalculatorTemplate, Variable } from '@/lib/formula.types';
-import { UnitMeasureType } from '@/lib/enums';
+import { UNIT_MEASURE_OPTIONS, type UnitMeasure } from '@/lib/types';
 
 interface FormulaBuilderProps {
   calculator: CalculatorTemplate;
@@ -17,7 +17,12 @@ export function FormulaBuilder({
   onCalculatorChange,
   onSave,
 }: FormulaBuilderProps) {
-  const [newVar, setNewVar] = useState<Omit<Variable, 'defaultValue'>>({
+  const [newVar, setNewVar] = useState<{
+    name: string;
+    type: 'input';
+    unit: UnitMeasure | undefined;
+    value: string;
+  }>({
     name: '',
     type: 'input',
     unit: undefined,
@@ -33,7 +38,7 @@ export function FormulaBuilder({
       {
         name: newVar.name,
         type: 'input',
-        unit: newVar.unit as UnitMeasureType | null | undefined,
+        unit: newVar.unit as UnitMeasure | null | undefined,
         defaultValue: parseFloat(newVar.value as string) || 0,
         value: newVar.value,
       } as Variable,
@@ -84,11 +89,19 @@ export function FormulaBuilder({
           value={newVar.name}
           onChange={(e) => setNewVar({ ...newVar, name: e.target.value })}
         />
-        <Input
-          placeholder="Unit"
+        <select
           value={newVar.unit ?? ''}
-          onChange={(e) => setNewVar({ ...newVar, unit: e.target.value as UnitMeasureType })}
-        />
+          onChange={(e) => setNewVar({ ...newVar, unit: (e.target.value as UnitMeasure) || undefined })}
+          className="rounded border p-2 h-10"
+          aria-label="Select unit of measurement"
+        >
+          <option value="">Select unit...</option>
+          {UNIT_MEASURE_OPTIONS.map((unit) => (
+            <option key={unit} value={unit}>
+              {unit}
+            </option>
+          ))}
+        </select>
         <Input
           placeholder="Value"
           value={newVar.value as string}
