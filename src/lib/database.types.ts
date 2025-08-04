@@ -4830,14 +4830,6 @@ export type Database = {
           updated_at: string
         }[]
       }
-      get_inventory_running_balance: {
-        Args: { material_uuid: string }
-        Returns: {
-          txn_date: string
-          change: number
-          balance: number
-        }[]
-      }
       get_inventory_transactions: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -5020,12 +5012,6 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_open_punch_counts: {
-        Args: { p_project_id: string }
-        Returns: {
-          open_count: number
-        }[]
-      }
       get_organization_members: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -5055,13 +5041,6 @@ export type Database = {
           id: string
           name: string
           updated_at: string
-        }[]
-      }
-      get_payables_aging: {
-        Args: { p_project_id: string }
-        Returns: {
-          age_bucket: string
-          total_due: number
         }[]
       }
       get_payments: {
@@ -5152,6 +5131,10 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_project_cost_summary: {
+        Args: { _project_id: string; _organisation_id: string }
+        Returns: unknown[]
+      }
       get_project_inspectors: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -5160,10 +5143,6 @@ export type Database = {
           profile_id: string
           project_id: string
         }[]
-      }
-      get_project_receivables_total: {
-        Args: { p_project_id: string }
-        Returns: number
       }
       get_projects: {
         Args: Record<PropertyKey, never>
@@ -5332,15 +5311,6 @@ export type Database = {
           updated_at: string
         }[]
       }
-      get_task_completion_rate: {
-        Args: { p_project_id: string }
-        Returns: {
-          day: string
-          completed: number
-          total: number
-          pct_complete: number
-        }[]
-      }
       get_task_dependencies: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -5463,13 +5433,6 @@ export type Database = {
           order_num: number | null
           project_id: string | null
           updated_at: string
-        }[]
-      }
-      get_weekly_labor: {
-        Args: { p_project_id: string }
-        Returns: {
-          week_start: string
-          total_hours: number
         }[]
       }
       get_workflows: {
