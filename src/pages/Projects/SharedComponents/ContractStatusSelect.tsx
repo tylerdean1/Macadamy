@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/lib/database.types';
 
-type ContractStatus = Database['public']['Enums']['contract_status'];
+type ContractStatus = Database['public']['Enums']['project_status'];
 
 interface ContractStatusSelectProps {
   value: ContractStatus;
@@ -25,46 +25,32 @@ export const ContractStatusSelect = ({
 }: ContractStatusSelectProps) => {
   const [statusOptions, setStatusOptions] = useState<ContractStatus[]>([]);
 
-  // Fetch status options using direct RPC call
+  // Static status options based on database enum
   useEffect(() => {
-    const fetchStatusOptions = async () => {
-      try {
-        // Direct RPC call to get enum values
-        const { data, error } = await supabase.rpc('get_enum_values', {
-          enum_type: 'contract_status',
-        });
-
-        if (error) throw error;
-
-        const options = data.map((item) => item.value as ContractStatus);
-        setStatusOptions(options);
-      } catch (error) {
-        console.error('Error fetching contract status options:', error);
-      }
-    };
-
-    void fetchStatusOptions();
+    const statusOptions: ContractStatus[] = [
+      'planned',
+      'active',
+      'complete',
+      'archived',
+      'on_hold',
+      'canceled'
+    ];
+    setStatusOptions(statusOptions);
   }, []);
 
   const getStatusColor = (status: ContractStatus): string => {
     switch (status) {
-      case 'Draft':
+      case 'planned':
         return 'bg-gray-700 text-gray-300';
-      case 'Awaiting Assignment':
-      case 'Bidding Solicitation':
-        return 'bg-yellow-700/20 text-yellow-500';
-      case 'Active':
-      case 'Assigned(Partial)':
-      case 'Assigned(Full)':
+      case 'active':
         return 'bg-green-700/20 text-green-500';
-      case 'On Hold':
-        return 'bg-orange-700/20 text-orange-500';
-      case 'Final Review':
-        return 'bg-blue-700/20 text-blue-500';
-      case 'Completed':
+      case 'complete':
         return 'bg-purple-700/20 text-purple-500';
-      case 'Closed':
-      case 'Cancelled':
+      case 'archived':
+        return 'bg-blue-700/20 text-blue-500';
+      case 'on_hold':
+        return 'bg-orange-700/20 text-orange-500';
+      case 'canceled':
         return 'bg-red-700/20 text-red-500';
       default:
         return 'bg-gray-700 text-gray-300';

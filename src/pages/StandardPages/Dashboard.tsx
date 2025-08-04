@@ -118,21 +118,24 @@ export default function Dashboard() {
         />
 
         <ProjectsSection
-          filteredProjects={projects.map(contract => ({
-            id: contract.id,
-            title: contract.title ?? null,
-            description: contract.description ?? null,
-            location: contract.location ?? null,
-            start_date: contract.start_date ?? null,
-            end_date: contract.end_date ?? null,
-            budget: contract.budget ?? null,
-            status: contract.status ?? null,
-            // These two fields are not present in the mapped contract, so fallback to null
-            coordinates_wkt: null,
+          filteredProjects={projects.map(project => ({
+            id: project.id,
+            project_id: project.id,
+            contract_number: project.name,
+            title: project.name,
+            description: project.description ?? null,
+            start_date: project.start_date ?? null,
+            end_date: project.end_date ?? null,
+            budget: null, // Not available in projects table
+            status: project.status ?? null,
+            created_at: project.created_at,
+            updated_at: project.updated_at,
+            coordinates_wkt: null, // Not available
           }))}
           searchQuery={searchQuery}
           onSearchChange={handleSearchChange}
         />
       </PageContainer>
     </Page>
-  );}
+  );
+}

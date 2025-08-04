@@ -35,27 +35,36 @@ export function EditableWbsSection({
     try {
       const newWbsId = uuidv4();
 
-      // Use the Supabase RPC call
-      const { error } = await supabase.rpc('insert_wbs', {
-        _contract_id: contractId,
-        _wbs_number: newWbsNumber.trim(),
-        _scope: newWbsScope.trim() ? newWbsScope.trim() : undefined,
-        _budget: parseFloat(newWbsBudget) || 0,
-        _location: ''
-      });
+      // Use direct table insert instead of RPC
+      const { data: newWbsData, error } = await supabase
+        .from('wbs')
+        .insert({
+          id: newWbsId,
+          project_id: contractId,
+          name: newWbsNumber.trim(),
+          location: newWbsScope.trim() || null,
+          order_num: 0
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      // Get the created WBS to ensure we have all fields
-      const { data: newWbsData, error: fetchError } = await supabase
-        .rpc('get_wbs_with_wkt', { contract_id_param: contractId });
-
-      if (fetchError) throw fetchError;
-
-      const createdWbs = newWbsData.find(wbs => wbs.id === newWbsId);
-      // When creating WBS, do not add extra properties not in WbsWithWktRow
-      if (createdWbs) {
-        onWbsCreate(createdWbs);
+      // When creating WBS, use the returned data and convert to expected interface
+      if (newWbsData) {
+        const wbsWithWkt: WbsWithWktRow = {
+          id: newWbsData.id,
+          contract_id: newWbsData.project_id || '',
+          wbs_number: newWbsData.name,
+          description: null,
+          budget: null,
+          scope: newWbsData.location,
+          location: newWbsData.location,
+          created_at: newWbsData.created_at,
+          updated_at: newWbsData.updated_at,
+          coordinates_wkt: null
+        };
+        onWbsCreate(wbsWithWkt);
         toast.success('WBS created successfully');
         setIsCreatingWbs(false);
         setNewWbsNumber('');

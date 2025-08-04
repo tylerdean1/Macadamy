@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils/uiClassUtils';
 import type { Database } from '@/lib/database.types';
 
-type ContractStatus = Database['public']['Enums']['contract_status'];
+type ContractStatus = Database['public']['Enums']['project_status'];
 
 interface ContractStatusBadgeProps {
   status: ContractStatus;

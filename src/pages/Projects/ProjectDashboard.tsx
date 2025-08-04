@@ -16,8 +16,11 @@ import { supabase } from '@/lib/supabase';
 import { Page, PageContainer, SectionContainer } from '@/components/Layout';
 import { LoadingState } from '@/components/ui/loading-state';
 import { EmptyState } from '@/components/ui/empty-state';
-import type { ContractWithWktRow, WbsWithWktRow, LineItemsWithWktRow } from '@/lib/rpc.types';
-import type { UnitMeasure } from '@/lib/types';
+import type { TableRow } from '@/lib/types';
+
+type Project = TableRow<'projects'>;
+type Wbs = TableRow<'wbs'>;
+type LineItem = TableRow<'line_items'>;
 
 import { ProjectHeader } from './ProjectDashboardComponents/ProjectHeader';
 import { ProjectInfoForm } from './ProjectDashboardComponents/ProjectInfoForm';
@@ -29,9 +32,9 @@ import { ProjectTools } from './ProjectDashboardComponents/ProjectTools';
 export default function ProjectDashboard() {
   const { contractId } = useParams<{ contractId: string }>();
   const navigate = useNavigate();
-  const [contract, setContract] = useState<ContractWithWktRow | null>(null);
-  const [wbsItems, setWbsItems] = useState<WbsWithWktRow[]>([]);
-  const [lineItems, setLineItems] = useState<LineItemsWithWktRow[]>([]);
+  const [contract, setContract] = useState<Project | null>(null);
+  const [wbsItems, setWbsItems] = useState<Wbs[]>([]);
+  const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [issuesCount, setIssuesCount] = useState<number>(0);
   const [changeOrdersCount, setChangeOrdersCount] = useState<number>(0);
   const [inspectionsCount, setInspectionsCount] = useState<number>(0);
@@ -50,82 +53,60 @@ export default function ProjectDashboard() {
     setError(null);
 
     try {
-      // Fetch contract details
-      const { data: contractDetails, error: contractError } = await supabase
-        .rpc('get_contract_with_wkt', { contract_id: contractId });
-      if (contractError) throw contractError;
-      if (!Array.isArray(contractDetails) || contractDetails.length === 0) {
-        setError(new Error('Contract not found.'));
-        setContract(null);
-      } else {
-        setContract(contractDetails[0]);
-      }
+      // Fetch project details directly from projects table
+      const { data: projectDetails, error: projectError } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', contractId)
+        .single();
 
-      // Fetch WBS items using RPC
+      if (projectError) throw projectError;
+      setContract(projectDetails as Project);
+
+      // Fetch WBS items directly from wbs table
       const { data: wbsData, error: wbsError } = await supabase
-        .rpc('get_wbs_with_wkt', { _contract_id: contractId });
+        .from('wbs')
+        .select('*')
+        .eq('project_id', contractId);
+
       if (wbsError) throw wbsError;
-      const wbsRows: WbsWithWktRow[] = Array.isArray(wbsData) ? wbsData.map(item => ({
-        id: item.id,
-        contract_id: item.contract_id,
-        wbs_number: item.wbs_number ?? null,
-        budget: item.budget ?? null,
-        scope: item.scope ?? null,
-        location: item.location ?? null,
-        coordinates_wkt: item.coordinates_wkt ?? null,
-      })) : [];
-      setWbsItems(wbsRows);
+      setWbsItems(wbsData as Wbs[]);
 
-      // Fetch Line Items using RPC
+      // Fetch Line Items directly from line_items table
       const { data: lineItemsData, error: lineItemsError } = await supabase
-        .rpc('get_line_items_with_wkt', { _contract_id: contractId });
+        .from('line_items')
+        .select('*')
+        .eq('project_id', contractId);
+
       if (lineItemsError) throw lineItemsError;
-      const lineItemsRows: LineItemsWithWktRow[] = Array.isArray(lineItemsData) ? lineItemsData.map(item => {
-        // Validate unit_measure against enum
-        const validUnitMeasures: UnitMeasure[] = [
-          "Feet (FT)", "Inches (IN)", "Linear Feet (LF)", "Mile (MI)", "Shoulder Mile (SMI)",
-          "Square Feet (SF)", "Square Yard (SY)", "Acre (AC)", "Cubic Foot (CF)", "Cubic Yard (CY)",
-          "Gallon (GAL)", "Pounds (LBS)", "TON", "Each (EA)", "Lump Sum (LS)", "Hour (HR)", "DAY",
-          "Station (STA)", "MSF (1000SF)", "MLF (1000LF)", "Cubic Feet per Second (CFS)",
-          "Pounds per Square Inch (PSI)", "Percent (%)", "Degrees (*)"
-        ];
-        let safeUnit: UnitMeasure | null = null;
-        if (typeof item.unit_measure === 'string' && validUnitMeasures.includes(item.unit_measure as UnitMeasure)) {
-          safeUnit = item.unit_measure as UnitMeasure;
-        }
-        // Fix: Use item.line_code for legacy, otherwise item.item_code, and always assign to item_code for LineItemsWithWktRow
-        return {
-          id: item.id,
-          contract_id: item.contract_id,
-          wbs_id: item.wbs_id,
-          map_id: item.map_id ?? null,
-          item_code: 'item_code' in item && typeof item.item_code === 'string' ? item.item_code : ('line_code' in item && typeof item.line_code === 'string' ? item.line_code : null),
-          description: item.description ?? null,
-          quantity: item.quantity ?? 0,
-          unit_price: item.unit_price ?? 0,
-          unit_measure: safeUnit,
-          reference_doc: item.reference_doc ?? null,
-          template_id: item.template_id ?? null,
-          coordinates_wkt: item.coordinates_wkt ?? null,
-        };
-      }) : [];
-      setLineItems(lineItemsRows);
+      setLineItems(lineItemsData as LineItem[]);
 
-      // Fetch counts
-      const { data: issuesCountData, error: issuesCountError } = await supabase
-        .rpc('get_issues_count_for_contract', { contract_id_param: contractId });
+      // Count issues for this project
+      const { count: issuesCount, error: issuesCountError } = await supabase
+        .from('issues')
+        .select('*', { count: 'exact', head: true })
+        .eq('project_id', contractId);
+
       if (issuesCountError) throw issuesCountError;
-      setIssuesCount(issuesCountData || 0);
+      setIssuesCount(issuesCount || 0);
 
-      const { data: changeOrdersCountData, error: changeOrdersCountError } = await supabase
-        .rpc('get_change_orders_count_for_contract', { contract_id_param: contractId });
+      // Count change orders for this project  
+      const { count: changeOrdersCount, error: changeOrdersCountError } = await supabase
+        .from('change_orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('project_id', contractId);
+
       if (changeOrdersCountError) throw changeOrdersCountError;
-      setChangeOrdersCount(changeOrdersCountData || 0);
+      setChangeOrdersCount(changeOrdersCount || 0);
 
-      const { data: inspectionsCountData, error: inspectionsCountError } = await supabase
-        .rpc('get_inspections_count_for_contract', { contract_id_param: contractId });
+      // Count inspections for this project
+      const { count: inspectionsCount, error: inspectionsCountError } = await supabase
+        .from('inspections')
+        .select('*', { count: 'exact', head: true })
+        .eq('project_id', contractId);
+
       if (inspectionsCountError) throw inspectionsCountError;
-      setInspectionsCount(inspectionsCountData || 0);
+      setInspectionsCount(inspectionsCount || 0);
 
     } catch (err) {
       console.error('Error fetching contract data:', err);

@@ -12,7 +12,7 @@ import { GeometryTypeButton } from './GeometryTypeButton';
 interface MapModalProps {
   open: boolean;
   onClose: () => void;
-  table: 'maps' | 'wbs' | 'line_items' | 'contracts';
+  table: 'maps' | 'wbs' | 'line_items' | 'projects';
   targetId: string;
   existingWKT: string | null;
   onSaveSuccess?: () => void;

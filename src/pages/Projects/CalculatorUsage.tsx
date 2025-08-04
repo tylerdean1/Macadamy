@@ -61,7 +61,7 @@ export default function CalculatorUsage() {
   const fetchTemplate = useCallback(async () => {
     if (typeof templateId !== 'string' || templateId.length === 0) return;
     try {
-      const data = await rpcClient.getAllLineItemTemplates();
+      const data = await rpcClient.get_line_item_templates({});
       const found = Array.isArray(data) ? data.find((t) => t.id === templateId) : undefined;
       if (!found) throw new Error('Template not found');
       // Parse variables and formulas from formula JSON
@@ -85,7 +85,7 @@ export default function CalculatorUsage() {
             // Optionally log error
           }
         } else if (typeof found?.formula === 'object' && found.formula !== null) {
-          formulaObj = found.formula;
+          formulaObj = found.formula as { variables?: Variable[]; formulas?: Formula[] };
         }
         // 3. Access variables/formulas safely
         variables = Array.isArray(formulaObj.variables) ? formulaObj.variables : [];
@@ -94,7 +94,7 @@ export default function CalculatorUsage() {
       setTemplate({
         id: found.id,
         name: found.name ?? '',
-        description: found.description ?? '',
+        description: '', // Remove description field as it doesn't exist in database
         variables,
         formulas,
       });
@@ -207,7 +207,7 @@ export default function CalculatorUsage() {
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-            onClick={() => navigate(`/projects/${id}/calculators`)}
+              onClick={() => navigate(`/projects/${id}/calculators`)}
               className="p-2 text-gray-400 hover:text-white hover:bg-background-lighter rounded-lg transition-colors"
               aria-label="Go back to calculators list"
               title="Go back"

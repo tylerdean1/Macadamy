@@ -6,7 +6,10 @@ import { Input } from './input';
 import { Select } from './select';
 import { Button } from './button';
 import { Plus } from 'lucide-react';
-import type { Avatars, Organization, JobTitle } from '@/lib/types';
+import type { Database } from '@/lib/database.types';
+import type { Organization, JobTitle } from '@/lib/types';
+
+type Avatars = Database['public']['Tables']['avatars']['Row'];
 import type { Area } from 'react-easy-crop';
 import { getCroppedImg } from '@/utils/cropImage';
 

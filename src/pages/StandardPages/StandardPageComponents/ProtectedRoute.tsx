@@ -4,7 +4,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/lib/store';
 import type { Database } from '@/lib/database.types';
 
-type UserRole = Database['public']['Enums']['user_role'];
+type UserRole = Database['public']['Enums']['user_role_type'];
 
 /** Route guard
  *

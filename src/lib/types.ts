@@ -68,6 +68,49 @@ export type Enums = Database['public']['Enums'];
 export type TableRow<T extends keyof Tables> = Tables[T]['Row'];
 export type TableInsert<T extends keyof Tables> = Tables[T]['Insert'];
 export type TableUpdate<T extends keyof Tables> = Tables[T]['Update'];
+
+/**
+ * Specific table type aliases for commonly used tables
+ */
+export type Issues = TableRow<'issues'>;
+export type IssuesInsert = TableInsert<'issues'>;
+export type IssuesUpdate = TableUpdate<'issues'>;
+
+export type ChangeOrders = TableRow<'change_orders'>;
+export type ChangeOrdersInsert = TableInsert<'change_orders'>;
+export type ChangeOrdersUpdate = TableUpdate<'change_orders'>;
+
+export type Inspections = TableRow<'inspections'>;
+export type InspectionsInsert = TableInsert<'inspections'>;
+export type InspectionsUpdate = TableUpdate<'inspections'>;
+
+export type LineItems = TableRow<'line_items'>;
+export type LineItemsInsert = TableInsert<'line_items'>;
+export type LineItemsUpdate = TableUpdate<'line_items'>;
+
+export type Maps = TableRow<'maps'>;
+export type MapsInsert = TableInsert<'maps'>;
+export type MapsUpdate = TableUpdate<'maps'>;
+
+export type WBS = TableRow<'wbs'>;
+export type WBSInsert = TableInsert<'wbs'>;
+export type WBSUpdate = TableUpdate<'wbs'>;
+
+// Add these exports for compatibility
+export type {
+  ContractWithWktRow,
+  WbsWithWktRow,
+  LineItemsWithWktRow,
+  MapsWithWktRow,
+  EnrichedProfileRow,
+  EquipmentRow,
+  OrganizationRow,
+  JobTitleRow
+} from './rpc.types';
+
+// Add missing contract type
+export type Contracts = TableRow<'projects'>; // Assuming contracts are in projects table
+
 /**
  * Map Location Types
  */

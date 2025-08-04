@@ -80,7 +80,7 @@ import type {
   LineItemsWithWktRow,
   MapsWithWktRow,
   WbsWithWktRow,
-} from "@/lib/rpc.types";
+} from "@/lib/types";
 
 /**
  * Base interface for all dashboard components with loading and error states

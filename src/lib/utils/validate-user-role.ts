@@ -11,7 +11,6 @@ export function validateUserRole(userRole: string | null): UserRoleType | null {
     "org_supervisor",
     "org_user",
     "org_viewer",
-    "contractor",
     "inspector",
     "auditor",
   ];

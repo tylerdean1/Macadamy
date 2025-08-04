@@ -5,22 +5,24 @@ import { supabase } from '@/lib/supabase'; // Import Supabase client for interac
 import { useAuthStore } from '@/lib/store'; // Import auth state management
 
 /**
- * Interface representing a daily log entry.
+ * Interface representing a daily log entry - aligned with database.types.ts daily_logs table
  */
 interface DailyLog {
-  id?: string; // Optional ID for the log entry
-  contract_id: string; // ID of the associated contract
-  log_date: string; // Date of the log
-  weather_conditions: string | null; // Weather conditions noted in the log
-  temperature: number | null; // Temperature recorded during the log
-  work_performed: string | null; // Work performed on the log date
-  delays_encountered: string | null; // Any delays noted
-  visitors: string | null; // Visitors logged during the inspection
-  safety_incidents: string | null; // Any safety incidents noted in the log
-  created_by?: string; // User who created the log entry
-  updated_by?: string; // User who last updated the log entry
-  created_at?: string; // Timestamp of log creation
-  updated_at?: string; // Timestamp of the last update
+  id?: string;
+  contract_id: string;
+  date: string; // Using 'date' field from database, not 'log_date'
+  notes: string | null;
+  project_id: string | null;
+  weather: any; // Json type from database
+  created_at: string | null;
+  updated_at: string;
+  // Additional fields for UI mapping
+  weather_conditions?: string | null;
+  temperature?: number | null;
+  work_performed?: string | null;
+  delays_encountered?: string | null;
+  visitors?: string | null;
+  safety_incidents?: string | null;
 }
 
 /**
@@ -44,28 +46,50 @@ export default function DailyReports() {
   const [contractCheckLoading, setContractCheckLoading] = useState(true); // Loading state for checking contract status
   const [editing, setEditing] = useState(false); // Editing state for current log
 
-  // Fetch daily logs based on contract ID using RPC
+  // Fetch daily logs based on contract ID
   useEffect(() => {
     async function fetchData() {
       if (typeof contract_id !== 'string' || contract_id.length === 0) return;
       try {
+        // Query daily_logs table directly since the structure doesn't match the custom RPC
         const { data, error } = await supabase
-          .rpc('get_daily_logs', { _contract_id: contract_id });
+          .from('daily_logs')
+          .select('*')
+          .eq('project_id', contract_id);
+
         if (error) throw error;
-        // Map and coerce fields to match DailyLog interface
-        const logs: DailyLog[] = Array.isArray(data)
-          ? data.map((log) => ({
-            ...log,
-            contract_id: contract_id,
-            temperature: typeof log.temperature === 'string' ? parseFloat(log.temperature) : log.temperature,
-            weather_conditions: log.weather_conditions ?? null,
-            work_performed: log.work_performed ?? null,
-            delays_encountered: log.delays_encountered ?? null,
-            visitors: log.visitors ?? null,
-            safety_incidents: log.safety_incidents ?? null,
-          }))
+
+        // Map database fields to our interface
+        const mappedLogs: DailyLog[] = Array.isArray(data)
+          ? data.map((log) => {
+            // Parse weather JSON if it exists
+            let weatherData: any = {};
+            try {
+              weatherData = log.weather ? (typeof log.weather === 'string' ? JSON.parse(log.weather) : log.weather) : {};
+            } catch (e) {
+              weatherData = {};
+            }
+
+            return {
+              id: log.id,
+              contract_id: contract_id,
+              date: log.date,
+              notes: log.notes,
+              project_id: log.project_id,
+              weather: log.weather,
+              created_at: log.created_at,
+              updated_at: log.updated_at,
+              // Extract from weather JSON or notes
+              weather_conditions: weatherData.conditions || null,
+              temperature: weatherData.temperature || null,
+              work_performed: weatherData.work_performed || null,
+              delays_encountered: weatherData.delays_encountered || null,
+              visitors: weatherData.visitors || null,
+              safety_incidents: weatherData.safety_incidents || null,
+            };
+          })
           : [];
-        setLogs(logs);
+        setLogs(mappedLogs);
       } catch (err) {
         console.error('Failed to fetch daily logs:', err);
       } finally {
@@ -76,49 +100,72 @@ export default function DailyReports() {
     void fetchData(); // Invoke data fetch
   }, [contract_id]); // Dependency on contract ID
 
-  // Check contract status upon component mount using RPC
+  // Check contract status using direct table query
   useEffect(() => {
     async function fetchContractStatus() {
       if (typeof contract_id !== 'string' || contract_id.length === 0) return;
 
       try {
+        // Query projects table instead of contracts table
         const { data, error } = await supabase
-          .rpc('get_contract_with_wkt', { contract_id: contract_id });
+          .from('projects')
+          .select('status')
+          .eq('id', contract_id)
+          .single();
 
         if (error) throw error;
-        if (Array.isArray(data) && data.length > 0 && typeof data[0].status === 'string') {
-          setContractStatus(data[0].status); // Set the contract status from the RPC result
+        if (data && typeof data.status === 'string') {
+          setContractStatus(data.status);
         }
       } catch (err) {
-        console.error('Error fetching contract status:', err); // Log errors
+        console.error('Error fetching contract status:', err);
       } finally {
-        setContractCheckLoading(false); // Hide loading for contract check
+        setContractCheckLoading(false);
       }
     }
 
-    void fetchContractStatus(); // Call function to check contract status
-  }, [contract_id]); // Dependency on contract ID
+    void fetchContractStatus();
+  }, [contract_id]);
 
   // Move fetchData to top-level so it can be called from handleUpdate
   async function fetchData() {
     if (typeof contract_id !== 'string' || contract_id.length === 0) return;
     try {
       const { data, error } = await supabase
-        .rpc('get_daily_logs', { _contract_id: contract_id });
+        .from('daily_logs')
+        .select('*')
+        .eq('project_id', contract_id);
+
       if (error) throw error;
-      const logs: DailyLog[] = Array.isArray(data)
-        ? data.map((log) => ({
-          ...log,
-          contract_id: contract_id,
-          temperature: typeof log.temperature === 'string' ? parseFloat(log.temperature) : log.temperature,
-          weather_conditions: log.weather_conditions ?? null,
-          work_performed: log.work_performed ?? null,
-          delays_encountered: log.delays_encountered ?? null,
-          visitors: log.visitors ?? null,
-          safety_incidents: log.safety_incidents ?? null,
-        }))
+
+      const mappedLogs: DailyLog[] = Array.isArray(data)
+        ? data.map((log) => {
+          let weatherData: Record<string, unknown> = {};
+          try {
+            weatherData = log.weather ? (typeof log.weather === 'string' ? JSON.parse(log.weather) : log.weather) : {};
+          } catch {
+            weatherData = {};
+          }
+
+          return {
+            id: log.id,
+            contract_id: contract_id,
+            date: log.date,
+            notes: log.notes,
+            project_id: log.project_id,
+            weather: log.weather,
+            created_at: log.created_at,
+            updated_at: log.updated_at,
+            weather_conditions: typeof weatherData.conditions === 'string' ? weatherData.conditions : null,
+            temperature: typeof weatherData.temperature === 'number' ? weatherData.temperature : null,
+            work_performed: typeof weatherData.work_performed === 'string' ? weatherData.work_performed : null,
+            delays_encountered: typeof weatherData.delays_encountered === 'string' ? weatherData.delays_encountered : null,
+            visitors: typeof weatherData.visitors === 'string' ? weatherData.visitors : null,
+            safety_incidents: typeof weatherData.safety_incidents === 'string' ? weatherData.safety_incidents : null,
+          };
+        })
         : [];
-      setLogs(logs);
+      setLogs(mappedLogs);
     } catch (err) {
       console.error('Failed to fetch daily logs:', err);
     } finally {
@@ -126,29 +173,36 @@ export default function DailyReports() {
     }
   }
 
-  // Handle updates to the daily log using RPC
+  // Handle updates to the daily log
   const handleUpdate = async () => {
     if (!currentLog || typeof user !== 'object' || user === null || typeof currentLog.id !== 'string' || currentLog.id.length === 0) return;
 
     try {
-      // Use correct RPC function to update daily log
-      const { error } = await supabase.rpc('update_daily_log', {
-        _id: currentLog.id,
-        _work_performed: currentLog.work_performed ?? undefined,
-        _weather_conditions: currentLog.weather_conditions ?? undefined,
-        _temperature: typeof currentLog.temperature === 'number' ? currentLog.temperature : undefined,
-        _delays_encountered: currentLog.delays_encountered ?? undefined,
-        _safety_incidents: currentLog.safety_incidents ?? undefined,
-        _visitors: currentLog.visitors ?? undefined,
-        _updated_by: user.id,
-        _updated_at: new Date().toISOString(),
-      });
+      // Prepare weather data as JSON
+      const weatherData = {
+        conditions: currentLog.weather_conditions,
+        temperature: currentLog.temperature,
+        work_performed: currentLog.work_performed,
+        delays_encountered: currentLog.delays_encountered,
+        visitors: currentLog.visitors,
+        safety_incidents: currentLog.safety_incidents,
+      };
+
+      // Update daily_logs table directly
+      const { error } = await supabase
+        .from('daily_logs')
+        .update({
+          weather: weatherData,
+          notes: currentLog.notes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', currentLog.id);
 
       if (error) throw error;
       setEditing(false);
-      void fetchData(); // Refresh logs after update
+      void fetchData();
     } catch (err) {
-      console.error('Error updating daily log:', err); // Log errors
+      console.error('Error updating daily log:', err);
     }
   };
 
@@ -162,7 +216,7 @@ export default function DailyReports() {
   }
 
   // Render message if contract is not active
-  if (contractStatus !== 'Active') {
+  if (contractStatus !== 'active') {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center text-white text-center px-4">
         <p>
@@ -285,9 +339,9 @@ export default function DailyReports() {
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h3 className="text-white font-semibold text-lg">
-                    {new Date(log.log_date).toLocaleDateString()} {/* Display log date */}
+                    {new Date(log.date).toLocaleDateString()} {/* Display log date */}
                   </h3>
-                  <p className="text-gray-400 text-sm">Created by {typeof log.created_by === 'string' && log.created_by.length > 0 ? log.created_by : '—'}</p>
+                  <p className="text-gray-400 text-sm">Created at {log.created_at ? new Date(log.created_at).toLocaleDateString() : '—'}</p>
                 </div>
                 <div className="text-sm text-gray-400">
                   {log.weather_conditions} | {log.temperature}°F {/* Display weather and temperature */}

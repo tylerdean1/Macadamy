@@ -4,6 +4,7 @@ import { ContractStatusBadge } from '../SharedComponents/ContractStatusBadge';
 import { LoadingState } from '@/components/ui/loading-state';
 import { ErrorState } from '@/components/ui/error-state';
 import type { ContractWithWktRow } from '@/lib/rpc.types';
+import type { Database } from '@/lib/database.types';
 import { ErrorBoundary } from 'react-error-boundary';
 import { CalendarRange, MapPin } from 'lucide-react';
 
@@ -100,11 +101,11 @@ export function ProjectHeader({
               </h1>
               <div className="flex items-center gap-2 flex-wrap">
                 {/* ContractStatusBadge: fallback to 'Draft' if status is null */}
-                <ContractStatusBadge status={contractData.status ?? 'Draft'} />
+                <ContractStatusBadge status={(contractData.status ?? 'planned') as Database['public']['Enums']['project_status']} />
                 <span className="text-sm text-gray-400 flex items-center">
                   <MapPin size={14} className="mr-1" />
                   {/* location: handle null/empty */}
-                  {typeof contractData.location === 'string' && contractData.location.trim() !== '' ? contractData.location : 'No location specified'}
+                  {typeof contractData.description === 'string' && contractData.description.trim() !== '' ? contractData.description : 'No description specified'}
                 </span>
                 <span className="text-sm text-gray-400 flex items-center">
                   <CalendarRange size={14} className="mr-1" />

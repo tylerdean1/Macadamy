@@ -150,7 +150,7 @@ export function ProjectInfoForm({ contractData }: ProjectInfoFormProps) {
       const header = "Property,Value\n";
       const rows = [
         `Title,${contractData.title ?? ''}`,
-        `Location,${contractData.location ?? ''}`,
+        `Description,${contractData.description ?? ''}`,
         `Start Date,${formatDate(contractData.start_date)}`,
         `End Date,${formatDate(contractData.end_date)}`,
         `Duration,${calculateDuration(contractData.start_date, contractData.end_date)}`,
@@ -260,7 +260,7 @@ export function ProjectInfoForm({ contractData }: ProjectInfoFormProps) {
             <MapPin className="text-gray-400 mt-0.5 flex-shrink-0" size={16} />
             <div>
               <h3 className="text-sm text-gray-400">Location</h3>
-              <p className="text-white">{getDisplayValue(contractData.location)}</p>
+              <p className="text-white">{getDisplayValue(contractData.description)}</p>
             </div>
           </div>
         </div>
@@ -341,7 +341,7 @@ export function ProjectInfoForm({ contractData }: ProjectInfoFormProps) {
                     </div>
                     <div>
                       <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contractData.location ?? '')}`}
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contractData.description ?? '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-500 hover:text-blue-400 flex items-center gap-1 text-sm"

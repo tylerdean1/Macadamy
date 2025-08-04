@@ -115,7 +115,7 @@ export function ProjectsSection({
                 ? contract.title
                 : 'N/A';
             const description = contract.description ?? '';
-            const location = contract.location ?? '';
+            const location = contract.description ?? '';
             const startDate =
               typeof contract.start_date === 'string' &&
                 contract.start_date.length > 0

@@ -134,8 +134,10 @@ export default function CalculatorCreation() {
         formula: formulas[0],
       };
       const { error: insertError } = await supabase.from('line_item_templates').insert({
-        ...calculatorTemplate,
-        formula: JSON.stringify(calculatorTemplate.formula),
+        name: calculatorTemplate.name,
+        formula: calculatorTemplate.formula ? JSON.stringify(calculatorTemplate.formula) : null,
+        variables: calculatorTemplate.variables ? JSON.stringify(calculatorTemplate.variables) : null,
+        created_by: user?.id || null,
       });
       if (insertError) throw insertError;
 

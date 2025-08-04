@@ -3,7 +3,7 @@ import { Page } from '@/components/Layout';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/lib/database.types';
 
-type TaskRow = Database['public']['Tables']['schedule_tasks']['Row'];
+type TaskRow = Database['public']['Tables']['tasks']['Row'];
 
 export default function ScheduleTasks() {
   const [tasks, setTasks] = useState<TaskRow[]>([]);
@@ -12,7 +12,7 @@ export default function ScheduleTasks() {
   useEffect(() => {
     const fetchData = async () => {
       const { data, error } = await supabase
-        .from('schedule_tasks')
+        .from('tasks')
         .select('*')
         .returns<TaskRow[]>();
       if (error) {

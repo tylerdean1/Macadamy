@@ -33,9 +33,9 @@ export default function Estimates() {
       <ul className="space-y-2">
         {estimates.map(e => (
           <li key={e.id} className="border p-2 rounded">
-            <span className="font-medium">{e.title}</span>
+            <span className="font-medium">{e.name}</span>
             <span className="ml-2 text-sm text-gray-500">
-              ${'{'}e.amount{'}'} ({e.status ?? 'N/A'})
+              ({e.status ?? 'N/A'})
             </span>
           </li>
         ))}

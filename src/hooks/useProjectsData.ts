@@ -27,7 +27,7 @@ function isJson(val: unknown): val is import('@/lib/types').Json {
 function validateUserRole(role: string | null | undefined): UserRoleType | null {
     const validRoles: UserRoleType[] = [
         'system_admin', 'org_admin', 'org_supervisor', 'org_user', 'org_viewer',
-        'contractor', 'inspector', 'auditor'
+        'inspector', 'auditor'
     ];
     if (role !== null && role !== undefined && validRoles.includes(role as UserRoleType)) {
         return role as UserRoleType;
