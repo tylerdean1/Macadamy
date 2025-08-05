@@ -54,8 +54,10 @@ export default function EquipmentLog() {
   const fetchLogs = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .rpc('get_equipment_usage')
-        .order('usage_date', { ascending: false });
+        .rpc('filter_equipment_usage', {
+          _filters: {},
+          _select_cols: []
+        });
 
       if (error) throw error;
       const processedData = Array.isArray(data) ? data.map(log => ({
@@ -71,7 +73,10 @@ export default function EquipmentLog() {
   }, []);
 
   const fetchOperators = useCallback(async () => {
-    const { data, error } = await supabase.rpc('get_profiles_by_organization');
+    const { data, error } = await supabase.rpc('filter_profiles', {
+      _filters: {},
+      _select_cols: []
+    });
     if (Array.isArray(data) && !error) {
       const operators: Operator[] = data.map(profile => ({
         id: profile.id,
@@ -82,7 +87,10 @@ export default function EquipmentLog() {
   }, []);
 
   const fetchEquipment = useCallback(async () => {
-    const { data, error } = await supabase.rpc('get_equipment_by_organization');
+    const { data, error } = await supabase.rpc('filter_equipment', {
+      _filters: {},
+      _select_cols: []
+    });
     if (Array.isArray(data) && !error) setEquipmentList(data);
   }, []);
 

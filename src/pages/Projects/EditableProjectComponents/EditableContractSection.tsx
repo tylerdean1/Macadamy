@@ -26,36 +26,28 @@ export const EditableContractSection: React.FC<EditableContractSectionProps> = (
 
   return (
     <div className="border-b border-background-lighter pb-6 mb-6 space-y-4">
-      {/* Contract Title */}
+      {/* Contract Title (using name field from database) */}
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div className="flex-1 w-full">
           <Input
-            value={contract.title ?? ''}
-            onChange={(e) => onChange({ ...contract, title: e.target.value })}
-            placeholder="Contract Title"
+            value={contract.name ?? ''}
+            onChange={(e) => onChange({ ...contract, name: e.target.value })}
+            placeholder="Project Name"
             className="text-xl font-bold w-full"
-            aria-label="Contract Title"
+            aria-label="Project Name"
           />
 
           <div className="mt-2 flex items-center gap-4">
             <ContractStatusSelect
-              value={contract.status}
+              value={contract.status ?? 'planned'}
               onChange={handleStatusChange}
             />
           </div>
 
-          <Input
-            value={contract.location ?? ''}
-            onChange={(e) => onChange({ ...contract, location: e.target.value })}
-            placeholder="Contract Location"
-            className="mt-2 w-full"
-            aria-label="Contract Location"
-          />
-
           <textarea
             value={contract.description ?? ''}
             onChange={(e) => onChange({ ...contract, description: e.target.value })}
-            placeholder="Contract Description"
+            placeholder="Project Description"
             className="mt-2 w-full bg-background border border-zinc-700 px-3 py-2 rounded text-white"
             rows={2}
             aria-label="Contract Description"

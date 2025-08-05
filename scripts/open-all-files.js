@@ -1,7 +1,6 @@
+// open-all-files.ts
 import { exec } from 'child_process';
 import { glob } from 'glob';
-
-console.log('Current working directory:', process.cwd());
 
 // Only match .ts, .tsx, .css, .sql files
 const patterns = [
@@ -16,31 +15,29 @@ const files = await glob(patterns, {
   ignore: ['node_modules/**', 'dist/**', 'supabase/**']
 });
 
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function openFilesWithDelay(files, delayMs = 300) {
-  for (const file of files) {
-    console.log('Opening:', file);
-    exec(`start "" "${file}"`);
-    await delay(delayMs);
-  }
-}
-
 if (files.length === 0) {
   console.log('No files found.');
-} else {
-  console.log('Files that would be opened:', files);
-  // Ask for confirmation before opening
-  process.stdout.write('Open these files? (y/n): ');
-  process.stdin.setEncoding('utf8');
-  process.stdin.once('data', async (input) => {
-    if (input.trim().toLowerCase() === 'y') {
-      await openFilesWithDelay(files, 300); // 300ms delay between each open
-    } else {
-      console.log('Aborted.');
-    }
-    process.stdin.pause();
-  });
+  process.exit(0);
 }
+
+console.log(`Found ${files.length} files:`);
+files.forEach(f => console.log('  ' + f));
+
+process.stdout.write('\nOpen these files in VS Code? (y/n): ');
+process.stdin.setEncoding('utf8');
+process.stdin.once('data', (input) => {
+  if (input.trim().toLowerCase() === 'y') {
+    // Wrap each path in quotes in case it contains spaces
+    const fileArgs = files.map(f => `"${f}"`).join(' ');
+
+    // Open all files in one VS Code instance
+    exec(`code ${fileArgs}`, (error) => {
+      if (error) {
+        console.error('Error opening files in VS Code:', error);
+      }
+    });
+  } else {
+    console.log('Aborted.');
+  }
+  process.stdin.pause();
+});

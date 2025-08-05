@@ -108,7 +108,10 @@ export default function Inspections() {
     try {
       // Note: get_contract_with_wkt normally expects a contract_id parameter,
       // but when called without it, it should return all contracts
-      const { data, error } = await supabase.rpc('get_contract_with_wkt', { contract_id: '' });
+      const { data, error } = await supabase.rpc('filter_projects', {
+        _filters: {},
+        _select_cols: []
+      });
 
       if (error) {
         console.error('Error fetching contracts:', error);
@@ -118,7 +121,7 @@ export default function Inspections() {
       if (Array.isArray(data)) {
         setContracts(data.map((contract) => ({
           id: contract.id,
-          name: contract.title
+          name: contract.name
         })));
       }
     } catch (err) {
@@ -129,8 +132,9 @@ export default function Inspections() {
   // Fetch WBS entries for a contract using RPC
   async function fetchWbs(contractId: string) {
     try {
-      const { data, error } = await supabase.rpc('get_wbs_with_wkt', {
-        contract_id_param: contractId
+      const { data, error } = await supabase.rpc('filter_wbs', {
+        _filters: { project_id: contractId },
+        _select_cols: []
       });
 
       if (error) {
@@ -142,7 +146,7 @@ export default function Inspections() {
       if (Array.isArray(data)) {
         setWbsList(data.map((wbs) => ({
           id: wbs.id,
-          name: wbs.wbs_number || wbs.description || 'Unnamed WBS',
+          name: wbs.name || 'Unnamed WBS',
         })));
       } else {
         setWbsList([]);
@@ -158,8 +162,9 @@ export default function Inspections() {
     try {
       // In this application, get_maps_with_wkt needs contract_id, not wbs_id
       // This is likely a design issue in the API, but we need to work with it
-      const { data, error } = await supabase.rpc('get_maps_with_wkt', {
-        contract_id: wbsId // Using wbsId as contract_id because that's what the API expects
+      const { data, error } = await supabase.rpc('filter_maps', {
+        _filters: { wbs_id: wbsId },
+        _select_cols: []
       });
 
       if (error) {
@@ -173,7 +178,7 @@ export default function Inspections() {
         const filteredMaps = data.filter(map => map.wbs_id === wbsId);
         setMapList(filteredMaps.map((map) => ({
           id: map.id,
-          name: map.map_number
+          name: map.name
         })));
       } else {
         setMapList([]);
@@ -278,7 +283,7 @@ export default function Inspections() {
       let error;
       if (typeof editingId === 'string' && editingId.length > 0) {
         // Use correct backend function for updating inspection
-        const result = await supabase.rpc('update_inspection', {
+        const result = await supabase.rpc('update_inspections', {
           _id: editingId,
           _contract_id: insertData.contract_id,
           _name: insertData.name,
@@ -293,7 +298,7 @@ export default function Inspections() {
         error = result.error;
       } else {
         // Use correct backend function for inserting inspection
-        const result = await supabase.rpc('insert_inspection', {
+        const result = await supabase.rpc('insert_inspections', {
           _contract_id: insertData.contract_id,
           _name: insertData.name,
           _description: insertData.description,

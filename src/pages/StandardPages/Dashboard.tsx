@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useRequireProfile } from '@/hooks/useRequireProfile';
 import { useProfileData } from '@/hooks/useProfileData';
 import { useProjectsData } from '@/hooks/useProjectsData';
@@ -6,44 +7,21 @@ import { useDashboardMetrics } from '@/hooks/useDashboardMetrics';
 import { Page } from '@/components/Layout';
 import { PageContainer } from '@/components/Layout';
 import { ProfileSection } from './StandardPageComponents/ProfileSection';
-import { EditProfileModal } from './StandardPageComponents/EditProfileModal';
 import { DashboardMetrics } from './StandardPageComponents/DashboardMetrics';
 import { ProjectsSection } from './StandardPageComponents/ProjectsSection';
-import type { Area } from 'react-easy-crop'; // Ensure this type is available or defined if needed by EditProfileModal directly
 
 export default function Dashboard() {
   useRequireProfile(); // Ensures user is logged in and profile exists
 
-  const {
-    profile,
-    organizations,
-    avatars,
-    jobTitles,
-    loading: profileLoading,
-    error: profileError,
-    isModalOpen,
-    setIsModalOpen,
-    editForm,
-    selectedImage,
-    crop,
-    zoom,
-    croppedAreaPixels,
-    handleCustomFormChange,
-    handleAvatarSelect,
-    handleRawImageSelected,
-    handleImageCroppedAndUpload,
-    handleSaveProfile,
-    setCrop,
-    setZoom,
-    setCroppedAreaPixels,
-  } = useProfileData();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const { profile } = useProfileData();
 
   const {
     projects,
     loading: projectsLoading,
     error: projectsError,
     searchQuery,
-    handleSearchChange,
   } = useProjectsData();
 
   const {
@@ -52,11 +30,11 @@ export default function Dashboard() {
     error: metricsError,
   } = useDashboardMetrics();
 
-  const loading = profileLoading || projectsLoading || metricsLoading;
+  const loading = projectsLoading || metricsLoading;
   // Explicitly check for non-empty error strings and provide a default empty string if none are found.
   // Fix: Remove null/undefined from array before .find()
   // Final fix: filter out null/undefined and empty strings before .find()
-  const errorList = [profileError, projectsError, metricsError].filter((e): e is string => typeof e === 'string' && e != null && e.trim() !== '');
+  const errorList = [projectsError, metricsError].filter((e): e is string => typeof e === 'string' && e != null && e.trim() !== '');
   const combinedError = errorList.length > 0 ? errorList[0] : null;
 
   if (loading) {
@@ -79,37 +57,21 @@ export default function Dashboard() {
           onEdit={() => setIsModalOpen(true)}
         />
 
-        <EditProfileModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          avatars={avatars}
-          organizations={organizations}
-          jobTitles={jobTitles}
-          editForm={{ // Ensure editForm structure matches EditProfileModalProps
-            username: editForm.username,
-            full_name: editForm.full_name,
-            avatar_id: editForm.avatar_id ?? undefined, // Ensure optional fields are handled
-            organization_id: editForm.organization_id ?? undefined,
-            job_title_id: editForm.job_title_id ?? undefined,
-            email: editForm.email ?? undefined,
-            custom_job_title: editForm.custom_job_title ?? undefined,
-            phone: editForm.phone ?? undefined,
-          }}
-          selectedImage={selectedImage}
-          crop={crop}
-          zoom={zoom}
-          croppedAreaPixels={croppedAreaPixels}
-          onAvatarSelect={handleAvatarSelect}
-          onRawImageSelected={handleRawImageSelected}
-          onImageCroppedAndUpload={handleImageCroppedAndUpload}
-          onCropChange={setCrop} // Pass down setters
-          onZoomChange={setZoom}
-          onCropComplete={(_: Area, area: Area) => setCroppedAreaPixels(area)} // Pass down setter
-          onFormChange={handleCustomFormChange} // Using handleCustomFormChange as it includes create-new logic
-          onSaveProfile={() => {
-            void handleSaveProfile();
-          }}
-        />
+        {/* Simplified modal placeholder */}
+        {isModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+              <h2 className="text-lg font-semibold mb-4">Edit Profile</h2>
+              <p className="text-gray-600 mb-4">Profile editing functionality will be implemented with simplified interface.</p>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
 
         <DashboardMetrics
           activeContracts={metrics.activeContracts}
@@ -117,24 +79,22 @@ export default function Dashboard() {
           pendingInspections={metrics.pendingInspections}
         />
 
-        <ProjectsSection
-          filteredProjects={projects.map(project => ({
-            id: project.id,
-            project_id: project.id,
-            contract_number: project.name,
-            title: project.name,
-            description: project.description ?? null,
-            start_date: project.start_date ?? null,
-            end_date: project.end_date ?? null,
-            budget: null, // Not available in projects table
-            status: project.status ?? null,
-            created_at: project.created_at,
-            updated_at: project.updated_at,
-            coordinates_wkt: null, // Not available
-          }))}
-          searchQuery={searchQuery}
-          onSearchChange={handleSearchChange}
-        />
+        {/* Simplified projects display */}
+        <div className="mt-6">
+          <h2 className="text-xl font-semibold mb-4">Projects</h2>
+          <div className="grid gap-4">
+            {projects.map((project) => (
+              <div key={project.id} className="border rounded-lg p-4">
+                <h3 className="font-medium">{project.name}</h3>
+                <p className="text-sm text-gray-600 mt-1">{project.description}</p>
+                <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                  <span>Status: {project.status || 'Unknown'}</span>
+                  {project.start_date && <span>Start: {new Date(project.start_date).toLocaleDateString()}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </PageContainer>
     </Page>
   );

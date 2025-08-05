@@ -8,18 +8,18 @@ import type { UserRoleType } from "@/lib/types";
 
 export interface EnrichedProfile {
   id: string;
-  full_name: string;
-  username: string | null;
-  email: string | null;
+  full_name: string | null; // Allow null as per database
+  email: string;
   phone: string | null;
-  location: string | null;
   role: UserRoleType | null; // Allow role to be null
   job_title_id: string | null;
   organization_id: string | null;
-  avatar_id: string | null;
-  avatar_url: string | null;
-  job_title: string | null;
-  organization_name: string | null;
+  avatar_url: string | null; // Use avatar_url instead of avatar_id
+  job_title: string | null; // Enriched field from job_titles.name
+  organization_name: string | null; // Enriched field from organizations.name
+  created_at: string | null;
+  updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface LoadingState {
@@ -195,14 +195,12 @@ export const useAuthStore = create<AuthState>()(
           const rpcArgs = {
             _id: profileId,
             _full_name: updates.full_name ?? undefined,
-            _username: updates.username ?? undefined,
             _email: updates.email ?? undefined,
             _phone: updates.phone ?? undefined,
-            _location: updates.location ?? undefined,
             _role: updates.role ?? undefined,
             _job_title_id: updates.job_title_id ?? undefined,
             _organization_id: updates.organization_id ?? undefined,
-            _avatar_id: updates.avatar_id ?? undefined,
+            _avatar_url: updates.avatar_url ?? undefined,
           };
 
           await rpcClient.updateProfileFull(rpcArgs);

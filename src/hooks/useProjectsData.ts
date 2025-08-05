@@ -13,16 +13,6 @@ function isProjectStatusValue(val: unknown): val is ProjectStatus {
     );
 }
 
-// Check if a value is valid JSON
-function isJson(val: unknown): val is import('@/lib/types').Json {
-    if (val === null || typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') return true;
-    if (Array.isArray(val)) return val.every(isJson);
-    if (typeof val === 'object' && val !== null) {
-        return Object.values(val).every(isJson);
-    }
-    return false;
-}
-
 // Validate user role value
 function validateUserRole(role: string | null | undefined): UserRoleType | null {
     const validRoles: UserRoleType[] = [
@@ -41,17 +31,14 @@ function normalizeEnrichedUserContract(obj: unknown): EnrichedUserContract {
     const o = typeof obj === 'object' && obj !== null ? obj as Record<string, unknown> : {};
     return {
         id: typeof o.id === 'string' ? o.id : '',
-        title: typeof o.title === 'string' ? o.title : null,
+        name: typeof o.name === 'string' ? o.name : '',
         description: typeof o.description === 'string' ? o.description : null,
-        location: typeof o.location === 'string' ? o.location : null,
         start_date: typeof o.start_date === 'string' ? o.start_date : null,
         end_date: typeof o.end_date === 'string' ? o.end_date : null,
-        created_by: typeof o.created_by === 'string' ? o.created_by : null,
         created_at: typeof o.created_at === 'string' ? o.created_at : null,
-        updated_at: typeof o.updated_at === 'string' ? o.updated_at : null,
-        budget: typeof o.budget === 'number' ? o.budget : null,
+        updated_at: typeof o.updated_at === 'string' ? o.updated_at : '',
         status: isProjectStatusValue(o.status) ? o.status : null,
-        coordinates: isJson(o.coordinates) ? o.coordinates : null,
+        organization_id: typeof o.organization_id === 'string' ? o.organization_id : null,
         user_contract_role: validateUserRole(
             typeof o.user_contract_role === 'string' ? o.user_contract_role : null
         ),
@@ -106,10 +93,7 @@ export function useProjectsData(): {
             if (lowerSearchQuery === '') {
                 return true;
             }
-            if (c.title === null) {
-                return false;
-            }
-            return c.title.toLowerCase().includes(lowerSearchQuery);
+            return c.name.toLowerCase().includes(lowerSearchQuery);
         });
     }, [projects, searchQuery]);
 

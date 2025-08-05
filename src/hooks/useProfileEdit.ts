@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { rpcClient } from "@/lib/rpc.client";
 import type { EnrichedProfile } from "@/lib/store";
-import type { UpdateProfileRpcArgs } from "@/lib/rpc.types";
 import { useAuthStore } from "@/lib/store";
 
 type ReturnType = {
@@ -33,26 +32,26 @@ const useProfileEdit = (): ReturnType => {
 
       const { id, ...profileData } = updates;
       // Map frontend fields to backend RPC args
-      const rpcArgs: UpdateProfileRpcArgs = {
+      const rpcArgs = {
         _id: id,
-        _full_name: profileData.full_name,
-        _username: profileData.username ?? undefined,
+        _full_name: profileData.full_name ?? undefined,
         _email: profileData.email ?? undefined,
         _phone: profileData.phone ?? undefined,
-        _location: profileData.location ?? undefined,
+        _avatar_url: profileData.avatar_url ?? undefined,
         _role: profileData.role ?? undefined,
         _job_title_id: profileData.job_title_id ?? undefined,
         _organization_id: profileData.organization_id ?? undefined,
-        _avatar_id: profileData.avatar_id ?? undefined,
       };
+
       // Remove undefined properties
       Object.keys(rpcArgs).forEach((key) => {
-        const K = key as keyof UpdateProfileRpcArgs;
+        const K = key as keyof typeof rpcArgs;
         if (rpcArgs[K] === undefined) {
           delete rpcArgs[K];
         }
       });
-      await rpcClient.updateProfileFull(rpcArgs);
+
+      await rpcClient.update_profiles(rpcArgs);
       if (profile && profile.id === id) {
         const updatedProfileData = { ...profile };
         for (const key in profileData) {

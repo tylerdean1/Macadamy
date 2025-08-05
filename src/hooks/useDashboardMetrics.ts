@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
-import { rpcClient } from '@/lib/rpc.client';
+import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
 
 interface DashboardMetricsData {
@@ -27,11 +27,21 @@ export function useDashboardMetrics() {
         setLoading(true);
         setError(null);
         try {
-            const metricsData = await rpcClient.getDashboardMetrics({ _user_id: profile.id });
+            // Get active projects count using filter_projects
+            const { data: activeProjectsData, error: projectsError } = await supabase
+                .rpc('filter_projects', {
+                    _filters: { status: 'active' },
+                    _select_cols: []
+                });
+
+            if (projectsError) throw projectsError;
+
+            const activeContracts = Array.isArray(activeProjectsData) ? activeProjectsData.length : 0;
+
             setMetrics({
-                activeContracts: metricsData.active_contracts || 0,
-                openIssues: metricsData.total_issues || 0,
-                pendingInspections: metricsData.total_inspections || 0,
+                activeContracts,
+                openIssues: 0, // TODO: Implement when issues table is available
+                pendingInspections: 0, // TODO: Implement when inspections are properly set up
             });
         } catch (err) {
             console.error('Error loading dashboard metrics:', err);

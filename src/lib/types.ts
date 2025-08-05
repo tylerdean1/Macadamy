@@ -103,13 +103,28 @@ export type {
   LineItemsWithWktRow,
   MapsWithWktRow,
   EnrichedProfileRow,
+  EnrichedProfile,
   EquipmentRow,
   OrganizationRow,
-  JobTitleRow
+  JobTitleRow,
+  UpdateProfileRpcArgs,
+  InsertJobTitleRpcArgs,
+  ProfilesByContractRow,
+  Inspection,
+  EquipmentUsage,
+  EquipmentItem,
+  LaborRecords
 } from './rpc.types';
 
-// Add missing contract type
-export type Contracts = TableRow<'projects'>; // Assuming contracts are in projects table
+// Add missing types that are referenced in the codebase
+export type Avatars = TableRow<'avatars'>;
+export type Projects = TableRow<'projects'>;
+export type Profiles = TableRow<'profiles'>;
+export type Organizations = TableRow<'organizations'>;
+export type JobTitles = TableRow<'job_titles'>;
+
+// Keep contracts as an alias for projects for backward compatibility
+export type Contracts = Projects;
 
 /**
  * Map Location Types
@@ -214,16 +229,16 @@ export interface JobTitle {
 
 export interface Profile {
   id: string;
-  user_role: Database["public"]["Enums"]["user_role_type"];
-  full_name: string;
+  role: Database["public"]["Enums"]["user_role_type"] | null;
+  full_name: string | null;
   email: string;
-  username: string | null;
   phone: string | null;
-  location: string | null;
-  avatar_id: string | null;
-  avatar_url: string | null; // ✅ Flattened and usable in all components
+  avatar_url: string | null; // Changed from avatar_id to avatar_url to match database
   organization_id: string | null;
   job_title_id: string | null;
+  created_at: string | null;
+  updated_at: string;
+  deleted_at: string | null;
 
   organizations?: {
     name: string;
@@ -236,7 +251,6 @@ export interface Profile {
     title: string;
     is_custom: boolean | null;
   } | null;
-
 }
 
 /**
@@ -245,33 +259,30 @@ export interface Profile {
 export interface EnrichedUserProfile {
   id: string;
   full_name: string | null;
-  username: string | null;
-  email: string | null;
+  email: string;
   phone: string | null;
-  location: string | null;
   role: Database["public"]["Enums"]["user_role_type"] | null;
   job_title_id: string | null;
   job_title: string | null;
   organization_id: string | null;
   organization_name: string | null;
-  avatar_id: string | null;
-  avatar_url: string | null;
+  avatar_url: string | null; // Removed avatar_id as it's not in the database
+  created_at: string | null;
+  updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface EnrichedUserContract {
   id: string;
-  title: string | null;
+  name: string; // Changed from title to name to match projects table
   description: string | null;
-  location: string | null;
   start_date: string | null; // Dates are typically strings in ISO format
   end_date: string | null; // Dates are typically strings in ISO format
-  created_by: string | null;
   created_at: string | null; // Timestamps are typically strings in ISO format
-  updated_at: string | null; // Timestamps are typically strings in ISO format
-  budget: number | null;
-  status: GeneralStatus | null;
-  coordinates: Json | null; // Changed from any to Json
-  user_contract_role: UserRoleType | null;
+  updated_at: string; // Timestamps are typically strings in ISO format
+  status: Database["public"]["Enums"]["project_status"] | null; // Use project_status instead of general_status
+  organization_id: string | null;
+  user_contract_role: Database["public"]["Enums"]["user_role_type"] | null;
 }
 
 /**

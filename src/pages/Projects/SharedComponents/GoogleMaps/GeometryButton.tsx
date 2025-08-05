@@ -9,7 +9,7 @@ interface GeometryButtonProps {
   /** Original WKT string stored in the DB (or null) */
   wkt: string | null;
   /** Supabase table you want to update */
-  table: 'contracts' | 'wbs' | 'maps' | 'line_items';
+  table: 'projects' | 'wbs' | 'maps' | 'line_items';
   /** Row id inside that table */
   targetId: string;
   /** Link‑text shown to the user (e.g. “View geometry”) */

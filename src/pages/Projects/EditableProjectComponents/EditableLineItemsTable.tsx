@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'react-hot-toast';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { supabase } from '@/lib/supabase';
-import type { UnitMeasure } from '@/lib/types';
-import { LineItemsWithWktRow, WbsWithWktRow, MapsWithWktRow } from '../../../lib/rpc.types';
+import type { UnitMeasure, Database } from '@/lib/types';
+
+type LineItem = Database['public']['Tables']['line_items']['Row'];
+type WbsItem = Database['public']['Tables']['wbs']['Row'];
+type MapItem = Database['public']['Tables']['maps']['Row'];
 
 interface EditableLineItemsTableProps {
-  lineItems: LineItemsWithWktRow[];
-  wbsItems: WbsWithWktRow[];
-  mapItems: MapsWithWktRow[];
+  lineItems: LineItem[];
+  wbsItems: WbsItem[];
+  mapItems: MapItem[];
   contractId: string;
-  onLineItemCreate: (lineItem: LineItemsWithWktRow) => void;
+  onLineItemCreate: (lineItem: LineItem) => void;
 }
 
 export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
@@ -27,12 +29,11 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
   const [newItem, setNewItem] = useState({
     wbs_id: '',
     map_id: '',
-    item_code: '',
+    name: '', // Changed from item_code to name
     description: '',
     unit_measure: 'Feet (FT)' as UnitMeasure,
     quantity: 1,
     unit_price: 0,
-    reference_doc: ''
   });
 
   // Fetch unit measure options directly with RPC
@@ -58,64 +59,68 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
       toast.error('Please select a WBS');
       return;
     }
-    if (!newItem.item_code) {
-      toast.error('Item code is required');
+    if (!newItem.name) {
+      toast.error('Name is required');
       return;
     }
     if (!newItem.description) {
       toast.error('Description is required');
       return;
     }
+
     try {
-      const lineItemId = uuidv4();
-      // Use direct RPC call with correct argument structure
-      const { error } = await supabase.rpc('insert_line_item', {
-        _contract_id: contractId,
-        _wbs_id: newItem.wbs_id,
-        _map_id: newItem.map_id ? newItem.map_id : undefined,
-        _line_code: newItem.item_code,
-        _description: newItem.description,
-        _unit_measure: newItem.unit_measure,
-        _quantity: newItem.quantity,
-        _unit_price: newItem.unit_price,
-        _reference_doc: newItem.reference_doc ? newItem.reference_doc : undefined
+      setIsCreating(true);
+
+      // Use the insert_line_items RPC function with proper JSON input format
+      const lineItemData = {
+        project_id: contractId,
+        wbs_id: newItem.wbs_id,
+        map_id: newItem.map_id || null,
+        name: newItem.name,
+        description: newItem.description,
+        unit_measure: newItem.unit_measure,
+        quantity: newItem.quantity,
+        unit_price: newItem.unit_price,
+      };
+
+      const { error } = await supabase.rpc('insert_line_items', {
+        _input: lineItemData
       });
+
       if (error) throw error;
-      // Get the created line item to ensure we have all fields
+
+      // Fetch the updated line items
       const { data: lineItemsData, error: fetchError } = await supabase
-        .rpc('get_line_items_with_wkt', { contract_id_param: contractId });
+        .rpc('filter_line_items', {
+          _filters: { project_id: contractId },
+          _select_cols: []
+        });
+
       if (fetchError) throw fetchError;
-      // The backend returns line_code, not item_code
-      type BackendLineItem = Omit<LineItemsWithWktRow, 'item_code' | 'unit_measure'> & { line_code: string; unit_measure?: string; unit?: string };
-      const createdLineItem = (lineItemsData as BackendLineItem[]).find(item => item.id === lineItemId);
-      if (createdLineItem && createdLineItem.id) {
-        const validUnitMeasures: UnitMeasure[] = [
-          "Feet (FT)", "Inches (IN)", "Linear Feet (LF)", "Mile (MI)", "Shoulder Mile (SMI)",
-          "Square Feet (SF)", "Square Yard (SY)", "Acre (AC)", "Cubic Foot (CF)", "Cubic Yard (CY)",
-          "Gallon (GAL)", "Pounds (LBS)", "TON", "Each (EA)", "Lump Sum (LS)", "Hour (HR)", "DAY",
-          "Station (STA)", "MSF (1000SF)", "MLF (1000LF)", "Cubic Feet per Second (CFS)",
-          "Pounds per Square Inch (PSI)", "Percent (%)", "Degrees (*)"
-        ];
-        const fallbackUnit: UnitMeasure = "Feet (FT)";
-        let safeUnit: UnitMeasure = fallbackUnit;
-        if (typeof createdLineItem.unit_measure === 'string' && validUnitMeasures.includes(createdLineItem.unit_measure as UnitMeasure)) {
-          safeUnit = createdLineItem.unit_measure as UnitMeasure;
-        } else if (typeof createdLineItem.unit === 'string' && validUnitMeasures.includes(createdLineItem.unit as UnitMeasure)) {
-          safeUnit = createdLineItem.unit as UnitMeasure;
-        }
-        // When mapping backend line item, add 'item_code' property from 'line_code'
-        const safeLineItem: LineItemsWithWktRow = {
-          ...createdLineItem,
-          unit_measure: safeUnit,
-          item_code: createdLineItem.line_code ?? '', // Map line_code to item_code
-        };
-        onLineItemCreate(safeLineItem);
+
+      if (lineItemsData && Array.isArray(lineItemsData) && lineItemsData.length > 0) {
+        // Find the newly created item (should be the last one)
+        const createdLineItem = lineItemsData[lineItemsData.length - 1] as LineItem;
+        onLineItemCreate(createdLineItem);
         toast.success('Line item created successfully');
-        setIsCreating(false);
+
+        // Reset form
+        setNewItem({
+          wbs_id: '',
+          map_id: '',
+          name: '',
+          description: '',
+          unit_measure: 'Feet (FT)' as UnitMeasure,
+          quantity: 1,
+          unit_price: 0,
+        });
       }
+
+      setIsCreating(false);
     } catch (error) {
       console.error('Error creating line item:', error);
       toast.error('Failed to create line item');
+      setIsCreating(false);
     }
   };
 
@@ -168,9 +173,9 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
                     title="Select a WBS item"
                   >
                     <option value="">Select WBS</option>
-                    {wbsItems.map((wbs: WbsWithWktRow) => (
+                    {wbsItems.map((wbs: WbsItem) => (
                       <option key={wbs.id} value={wbs.id}>
-                        {wbs.wbs_number}
+                        {wbs.name}
                       </option>
                     ))}
                   </select>
@@ -188,9 +193,9 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
                     title="Select a map for this line item"
                   >
                     <option value="">No Map</option>
-                    {filteredMaps.filter((map: MapsWithWktRow) => map.id != null && map.id !== undefined).map((map: MapsWithWktRow) => (
+                    {filteredMaps.filter((map: MapItem) => map.id != null && map.id !== undefined).map((map: MapItem) => (
                       <option key={String(map.id)} value={String(map.id)}>
-                        {map.map_number}
+                        {map.name}
                       </option>
                     ))}
                   </select>
@@ -199,14 +204,14 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Item Code *
+                  Name *
                 </label>
                 <input
                   type="text"
-                  value={newItem.item_code}
-                  onChange={(e) => handleInputChange('item_code', e.target.value)}
+                  value={newItem.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="e.g. ITEM-001"
+                  placeholder="e.g. Steel Pipe"
                 />
               </div>
 
@@ -286,19 +291,6 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Reference Document
-                </label>
-                <input
-                  type="text"
-                  value={newItem.reference_doc}
-                  onChange={(e) => handleInputChange('reference_doc', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="e.g. Spec Sheet ABC-123"
-                />
-              </div>
-
               <div className="flex justify-end space-x-3 mt-3">
                 <Button
                   variant="outline"
@@ -308,12 +300,11 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
                     setNewItem({
                       wbs_id: '',
                       map_id: '',
-                      item_code: '',
+                      name: '',
                       description: '',
-                      unit_measure: 'Each (EA)' as UnitMeasure,
+                      unit_measure: 'Feet (FT)' as UnitMeasure,
                       quantity: 1,
                       unit_price: 0,
-                      reference_doc: ''
                     });
                   }}
                 >
@@ -365,7 +356,7 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
                 {lineItems.map(item => (
                   <tr key={item.id}>
                     <td className="px-3 py-4 text-sm font-medium text-gray-200 whitespace-nowrap">
-                      {item.item_code}
+                      {item.name}
                     </td>
                     <td className="px-3 py-4 text-sm text-gray-300 whitespace-nowrap">
                       {item.description}

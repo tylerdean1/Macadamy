@@ -11,26 +11,38 @@ interface ContractStatusBadgeProps {
 export function ContractStatusBadge({ status, className = '' }: ContractStatusBadgeProps) {
   const getStatusColor = (status: ContractStatus): string => {
     switch (status) {
-      case 'Draft':
+      case 'planned':
         return 'bg-gray-700 text-gray-300';
-      case 'Awaiting Assignment':
-      case 'Bidding Solicitation':
-        return 'bg-yellow-700/20 text-yellow-500';
-      case 'Active':
-      case 'Assigned(Partial)':
-      case 'Assigned(Full)':
+      case 'active':
         return 'bg-green-700/20 text-green-500';
-      case 'On Hold':
+      case 'on_hold':
         return 'bg-orange-700/20 text-orange-500';
-      case 'Final Review':
-        return 'bg-blue-700/20 text-blue-500';
-      case 'Completed':
+      case 'complete':
         return 'bg-purple-700/20 text-purple-500';
-      case 'Closed':
-      case 'Cancelled':
+      case 'archived':
+      case 'canceled':
         return 'bg-red-700/20 text-red-500';
       default:
         return 'bg-gray-700 text-gray-300';
+    }
+  };
+
+  const getStatusLabel = (status: ContractStatus): string => {
+    switch (status) {
+      case 'planned':
+        return 'Planned';
+      case 'active':
+        return 'Active';
+      case 'on_hold':
+        return 'On Hold';
+      case 'complete':
+        return 'Complete';
+      case 'archived':
+        return 'Archived';
+      case 'canceled':
+        return 'Canceled';
+      default:
+        return status;
     }
   };
 
@@ -42,7 +54,7 @@ export function ContractStatusBadge({ status, className = '' }: ContractStatusBa
         className
       )}
     >
-      {status}
+      {getStatusLabel(status)}
     </span>
   );
 }

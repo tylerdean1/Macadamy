@@ -10,7 +10,7 @@ import type { EnrichedProfile } from '@/lib/store';
 import { rpcClient } from '@/lib/rpc.client';
 import { logError } from '@/utils/errorLogger';
 
-type UserRole = Database['public']['Enums']['user_role'];
+type UserRole = Database['public']['Enums']['user_role_type'];
 
 /* ── constants ─────────────────────────────────────────────────── */
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -352,4 +352,5 @@ export function useAuth(): UseAuthReturn {
     currentRole: profile !== null ? profile.role : null,
     currentOrgId: profile !== null ? profile.organization_id : null,
     currentAvatarUrl: profile !== null ? profile.avatar_url : null,
-  };}
+  };
+}

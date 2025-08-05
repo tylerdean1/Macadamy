@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import type { Database } from '@/lib/database.types';
 
 type ContractStatus = Database['public']['Enums']['project_status'];
@@ -57,6 +56,25 @@ export const ContractStatusSelect = ({
     }
   };
 
+  const getStatusLabel = (status: ContractStatus): string => {
+    switch (status) {
+      case 'planned':
+        return 'Planned';
+      case 'active':
+        return 'Active';
+      case 'complete':
+        return 'Complete';
+      case 'archived':
+        return 'Archived';
+      case 'on_hold':
+        return 'On Hold';
+      case 'canceled':
+        return 'Canceled';
+      default:
+        return status;
+    }
+  };
+
   return (
     <div className={`relative ${className}`}>
       <select
@@ -76,7 +94,7 @@ export const ContractStatusSelect = ({
       >
         {statusOptions.map((status) => (
           <option key={status} value={status}>
-            {status}
+            {getStatusLabel(status)}
           </option>
         ))}
       </select>

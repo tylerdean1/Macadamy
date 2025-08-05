@@ -12,7 +12,7 @@ import { rpcClient } from '@/lib/rpc.client';
 import type { ContractWithWktRow, ProfilesByContractRow } from '@/lib/rpc.types';
 import type { Database } from '@/lib/database.types';
 
-type ContractStatus = Database['public']['Enums']['contract_status'];
+type ContractStatus = Database['public']['Enums']['project_status'];
 type UserRole = Database['public']['Enums']['user_role'];
 
 export default function ContractSettings() {
@@ -23,7 +23,7 @@ export default function ContractSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [contract, setContract] = useState<ContractWithWktRow | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<ContractStatus>('Draft');
+  const [selectedStatus, setSelectedStatus] = useState<ContractStatus>('planned');
   const [teamMembers, setTeamMembers] = useState<ProfilesByContractRow[]>([]);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
