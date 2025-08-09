@@ -20,16 +20,28 @@ export function useLoadProfile(userId: string | null): EnrichedProfile | null {
 
     const fetchProfile = async (): Promise<void> => {
       try {
-        const data = await rpcClient.getEnrichedProfile({
-          _user_id: userId,
-        });
-
-        if (!data) {
+        const rows = await rpcClient.filter_profiles({ _filters: { id: userId }, _limit: 1 });
+        const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+        if (!row) {
           setProfile(null);
           return;
         }
-
-        setProfile(data as EnrichedProfile);
+        const prof: EnrichedProfile = {
+          id: row.id,
+          full_name: row.full_name,
+          email: row.email,
+          phone: row.phone,
+          role: row.role as unknown as EnrichedProfile['role'],
+          job_title_id: row.job_title_id,
+          organization_id: row.organization_id,
+          avatar_url: row.avatar_url,
+          job_title: null,
+          organization_name: null,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          deleted_at: row.deleted_at,
+        };
+        setProfile(prof);
       } catch {
         setProfile(null);
       }

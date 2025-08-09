@@ -1,22 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useEnumOptions } from '@/hooks/useEnumOptions';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/lib/store';
-import { rpcClient } from '@/lib/rpc.client';
-import { useLocationSuggestions } from '@/hooks/useLocationSuggestions';
+// Replaced Nominatim-based suggestions with Google Places
+import { usePlacesLocationAutocomplete, useGhostCompletion } from '@/hooks/usePlacesAutocomplete';
+import { useEnumOptions } from '@/hooks/useEnumOptions';
 import type { AuthEnrichedProfileInput } from '@/hooks/useAuth';
-
-type UserRole = AuthEnrichedProfileInput['role'];
 
 export default function UserOnboarding() {
   const navigate = useNavigate();
-  const { signup: signupRaw, error } = useAuth();
+  const { signup: signupRaw } = useAuth();
   const { loading } = useAuthStore();
   const signup = signupRaw as ((email: string, password: string, profileInput: AuthEnrichedProfileInput) => Promise<unknown>);
   const isLoading = loading.auth || loading.profile;
-  const roleOptions = useEnumOptions('user_role');
   const { user, profile } = useAuthStore();
 
   const [form, setForm] = useState<AuthEnrichedProfileInput & { password: string }>(
@@ -25,7 +22,7 @@ export default function UserOnboarding() {
       username: '',
       email: '',
       password: '',
-      role: 'Contractor', // Default role
+      role: 'org_user', // Default role
       phone: '',
       location: '',
       // job_title_id: undefined, // These are optional in AuthEnrichedProfileInput
@@ -36,7 +33,28 @@ export default function UserOnboarding() {
     },
   );
 
-  const locationSuggestions = useLocationSuggestions(form.location ?? '');
+  const places = usePlacesLocationAutocomplete(form.location ?? '', { countries: ['us', 'ca', 'mx'], type: '(cities)' });
+  const allRoles = useEnumOptions('user_role_type');
+  const roleOptions = useMemo(() => allRoles.filter(r => r !== 'system_admin'), [allRoles]);
+  const topLocation = useMemo(() => places[0]?.description ?? '', [places]);
+  const [lastTypedLocation, setLastTypedLocation] = useState<string>('');
+  const [showPlaces, setShowPlaces] = useState<boolean>(false);
+  const [highlightIndex, setHighlightIndex] = useState<number>(-1);
+  const locationBoxRef = useRef<HTMLDivElement | null>(null);
+  const ghost = useGhostCompletion(form.location ?? '', topLocation);
+
+  // Auto-fill best location suggestion after brief pause
+  useEffect(() => {
+    const q = (form.location ?? '').trim();
+    if (q.length < 3) return;
+    const t = setTimeout(() => {
+      // Only auto-fill if the user hasn't typed something else since suggestions came back
+      if (topLocation && lastTypedLocation === q) {
+        setForm((prev) => ({ ...prev, location: topLocation }));
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [form.location, topLocation, lastTypedLocation]);
 
   // Check if user is already logged in with a complete profile
   useEffect(() => {
@@ -47,40 +65,29 @@ export default function UserOnboarding() {
     }
   }, [user, profile, navigate]);
 
-  const [step, setStep] = useState(1);
-  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
-
+  // Close suggestions on click outside
   useEffect(() => {
-    if (step === 2 && typeof form.username === 'string' && form.username.trim().length >= 3) {
-      const checkUsername = async () => {
-        try {
-          // Fix: use 'username' instead of '_username' in the object literal
-          const userObj = { username: form.username.toUpperCase() };
-          const profile = await rpcClient.getEnrichedProfileByUsername(userObj);
-          setUsernameAvailable(!profile);
-        } catch {
-          setUsernameAvailable(null);
-        }
-      };
-      void checkUsername();
+    function onDocMouseDown(e: MouseEvent) {
+      if (!locationBoxRef.current) return;
+      if (!locationBoxRef.current.contains(e.target as Node)) {
+        setShowPlaces(false);
+        setHighlightIndex(-1);
+      }
     }
-  }, [form.username, step]);
+    document.addEventListener('mousedown', onDocMouseDown);
+    return () => document.removeEventListener('mousedown', onDocMouseDown);
+  }, []);
+
+  const [step, setStep] = useState(1);
+  // Org search/creation is deferred to post-auth Organization Onboarding to satisfy RLS.
+  // We rely on backend unique constraints during signup to detect duplicates.
+  // Pre-flight username checks are disabled due to RLS on anon.
 
   const handleSubmit = async (evt: React.FormEvent) => {
     evt.preventDefault();
 
     if (!form.email || !form.password || !form.full_name || !form.username) {
       toast.error('Please fill out all required fields');
-      return;
-    }
-
-    // Username validation
-    if (usernameAvailable === false) {
-      toast.error('Please choose a different username. This one is already taken.');
-      return;
-    }
-    if (usernameAvailable === null) {
-      toast.error('Please wait while we check if the username is available');
       return;
     }
 
@@ -110,19 +117,21 @@ export default function UserOnboarding() {
       avatar_id: typeof form.avatar_id === 'string' && form.avatar_id.trim() !== '' ? form.avatar_id : undefined,
     };
 
-    try {
-      // Call the signup method with email, password, and profile data
-      const signedUpProfile = await signup(form.email, form.password, profileInput); // signup now returns profile or null
-      if (typeof signedUpProfile !== 'undefined' && signedUpProfile !== null && typeof signedUpProfile === 'object') {
-        // Success logic (if any)
-      } else {
-        // Error handling is done within useAuth (sets error state, shows toast)
-        // toast.error('Error creating account. Please try again.'); // Redundant if useAuth shows a toast
+    const doSignup = async (): Promise<void> => {
+      try {
+        const signedUpProfile = await signup(form.email, form.password, profileInput);
+        if (typeof signedUpProfile !== 'undefined' && signedUpProfile !== null && typeof signedUpProfile === 'object') {
+          // Success handled in hook navigation
+        }
+      } catch (err) {
+        console.error('Signup error:', err);
+        toast.error('Error creating account. Please try again.');
       }
-    } catch (err) {
-      console.error('Signup error:', err);
-      toast.error('Error creating account. Please try again.');
-    }
+    };
+
+    await doSignup();
+    // After attempting account creation, return to landing page
+    navigate('/', { replace: true });
   };
 
   return (
@@ -140,6 +149,7 @@ export default function UserOnboarding() {
                 value={form.email}
                 onChange={(event) => setForm({ ...form, email: event.target.value })}
                 className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded"
+                autoComplete="email"
                 required
               />
             </div>
@@ -152,6 +162,7 @@ export default function UserOnboarding() {
                 value={form.password}
                 onChange={(event) => setForm({ ...form, password: event.target.value })}
                 className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded"
+                autoComplete="new-password"
                 required
               />
             </div>
@@ -224,9 +235,22 @@ export default function UserOnboarding() {
                 className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded"
                 required
               />
-              {usernameAvailable === false && (
-                <p className="text-red-500 text-sm mt-1">Username is already taken.</p>
-              )}
+              {/* Duplicate username handled at submit time */}
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-300 mb-2">Role</label>
+              <select
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value as unknown as AuthEnrichedProfileInput['role'] })}
+                className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded"
+                aria-label="Select user role"
+                required
+              >
+                {roleOptions.map((opt) => (
+                  <option key={opt} value={opt}>{opt.replace(/_/g, ' ')}</option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -242,19 +266,81 @@ export default function UserOnboarding() {
 
             <div>
               <label className="block text-sm text-gray-300 mb-2">Location</label>
-              <input
-                type="text"
-                placeholder="e.g. New York, NY"
-                value={form.location ?? ''}
-
-                onChange={(event) => setForm({ ...form, location: event.target.value })}
-                className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded"
-              />
-              <datalist id="location-suggestions">
-                {locationSuggestions.map((loc) => (
-                  <option key={loc.display_name} value={loc.display_name} />
-                ))}
-              </datalist>
+              <div className="relative" ref={locationBoxRef}>
+                {/* Ghost suggestion overlay */}
+                <input
+                  type="text"
+                  className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded relative z-10"
+                  placeholder="e.g. Phoenix, AZ"
+                  value={form.location ?? ''}
+                  onChange={(e) => { setLastTypedLocation(e.target.value); setForm({ ...form, location: e.target.value }); setShowPlaces(true); setHighlightIndex(-1); }}
+                  onFocus={() => { setShowPlaces(true); if (places.length > 0) setHighlightIndex(0); }}
+                  onKeyDown={(e) => {
+                    // Accept ghost completion on Tab
+                    if (e.key === 'Tab' && ghost) {
+                      e.preventDefault();
+                      setForm(prev => ({ ...prev, location: (prev.location ?? '') + ghost }));
+                      setShowPlaces(false);
+                      setHighlightIndex(-1);
+                      return;
+                    }
+                    if (showPlaces && places.length > 0) {
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setHighlightIndex((idx) => {
+                          const next = idx < places.length - 1 ? idx + 1 : 0;
+                          return next;
+                        });
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setHighlightIndex((idx) => {
+                          const prev = idx > 0 ? idx - 1 : places.length - 1;
+                          return prev;
+                        });
+                      } else if (e.key === 'Enter') {
+                        if (highlightIndex >= 0 && highlightIndex < places.length) {
+                          e.preventDefault();
+                          const chosen = places[highlightIndex];
+                          setForm(prev => ({ ...prev, location: chosen.description }));
+                          setShowPlaces(false);
+                          setHighlightIndex(-1);
+                        }
+                      } else if (e.key === 'Escape') {
+                        setShowPlaces(false);
+                        setHighlightIndex(-1);
+                      }
+                    }
+                  }}
+                  autoComplete="off"
+                />
+                <input
+                  tabIndex={-1}
+                  aria-hidden
+                  aria-label="ghost-suggestion"
+                  className="absolute inset-0 w-full text-gray-500/50 bg-transparent px-4 py-2 pointer-events-none select-none z-0"
+                  value={(form.location ?? '') + ghost}
+                  readOnly
+                />
+              </div>
+              {showPlaces && places.length > 0 && (
+                <div className="mt-1 border border-background-lighter bg-background rounded overflow-hidden">
+                  {places.slice(0, 5).map((p, i) => (
+                    <button
+                      key={p.description}
+                      type="button"
+                      className={`w-full text-left px-3 py-2 text-sm ${i === highlightIndex ? 'bg-background-light' : 'hover:bg-background-light'}`}
+                      onMouseEnter={() => setHighlightIndex(i)}
+                      onClick={() => {
+                        setForm(prev => ({ ...prev, location: p.description }));
+                        setShowPlaces(false);
+                        setHighlightIndex(-1);
+                      }}
+                    >
+                      {p.description}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <ul className="text-xs text-gray-400 mt-2 space-y-1">
@@ -264,9 +350,7 @@ export default function UserOnboarding() {
               <li className={form.username.trim().length >= 3 ? 'text-green-500' : 'text-red-500'}>
                 {form.username.trim().length >= 3 ? '✔' : '✖'} Username (min 3 chars)
               </li>
-              <li className={usernameAvailable === true ? 'text-green-500' : 'text-red-500'}>
-                {usernameAvailable === true ? '✔ Username available' : usernameAvailable === false ? '✖ Username taken' : '… Checking username'}
-              </li>
+              {/* Duplicate username is handled during signup (unique constraint) */}
             </ul>
 
             <div className="mt-4 flex justify-between">
@@ -278,7 +362,7 @@ export default function UserOnboarding() {
                 Back
               </button>
               <button
-                type="button"
+                type="submit"
                 onClick={() => {
                   // Validate full name and username before proceeding
                   if (!form.full_name || !form.full_name.trim()) {
@@ -293,77 +377,21 @@ export default function UserOnboarding() {
                     toast.error('Username must be at least 3 characters');
                     return;
                   }
-                  if (usernameAvailable === false) {
-                    toast.error('This username is already taken. Please choose another one.');
-                    return;
-                  }
-                  if (usernameAvailable === null) {
-                    toast.error('Please wait while we check if the username is available');
-                    return;
-                  }
-                  setStep(3);
+                  // submit handled by form onSubmit
                 }}
-                disabled={isLoading || usernameAvailable === false}
+                disabled={isLoading}
                 className="px-4 py-2 bg-primary hover:bg-primary-hover rounded disabled:opacity-50"
               >
-                Next
+                Create Account
               </button>
             </div>
           </>
         )}
 
-        {step === 3 && (
-          <>
-            <div>
-              <label htmlFor="role-select" className="block text-sm text-gray-300 mb-2">Role</label>
-              <select
-                id="role-select"
-                value={form.role}
-                onChange={(event) => setForm({ ...form, role: event.target.value as UserRole })}
-                className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded"
-              >
-                <option value="" disabled>Select your role</option>
-                {roleOptions.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-300 mt-4 mb-2">Organization</label>
-              <input
-                type="text"
-                placeholder="e.g. Acme Infrastructure, LLC"
-                value={form.custom_organization_name}
-                onChange={(event) => setForm({ ...form, custom_organization_name: event.target.value })}
-                className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded"
-              />
-            </div>
-
-            {typeof error === 'string' && error.trim() !== '' ? <p className="text-red-500 text-sm mt-2">{error}</p> : null}
-
-            <div className="mt-4 flex justify-between">
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                disabled={isLoading}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded disabled:opacity-50"
-              >
-                Back
-              </button>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="px-4 py-2 bg-primary hover:bg-primary-hover rounded disabled:opacity-50"
-              >
-                {isLoading ? 'Creating Account...' : 'Create Account'}
-              </button>
-            </div>
-          </>
-        )}
+        {/* Step 3 removed. We defer organization selection to a post-auth Organization Onboarding page. */}
       </form>
     </div>
   );
 }
+
+/* No inline org helpers; org search/creation occurs in OrganizationOnboarding post-auth */

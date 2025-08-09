@@ -13,7 +13,7 @@ import type { ContractWithWktRow, ProfilesByContractRow } from '@/lib/rpc.types'
 import type { Database } from '@/lib/database.types';
 
 type ContractStatus = Database['public']['Enums']['project_status'];
-type UserRole = Database['public']['Enums']['user_role'];
+type UserRole = Database['public']['Enums']['user_role_type'];
 
 export default function ContractSettings() {
   const { contractId } = useParams<{ contractId: string }>();

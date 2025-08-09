@@ -139,9 +139,10 @@ export const useAuthStore = create<AuthState>()(
         }));
 
         try {
-          const data = await rpcClient.getEnrichedProfile({ _user_id: userId });
+          const rows = await rpcClient.filter_profiles({ _filters: { id: userId }, _limit: 1 });
+          const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 
-          if (!data || typeof data !== 'object') {
+          if (!row) {
             set(state => ({
               ...state,
               profile: null,
@@ -152,10 +153,25 @@ export const useAuthStore = create<AuthState>()(
             return;
           }
 
-          // Profile loaded successfully
+          const prof: EnrichedProfile = {
+            id: row.id,
+            full_name: row.full_name,
+            email: row.email,
+            phone: row.phone,
+            role: row.role as unknown as EnrichedProfile['role'],
+            job_title_id: row.job_title_id,
+            organization_id: row.organization_id,
+            avatar_url: row.avatar_url,
+            job_title: null,
+            organization_name: null,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+            deleted_at: row.deleted_at,
+          };
+
           set(state => ({
             ...state,
-            profile: data as EnrichedProfile,
+            profile: prof,
             loading: { ...state.loading, profile: false },
             isLoading: state.loading.initialization || state.loading.auth,
             error: null
@@ -203,7 +219,7 @@ export const useAuthStore = create<AuthState>()(
             _avatar_url: updates.avatar_url ?? undefined,
           };
 
-          await rpcClient.updateProfileFull(rpcArgs);
+          await rpcClient.update_profiles(rpcArgs);
           const currentProfile = get().profile;
 
           if (currentProfile && typeof currentProfile === 'object') {
@@ -240,20 +256,26 @@ export const useAuthStore = create<AuthState>()(
   ),
 );
 
-// Add more detailed debug logging
-console.log("[DEBUG] useAuthStore initialized with state:", {
-  user: "Not logged yet",
-  profile: "Not logged yet",
-  loading: useAuthStore.getState().loading,
-  isLoading: useAuthStore.getState().isLoading,
-});
-
-// Set up a state listener to track loading state changes
-if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
-  useAuthStore.subscribe((state) => {
-    console.log("[DEBUG] Auth store state changed:", {
-      loading: state.loading,
-      isLoading: state.isLoading
+// Dev-only debug logs gated behind localStorage DEBUG_AUTH=1
+try {
+  const debugAuth =
+    typeof window !== 'undefined' &&
+    typeof localStorage !== 'undefined' &&
+    localStorage.getItem('DEBUG_AUTH') === '1';
+  if (import.meta.env?.DEV && debugAuth) {
+    console.log("[DEBUG] useAuthStore initialized with state:", {
+      user: "Not logged yet",
+      profile: "Not logged yet",
+      loading: useAuthStore.getState().loading,
+      isLoading: useAuthStore.getState().isLoading,
     });
-  });
+    useAuthStore.subscribe((state) => {
+      console.log("[DEBUG] Auth store state changed:", {
+        loading: state.loading,
+        isLoading: state.isLoading
+      });
+    });
+  }
+} catch {
+  // no-op
 }

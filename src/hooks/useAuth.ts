@@ -7,8 +7,9 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
 import type { Database } from '@/lib/database.types';
 import type { EnrichedProfile } from '@/lib/store';
-import { rpcClient } from '@/lib/rpc.client';
 import { logError } from '@/utils/errorLogger';
+import { rpcClient } from '@/lib/rpc.client';
+import type { Json } from '@/lib/database.types';
 
 type UserRole = Database['public']['Enums']['user_role_type'];
 
@@ -184,24 +185,27 @@ export function useAuth(): UseAuthReturn {
       }
 
       try {
-        const { data: existing } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', email.toLowerCase())
-          .maybeSingle();
-
-        const accountExists = existing !== null && existing !== undefined;
-
-        if (accountExists) {
-          const msg = 'An account with this email already exists';
-          setError(msg);
-          toast.error(`${msg}. Please log in.`);
-          return null;
-        }
+        // 1) Create auth user (avoid pre-query to profiles due to RLS)
+        const redirectUrl = typeof import.meta !== 'undefined' && 'env' in import.meta && typeof import.meta.env?.VITE_SUPABASE_EMAIL_REDIRECT_URL === 'string'
+          ? (import.meta.env.VITE_SUPABASE_EMAIL_REDIRECT_URL as string)
+          : undefined;
+        const signUpOptions: Parameters<typeof supabase.auth.signUp>[0]['options'] = {
+          // Only set redirect if configured/whitelisted in Supabase Auth settings
+          ...(redirectUrl ? { emailRedirectTo: redirectUrl } : {}),
+          data: {
+            full_name: input.full_name,
+            phone: input.phone ?? null,
+            role: input.role,
+            username: input.username,
+            location: input.location ?? null,
+            organization_id: input.organization_id ?? null,
+          },
+        };
 
         const { data: signUpData, error: authErr } = await supabase.auth.signUp({
           email,
           password,
+          options: signUpOptions,
         });
 
         const signupFailed = authErr !== null && authErr !== undefined;
@@ -221,11 +225,54 @@ export function useAuth(): UseAuthReturn {
           return null;
         }
 
-        await rpcClient.insertProfileFull({
-          ...input,
-          id: signUpData.user.id,
-        });
+        // 2) If no immediate session (email confirmation required), skip RPCs now
+        if (!signUpData.session) {
+          try {
+            const pending = {
+              userId: signUpData.user.id,
+              input,
+              email,
+              ts: Date.now(),
+            };
+            localStorage.setItem('pending_profile', JSON.stringify(pending));
+          } catch {/* no-op */ }
+          toast.message('Please confirm your email to finish setting up your account.');
+          return null;
+        }
 
+        // 3) Create profile via RPC (security definer). If it fails, fall back to direct insert.
+        try {
+          const payload: Json = {
+            id: signUpData.user.id,
+            email: email.toLowerCase(),
+            full_name: input.full_name,
+            phone: input.phone ?? null,
+            role: input.role,
+            job_title_id: input.job_title_id ?? null,
+            organization_id: input.organization_id ?? null,
+          };
+          try {
+            await rpcClient.insert_profiles({ _input: payload });
+          } catch {
+            // Fallback: RLS should allow a user to create their own profile row
+            await supabase.from('profiles').insert({
+              id: signUpData.user.id,
+              email: email.toLowerCase(),
+              full_name: input.full_name,
+              phone: input.phone ?? null,
+              role: input.role,
+              job_title_id: input.job_title_id ?? null,
+              organization_id: input.organization_id ?? null,
+            });
+          }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Profile creation failed';
+          setError(msg);
+          toast.error(msg);
+          return null;
+        }
+
+        // 4) Load profile and navigate
         setUser(signUpData.user);
         await useAuthStore.getState().loadProfile(signUpData.user.id);
         const newProfile = useAuthStore.getState().profile;
@@ -236,15 +283,14 @@ export function useAuth(): UseAuthReturn {
           toast.error(msg);
           return null;
         }
-        if (newProfile === null) {
-          const msg = 'Profile creation failed';
-          setError(msg);
-          toast.error(msg);
-          return null;
-        }
 
-        toast.success('Signup successful! Redirecting to onboarding…');
-        navigate('/onboarding');
+        toast.success('Signup successful!');
+        if ((input.custom_organization_name ?? '').trim() !== '' || !input.organization_id) {
+          // If the user provided an org name but we couldn't create pre-auth, guide them now that they are authed
+          navigate('/organizations/onboarding');
+        } else {
+          navigate('/dashboard');
+        }
         return newProfile;
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Unexpected signup error';

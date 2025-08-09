@@ -13,36 +13,37 @@ import { Navbar } from '@/pages/StandardPages/StandardPageComponents/Navbar';
 import { ScrollToTop } from '@/pages/StandardPages/StandardPageComponents/ScrollToTop';
 
 /* ── lazy-loaded pages ─────────────────────────────────────────── */
-const LandingPage        = lazy(() => import('@/pages/StandardPages/LandingPage'));
-const ResetPassword      = lazy(() => import('@/pages/StandardPages/ResetPassword'));
-const UpdatePassword     = lazy(() => import('@/pages/StandardPages/UpdatePassword'));
-const UserOnboarding     = lazy(() => import('@/pages/StandardPages/UserOnboarding'));
-const Dashboard          = lazy(() => import('@/pages/StandardPages/Dashboard'));
+const LandingPage = lazy(() => import('@/pages/StandardPages/LandingPage'));
+const ResetPassword = lazy(() => import('@/pages/StandardPages/ResetPassword'));
+const UpdatePassword = lazy(() => import('@/pages/StandardPages/UpdatePassword'));
+const UserOnboarding = lazy(() => import('@/pages/StandardPages/UserOnboarding'));
+const Dashboard = lazy(() => import('@/pages/StandardPages/Dashboard'));
 
-const ProjectDashboard  = lazy(() => import('@/pages/Projects/ProjectDashboard'));
-const ContractSettings   = lazy(() => import('@/pages/Projects/ContractSettings'));
-const ContractCreation   = lazy(() => import('@/pages/Projects/ContractCreation'));
-const Calculators        = lazy(() => import('@/pages/Projects/Calculators'));
-const CalculatorUsage    = lazy(() => import('@/pages/Projects/CalculatorUsage'));
+const ProjectDashboard = lazy(() => import('@/pages/Projects/ProjectDashboard'));
+const ContractSettings = lazy(() => import('@/pages/Projects/ContractSettings'));
+const ContractCreation = lazy(() => import('@/pages/Projects/ContractCreation'));
+const Calculators = lazy(() => import('@/pages/Projects/Calculators'));
+const CalculatorUsage = lazy(() => import('@/pages/Projects/CalculatorUsage'));
 const CalculatorCreation = lazy(() => import('@/pages/Projects/CalculatorCreation'));
-const ChangeOrders       = lazy(() => import('@/pages/Projects/ChangeOrders'));
-const EquipmentLog       = lazy(() => import('@/pages/Projects/EquipmentLog'));
-const Inspections        = lazy(() => import('@/pages/Projects/Inspections'));
-const Issues             = lazy(() => import('@/pages/Projects/Issues'));
-const DailyReports       = lazy(() => import('@/pages/Projects/DailyReports'));
+const ChangeOrders = lazy(() => import('@/pages/Projects/ChangeOrders'));
+const EquipmentLog = lazy(() => import('@/pages/Projects/EquipmentLog'));
+const Inspections = lazy(() => import('@/pages/Projects/Inspections'));
+const Issues = lazy(() => import('@/pages/Projects/Issues'));
+const DailyReports = lazy(() => import('@/pages/Projects/DailyReports'));
 
-const Projects           = lazy(() => import('@/pages/Features/Projects'));
-const Estimates          = lazy(() => import('@/pages/Features/Estimates'));
-const CostCodes          = lazy(() => import('@/pages/Features/CostCodes'));
-const ScheduleTasks      = lazy(() => import('@/pages/Features/ScheduleTasks'));
+const Projects = lazy(() => import('@/pages/Features/Projects'));
+const Estimates = lazy(() => import('@/pages/Features/Estimates'));
+const CostCodes = lazy(() => import('@/pages/Features/CostCodes'));
+const ScheduleTasks = lazy(() => import('@/pages/Features/ScheduleTasks'));
 const PreconstructionBidding = lazy(() => import('@/pages/Features/PreconstructionBidding'));
 const DocumentManagement = lazy(() => import('@/pages/Features/DocumentManagement'));
 const FinancialManagement = lazy(() => import('@/pages/Features/FinancialManagement'));
-const FieldOperations    = lazy(() => import('@/pages/Features/FieldOperations'));
-const AccountingPayroll  = lazy(() => import('@/pages/Features/AccountingPayroll'));
-const ResourcePlanning   = lazy(() => import('@/pages/Features/ResourcePlanning'));
+const FieldOperations = lazy(() => import('@/pages/Features/FieldOperations'));
+const AccountingPayroll = lazy(() => import('@/pages/Features/AccountingPayroll'));
+const ResourcePlanning = lazy(() => import('@/pages/Features/ResourcePlanning'));
 const ReportingCollaboration = lazy(() => import('@/pages/Features/ReportingCollaboration'));
 const OrganizationDashboard = lazy(() => import('@/pages/Organization/OrganizationDashboard'));
+const OrganizationOnboarding = lazy(() => import('@/pages/Organization/OrganizationOnboarding'));
 const QualitySafety = lazy(() => import("@/pages/Features/QualitySafety"));
 const SubcontractorManagement = lazy(() => import("@/pages/Features/SubcontractorManagement"));
 const EquipmentManagement = lazy(() => import('@/pages/Features/EquipmentManagement'));
@@ -52,7 +53,7 @@ const AccountsPayable = lazy(() => import('@/pages/Features/AccountsPayable'));
 const AccountsReceivable = lazy(() => import('@/pages/Features/AccountsReceivable'));
 const Payments = lazy(() => import('@/pages/Features/Payments'));
 
-const NotFoundPage       = lazy(() => import('@/pages/StandardPages/NotFoundPage'));
+const NotFoundPage = lazy(() => import('@/pages/StandardPages/NotFoundPage'));
 
 /* ── component ─────────────────────────────────────────────────── */
 export default function App(): JSX.Element {
@@ -76,30 +77,30 @@ export default function App(): JSX.Element {
 
   /* dev-only session / user debug */
   useEffect(() => {
-    if (import.meta.env.DEV) {
-      (async () => {
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        const { data: userData,    error: userError    } = await supabase.auth.getUser();
+    if (!import.meta.env.DEV) return;
+    const debug = typeof localStorage !== 'undefined' && localStorage.getItem('DEBUG_AUTH') === '1';
+    if (!debug) return;
+    (async () => {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const { data: userData, error: userError } = await supabase.auth.getUser();
 
-        // Narrowing: only log when result objects contain expected keys
-        if (sessionError) {
-          console.warn('[App] session error', sessionError);
-        } else {
-          console.log('[App] session', sessionData);
-        }
+      if (sessionError) {
+        console.warn('[App] session error', sessionError);
+      } else {
+        console.log('[App] session', sessionData);
+      }
 
-        if (userError) {
-          console.warn('[App] user error', userError);
-        } else {
-          console.log('[App] user', userData);
-        }
-      })().catch(console.error);
-    }
+      if (userError) {
+        console.warn('[App] user error', userError);
+      } else {
+        console.log('[App] user', userData);
+      }
+    })().catch(console.error);
   }, []);
 
   /* hide navbar on auth-style routes */
   const hideNavbarRoutes: string[] = ['/', '/reset-password', '/onboarding'];
-  const shouldShowNavbar: boolean  = !hideNavbarRoutes.includes(location.pathname);
+  const shouldShowNavbar: boolean = !hideNavbarRoutes.includes(location.pathname);
 
   /* ── initial bootstrap spinner ──────────────────────────────── */
   if (isLoading) {
@@ -119,6 +120,8 @@ export default function App(): JSX.Element {
       <Toaster position="top-right" />
       <ScrollToTop />
 
+      {import.meta.env.PROD && <Analytics />}
+
       {pageLoading && (
         <div className="fixed top-0 left-0 right-0 h-1 bg-primary animate-pulse z-50" />
       )}
@@ -137,10 +140,10 @@ export default function App(): JSX.Element {
       >
         <Routes>
           {/* ── public ─────────────────────────────────────────── */}
-          <Route path="/"              element={<LandingPage />}   />
-          <Route path="/reset-password"   element={<ResetPassword />} />
-          <Route path="/update-password"  element={<UpdatePassword />} />
-          <Route path="/onboarding"    element={<UserOnboarding />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/update-password" element={<UpdatePassword />} />
+          <Route path="/onboarding" element={<UserOnboarding />} />
 
           {/* ── protected (authenticated) ─────────────────────── */}
           <Route
@@ -169,14 +172,14 @@ export default function App(): JSX.Element {
               </ProtectedRoute>
             }
           />
-            <Route
-              path="/projects/create"
-              element={
-                <ProtectedRoute>
-                  <ContractCreation />
-                </ProtectedRoute>
-              }
-            />
+          <Route
+            path="/projects/create"
+            element={
+              <ProtectedRoute>
+                <ContractCreation />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Calculator stack */}
           <Route
@@ -383,27 +386,35 @@ export default function App(): JSX.Element {
               </ProtectedRoute>
             }
           />
-            <Route
-              path="/quality-safety"
-              element={
-                <ProtectedRoute>
-                  <QualitySafety />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/subcontractors"
-              element={
-                <ProtectedRoute>
-                  <SubcontractorManagement />
-                </ProtectedRoute>
-              }
-            />
+          <Route
+            path="/quality-safety"
+            element={
+              <ProtectedRoute>
+                <QualitySafety />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/subcontractors"
+            element={
+              <ProtectedRoute>
+                <SubcontractorManagement />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/organizations"
             element={
               <ProtectedRoute>
                 <OrganizationDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organizations/onboarding"
+            element={
+              <ProtectedRoute>
+                <OrganizationOnboarding />
               </ProtectedRoute>
             }
           />
