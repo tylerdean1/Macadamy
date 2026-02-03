@@ -19,6 +19,8 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
 import { FileText, Plus, Pencil } from 'lucide-react';
+import { rpcClient } from '@/lib/rpc.client';
+import { getOrderByColumn } from '@/lib/utils/rpcOrderBy';
 
 // Define the structure of an inspection record
 interface Inspection {
@@ -108,9 +110,16 @@ export default function Inspections() {
     try {
       // Note: get_contract_with_wkt normally expects a contract_id parameter,
       // but when called without it, it should return all contracts
+      const orderBy = await getOrderByColumn('projects');
+      if (!orderBy) {
+        setContracts([]);
+        return;
+      }
+
       const { data, error } = await supabase.rpc('filter_projects', {
         _filters: {},
-        _select_cols: []
+        _order_by: orderBy,
+        _direction: 'asc'
       });
 
       if (error) {
@@ -133,8 +142,7 @@ export default function Inspections() {
   async function fetchWbs(contractId: string) {
     try {
       const { data, error } = await supabase.rpc('filter_wbs', {
-        _filters: { project_id: contractId },
-        _select_cols: []
+        _filters: { project_id: contractId }
       });
 
       if (error) {
@@ -163,8 +171,7 @@ export default function Inspections() {
       // In this application, get_maps_with_wkt needs contract_id, not wbs_id
       // This is likely a design issue in the API, but we need to work with it
       const { data, error } = await supabase.rpc('filter_maps', {
-        _filters: { wbs_id: wbsId },
-        _select_cols: []
+        _filters: { wbs_id: wbsId }
       });
 
       if (error) {
@@ -192,23 +199,14 @@ export default function Inspections() {
   // Fetch line items for a map
   async function fetchLineItems(mapId: string) {
     try {
-      // Since there's no RPC for getting line items by map_id,
-      // we need to use direct table access for this specific case with proper error handling
-      const { data, error } = await supabase
-        .from('line_items')
-        .select('id, description')
-        .eq('map_id', mapId);
-
-      if (error) {
-        console.error('Error fetching line items:', error);
-        setLineItems([]);
-        return;
-      }
+      const data = await rpcClient.filter_line_items({
+        _filters: { map_id: mapId }
+      });
 
       if (Array.isArray(data) && data.length > 0) {
         setLineItems(data.map(li => ({
           id: li.id,
-          name: li.description || 'Unnamed Line Item'
+          name: li.description || li.name || 'Unnamed Line Item'
         })));
       } else {
         setLineItems([]);
@@ -219,21 +217,31 @@ export default function Inspections() {
     }
   }
 
-  // Fetch inspections (no RPC available yet)
+  // Fetch inspections using RPC
   async function fetchInspections() {
     try {
-      // Note: There's no get_inspections RPC available yet, so we need to use direct table access
-      // TODO: When get_inspections RPC becomes available, replace this with RPC call
-      const { data, error } = await supabase
-        .from('inspections')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const data = await rpcClient.filter_inspections({
+        _filters: {}
+      });
 
-      if (error) {
-        console.error('Error fetching inspections:', error);
-        return;
-      }
-      setInspections(Array.isArray(data) ? data : []);
+      const normalized: Inspection[] = Array.isArray(data)
+        ? data.map(insp => ({
+          id: insp.id,
+          name: insp.name,
+          description: insp.notes ?? null,
+          contract_id: insp.project_id ?? '',
+          wbs_id: null,
+          map_id: null,
+          line_item_id: null,
+          pdf_url: null,
+          photo_urls: null,
+          created_by: null,
+          updated_by: null,
+          created_at: insp.created_at ?? null,
+          updated_at: insp.updated_at ?? null
+        }))
+        : [];
+      setInspections(normalized);
     } catch (err) {
       console.error('Unexpected error in fetchInspections:', err);
     }
@@ -280,57 +288,46 @@ export default function Inspections() {
         created_by: user.id
       };
 
-      let error;
+      const input = {
+        name: insertData.name,
+        project_id: insertData.contract_id || null,
+        notes: insertData.description || null,
+        result: {
+          pdf_url: insertData.pdf_url,
+          photo_urls: insertData.photo_urls ?? [],
+          line_item_id: insertData.line_item_id,
+          map_id: insertData.map_id,
+          wbs_id: insertData.wbs_id
+        }
+      };
+
       if (typeof editingId === 'string' && editingId.length > 0) {
         // Use correct backend function for updating inspection
-        const result = await supabase.rpc('update_inspections', {
+        await rpcClient.update_inspections({
           _id: editingId,
-          _contract_id: insertData.contract_id,
-          _name: insertData.name,
-          _description: insertData.description,
-          _created_by: insertData.created_by,
-          _line_item_id: insertData.line_item_id,
-          _map_id: insertData.map_id,
-          _pdf_url: insertData.pdf_url,
-          _photo_urls: insertData.photo_urls,
-          _wbs_id: insertData.wbs_id,
+          _input: input
         });
-        error = result.error;
       } else {
         // Use correct backend function for inserting inspection
-        const result = await supabase.rpc('insert_inspections', {
-          _contract_id: insertData.contract_id,
-          _name: insertData.name,
-          _description: insertData.description,
-          _created_by: insertData.created_by,
-          _line_item_id: insertData.line_item_id,
-          _map_id: insertData.map_id,
-          _pdf_url: insertData.pdf_url,
-          _photo_urls: insertData.photo_urls,
-          _wbs_id: insertData.wbs_id,
+        await rpcClient.insert_inspections({
+          _input: input
         });
-        error = result.error;
       }
 
-      if (error) {
-        console.error('Error saving inspection:', error);
-        alert('Error saving inspection');
-      } else {
-        setCreating(false);
-        setEditingId(null);
-        setNewInspection({
-          name: '',
-          description: '',
-          contract_id: '',
-          wbs_id: '',
-          map_id: '',
-          line_item_id: '',
-          photo_urls: []
-        });
-        setPdfFile(null);
-        setPhotoFiles(null);
-        void fetchInspections();
-      }
+      setCreating(false);
+      setEditingId(null);
+      setNewInspection({
+        name: '',
+        description: '',
+        contract_id: '',
+        wbs_id: '',
+        map_id: '',
+        line_item_id: '',
+        photo_urls: []
+      });
+      setPdfFile(null);
+      setPhotoFiles(null);
+      void fetchInspections();
     } catch (err) {
       console.error('Unexpected error in handleSave:', err);
       alert('Error saving inspection');

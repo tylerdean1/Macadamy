@@ -10,7 +10,7 @@ The name **Macadamy** comes from the verb **"macadamize,"** which means _to pave
 - Each RPC begins with a `check_auth` call that scopes what the current user can do before any action is taken.
 - All table reads use `get_*` RPCs with `SELECT ...` + optional `ST_AsText(...)` for WKT geometry
 - All inserts/updates/deletes go through `insert_*`, `update_*`, `delete_*` RPCs with flexible JSONB inputs
-- Frontend only handles clean, typed calls — no direct `.from(...).update()` access
+- Frontend primarily uses RPCs; current-user profile bootstrap uses direct `profiles` reads/upserts
 - All geometry is stored as WKT in PostGIS geometry columns and parsed on the frontend
 
 ## 📦 Geometry Utilities
@@ -103,6 +103,7 @@ wbs                       workflows
 - `useProjectsData` and `useOrganizationsData` hooks provide searchable data for dashboards
 - New feature pages `QualitySafety` and `SubcontractorManagement` outline future compliance and vendor management modules
 - Added `Payments` page to list project payments
+- `ProfileOnboarding` at `/onboarding/profile` completes user profiles with job title search/custom creation and avatar picker/upload
 
 ---
 This structure gives you a true API-less, secure backend with full control and complete type safety.
@@ -196,3 +197,5 @@ Run the migrations to recreate it:
 npx supabase db reset
 ```
 This applies `supabase/migrations/20250708223500_update_access_token_hook.sql` so authentication works.
+
+If profile syncing after auth is missing, ensure `supabase/migrations/20250809080000_create_auth_profile_sync_trigger.sql` is applied as well.

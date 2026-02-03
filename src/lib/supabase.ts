@@ -1,12 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';          // ← generated file
-import { getRequiredEnv } from '@/utils/env-validator';    // ← shared helper
+import { getRequiredEnvAny } from '@/utils/env-validator';    // ← shared helper
 
 /* ── environment ────────────────────────────────────────────────
    Throws at boot if the vars are missing, so you fail fast
    in dev/CI instead of getting mysterious runtime 401s.        */
-const SUPABASE_URL: string  = getRequiredEnv('VITE_SUPABASE_URL');
-const SUPABASE_ANON: string = getRequiredEnv('VITE_SUPABASE_ANON_KEY');
+const SUPABASE_URL: string = getRequiredEnvAny([
+  'NEXT_PUBLIC_SUPABASE_URL',
+  'VITE_SUPABASE_URL',
+]);
+const SUPABASE_ANON: string = getRequiredEnvAny([
+  'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+  'VITE_SUPABASE_ANON_KEY',
+]);
 
 /* ── typed client ──────────────────────────────────────────────
    - persistSession keeps users logged in on refresh

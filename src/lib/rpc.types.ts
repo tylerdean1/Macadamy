@@ -69,7 +69,7 @@ export interface EnrichedProfileRow {
     full_name: string;
     email: string;
     phone: string | null;
-    avatar_url: string | null;
+    avatar_id: string | null;
     role: Database["public"]["Enums"]["user_role_type"] | null;
     job_title_id: string | null;
     organization_id: string | null;
@@ -78,6 +78,7 @@ export interface EnrichedProfileRow {
     created_at: string | null;
     updated_at: string;
     deleted_at: string | null;
+    profile_completed_at: string | null;
 }
 
 // Add EnrichedProfile type for compatibility
@@ -86,7 +87,7 @@ export interface EnrichedProfile {
     full_name: string;
     email: string;
     phone: string | null;
-    avatar_url: string | null;
+    avatar_id: string | null;
     role: Database["public"]["Enums"]["user_role_type"] | null;
     job_title_id: string | null;
     organization_id: string | null;
@@ -95,6 +96,7 @@ export interface EnrichedProfile {
     created_at: string | null;
     updated_at: string;
     deleted_at: string | null;
+    profile_completed_at: string | null;
 }
 
 // Equipment and other entity types
@@ -124,11 +126,8 @@ export interface OrganizationRow {
 
 export interface JobTitleRow {
     id: string;
-    title: string;
-    description: string | null;
-    is_custom: boolean | null;
-    organization_id: string | null;
-    created_at: string | null;
+    name: string;
+    created_at: string;
     updated_at: string;
     deleted_at: string | null;
 }
@@ -140,7 +139,7 @@ export interface UpdateProfileRpcArgs {
         full_name?: string;
         email?: string;
         phone?: string;
-        avatar_url?: string;
+        avatar_id?: string;
         job_title_id?: string;
         organization_id?: string;
         role?: Database["public"]["Enums"]["user_role_type"];
@@ -149,10 +148,7 @@ export interface UpdateProfileRpcArgs {
 
 export interface InsertJobTitleRpcArgs {
     _input: {
-        title: string;
-        description?: string;
-        is_custom?: boolean;
-        organization_id?: string;
+        name: string;
     };
 }
 

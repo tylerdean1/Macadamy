@@ -17,6 +17,7 @@ const LandingPage = lazy(() => import('@/pages/StandardPages/LandingPage'));
 const ResetPassword = lazy(() => import('@/pages/StandardPages/ResetPassword'));
 const UpdatePassword = lazy(() => import('@/pages/StandardPages/UpdatePassword'));
 const UserOnboarding = lazy(() => import('@/pages/StandardPages/UserOnboarding'));
+const ProfileOnboarding = lazy(() => import('@/pages/StandardPages/ProfileOnboarding'));
 const Dashboard = lazy(() => import('@/pages/StandardPages/Dashboard'));
 
 const ProjectDashboard = lazy(() => import('@/pages/Projects/ProjectDashboard'));
@@ -99,7 +100,7 @@ export default function App(): JSX.Element {
   }, []);
 
   /* hide navbar on auth-style routes */
-  const hideNavbarRoutes: string[] = ['/', '/reset-password', '/onboarding'];
+  const hideNavbarRoutes: string[] = ['/', '/reset-password', '/onboarding', '/onboarding/profile'];
   const shouldShowNavbar: boolean = !hideNavbarRoutes.includes(location.pathname);
 
   /* ── initial bootstrap spinner ──────────────────────────────── */
@@ -144,6 +145,14 @@ export default function App(): JSX.Element {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/update-password" element={<UpdatePassword />} />
           <Route path="/onboarding" element={<UserOnboarding />} />
+          <Route
+            path="/onboarding/profile"
+            element={
+              <ProtectedRoute requireProfile={false} requireOrganization={false}>
+                <ProfileOnboarding />
+              </ProtectedRoute>
+            }
+          />
 
           {/* ── protected (authenticated) ─────────────────────── */}
           <Route
@@ -413,7 +422,7 @@ export default function App(): JSX.Element {
           <Route
             path="/organizations/onboarding"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requireOrganization={false}>
                 <OrganizationOnboarding />
               </ProtectedRoute>
             }

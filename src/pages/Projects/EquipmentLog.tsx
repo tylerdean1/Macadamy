@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { rpcClient } from '@/lib/rpc.client';
 import { useAuthStore } from '@/lib/store';
 
 interface EquipmentUsage {
@@ -27,7 +27,10 @@ interface EquipmentItem {
 }
 
 export default function EquipmentLog() {
-  const user = useAuthStore(state => state.user);
+  const { user, profile } = useAuthStore(state => ({
+    user: state.user,
+    profile: state.profile,
+  }));
 
   const [logs, setLogs] = useState<EquipmentUsage[]>([]);
   const [operators, setOperators] = useState<Operator[]>([]);
@@ -53,18 +56,19 @@ export default function EquipmentLog() {
 
   const fetchLogs = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .rpc('filter_equipment_usage', {
-          _filters: {},
-          _select_cols: []
-        });
-
-      if (error) throw error;
-      const processedData = Array.isArray(data) ? data.map(log => ({
-        ...log,
-        notes: 'notes' in log ? log.notes : '',
-      })) : [];
-      setLogs(processedData as EquipmentUsage[]);
+      const data = await rpcClient.filter_equipment_usage({ _filters: {} });
+      const processedData: EquipmentUsage[] = Array.isArray(data)
+        ? data.map(log => ({
+          id: log.id,
+          equipment_id: log.equipment_id ?? '',
+          usage_date: log.date,
+          hours_used: typeof log.hours_used === 'number' ? log.hours_used : 0,
+          operator_id: null,
+          operator_name: null,
+          notes: log.notes ?? ''
+        }))
+        : [];
+      setLogs(processedData);
     } catch (error) {
       console.error('Error fetching logs:', error);
     } finally {
@@ -73,25 +77,32 @@ export default function EquipmentLog() {
   }, []);
 
   const fetchOperators = useCallback(async () => {
-    const { data, error } = await supabase.rpc('filter_profiles', {
-      _filters: {},
-      _select_cols: []
-    });
-    if (Array.isArray(data) && !error) {
+    const orgReady = Boolean(profile?.organization_id) && Boolean(profile?.profile_completed_at);
+    if (!orgReady) {
+      setOperators([]);
+      return;
+    }
+    const data = await rpcClient.get_my_org_profiles_minimal();
+    if (Array.isArray(data)) {
       const operators: Operator[] = data.map(profile => ({
         id: profile.id,
         full_name: profile.full_name || 'Unknown'
       }));
       setOperators(operators);
     }
-  }, []);
+  }, [profile?.organization_id, profile?.profile_completed_at]);
 
   const fetchEquipment = useCallback(async () => {
-    const { data, error } = await supabase.rpc('filter_equipment', {
-      _filters: {},
-      _select_cols: []
-    });
-    if (Array.isArray(data) && !error) setEquipmentList(data);
+    const data = await rpcClient.filter_equipment({ _filters: {} });
+    if (Array.isArray(data)) {
+      const normalized: EquipmentItem[] = data.map(item => ({
+        id: item.id,
+        user_defined_id: item.serial_number ?? item.id,
+        name: item.name,
+        description: item.model ?? ''
+      }));
+      setEquipmentList(normalized);
+    }
   }, []);
 
   useEffect(() => {
@@ -105,16 +116,14 @@ export default function EquipmentLog() {
     if (!user) return;
 
     try {
-      const { error } = await supabase.rpc('insert_equipment_usage', {
-        _equipment_id: newLog.equipment_id,
-        _usage_date: newLog.usage_date,
-        _hours_used: newLog.hours_used,
-        _operator_id: newLog.operator_id ?? undefined,
-        _notes: newLog.notes || undefined,
-        _created_by: user.id,
+      await rpcClient.insert_equipment_usage({
+        _input: {
+          equipment_id: newLog.equipment_id,
+          date: newLog.usage_date,
+          hours_used: newLog.hours_used,
+          notes: newLog.notes || null
+        }
       });
-
-      if (error) throw error;
 
       setIsCreating(false);
       void fetchLogs();
@@ -135,14 +144,13 @@ export default function EquipmentLog() {
   const handleAddEquipment = async () => {
     if (!user) return;
     try {
-      const { error } = await supabase.rpc('insert_equipment', {
-        _user_defined_id: newEquipment.user_defined_id,
-        _name: newEquipment.name,
-        _description: newEquipment.description,
-        _created_by: user.id,
+      await rpcClient.insert_equipment({
+        _input: {
+          name: newEquipment.name,
+          serial_number: newEquipment.user_defined_id || null,
+          model: newEquipment.description || null
+        }
       });
-
-      if (error) throw error;
       setShowAddEquipment(false);
       setNewEquipment({ user_defined_id: '', name: '', description: '' });
       void fetchEquipment();

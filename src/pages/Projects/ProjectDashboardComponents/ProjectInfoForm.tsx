@@ -1,7 +1,18 @@
 // filepath: src\pages\Projects\ProjectDashboardComponents\ProjectInfoForm.tsx
 import { useState, useEffect } from 'react';
 import { GeometryButton } from '@/pages/Projects/SharedComponents/GoogleMaps/GeometryButton';
-import type { ContractWithWktRow } from '@/lib/rpc.types';
+export type ProjectInfoVM = {
+  id: string;
+  title: string;
+  description: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  status: string | null;
+  budget: number | null;
+  coordinates_wkt: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
 import {
   Share2, ChevronUp, ChevronDown, MapPin, Calendar,
   Tag, FileText, ArrowUpRight, Download,
@@ -12,7 +23,7 @@ import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 
 interface ProjectInfoFormProps {
-  contractData: ContractWithWktRow;
+  contractData: ProjectInfoVM;
 }
 
 /**
@@ -26,22 +37,23 @@ export function ProjectInfoForm({ contractData }: ProjectInfoFormProps) {
   const [isDetailedView, setIsDetailedView] = useState(false);
   const [attachments, setAttachments] = useState<Array<{ name: string, url: string, type: string, size: number }>>([]);
   const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
+  const statusValue = typeof contractData.status === 'string' ? contractData.status.toLowerCase() : '';
 
   // Subscribe to real-time updates
   useEffect(() => {
     if (!contractData?.id) return;
 
     const subscription = supabase
-      .channel(`contract-${contractData.id}`)
+      .channel(`project-${contractData.id}`)
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
-        table: 'contracts',
+        table: 'projects',
         filter: `id=eq.${contractData.id}`
       }, (payload) => {
         if (typeof payload.new !== 'undefined' && payload.new !== null) {
           // This component is view-only. Parent should handle contractData prop updates.
-          console.log('Real-time update received for contract, parent should update prop:', payload.new);
+          console.log('Real-time update received for project, parent should update prop:', payload.new);
         }
       })
       .subscribe();
@@ -282,11 +294,13 @@ export function ProjectInfoForm({ contractData }: ProjectInfoFormProps) {
             <h3 className="text-sm text-gray-400">Status</h3>
             <div className="flex items-center mt-1">
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                ${contractData.status === 'Active' ? 'bg-green-100 text-green-800' :
-                  contractData.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
-                    contractData.status === 'On Hold' ? 'bg-yellow-100 text-yellow-800' :
-                      contractData.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'}`}
+                ${statusValue === 'active' ? 'bg-green-100 text-green-800' :
+                  statusValue === 'planned' ? 'bg-yellow-100 text-yellow-800' :
+                    statusValue === 'on_hold' ? 'bg-yellow-100 text-yellow-800' :
+                      statusValue === 'complete' ? 'bg-blue-100 text-blue-800' :
+                        statusValue === 'archived' ? 'bg-gray-200 text-gray-900' :
+                          statusValue === 'canceled' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'}`}
               >
                 {contractData.status ? contractData.status.replace('_', ' ') : 'Unknown'}
               </span>
@@ -334,7 +348,7 @@ export function ProjectInfoForm({ contractData }: ProjectInfoFormProps) {
                       <GeometryButton
                         geometry={null}
                         wkt={contractData.coordinates_wkt}
-                        table="contracts"
+                        table="projects"
                         targetId={contractData.id}
                         label="View Contract Location"
                       />

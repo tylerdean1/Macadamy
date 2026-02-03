@@ -8,6 +8,7 @@ import { Button } from './button';
 import { Plus } from 'lucide-react';
 import type { Database } from '@/lib/database.types';
 import type { Organization, JobTitle } from '@/lib/types';
+import { useAuthStore } from '@/lib/store';
 
 type Avatars = Database['public']['Tables']['avatars']['Row'];
 import type { Area } from 'react-easy-crop';
@@ -34,7 +35,7 @@ interface EditProfileModalProps {
   crop: { x: number; y: number };
   zoom: number;
   croppedAreaPixels: Area | null;
-  onAvatarSelect: (url: string) => void;
+  onAvatarSelect: (avatarId: string) => void;
   // Renamed from onAvatarUpload
   onRawImageSelected: (file: File) => void;
   // New prop for when "Crop & Upload" is clicked, now directly handles upload
@@ -66,6 +67,8 @@ export function EditProfileModal({
   onFormChange, // This should be the one from useProfileData (handleCustomFormChange or handleFormChange)
   onSaveProfile,
 }: EditProfileModalProps) {
+  const currentRole = useAuthStore((state) => state.profile?.role ?? null);
+  const isSystemAdmin = currentRole === 'system_admin';
   const handleInternalCropAndUpload = async () => {
     if (typeof selectedImage !== 'string' || !croppedAreaPixels) return;
     try {
@@ -88,10 +91,10 @@ export function EditProfileModal({
             {avatars.map(avatar => (
               <button
                 key={avatar.id}
-                onClick={() => onAvatarSelect(avatar.url)}
+                onClick={() => onAvatarSelect(avatar.id)}
                 className={`rounded-lg overflow-hidden border-2 ${editForm.avatar_id === avatar.id ? 'border-primary' : 'border-background-lighter'}`}
               >
-                <img src={avatar.url} alt={avatar.name} className="w-full h-24 object-cover" />
+                <img src={avatar.url} alt="Avatar" className="w-full h-24 object-cover" />
               </button>
             ))}
             <label className="relative cursor-pointer rounded-lg overflow-hidden border-2 border-dashed border-background-lighter hover:border-primary transition-colors">
@@ -151,19 +154,21 @@ export function EditProfileModal({
             />
           </FormField>
 
-          <FormField label="Organization" htmlFor="organization_id" className="mb-4">
-            <Select
-              name="organization_id"
-              id="organization_id"
-              value={editForm.organization_id ?? ''} // Use nullish coalescing
-              onChange={onFormChange}
-              options={[
-                { value: '', label: 'Select organization' },
-                ...organizations.map(org => ({ value: org.id, label: org.name })),
-                { value: 'create-new', label: '+ Create new organization' },
-              ]}
-            />
-          </FormField>
+          {isSystemAdmin && (
+            <FormField label="Organization" htmlFor="organization_id" className="mb-4">
+              <Select
+                name="organization_id"
+                id="organization_id"
+                value={editForm.organization_id ?? ''} // Use nullish coalescing
+                onChange={onFormChange}
+                options={[
+                  { value: '', label: 'Select organization' },
+                  ...organizations.map(org => ({ value: org.id, label: org.name })),
+                  { value: 'create-new', label: '+ Create new organization' },
+                ]}
+              />
+            </FormField>
+          )}
 
           <FormField label="Job Title" htmlFor="job_title_id" className="mb-4">
             <Select
@@ -173,7 +178,7 @@ export function EditProfileModal({
               onChange={onFormChange}
               options={[
                 { value: '', label: 'Select job title' },
-                ...jobTitles.map(jt => ({ value: jt.id, label: jt.title })),
+                ...jobTitles.map(jt => ({ value: jt.id, label: jt.name })),
               ]}
             />
             {/* Only show custom job title input if job_title_id is empty string and not null/undefined */}

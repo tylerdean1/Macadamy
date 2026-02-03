@@ -27,8 +27,17 @@ export default function OrganizationSelect({
     const fetchOrganizations = async () => {
       setLoading(true);
       try {
-        const data = await rpcClient.getOrganizations();
-        setOrganizations(Array.isArray(data) ? data : []);
+        const data = await rpcClient.get_organizations_public({ p_query: search.trim() });
+        const normalized = Array.isArray(data)
+          ? data.map(org => ({
+            id: org.id,
+            name: org.name,
+            address: null,
+            phone: null,
+            website: null
+          }))
+          : [];
+        setOrganizations(normalized);
       } catch (error) {
         console.error('Error loading organizations:', error);
       } finally {
@@ -37,7 +46,7 @@ export default function OrganizationSelect({
     };
 
     void fetchOrganizations();
-  }, []);
+  }, [search]);
 
   const filtered = organizations.filter((org) =>
     org.name.toLowerCase().includes(search.toLowerCase())

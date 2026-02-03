@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { supabase } from '@/lib/supabase';
-import type { Database } from '@/lib/database.types';
 import { useAuthStore } from '@/lib/store';
 
 const LOADING_TIMEOUT_MS = 5_000; // fallback guard
@@ -33,18 +32,31 @@ export function useBootstrapAuth(): boolean {
   const [initialCheckDone, setInitialCheckDone] = useState(false);
   const timeoutRef = useRef<number | null>(null);
 
-  // Helper: retry profile load briefly to allow server trigger to create row post-confirm
-  const loadProfileWithRetry = async (uid: string, attempts = 5, delayMs = 600): Promise<void> => {
-    for (let i = 0; i < attempts; i++) {
-      await loadProfile(uid);
-      const state = useAuthStore.getState();
-      if (state.profile) return;
-      const msg = state.error ?? '';
-      const needsRetry = typeof msg === 'string' && msg.includes('profile not found');
-      if (!needsRetry) return;
-      await new Promise(res => setTimeout(res, delayMs));
+  const tryGetSessionFromUrl = async (): Promise<void> => {
+    if (typeof window === 'undefined') return;
+    const hasAuthCallback =
+      window.location.hash.includes('access_token=') ||
+      window.location.hash.includes('refresh_token=') ||
+      window.location.hash.includes('type=');
+    if (!hasAuthCallback) return;
+
+    type AuthWithSessionFromUrl = {
+      getSessionFromUrl: (options: { storeSession: boolean }) => Promise<{
+        data: unknown;
+        error: unknown;
+      }>;
+    };
+
+    const authClient = supabase.auth as unknown as Partial<AuthWithSessionFromUrl>;
+    if (typeof authClient.getSessionFromUrl !== 'function') {
+      return;
     }
+
+    const { data, error } = await authClient.getSessionFromUrl({ storeSession: true });
+    console.log('[auth] getSessionFromUrl', data, error);
+    history.replaceState(null, '', window.location.pathname + window.location.search);
   };
+
 
   /* ── FIRST EFFECT ▪ initial session check ───────────────────── */
   useEffect(() => {
@@ -55,7 +67,10 @@ export function useBootstrapAuth(): boolean {
       setLoading({ initialization: true });
 
       try {
+        await tryGetSessionFromUrl();
+
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        console.log('[auth] getSession', sessionData, sessionError);
 
         if (sessionError) {
           if (import.meta.env.DEV && debugAuth) {
@@ -66,8 +81,8 @@ export function useBootstrapAuth(): boolean {
           return;
         }
 
-        const activeSession = sessionData.session;
-        if (!activeSession) {
+        const session = sessionData?.session ?? null;
+        if (!session) {
           // No session on initial load → nothing to validate or sign out
           clearAuth();
           return;
@@ -75,80 +90,29 @@ export function useBootstrapAuth(): boolean {
 
         // Validate that the user in the token still exists server-side
         const { data: userData, error: userError } = await supabase.auth.getUser();
+        const userStatus = (userError as { status?: number } | null)?.status;
+        const isAuthError = userStatus === 401 || userStatus === 403;
         if (userError || !userData?.user) {
           if (import.meta.env.DEV && debugAuth) {
             console.warn('[useBootstrapAuth] invalid or missing user, clearing session', userError);
           }
           // Only signOut if we actually had a session
-          await supabase.auth.signOut();
+          if (isAuthError) {
+            await supabase.auth.signOut({ scope: 'local' });
+            console.log('[auth] cleared local session after auth error');
+          } else {
+            await supabase.auth.signOut();
+          }
           clearAuth();
           return;
         }
 
-        const sessionUser = activeSession.user ?? userData.user ?? null;
+        const sessionUser = session.user ?? userData.user ?? null;
         setUser(sessionUser);
 
         if (sessionUser) {
           try {
-            // Attempt to create the profile first (post-email confirm) BEFORE any filter call
-            try {
-              const raw = localStorage.getItem('pending_profile');
-              if (raw) {
-                const parsed = JSON.parse(raw) as {
-                  userId: string;
-                  input: {
-                    full_name: string;
-                    phone?: string | null;
-                    role: string;
-                    job_title_id?: string | null;
-                    organization_id?: string | null;
-                  };
-                  email: string;
-                };
-                if (parsed && parsed.userId === sessionUser.id) {
-                  const { rpcClient } = await import('@/lib/rpc.client');
-                  const payload = {
-                    id: sessionUser.id,
-                    email: parsed.email.toLowerCase(),
-                    full_name: parsed.input.full_name,
-                    phone: parsed.input.phone ?? null,
-                    role: parsed.input.role as Database['public']['Enums']['user_role_type'],
-                    job_title_id: parsed.input.job_title_id ?? null,
-                    organization_id: parsed.input.organization_id ?? null,
-                  } as unknown as import('@/lib/database.types').Json;
-                  try {
-                    await rpcClient.insert_profiles({ _input: payload });
-                  } catch {
-                    // Fallback: directly insert into table (RLS should allow creating own profile)
-                    try {
-                      await supabase.from('profiles').insert({
-                        id: sessionUser.id,
-                        email: parsed.email.toLowerCase(),
-                        full_name: parsed.input.full_name,
-                        phone: parsed.input.phone ?? null,
-                        role: parsed.input.role as Database['public']['Enums']['user_role_type'],
-                        job_title_id: parsed.input.job_title_id ?? null,
-                        organization_id: parsed.input.organization_id ?? null,
-                      });
-                    } catch {/* ignore, loadProfile will surface any issue */ }
-                  }
-                  localStorage.removeItem('pending_profile');
-                }
-              }
-            } catch {/* best effort */ }
-
-            // Safety: if no pending_profile was present, ensure a minimal profile row exists
-            try {
-              const email = sessionUser.email ? sessionUser.email.toLowerCase() : null;
-              if (email) {
-                await supabase.from('profiles').upsert(
-                  { id: sessionUser.id, email },
-                  { onConflict: 'id', ignoreDuplicates: true }
-                );
-              }
-            } catch {/* ignore */ }
-
-            await loadProfileWithRetry(sessionUser.id);
+            await loadProfile(sessionUser.id);
             if (import.meta.env.DEV && debugAuth) {
               console.log('[useBootstrapAuth] profile loaded');
             }
@@ -187,6 +151,7 @@ export function useBootstrapAuth(): boolean {
 
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('[auth]', event, !!session, session?.user?.id);
         if (import.meta.env.DEV && debugAuth) {
           console.log('[useBootstrapAuth] auth change event', event);
         }
@@ -204,11 +169,18 @@ export function useBootstrapAuth(): boolean {
         // Validate user existence when a session is reported
         if (nextUser) {
           const { data: valUser, error: valErr } = await supabase.auth.getUser();
+          const valStatus = (valErr as { status?: number } | null)?.status;
+          const isAuthError = valStatus === 401 || valStatus === 403;
           if (valErr || !valUser?.user) {
             if (import.meta.env.DEV && debugAuth) {
               console.warn('[useBootstrapAuth] auth event user invalid, clearing', valErr);
             }
-            await supabase.auth.signOut();
+            if (isAuthError) {
+              await supabase.auth.signOut({ scope: 'local' });
+              console.log('[auth] cleared local session after auth error');
+            } else {
+              await supabase.auth.signOut();
+            }
             clearAuth();
             setLoading({ initialization: false });
             return;
@@ -223,66 +195,13 @@ export function useBootstrapAuth(): boolean {
 
         setUser(nextUser);
 
-        if (nextUser) {
-          try {
-            // If profile doesn’t exist yet, create it from pending_profile (post-email confirm)
-            try {
-              const raw = localStorage.getItem('pending_profile');
-              if (raw) {
-                const parsed = JSON.parse(raw) as {
-                  userId: string;
-                  input: {
-                    full_name: string;
-                    phone?: string | null;
-                    role: string;
-                    job_title_id?: string | null;
-                    organization_id?: string | null;
-                  };
-                  email: string;
-                };
-                if (parsed && parsed.userId === nextUser.id) {
-                  const { rpcClient } = await import('@/lib/rpc.client');
-                  const payload = {
-                    id: nextUser.id,
-                    email: parsed.email.toLowerCase(),
-                    full_name: parsed.input.full_name,
-                    phone: parsed.input.phone ?? null,
-                    role: parsed.input.role as Database['public']['Enums']['user_role_type'],
-                    job_title_id: parsed.input.job_title_id ?? null,
-                    organization_id: parsed.input.organization_id ?? null,
-                  } as unknown as import('@/lib/database.types').Json;
-                  try {
-                    await rpcClient.insert_profiles({ _input: payload });
-                  } catch {
-                    // Fallback: directly insert into table
-                    try {
-                      await supabase.from('profiles').insert({
-                        id: nextUser.id,
-                        email: parsed.email.toLowerCase(),
-                        full_name: parsed.input.full_name,
-                        phone: parsed.input.phone ?? null,
-                        role: parsed.input.role as Database['public']['Enums']['user_role_type'],
-                        job_title_id: parsed.input.job_title_id ?? null,
-                        organization_id: parsed.input.organization_id ?? null,
-                      });
-                    } catch {/* ignore */ }
-                  }
-                  localStorage.removeItem('pending_profile');
-                }
-              }
-            } catch {/* best effort */ }
-            // Safety: ensure minimal profile exists if pending data missing (e.g. opened link in another browser)
-            try {
-              const email = nextUser.email ? nextUser.email.toLowerCase() : null;
-              if (email) {
-                await supabase.from('profiles').upsert(
-                  { id: nextUser.id, email },
-                  { onConflict: 'id', ignoreDuplicates: true }
-                );
-              }
-            } catch {/* ignore */ }
+        const shouldLoadProfile =
+          Boolean(nextUser) &&
+          (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION');
 
-            await loadProfileWithRetry(nextUser.id);
+        if (shouldLoadProfile && nextUser) {
+          try {
+            await loadProfile(nextUser.id);
           } catch (err) {
             const msg =
               err instanceof Error ? err.message : 'Error loading user profile';
@@ -317,11 +236,18 @@ export function useBootstrapAuth(): boolean {
 
   /* ── THIRD EFFECT ▪ onboarding redirect ─────────────────────── */
   useEffect(() => {
-    if (!loading.initialization && user && profile == null) {
-      const isAuthRoute = window.location.pathname.startsWith('/onboarding') || window.location.pathname === '/';
-      if (!isAuthRoute) {
-        navigate('/onboarding');
-      }
+    if (loading.initialization || !user) return;
+    const isProfileComplete = Boolean(profile?.profile_completed_at);
+    if (isProfileComplete) return;
+
+    const path = window.location.pathname;
+    const isAuthRoute = path.startsWith('/onboarding') || path === '/';
+    if (!isAuthRoute) {
+      navigate('/onboarding/profile');
+      return;
+    }
+    if (path === '/onboarding') {
+      navigate('/onboarding/profile');
     }
   }, [loading.initialization, user, profile, navigate]);
 
@@ -329,6 +255,8 @@ export function useBootstrapAuth(): boolean {
   useEffect(() => {
     if (loading.initialization) return;
     if (!user || !profile) return;
+    const isProfileComplete = Boolean(profile.profile_completed_at);
+    if (!isProfileComplete) return;
     const noOrg = profile.organization_id === null || profile.organization_id === '';
     if (!noOrg) return;
     const path = window.location.pathname;

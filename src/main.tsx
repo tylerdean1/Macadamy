@@ -5,9 +5,17 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
 import { initGlobalErrorLogger } from './utils/errorLogger';
-import { validateEnvVariables } from './utils/env-validator';
+import { validateEnvVariablesAny, warnEnvVariablesAny } from './utils/env-validator';
 
-validateEnvVariables(['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY']);
+validateEnvVariablesAny([
+  ['NEXT_PUBLIC_SUPABASE_URL', 'VITE_SUPABASE_URL'],
+  ['NEXT_PUBLIC_SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY'],
+]);
+
+warnEnvVariablesAny(
+  [['NEXT_PUBLIC_GOOGLE_MAPS_API_KEY', 'VITE_GOOGLE_MAPS_API_KEY']],
+  'Google Maps API key is missing. Map features will be unavailable.'
+);
 
 initGlobalErrorLogger();
 

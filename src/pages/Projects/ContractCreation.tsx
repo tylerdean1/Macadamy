@@ -1,23 +1,32 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { v4 as uuidv4 } from 'uuid';
 
 import { Page, SectionContainer } from '@/components/Layout';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
-import { ProjectInfoForm } from './ProjectDashboardComponents/ProjectInfoForm';
+import { ProjectInfoForm, type ProjectInfoVM } from './ProjectDashboardComponents/ProjectInfoForm';
 import { MapModal } from './SharedComponents/MapModal';
 import { MapPreview } from './SharedComponents/GoogleMaps/MapPreview';
 import { parseWktToGeoJson, geometryToWKT } from '@/lib/utils/geometryUtils';
 
-import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
+import { rpcClient } from '@/lib/rpc.client';
 
-import type { ContractWithWktRow } from '@/lib/rpc.types';
 import type { Database } from '@/lib/database.types';
 
-type ContractStatus = Database['public']['Enums']['contract_status'];
+type ProjectStatus = Database['public']['Enums']['project_status'];
+
+type ContractFormData = {
+  title: string;
+  description: string;
+  location: string;
+  start_date: string;
+  end_date: string;
+  budget: number;
+  status: ProjectStatus;
+  coordinates_wkt: string | null;
+};
 
 export const ContractCreation = () => {
   const navigate = useNavigate();
@@ -26,20 +35,20 @@ export const ContractCreation = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
 
-  const [contractData, setContractData] = useState<Partial<ContractWithWktRow>>({
+  const [contractData, setContractData] = useState<ContractFormData>({
     title: '',
     description: '',
     location: '',
     start_date: new Date().toISOString().split('T')[0],
     end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     budget: 0,
-    status: 'Draft' as ContractStatus,
+    status: 'planned',
     coordinates_wkt: null
   });
 
   const handleMapSave = (geometry: import('@/lib/types').GeometryData) => {
     const wkt = geometryToWKT(geometry);
-    setContractData(prev => ({ ...prev, coordinates_wkt: (typeof wkt === 'string' && wkt.length > 0) ? wkt : undefined }));
+    setContractData(prev => ({ ...prev, coordinates_wkt: (typeof wkt === 'string' && wkt.length > 0) ? wkt : null }));
   };
 
   const handleSubmit = async () => {
@@ -57,41 +66,52 @@ export const ContractCreation = () => {
     setIsSubmitting(true);
 
     try {
-      // Generate a new UUID for the contract
-      const contractId = uuidv4();
-      // Prepare contract data
-      // Insert the contract
-      const { error: contractError } = await supabase.rpc('insert_contract', {
-        _title: contractData.title ?? '',
-        _description: contractData.description ?? '',
-        _location: contractData.location ?? '',
-        _start_date: contractData.start_date ?? '',
-        _end_date: contractData.end_date ?? '',
-        _budget: contractData.budget ?? 0,
-        _status: contractData.status ?? 'Draft',
-        _coordinates: contractData.coordinates_wkt ?? undefined,
-        _created_by: user.id
+      const createdProjects = await rpcClient.insert_projects({
+        _input: {
+          name: contractData.title,
+          description: contractData.description || null,
+          start_date: contractData.start_date,
+          end_date: contractData.end_date,
+          status: contractData.status
+        }
       });
 
-      if (contractError) throw contractError;
+      const createdProject = Array.isArray(createdProjects) ? createdProjects[0] : null;
+      const projectId = createdProject?.id;
 
-      // Assign the contract to the user
-      const { error: assignError } = await supabase.rpc('insert_user_contract', {
-        _user_id: user.id,
-        _contract_id: contractId,
-        _role: 'Project Manager'
+      if (typeof projectId !== 'string' || projectId.length === 0) {
+        throw new Error('Failed to create project');
+      }
+
+      await rpcClient.insert_user_projects({
+        _input: {
+          user_id: user.id,
+          project_id: projectId,
+          role: 'project_manager'
+        }
       });
-
-      if (assignError) throw assignError;
 
       toast.success('Contract created successfully!');
-      navigate(`/projects/${contractId}`);
+      navigate(`/projects/${projectId}`);
     } catch (error) {
       console.error('Error creating contract:', error);
       toast.error('Failed to create contract');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const previewContract: ProjectInfoVM = {
+    id: '',
+    title: contractData.title,
+    description: contractData.description || null,
+    start_date: contractData.start_date,
+    end_date: contractData.end_date,
+    budget: contractData.budget,
+    status: contractData.status,
+    created_at: null,
+    updated_at: new Date().toISOString(),
+    coordinates_wkt: contractData.coordinates_wkt,
   };
 
   return (
@@ -102,7 +122,7 @@ export const ContractCreation = () => {
             <div className="p-6">
               <h1 className="text-2xl font-bold mb-6">Create New Contract</h1>
 
-              <ProjectInfoForm contractData={contractData as ContractWithWktRow} />
+              <ProjectInfoForm contractData={previewContract} />
 
               <div className="mt-6 border-t border-gray-700 pt-6">
                 <h2 className="text-lg font-semibold mb-4">Location</h2>
@@ -158,7 +178,7 @@ export const ContractCreation = () => {
         onSave={handleMapSave}
         initialGeometry={typeof contractData.coordinates_wkt === 'string' && contractData.coordinates_wkt.length > 0 ? parseWktToGeoJson(contractData.coordinates_wkt) : undefined}
         title="Set Contract Location"
-        contractId={typeof contractData.id === 'string' && contractData.id.length > 0 ? contractData.id : ''}
+        contractId=""
         mode="edit"
       />
     </Page>

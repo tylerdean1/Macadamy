@@ -46,21 +46,8 @@ export default function OrganizationDashboard() {
           {organizations.map(org => (
             <Card key={org.id} className="p-4">
               <h2 className="text-lg font-medium">{org.name}</h2>
-              {org.address && (
-                <p className="text-sm text-gray-400">{org.address}</p>
-              )}
-              {org.phone && (
-                <p className="text-sm text-gray-400">{org.phone}</p>
-              )}
-              {org.website && (
-                <a
-                  href={org.website}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm text-primary"
-                >
-                  {org.website}
-                </a>
+              {org.description && (
+                <p className="text-sm text-gray-400">{org.description}</p>
               )}
             </Card>
           ))}

@@ -18,6 +18,8 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   /** Redirect if `profile` is null (default = true) */
   requireProfile?: boolean;
+  /** Redirect if `organization_id` is null (default = true) */
+  requireOrganization?: boolean;
   /** Allow only these roles (empty array → any role permitted) */
   allowedRoles?: readonly UserRole[];
   /** Where to send unauthenticated users (default = "/") */
@@ -29,6 +31,7 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({
   children,
   requireProfile = true,
+  requireOrganization = true,
   allowedRoles = [],
   redirectUnauthenticatedTo = '/',
   redirectUnauthorizedTo = '/dashboard',
@@ -55,15 +58,25 @@ export function ProtectedRoute({
     return <Navigate to={redirectUnauthenticatedTo} replace />;
   }
 
-  /* ── 3 ▪ profile required but missing ───────────────────────── */
-  if (requireProfile && profile == null) {
+  /* ── 3 ▪ profile required but missing/incomplete ─────────────── */
+  const isProfileComplete = Boolean(profile?.profile_completed_at);
+  if (requireProfile && !isProfileComplete) {
     if (import.meta.env.DEV) {
-      console.warn('[ProtectedRoute] profile missing – redirecting to /onboarding');
+      console.warn('[ProtectedRoute] profile missing or incomplete – redirecting to /onboarding/profile');
     }
-    return <Navigate to="/onboarding" replace />;
+    return <Navigate to="/onboarding/profile" replace />;
   }
 
-  /* ── 4 ▪ role gate, if specified ───────────────────────────── */
+  /* ── 4 ▪ organization required but missing ───────────────────── */
+  const hasOrganization = Boolean(profile?.organization_id);
+  if (requireOrganization && !hasOrganization) {
+    if (import.meta.env.DEV) {
+      console.warn('[ProtectedRoute] organization missing – redirecting to /organizations/onboarding');
+    }
+    return <Navigate to="/organizations/onboarding" replace />;
+  }
+
+  /* ── 5 ▪ role gate, if specified ───────────────────────────── */
   if (profile && allowedRoles.length > 0) {
     const hasRole = profile.role != null && allowedRoles.includes(profile.role);
     if (!hasRole) {
@@ -74,6 +87,6 @@ export function ProtectedRoute({
     }
   }
 
-  /* ── 5 ▪ all clear ──────────────────────────────────────────── */
+  /* ── 6 ▪ all clear ──────────────────────────────────────────── */
   return <>{children}</>;
 }

@@ -8,7 +8,6 @@ import { Page } from '@/components/Layout';
 import { PageContainer } from '@/components/Layout';
 import { ProfileSection } from './StandardPageComponents/ProfileSection';
 import { DashboardMetrics } from './StandardPageComponents/DashboardMetrics';
-import { ProjectsSection } from './StandardPageComponents/ProjectsSection';
 
 export default function Dashboard() {
   useRequireProfile(); // Ensures user is logged in and profile exists
@@ -21,7 +20,6 @@ export default function Dashboard() {
     projects,
     loading: projectsLoading,
     error: projectsError,
-    searchQuery,
   } = useProjectsData();
 
   const {

@@ -3,21 +3,27 @@ import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default defineConfig([
-  js.configs.recommended,
-  tseslint.configs.recommended,
   {
     ignores: [
       "dist/**",
       "node_modules/**",
-      "supabase/migrations/**",
+      "supabase/**",
+      "scripts/**",
       "src/vite-env.d.ts",
       "src/lib/database.types.ts",
       "postcss.config.js",
-      "open-all-files.js",
-      "scripts/typegen.cjs",
-      "scripts/open-all-files.js",
+      "tailwind.config.js",
+      "eslint.config.js",
       "src/index.css"
-    ],
+    ]
+  },
+  js.configs.recommended,
+  ...tseslint.configs.recommended.map(config => ({
+    ...config,
+    files: ["**/*.ts", "**/*.tsx"]
+  })),
+  {
+    files: ["**/*.ts", "**/*.tsx"],
     plugins: {
       "@typescript-eslint": tseslint.plugin
     },
@@ -29,4 +35,5 @@ export default defineConfig([
         project: "./tsconfig.eslint.json"
       }
     }
-  }]);
+  }
+]);

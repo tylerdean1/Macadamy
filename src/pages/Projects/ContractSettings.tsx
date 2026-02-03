@@ -9,6 +9,7 @@ import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { ContractStatusSelect } from './SharedComponents/ContractStatusSelect';
 import { useAuthStore } from '@/lib/store';
 import { rpcClient } from '@/lib/rpc.client';
+import { warnMissingRpc } from '@/lib/rpc.missing';
 import type { ContractWithWktRow, ProfilesByContractRow } from '@/lib/rpc.types';
 import type { Database } from '@/lib/database.types';
 
@@ -27,6 +28,7 @@ export default function ContractSettings() {
   const [teamMembers, setTeamMembers] = useState<ProfilesByContractRow[]>([]);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [isMissingRpc, setIsMissingRpc] = useState(false);
 
   // Fetch contract data
   useEffect(() => {
@@ -35,21 +37,12 @@ export default function ContractSettings() {
       setIsLoading(true);
       try {
         // Get contract data
-        const contractDataResult = await rpcClient.getContractWithWkt({ contract_id: contractId });
-        const contractData = Array.isArray(contractDataResult) ? contractDataResult : [];
-        if (contractData.length > 0) {
-          setContract(contractData[0]);
-          setSelectedStatus(contractData[0].status ?? 'Draft');
-        } else {
-          toast.error('Contract not found');
-          navigate('/dashboard');
-          return;
-        }
-
-        // Get team members
-        const teamDataResult = await rpcClient.getProfilesByContract({ contract_id: contractId });
-        const teamData = Array.isArray(teamDataResult) ? teamDataResult : [];
-        setTeamMembers(teamData);
+        // TODO: Restore with get_contract_with_wkt and get_profiles_by_contract RPCs when available.
+        warnMissingRpc('getContractWithWkt');
+        warnMissingRpc('getProfilesByContract');
+        setIsMissingRpc(true);
+        setTeamMembers([]);
+        return;
       } catch (error) {
         console.error('Error fetching contract data:', error);
         toast.error('Failed to load contract data');
@@ -67,9 +60,9 @@ export default function ContractSettings() {
 
     setIsSaving(true);
     try {
-      await rpcClient.updateContracts({ _id: contractId, _status: selectedStatus });
+      await rpcClient.update_projects({ _id: contractId, _input: { status: selectedStatus } });
 
-      setContract(prev => prev ? { ...prev, status: selectedStatus } : null);
+      setContract(prev => prev ? { ...prev, status: selectedStatus as ContractWithWktRow['status'] } : null);
       toast.success('Contract status updated successfully');
     } catch (error) {
       console.error('Error updating contract status:', error);
@@ -83,10 +76,11 @@ export default function ContractSettings() {
   const handleRemoveTeamMember = async (userId: string) => {
     if (typeof contractId !== 'string' || contractId.length === 0) return;
     try {
-      await rpcClient.removeProfileFromContract({ _contract_id: contractId, _profile_id: userId });
-
-      setTeamMembers(prev => prev.filter(member => member.id !== userId));
-      toast.success('Team member removed successfully');
+      void userId;
+      // TODO: Replace with remove_profile_from_contract RPC when available.
+      warnMissingRpc('removeProfileFromContract');
+      toast.error('Remove team member is disabled (missing RPC).');
+      return;
     } catch (error) {
       console.error('Error removing team member:', error);
       toast.error('Failed to remove team member');
@@ -97,12 +91,12 @@ export default function ContractSettings() {
   const handleUpdateTeamMemberRole = async (userId: string, role: UserRole) => {
     if (typeof contractId !== 'string' || contractId.length === 0) return;
     try {
-      await rpcClient.updateProfileContractRole({ _contract_id: contractId, _profile_id: userId, _role: role });
-
-      setTeamMembers(prev => prev.map(member =>
-        member.id === userId ? { ...member, role } : member
-      ));
-      toast.success('Team member role updated');
+      void userId;
+      void role;
+      // TODO: Replace with update_profile_contract_role RPC when available.
+      warnMissingRpc('updateProfileContractRole');
+      toast.error('Role update is disabled (missing RPC).');
+      return;
     } catch (error) {
       console.error('Error updating team member role:', error);
       toast.error('Failed to update role');
@@ -113,7 +107,7 @@ export default function ContractSettings() {
   const handleDeleteContract = async () => {
     if (typeof contractId !== 'string' || contractId.length === 0 || !contract || deleteConfirmation !== contract.title) return;
     try {
-      await rpcClient.deleteContracts({ id: contractId });
+      await rpcClient.delete_projects({ _id: contractId });
 
       toast.success('Contract deleted successfully');
       navigate('/dashboard');
@@ -124,7 +118,56 @@ export default function ContractSettings() {
   };
 
   // Fix: Add null checks before accessing contract properties
-  if (!contract) return null;
+  const contractTitle = contract?.title ?? '';
+
+  if (isMissingRpc) {
+    return (
+      <Page>
+        <div className="max-w-5xl mx-auto px-4 py-8">
+          <div className="mb-6 flex justify-between items-center">
+            <h1 className="text-2xl font-bold">Contract Settings</h1>
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/contract/${contractId}`)}
+            >
+              Back to Dashboard
+            </Button>
+          </div>
+          <Card className="p-6 border border-yellow-700 bg-yellow-500/10">
+            <h2 className="text-xl font-semibold mb-2">Contract Settings unavailable (missing RPCs)</h2>
+            <p className="text-sm text-gray-300">
+              This screen depends on backend RPCs that are not present in the current schema.
+              Actions are disabled until those RPCs are restored.
+            </p>
+          </Card>
+        </div>
+      </Page>
+    );
+  }
+
+  if (!isLoading && !contract) {
+    return (
+      <Page>
+        <div className="max-w-5xl mx-auto px-4 py-8">
+          <div className="mb-6 flex justify-between items-center">
+            <h1 className="text-2xl font-bold">Contract Settings</h1>
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/contract/${contractId}`)}
+            >
+              Back to Dashboard
+            </Button>
+          </div>
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-2">Contract not found</h2>
+            <p className="text-sm text-gray-300">
+              The requested contract could not be loaded.
+            </p>
+          </Card>
+        </div>
+      </Page>
+    );
+  }
 
   return (
     <Page>
@@ -160,7 +203,7 @@ export default function ContractSettings() {
                   <Button
                     variant="primary"
                     onClick={() => { void handleUpdateStatus(); }}
-                    disabled={isSaving || selectedStatus === contract?.status}
+                    disabled={isSaving || selectedStatus === (contract?.status as ContractStatus | null)}
                     className="mt-2 md:mt-0"
                   >
                     {isSaving ? 'Updating...' : 'Update Status'}
@@ -188,29 +231,22 @@ export default function ContractSettings() {
                           <tr key={member.id} className="hover:bg-gray-750">
                             <td className="px-4 py-3">
                               <div className="flex items-center">
-                                {member.avatar_url ? (
-                                  <img
-                                    src={member.avatar_url}
-                                    alt={member.full_name || 'User'}
-                                    className="w-8 h-8 rounded-full mr-3"
-                                  />
-                                ) : (
-                                  <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center mr-3">
-                                    {(member.full_name || 'U').charAt(0)}
-                                  </div>
-                                )}
+                                <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center mr-3">
+                                  {(member.full_name || 'U').charAt(0)}
+                                </div>
                                 <span>{member.full_name || 'Unnamed User'}</span>
                               </div>
                             </td>
                             <td className="px-4 py-3 text-gray-300">{member.email}</td>
                             <td className="px-4 py-3">
                               <select
-                                value={member.role}
+                                value={member.role ?? ''}
                                 onChange={(e) => { void handleUpdateTeamMemberRole(member.id, e.target.value as UserRole); }}
                                 className="bg-gray-700 text-white border-0 rounded-md px-3 py-1.5 text-sm"
                                 disabled={member.id === profile?.id}
                                 title="Select option"
                               >
+                                <option value="">Unassigned</option>
                                 <option value="admin">Admin</option>
                                 <option value="member">Member</option>
                                 <option value="viewer">Viewer</option>
@@ -257,7 +293,7 @@ export default function ContractSettings() {
                     ) : (
                       <div>
                         <p className="text-sm text-gray-300 mb-2">
-                          To confirm, please type <strong>{contract.title}</strong> below:
+                          To confirm, please type <strong>{contractTitle}</strong> below:
                         </p>
                         <input
                           type="text"
@@ -281,7 +317,7 @@ export default function ContractSettings() {
                             variant="danger"
                             size="sm"
                             onClick={() => { void handleDeleteContract(); }}
-                            disabled={deleteConfirmation !== contract.title}
+                            disabled={deleteConfirmation !== contractTitle}
                           >
                             Confirm Delete
                           </Button>

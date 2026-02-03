@@ -1,4 +1,5 @@
-import { Building2, MapPin, Phone, Mail, Pencil, UserCircle, Briefcase } from 'lucide-react'; // Removed FileText
+import { Building2, Phone, Mail, Pencil, Briefcase, MapPin, Shield } from 'lucide-react'; // Removed FileText
+import { Link } from 'react-router-dom';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import type { EnrichedProfile } from '@/lib/store';
@@ -26,7 +27,7 @@ export function ProfileSection({ profile, onEdit }: ProfileSectionProps) {
             )}
             <div>
               <h1 className="text-3xl font-bold text-white">
-                Welcome back, {profile.full_name}
+                Welcome back, {profile.full_name ?? 'there'}
               </h1>
               <Button
                 onClick={onEdit}
@@ -42,12 +43,6 @@ export function ProfileSection({ profile, onEdit }: ProfileSectionProps) {
 
           {/* Optional Metadata */}
           <div className="text-gray-400 space-y-1">
-            {typeof profile.username === 'string' && profile.username.trim() !== '' && (
-              <p className="flex items-center">
-                <UserCircle className="w-4 h-4 mr-2" />
-                {profile.username}
-              </p>
-            )}
             {typeof profile.email === 'string' && profile.email.trim() !== '' && (
               <p className="flex items-center">
                 <Mail className="w-4 h-4 mr-2" />
@@ -60,22 +55,31 @@ export function ProfileSection({ profile, onEdit }: ProfileSectionProps) {
                 {profile.phone}
               </p>
             )}
-            {typeof profile.location === 'string' && profile.location.trim() !== '' && (
-              <p className="flex items-center">
-                <MapPin className="w-4 h-4 mr-2" />
-                {profile.location} {/* Keep original location if distinct from address */}
-              </p>
-            )}
             {typeof profile.organization_name === 'string' && profile.organization_name.trim() !== '' && (
-              <p className="flex items-center">
+              <Link
+                to="/organizations"
+                className="flex items-center text-gray-300 hover:text-white transition-colors"
+              >
                 <Building2 className="w-4 h-4 mr-2" />
                 {profile.organization_name}
-              </p>
+              </Link>
             )}
-            {typeof profile.job_title === 'string' && profile.job_title.trim() !== '' && (
+            {(typeof profile.job_title === 'string' && profile.job_title.trim() !== '') && (
               <p className="flex items-center">
                 <Briefcase className="w-4 h-4 mr-2" />
                 {profile.job_title}
+              </p>
+            )}
+            {(typeof profile.role === 'string' && profile.role.trim() !== '') && (
+              <p className="flex items-center">
+                <Shield className="w-4 h-4 mr-2" />
+                {profile.role.replace(/_/g, ' ')}
+              </p>
+            )}
+            {(typeof profile.organization_address === 'string' && profile.organization_address.trim() !== '') && (
+              <p className="flex items-center">
+                <MapPin className="w-4 h-4 mr-2" />
+                {profile.organization_address}
               </p>
             )}
           </div>

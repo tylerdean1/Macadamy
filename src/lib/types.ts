@@ -223,8 +223,7 @@ export interface Organization {
 // Interface for the job_titles field
 export interface JobTitle {
   id: string;
-  title: string;
-  is_custom: boolean | null;
+  name: string;
 }
 
 export interface Profile {
@@ -233,7 +232,7 @@ export interface Profile {
   full_name: string | null;
   email: string;
   phone: string | null;
-  avatar_url: string | null; // Changed from avatar_id to avatar_url to match database
+  avatar_id: string | null;
   organization_id: string | null;
   job_title_id: string | null;
   created_at: string | null;
@@ -248,8 +247,7 @@ export interface Profile {
   } | null;
 
   job_titles?: {
-    title: string;
-    is_custom: boolean | null;
+    name: string;
   } | null;
 }
 
@@ -266,7 +264,7 @@ export interface EnrichedUserProfile {
   job_title: string | null;
   organization_id: string | null;
   organization_name: string | null;
-  avatar_url: string | null; // Removed avatar_id as it's not in the database
+  avatar_id: string | null;
   created_at: string | null;
   updated_at: string;
   deleted_at: string | null;

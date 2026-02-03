@@ -92,8 +92,7 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
       // Fetch the updated line items
       const { data: lineItemsData, error: fetchError } = await supabase
         .rpc('filter_line_items', {
-          _filters: { project_id: contractId },
-          _select_cols: []
+          _filters: { project_id: contractId }
         });
 
       if (fetchError) throw fetchError;

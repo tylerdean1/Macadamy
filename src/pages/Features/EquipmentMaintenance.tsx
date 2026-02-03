@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Page } from '@/components/Layout';
-import { supabase } from '@/lib/supabase';
+import { rpcClient } from '@/lib/rpc.client';
 
 interface MaintenanceRecord {
   id: string;
-  equipment_id: string;
-  description: string;
-  service_date: string;
-  service_provider: string | null;
+  equipment_id: string | null;
+  description: string | null;
+  maintenance_date: string | null;
+  performed_by: string | null;
+  type: string | null;
   notes: string | null;
 }
 
@@ -17,8 +18,14 @@ export default function EquipmentMaintenance() {
 
   useEffect(() => {
     const fetchRecords = async () => {
-      const { data, error } = await supabase.from('equipment_maintenance').select('*');
-      if (!error && Array.isArray(data)) setRecords(data as unknown as MaintenanceRecord[]);
+      const data = await rpcClient.filter_equipment_maintenance({});
+      const normalized = Array.isArray(data)
+        ? data.map(record => ({
+          ...record,
+          notes: null
+        }))
+        : [];
+      setRecords(normalized);
       setLoading(false);
     };
     void fetchRecords();
@@ -32,10 +39,10 @@ export default function EquipmentMaintenance() {
       <ul className="space-y-2">
         {records.map(r => (
           <li key={r.id} className="border p-2 rounded">
-            <span className="font-medium">{r.description}</span>
-            <span className="ml-2 text-sm text-gray-500">{r.service_date}</span>
-            {r.service_provider && (
-              <span className="ml-2 text-sm text-gray-500">{r.service_provider}</span>
+            <span className="font-medium">{r.description ?? 'No description'}</span>
+            <span className="ml-2 text-sm text-gray-500">{r.maintenance_date ?? 'N/A'}</span>
+            {r.performed_by && (
+              <span className="ml-2 text-sm text-gray-500">{r.performed_by}</span>
             )}
           </li>
         ))}

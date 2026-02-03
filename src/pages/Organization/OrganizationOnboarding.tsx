@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/lib/store';
 import { rpcClient } from '@/lib/rpc.client';
-import type { Database, Json } from '@/lib/database.types';
+import { supabase } from '@/lib/supabase';
+import type { Database } from '@/lib/database.types';
 
 export default function OrganizationOnboarding(): JSX.Element {
     const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function OrganizationOnboarding(): JSX.Element {
 
     const [step, setStep] = useState<number>(1);
     const [orgName, setOrgName] = useState<string>('');
+    const [orgDescription, setOrgDescription] = useState<string>('');
     const [searchResults, setSearchResults] = useState<Array<Pick<Database['public']['Tables']['organizations']['Row'], 'id' | 'name'>>>([]);
     const [isBusy, setIsBusy] = useState<boolean>(false);
 
@@ -29,12 +31,18 @@ export default function OrganizationOnboarding(): JSX.Element {
         }
         const run = async (): Promise<void> => {
             try {
-                const rows = await rpcClient.filter_organizations({ _filters: { name: q }, _limit: 5 });
+                const rpc = supabase.rpc as unknown as (
+                    this: typeof supabase,
+                    name: string,
+                    params?: Record<string, unknown>
+                ) => Promise<{ data: Array<{ id: string; name: string }> | null; error: unknown | null }>;
+
+                const { data, error } = await rpc.call(supabase, 'get_organizations_public', { p_query: q });
+                if (error) {
+                    throw error;
+                }
                 if (!cancelled) {
-                    const list = Array.isArray(rows)
-                        ? (rows as Array<Database['public']['Tables']['organizations']['Row']>).map((r) => ({ id: r.id!, name: r.name }))
-                        : [];
-                    setSearchResults(list);
+                    setSearchResults(Array.isArray(data) ? data : []);
                 }
             } catch {
                 if (!cancelled) setSearchResults([]);
@@ -44,37 +52,27 @@ export default function OrganizationOnboarding(): JSX.Element {
         return () => { cancelled = true; clearTimeout(t); };
     }, [orgName]);
 
-    const chooseExisting = async (orgId: string): Promise<void> => {
-        if (!user) return;
-        setIsBusy(true);
-        try {
-            await rpcClient.update_profiles({ _id: user.id, _organization_id: orgId });
-            await useAuthStore.getState().loadProfile(user.id);
-            toast.success('Organization selected');
-            navigate('/organizations');
-        } finally {
-            setIsBusy(false);
-        }
+    const chooseExisting = async (): Promise<void> => {
+        toast.info('Joining an existing organization requires an invite.');
     };
 
     const createNew = async (): Promise<void> => {
         if (!user) return;
         const name = orgName.trim();
+        const description = orgDescription.trim();
         if (!name) return;
         setIsBusy(true);
         try {
-            const created = await rpcClient.insert_organizations({ _input: ({ name }) as unknown as Json });
-            // insert_organizations returns created rows; grab id
-            const createdRows = (created ?? []) as Database['public']['Tables']['organizations']['Row'][];
-            const createdId = createdRows.length > 0 ? createdRows[0].id : null;
-            if (createdId) {
-                await rpcClient.update_profiles({ _id: user.id, _organization_id: createdId });
-                await useAuthStore.getState().loadProfile(user.id);
-                toast.success('Organization created');
-                navigate('/organizations');
-                return;
-            }
-            toast.error('Could not create organization');
+            const payload = {
+                p_name: name,
+                p_description: description || null,
+            } as unknown as Database['public']['Functions']['create_my_organization']['Args'];
+
+            await rpcClient.create_my_organization(payload);
+            await useAuthStore.getState().loadProfile(user.id);
+            toast.success('Organization created');
+            navigate('/organizations');
+            return;
         } catch (err) {
             console.error(err);
             toast.error('Error creating organization');
@@ -90,13 +88,27 @@ export default function OrganizationOnboarding(): JSX.Element {
             {step === 1 && (
                 <div className="space-y-4">
                     <p className="text-gray-300">Search for your organization. If you can't find it, you'll be able to create it.</p>
-                    <input
-                        type="text"
-                        placeholder="e.g. Acme Infrastructure, LLC"
-                        className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded"
-                        value={orgName}
-                        onChange={(e) => setOrgName(e.target.value)}
-                    />
+                    <div>
+                        <label htmlFor="org-name" className="block text-sm text-gray-300 mb-2">Organization name</label>
+                        <input
+                            id="org-name"
+                            type="text"
+                            placeholder="e.g. Acme Infrastructure, LLC"
+                            className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded"
+                            value={orgName}
+                            onChange={(e) => setOrgName(e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="org-description" className="block text-sm text-gray-300 mb-2">Description (optional)</label>
+                        <textarea
+                            id="org-description"
+                            placeholder="Tell us about your organization"
+                            className="w-full bg-background border border-background-lighter text-white px-4 py-2 rounded min-h-[96px]"
+                            value={orgDescription}
+                            onChange={(e) => setOrgDescription(e.target.value)}
+                        />
+                    </div>
                     {searchResults.length > 0 && (
                         <div className="border border-background-lighter rounded divide-y divide-background-lighter">
                             {searchResults.map(r => (
@@ -104,7 +116,7 @@ export default function OrganizationOnboarding(): JSX.Element {
                                     key={r.id}
                                     type="button"
                                     className="w-full text-left px-3 py-2 hover:bg-background-light text-sm"
-                                    onClick={() => { setOrgName(r.name); setSearchResults([]); void chooseExisting(r.id); }}
+                                    onClick={() => { setOrgName(r.name); setSearchResults([]); void chooseExisting(); }}
                                 >
                                     {r.name}
                                 </button>

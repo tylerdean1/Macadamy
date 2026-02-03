@@ -61,7 +61,7 @@ export default function CalculatorUsage() {
   const fetchTemplate = useCallback(async () => {
     if (typeof templateId !== 'string' || templateId.length === 0) return;
     try {
-      const data = await rpcClient.get_line_item_templates({});
+      const data = await rpcClient.filter_line_item_templates({});
       const found = Array.isArray(data) ? data.find((t) => t.id === templateId) : undefined;
       if (!found) throw new Error('Template not found');
       // Parse variables and formulas from formula JSON

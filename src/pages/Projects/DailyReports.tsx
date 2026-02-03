@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'; // Import React and hooks
 import { useParams, useNavigate } from 'react-router-dom'; // Import hooks for routing
 import { ArrowLeft, Plus, Save } from 'lucide-react'; // Import action icons
 import { supabase } from '@/lib/supabase'; // Import Supabase client for interacting with the database
+import type { Database } from '@/lib/database.types';
 import { useAuthStore } from '@/lib/store'; // Import auth state management
 
 /**
@@ -13,7 +14,7 @@ interface DailyLog {
   date: string; // Using 'date' field from database, not 'log_date'
   notes: string | null;
   project_id: string | null;
-  weather: any; // Json type from database
+  weather: Database['public']['Tables']['daily_logs']['Row']['weather']; // Json type from database
   created_at: string | null;
   updated_at: string;
   // Additional fields for UI mapping
@@ -62,11 +63,22 @@ export default function DailyReports() {
         // Map database fields to our interface
         const mappedLogs: DailyLog[] = Array.isArray(data)
           ? data.map((log) => {
+            type WeatherData = {
+              conditions?: string;
+              temperature?: number;
+              work_performed?: string;
+              delays_encountered?: string;
+              visitors?: string;
+              safety_incidents?: string;
+            };
+
             // Parse weather JSON if it exists
-            let weatherData: any = {};
+            let weatherData: WeatherData = {};
             try {
-              weatherData = log.weather ? (typeof log.weather === 'string' ? JSON.parse(log.weather) : log.weather) : {};
-            } catch (e) {
+              weatherData = log.weather
+                ? (typeof log.weather === 'string' ? JSON.parse(log.weather) as WeatherData : log.weather as WeatherData)
+                : {};
+            } catch {
               weatherData = {};
             }
 

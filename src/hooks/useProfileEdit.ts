@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { rpcClient } from "@/lib/rpc.client";
 import type { EnrichedProfile } from "@/lib/store";
+import type { Database } from "@/lib/database.types";
 import { useAuthStore } from "@/lib/store";
 
 type ReturnType = {
@@ -32,30 +33,35 @@ const useProfileEdit = (): ReturnType => {
 
       const { id, ...profileData } = updates;
       // Map frontend fields to backend RPC args
-      const rpcArgs = {
-        _id: id,
-        _full_name: profileData.full_name ?? undefined,
-        _email: profileData.email ?? undefined,
-        _phone: profileData.phone ?? undefined,
-        _avatar_url: profileData.avatar_url ?? undefined,
-        _role: profileData.role ?? undefined,
-        _job_title_id: profileData.job_title_id ?? undefined,
-        _organization_id: profileData.organization_id ?? undefined,
+      const isSystemAdmin = profile?.role === 'system_admin';
+      const inputPayload: Record<string, unknown> = {
+        full_name: profileData.full_name ?? undefined,
+        email: profileData.email ?? undefined,
+        phone: profileData.phone ?? undefined,
+        avatar_id: profileData.avatar_id ?? undefined,
+        job_title_id: profileData.job_title_id ?? undefined,
+        ...(isSystemAdmin ? { role: profileData.role ?? undefined } : {}),
+        ...(isSystemAdmin ? { organization_id: profileData.organization_id ?? undefined } : {}),
       };
 
-      // Remove undefined properties
-      Object.keys(rpcArgs).forEach((key) => {
-        const K = key as keyof typeof rpcArgs;
-        if (rpcArgs[K] === undefined) {
-          delete rpcArgs[K];
+      Object.keys(inputPayload).forEach((key) => {
+        const K = key as keyof typeof inputPayload;
+        if (inputPayload[K] === undefined) {
+          delete inputPayload[K];
         }
       });
 
-      await rpcClient.update_profiles(rpcArgs);
+      await rpcClient.update_profiles({
+        _id: id,
+        _input: inputPayload as Database['public']['Functions']['update_profiles']['Args']['_input']
+      });
       if (profile && profile.id === id) {
         const updatedProfileData = { ...profile };
         for (const key in profileData) {
           if (Object.prototype.hasOwnProperty.call(profileData, key)) {
+            if (!isSystemAdmin && (key === 'role' || key === 'organization_id')) {
+              continue;
+            }
             (updatedProfileData as Record<string, unknown>)[key] = (profileData as Record<string, unknown>)[key];
           }
         }

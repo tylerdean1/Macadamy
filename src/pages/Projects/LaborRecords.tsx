@@ -14,7 +14,7 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Users, Clock, Calendar, HardHat, Save } from 'lucide-react';
 import { rpcClient } from '@/lib/rpc.client';
-import type { LaborRecords } from '@/lib/types';
+import type { Database } from '@/lib/database.types';
 import { useAuthStore } from '@/lib/store';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -35,21 +35,26 @@ const WORK_TYPES = [
   'Other'
 ];
 
+type LaborRecordRow = Database['public']['Functions']['filter_labor_records']['Returns'][number];
+
 export default function LaborRecords() {
   const navigate = useNavigate();
   const params = useParams();
   const { id } = params; // Get the contract ID from route parameters
-  const [records, setRecords] = useState<LaborRecords[]>([]); // State for storing labor records
+  const [records, setRecords] = useState<LaborRecordRow[]>([]); // State for storing labor records
   const [loading] = useState(true); // Loading state for fetching records
   const [isCreating, setIsCreating] = useState(false); // State to manage log creation
-  const [newRecord, setNewRecord] = useState<LaborRecords>({ // Initial state for new record form
+  const [newRecord, setNewRecord] = useState<LaborRecordRow>({ // Initial state for new record form
     id: crypto.randomUUID(), // Generate a unique ID for the new record
-    line_item_id: typeof id === 'string' && id.trim() !== '' ? id : '',
+    line_item_id: typeof id === 'string' && id.trim() !== '' ? id : null,
     worker_count: 1, // Default to 1 worker
     hours_worked: 8, // Default to 8 hours worked
     work_date: new Date().toISOString().split('T')[0], // Default to today's date
     work_type: '',
-    notes: ''
+    notes: '',
+    created_at: null,
+    updated_at: new Date().toISOString(),
+    deleted_at: null
   });
   const user = useAuthStore(state => state.user); // Get the authenticated user
 
@@ -60,8 +65,8 @@ export default function LaborRecords() {
       return;
     }
     try {
-      const data = await rpcClient.getLaborRecords({ line_item_id: id });
-      setRecords(data);
+      const data = await rpcClient.filter_labor_records({ _filters: { line_item_id: id } });
+      setRecords(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching labor records:', error);
       setRecords([]);
@@ -81,13 +86,15 @@ export default function LaborRecords() {
 
     try {
       if (typeof id !== 'string' || id.trim() === '') return;
-      await rpcClient.insertLaborRecord({
-        line_item_id: id,
-        worker_count,
-        hours_worked,
-        work_date,
-        work_type,
-        notes
+      await rpcClient.insert_labor_records({
+        _input: {
+          line_item_id: id,
+          worker_count,
+          hours_worked,
+          work_date,
+          work_type,
+          notes
+        }
       });
 
       setIsCreating(false); // Close the creation form
@@ -96,12 +103,15 @@ export default function LaborRecords() {
       // Reset the newRecord state to initial values
       setNewRecord({
         id: crypto.randomUUID(),
-        line_item_id: typeof id === 'string' && id.trim() !== '' ? id : '',
+        line_item_id: typeof id === 'string' && id.trim() !== '' ? id : null,
         worker_count: 1,
         hours_worked: 8,
         work_date: new Date().toISOString().split('T')[0],
         work_type: '',
-        notes: ''
+        notes: '',
+        created_at: null,
+        updated_at: new Date().toISOString(),
+        deleted_at: null
       });
     } catch (error) {
       console.error('Error creating labor record:', error); // Log any errors
@@ -152,7 +162,7 @@ export default function LaborRecords() {
                     Work Type
                   </label>
                   <select
-                    value={newRecord.work_type}
+                    value={newRecord.work_type ?? ''}
                     onChange={(e) => setNewRecord({ ...newRecord, work_type: e.target.value })}
                     className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                     required
@@ -170,7 +180,7 @@ export default function LaborRecords() {
                   </label>
                   <input
                     type="date"
-                    value={newRecord.work_date}
+                    value={newRecord.work_date ?? ''}
                     onChange={(e) => setNewRecord({ ...newRecord, work_date: e.target.value })}
                     placeholder="Select work date"
                     title="Work Date"
@@ -187,7 +197,7 @@ export default function LaborRecords() {
                   </label>
                   <input
                     type="number"
-                    value={newRecord.worker_count}
+                    value={newRecord.worker_count ?? 0}
                     onChange={(e) => setNewRecord({ ...newRecord, worker_count: Number(e.target.value) })}
                     min="1"
                     placeholder="Enter number of workers"
@@ -202,7 +212,7 @@ export default function LaborRecords() {
                   </label>
                   <input
                     type="number"
-                    value={newRecord.hours_worked}
+                    value={newRecord.hours_worked ?? 0}
                     onChange={(e) => setNewRecord({ ...newRecord, hours_worked: Number(e.target.value) })}
                     min="0"
                     step="0.5"
@@ -219,7 +229,7 @@ export default function LaborRecords() {
                   Notes
                 </label>
                 <textarea
-                  value={newRecord.notes}
+                  value={newRecord.notes ?? ''}
                   onChange={(e) => setNewRecord({ ...newRecord, notes: e.target.value })}
                   rows={3}
                   placeholder="Enter notes here"
@@ -275,7 +285,7 @@ export default function LaborRecords() {
                     <div className="flex items-center gap-4 mt-2">
                       <div className="flex items-center text-gray-400">
                         <Calendar className="w-4 h-4 mr-2" />
-                        {new Date(record.work_date).toLocaleDateString()} {/* Display work date */}
+                        {record.work_date ? new Date(record.work_date).toLocaleDateString() : 'N/A'} {/* Display work date */}
                       </div>
                       <div className="flex items-center text-gray-400">
                         <Users className="w-4 h-4 mr-2" />

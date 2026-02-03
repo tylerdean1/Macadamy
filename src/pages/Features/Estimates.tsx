@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Page } from '@/components/Layout';
-import { supabase } from '@/lib/supabase';
+import { rpcClient } from '@/lib/rpc.client';
 import type { Database } from '@/lib/database.types';
 
-type EstimateRow = Database['public']['Tables']['estimates']['Row'];
+type EstimateRow = Database['public']['Functions']['filter_estimates']['Returns'][number];
 
 export default function Estimates() {
   const [estimates, setEstimates] = useState<EstimateRow[]>([]);
@@ -11,15 +11,8 @@ export default function Estimates() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data, error } = await supabase
-        .from('estimates')
-        .select('*')
-        .returns<EstimateRow[]>();
-      if (error) {
-        console.error('Error fetching estimates', error);
-      } else if (data) {
-        setEstimates(data);
-      }
+      const data = await rpcClient.filter_estimates({});
+      setEstimates(Array.isArray(data) ? data : []);
       setLoading(false);
     };
     void fetchData();

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Minus, Save } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { rpcClient } from '@/lib/rpc.client';
 import { useAuthStore } from '@/lib/store';
 import type { CalculatorTemplate, Variable as CanonicalVariable, Formula as CanonicalFormula } from '@/lib/formula.types';
 
@@ -133,13 +133,14 @@ export default function CalculatorCreation() {
         variables,
         formula: formulas[0],
       };
-      const { error: insertError } = await supabase.from('line_item_templates').insert({
-        name: calculatorTemplate.name,
-        formula: calculatorTemplate.formula ? JSON.stringify(calculatorTemplate.formula) : null,
-        variables: calculatorTemplate.variables ? JSON.stringify(calculatorTemplate.variables) : null,
-        created_by: user?.id || null,
+      await rpcClient.insert_line_item_templates({
+        _input: {
+          name: calculatorTemplate.name,
+          formula: calculatorTemplate.formula ? JSON.stringify(calculatorTemplate.formula) : null,
+          variables: calculatorTemplate.variables ? JSON.stringify(calculatorTemplate.variables) : null,
+          created_by: user?.id || null,
+        }
       });
-      if (insertError) throw insertError;
 
       navigate(`/projects/${id}/line-items`);
     } catch (error: unknown) {

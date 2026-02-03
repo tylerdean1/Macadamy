@@ -16,6 +16,10 @@ coverage
 .env.*
 !.env.example
 
+# Backend snapshots
+backend.snapshot.md
+backend.snapshot.sql
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'react-hot-toast';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
-import { supabase } from '@/lib/supabase';
+import { rpcClient } from '@/lib/rpc.client';
 import type { WbsWithWktRow } from '@/lib/rpc.types';
 
 interface EditableWbsSectionProps {
@@ -35,20 +35,17 @@ export function EditableWbsSection({
     try {
       const newWbsId = uuidv4();
 
-      // Use direct table insert instead of RPC
-      const { data: newWbsData, error } = await supabase
-        .from('wbs')
-        .insert({
+      const created = await rpcClient.insert_wbs({
+        _input: {
           id: newWbsId,
           project_id: contractId,
           name: newWbsNumber.trim(),
           location: newWbsScope.trim() || null,
           order_num: 0
-        })
-        .select()
-        .single();
+        }
+      });
 
-      if (error) throw error;
+      const newWbsData = Array.isArray(created) && created.length > 0 ? created[0] : null;
 
       // When creating WBS, use the returned data and convert to expected interface
       if (newWbsData) {

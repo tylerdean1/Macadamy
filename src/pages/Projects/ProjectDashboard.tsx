@@ -12,18 +12,20 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FileText } from 'lucide-react';
+import { rpcClient } from '@/lib/rpc.client';
+import { getOrderByColumn } from '@/lib/utils/rpcOrderBy';
 import { supabase } from '@/lib/supabase';
 import { Page, PageContainer, SectionContainer } from '@/components/Layout';
 import { LoadingState } from '@/components/ui/loading-state';
 import { EmptyState } from '@/components/ui/empty-state';
-import type { TableRow } from '@/lib/types';
+import type { ContractWithWktRow, WbsWithWktRow, LineItemsWithWktRow } from '@/lib/rpc.types';
+import type { Database } from '@/lib/database.types';
 
-type Project = TableRow<'projects'>;
-type Wbs = TableRow<'wbs'>;
-type LineItem = TableRow<'line_items'>;
+type WbsRow = Database['public']['Functions']['filter_wbs']['Returns'][number];
+type LineItemRow = Database['public']['Functions']['filter_line_items']['Returns'][number];
 
 import { ProjectHeader } from './ProjectDashboardComponents/ProjectHeader';
-import { ProjectInfoForm } from './ProjectDashboardComponents/ProjectInfoForm';
+import { ProjectInfoForm, type ProjectInfoVM } from './ProjectDashboardComponents/ProjectInfoForm';
 import { ProjectTotalsPanel } from './ProjectDashboardComponents/ProjectTotalsPanel';
 import { WbsSection } from './ProjectDashboardComponents/WbsSection';
 import { LineItemsTable } from './ProjectDashboardComponents/LineItemsTable';
@@ -32,14 +34,29 @@ import { ProjectTools } from './ProjectDashboardComponents/ProjectTools';
 export default function ProjectDashboard() {
   const { contractId } = useParams<{ contractId: string }>();
   const navigate = useNavigate();
-  const [contract, setContract] = useState<Project | null>(null);
-  const [wbsItems, setWbsItems] = useState<Wbs[]>([]);
-  const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const [contract, setContract] = useState<ContractWithWktRow | null>(null);
+  const [wbsItems, setWbsItems] = useState<WbsWithWktRow[]>([]);
+  const [lineItems, setLineItems] = useState<LineItemsWithWktRow[]>([]);
   const [issuesCount, setIssuesCount] = useState<number>(0);
   const [changeOrdersCount, setChangeOrdersCount] = useState<number>(0);
   const [inspectionsCount, setInspectionsCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+
+  const projectInfo: ProjectInfoVM | null = contract
+    ? {
+      id: contract.id,
+      title: contract.title,
+      description: contract.description,
+      start_date: contract.start_date,
+      end_date: contract.end_date,
+      status: typeof contract.status === 'string' ? contract.status : null,
+      budget: contract.budget,
+      coordinates_wkt: contract.coordinates_wkt,
+      created_at: contract.created_at,
+      updated_at: contract.updated_at,
+    }
+    : null;
 
   // Function to fetch contract data
   const fetchContractData = useCallback(async () => {
@@ -53,60 +70,94 @@ export default function ProjectDashboard() {
     setError(null);
 
     try {
-      // Fetch project details directly from projects table
-      const { data: projectDetails, error: projectError } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', contractId)
-        .single();
+      const orderBy = await getOrderByColumn('projects');
+      if (!orderBy) {
+        throw new Error('Project ordering unavailable');
+      }
 
-      if (projectError) throw projectError;
-      setContract(projectDetails as Project);
+      const projects = await rpcClient.filter_projects({
+        _filters: { id: contractId },
+        _order_by: orderBy,
+        _direction: 'asc'
+      });
 
-      // Fetch WBS items directly from wbs table
-      const { data: wbsData, error: wbsError } = await supabase
-        .from('wbs')
-        .select('*')
-        .eq('project_id', contractId);
+      const project = Array.isArray(projects) ? projects[0] : null;
+      if (!project) throw new Error('Project not found');
 
-      if (wbsError) throw wbsError;
-      setWbsItems(wbsData as Wbs[]);
+      const mappedContract: ContractWithWktRow = {
+        id: project.id,
+        project_id: project.id,
+        contract_number: '',
+        title: project.name,
+        description: project.description,
+        start_date: project.start_date,
+        end_date: project.end_date,
+        budget: null,
+        status: project.status as ContractWithWktRow['status'],
+        created_at: project.created_at,
+        updated_at: project.updated_at,
+        coordinates_wkt: null
+      };
+      setContract(mappedContract);
 
-      // Fetch Line Items directly from line_items table
-      const { data: lineItemsData, error: lineItemsError } = await supabase
-        .from('line_items')
-        .select('*')
-        .eq('project_id', contractId);
+      const wbsData = await rpcClient.filter_wbs({
+        _filters: { project_id: contractId }
+      });
 
-      if (lineItemsError) throw lineItemsError;
-      setLineItems(lineItemsData as LineItem[]);
+      const normalizedWbs: WbsWithWktRow[] = Array.isArray(wbsData)
+        ? wbsData.map((wbs: WbsRow) => ({
+          id: wbs.id,
+          contract_id: wbs.project_id ?? contractId,
+          wbs_number: typeof wbs.order_num === 'number' ? String(wbs.order_num) : wbs.name,
+          description: wbs.name,
+          budget: null,
+          scope: null,
+          location: wbs.location,
+          created_at: wbs.created_at,
+          updated_at: wbs.updated_at,
+          coordinates_wkt: null
+        }))
+        : [];
+      setWbsItems(normalizedWbs);
 
-      // Count issues for this project
-      const { count: issuesCount, error: issuesCountError } = await supabase
-        .from('issues')
-        .select('*', { count: 'exact', head: true })
-        .eq('project_id', contractId);
+      const lineItemsData = await rpcClient.filter_line_items({
+        _filters: { project_id: contractId }
+      });
 
-      if (issuesCountError) throw issuesCountError;
-      setIssuesCount(issuesCount || 0);
+      const normalizedLineItems: LineItemsWithWktRow[] = Array.isArray(lineItemsData)
+        ? lineItemsData.map((item: LineItemRow) => ({
+          id: item.id,
+          contract_id: item.project_id ?? contractId,
+          wbs_id: item.wbs_id ?? '',
+          map_id: item.map_id ?? null,
+          item_code: item.cost_code_id ?? item.name ?? null,
+          description: item.description ?? item.name ?? null,
+          quantity: typeof item.quantity === 'number' ? item.quantity : 0,
+          unit_price: typeof item.unit_price === 'number' ? item.unit_price : 0,
+          unit_measure: item.unit_measure as LineItemsWithWktRow['unit_measure'],
+          reference_doc: null,
+          template_id: item.template_id ?? null,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+          coordinates_wkt: null
+        }))
+        : [];
+      setLineItems(normalizedLineItems);
 
-      // Count change orders for this project  
-      const { count: changeOrdersCount, error: changeOrdersCountError } = await supabase
-        .from('change_orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('project_id', contractId);
+      const issues = await rpcClient.filter_issues({
+        _filters: { project_id: contractId }
+      });
+      setIssuesCount(Array.isArray(issues) ? issues.length : 0);
 
-      if (changeOrdersCountError) throw changeOrdersCountError;
-      setChangeOrdersCount(changeOrdersCount || 0);
+      const changeOrders = await rpcClient.filter_change_orders({
+        _filters: { project_id: contractId }
+      });
+      setChangeOrdersCount(Array.isArray(changeOrders) ? changeOrders.length : 0);
 
-      // Count inspections for this project
-      const { count: inspectionsCount, error: inspectionsCountError } = await supabase
-        .from('inspections')
-        .select('*', { count: 'exact', head: true })
-        .eq('project_id', contractId);
-
-      if (inspectionsCountError) throw inspectionsCountError;
-      setInspectionsCount(inspectionsCount || 0);
+      const inspections = await rpcClient.filter_inspections({
+        _filters: { project_id: contractId }
+      });
+      setInspectionsCount(Array.isArray(inspections) ? inspections.length : 0);
 
     } catch (err) {
       console.error('Error fetching contract data:', err);
@@ -134,12 +185,12 @@ export default function ProjectDashboard() {
 
     const changes = supabase
       .channel(`contract-dashboard-${contractId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'contracts', filter: `id=eq.${contractId}` }, () => { void fetchContractData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'wbs', filter: `contract_id=eq.${contractId}` }, () => { void fetchContractData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'line_items', filter: `contract_id=eq.${contractId}` }, () => { void fetchContractData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'issues', filter: `contract_id=eq.${contractId}` }, () => { void fetchContractData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'change_orders', filter: `contract_id=eq.${contractId}` }, () => { void fetchContractData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'inspections', filter: `contract_id=eq.${contractId}` }, () => { void fetchContractData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects', filter: `id=eq.${contractId}` }, () => { void fetchContractData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wbs', filter: `project_id=eq.${contractId}` }, () => { void fetchContractData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'line_items', filter: `project_id=eq.${contractId}` }, () => { void fetchContractData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'issues', filter: `project_id=eq.${contractId}` }, () => { void fetchContractData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'change_orders', filter: `project_id=eq.${contractId}` }, () => { void fetchContractData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inspections', filter: `project_id=eq.${contractId}` }, () => { void fetchContractData(); })
       .subscribe();
 
     return () => {
@@ -231,9 +282,11 @@ export default function ProjectDashboard() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             <div className="lg:col-span-2">
-              <ProjectInfoForm
-                contractData={contract}
-              />
+              {projectInfo && (
+                <ProjectInfoForm
+                  contractData={projectInfo}
+                />
+              )}
             </div>
             <div className="lg:col-span-1">
               <ProjectTotalsPanel

@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
-import { rpcClient } from '@/lib/rpc.client';
+import { disableOrderByForTable, getOrderByColumn } from '@/lib/utils/rpcOrderBy';
+import { supabase } from '@/lib/supabase';
+import { warnMissingRpc } from '@/lib/rpc.missing';
 import { useAuthStore } from '@/lib/store';
 import type { EnrichedUserContract } from '@/lib/types';
 import type { ProjectStatus, UserRoleType } from '@/lib/types';
@@ -65,13 +67,55 @@ export function useProjectsData(): {
             setLoading(false);
             return;
         }
+        if (!profile.organization_id) {
+            setProjects([]);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         setError(null);
         try {
-            const fetchedProjects = await rpcClient.getEnrichedUserContracts({ _user_id: profile.id });
+            // TODO: Replace fallback with get_enriched_user_contracts RPC when available.
+            warnMissingRpc('getEnrichedUserContracts');
+            const orderBy = await getOrderByColumn('projects');
+            if (!orderBy) {
+                setProjects([]);
+                setError(null);
+                return;
+            }
+
+            const payload = {
+                _filters: { organization_id: profile.organization_id },
+                _order_by: orderBy,
+                _direction: 'asc'
+            } as Record<string, unknown>;
+
+            const { data: fetchedProjects, error: projectsError } = await supabase
+                .rpc('filter_projects', payload);
+
+            if (projectsError) {
+                if (projectsError.message === 'unknown order_by column') {
+                    disableOrderByForTable('projects');
+                    setProjects([]);
+                    setError(null);
+                    return;
+                }
+                throw projectsError;
+            }
             setProjects(
                 Array.isArray(fetchedProjects)
-                    ? fetchedProjects.map(normalizeEnrichedUserContract)
+                    ? fetchedProjects.map((proj) => normalizeEnrichedUserContract({
+                        id: proj.id,
+                        name: proj.name,
+                        description: proj.description,
+                        start_date: proj.start_date,
+                        end_date: proj.end_date,
+                        created_at: proj.created_at,
+                        updated_at: proj.updated_at,
+                        status: proj.status,
+                        organization_id: proj.organization_id,
+                        user_contract_role: null,
+                    }))
                     : []
             );
         } catch (err) {
@@ -81,7 +125,7 @@ export function useProjectsData(): {
         } finally {
             setLoading(false);
         }
-    }, [profile?.id]);
+    }, [profile?.id, profile?.organization_id]);
 
     useEffect(() => {
         void loadProjects();

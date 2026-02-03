@@ -9,12 +9,16 @@
     "lint": "eslint . --ext .ts,.tsx",
     "eslint": "node scripts/run-eslint.cjs",
     "eslint:fix": "node scripts/run-eslint.cjs --fix",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "test": "node scripts/run-tests.cjs",
     "preview": "vite preview",
-    "typegen": "node scripts/typegen.cjs",
+    "typegen": "node scripts/typegen.cjs && node scripts/gen-rpc-definitions.mjs",
+    "gen:rpc": "node scripts/gen-rpc-definitions.mjs",
+    "backend-snapshot": "node scripts/backend-snapshot.js",
+    "fulldb": "npm run typegen && npm run backend-snapshot",
     "funcgen": "node -r dotenv/config -e \"const { execSync } = require('child_process'); const dbUrl = process.env.SUPABASE_DB_URL; if (!dbUrl) { console.error('ERROR: DATABASE_URL not set in .env file.'); process.exit(1); } const cmd = `pg_dump \\\"${dbUrl}\\\" --schema=public --section=pre-data --section=post-data --no-owner --no-privileges --no-tablespaces --no-unlogged-table-data --no-comments --file=src/lib/functions.sql --verbose`; execSync(cmd, { stdio: 'inherit', env: process.env });\"",
-    "openall": "node scripts/open-all-files.js"
-
+    "open-all": "node scripts/open-all-files.js",
+    "openall": "npm run open-all"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -76,7 +80,6 @@
     "stylelint-config-standard": "^38.0.0",
     "stylelint-config-tailwindcss": "^1.0.0",
     "tailwindcss": "^3.4.1",
-    "ts-node": "^10.9.2",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.32.1",
     "vite": "^6.3.2",

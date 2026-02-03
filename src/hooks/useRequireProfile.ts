@@ -1,21 +1,19 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/lib/store";
-import { supabase } from "@/lib/supabase";
 
 /**
  * This hook ensures that a user has a loaded profile.
- * If a user is authenticated but their profile is not available after loading attempts,
- * it signs out the user and redirects to the homepage.
+ * If a user is authenticated but their profile is missing or incomplete after loading attempts,
+ * it redirects them to profile onboarding.
  * This hook should be used on pages that absolutely require a profile to function.
  */
 export function useRequireProfile(): void {
   const navigate = useNavigate();
-  const { user, profile, loading, clearAuth } = useAuthStore((state) => ({
+  const { user, profile, loading } = useAuthStore((state) => ({
     user: state.user,
     profile: state.profile,
     loading: state.loading,
-    clearAuth: state.clearAuth,
   }));
 
   // Check if any loading process is in progress
@@ -33,22 +31,13 @@ export function useRequireProfile(): void {
       profile: !!profile,
       loading,
     });      // If there is an authenticated user but no profile after loading has completed
-    if (user && !profile) {
+    const isProfileComplete = Boolean(profile?.profile_completed_at);
+    if (user && !isProfileComplete) {
       console.warn(
-        "[useRequireProfile] User is authenticated, but no profile found after loading. Signing out.",
+        "[useRequireProfile] User is authenticated, but profile is missing or incomplete. Redirecting to onboarding.",
       );
-      const performSignOut = async (): Promise<void> => {
-        try {
-          await supabase.auth.signOut();
-        } catch (signOutError) {
-          console.error("[useRequireProfile] Error during signOut:", signOutError);
-        }
-        clearAuth(); // Clear local auth state
-        navigate("/", { replace: true }); // Redirect to homepage
-      };
-
-      void performSignOut();
+      navigate("/onboarding/profile", { replace: true });
     }
     // If no user, or user and profile exist, do nothing.
-  }, [user, profile, isLoading, clearAuth, navigate]);
+  }, [user, profile, isLoading, navigate]);
 }

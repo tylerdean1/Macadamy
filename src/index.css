@@ -1,20 +1,22 @@
+/* stylelint-disable at-rule-no-unknown */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* stylelint-enable at-rule-no-unknown */
 
 /* Define a dark color scheme */
 :root {
   color-scheme: dark;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
 }
 
 /* Note: 'text-size-adjust' is not supported by Firefox, Safari. */
 
 /* Global body styles */
 body {
-  background-color: #111827; /* Tailwind bg-gray-900 */
-  color: #f3f4f6;            /* Tailwind text-gray-100 */
+  background-color: #111827;
+  /* Tailwind bg-gray-900 */
+  color: #f3f4f6;
+  /* Tailwind text-gray-100 */
   /* stylelint-disable-next-line at-rule-no-unknown */
 }
 

@@ -7,10 +7,920 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "14.1"
+  }
+  auth: {
+    Tables: {
+      audit_log_entries: {
+        Row: {
+          created_at: string | null
+          id: string
+          instance_id: string | null
+          ip_address: string
+          payload: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          instance_id?: string | null
+          ip_address?: string
+          payload?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          instance_id?: string | null
+          ip_address?: string
+          payload?: Json | null
+        }
+        Relationships: []
+      }
+      flow_state: {
+        Row: {
+          auth_code: string
+          auth_code_issued_at: string | null
+          authentication_method: string
+          code_challenge: string
+          code_challenge_method: Database["auth"]["Enums"]["code_challenge_method"]
+          created_at: string | null
+          id: string
+          provider_access_token: string | null
+          provider_refresh_token: string | null
+          provider_type: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          auth_code: string
+          auth_code_issued_at?: string | null
+          authentication_method: string
+          code_challenge: string
+          code_challenge_method: Database["auth"]["Enums"]["code_challenge_method"]
+          created_at?: string | null
+          id: string
+          provider_access_token?: string | null
+          provider_refresh_token?: string | null
+          provider_type: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          auth_code?: string
+          auth_code_issued_at?: string | null
+          authentication_method?: string
+          code_challenge?: string
+          code_challenge_method?: Database["auth"]["Enums"]["code_challenge_method"]
+          created_at?: string | null
+          id?: string
+          provider_access_token?: string | null
+          provider_refresh_token?: string | null
+          provider_type?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      identities: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          identity_data: Json
+          last_sign_in_at: string | null
+          provider: string
+          provider_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          identity_data: Json
+          last_sign_in_at?: string | null
+          provider: string
+          provider_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          identity_data?: Json
+          last_sign_in_at?: string | null
+          provider?: string
+          provider_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "identities_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instances: {
+        Row: {
+          created_at: string | null
+          id: string
+          raw_base_config: string | null
+          updated_at: string | null
+          uuid: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          raw_base_config?: string | null
+          updated_at?: string | null
+          uuid?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          raw_base_config?: string | null
+          updated_at?: string | null
+          uuid?: string | null
+        }
+        Relationships: []
+      }
+      mfa_amr_claims: {
+        Row: {
+          authentication_method: string
+          created_at: string
+          id: string
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          authentication_method: string
+          created_at: string
+          id: string
+          session_id: string
+          updated_at: string
+        }
+        Update: {
+          authentication_method?: string
+          created_at?: string
+          id?: string
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mfa_amr_claims_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mfa_challenges: {
+        Row: {
+          created_at: string
+          factor_id: string
+          id: string
+          ip_address: unknown
+          otp_code: string | null
+          verified_at: string | null
+          web_authn_session_data: Json | null
+        }
+        Insert: {
+          created_at: string
+          factor_id: string
+          id: string
+          ip_address: unknown
+          otp_code?: string | null
+          verified_at?: string | null
+          web_authn_session_data?: Json | null
+        }
+        Update: {
+          created_at?: string
+          factor_id?: string
+          id?: string
+          ip_address?: unknown
+          otp_code?: string | null
+          verified_at?: string | null
+          web_authn_session_data?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mfa_challenges_auth_factor_id_fkey"
+            columns: ["factor_id"]
+            isOneToOne: false
+            referencedRelation: "mfa_factors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mfa_factors: {
+        Row: {
+          created_at: string
+          factor_type: Database["auth"]["Enums"]["factor_type"]
+          friendly_name: string | null
+          id: string
+          last_challenged_at: string | null
+          last_webauthn_challenge_data: Json | null
+          phone: string | null
+          secret: string | null
+          status: Database["auth"]["Enums"]["factor_status"]
+          updated_at: string
+          user_id: string
+          web_authn_aaguid: string | null
+          web_authn_credential: Json | null
+        }
+        Insert: {
+          created_at: string
+          factor_type: Database["auth"]["Enums"]["factor_type"]
+          friendly_name?: string | null
+          id: string
+          last_challenged_at?: string | null
+          last_webauthn_challenge_data?: Json | null
+          phone?: string | null
+          secret?: string | null
+          status: Database["auth"]["Enums"]["factor_status"]
+          updated_at: string
+          user_id: string
+          web_authn_aaguid?: string | null
+          web_authn_credential?: Json | null
+        }
+        Update: {
+          created_at?: string
+          factor_type?: Database["auth"]["Enums"]["factor_type"]
+          friendly_name?: string | null
+          id?: string
+          last_challenged_at?: string | null
+          last_webauthn_challenge_data?: Json | null
+          phone?: string | null
+          secret?: string | null
+          status?: Database["auth"]["Enums"]["factor_status"]
+          updated_at?: string
+          user_id?: string
+          web_authn_aaguid?: string | null
+          web_authn_credential?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mfa_factors_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oauth_authorizations: {
+        Row: {
+          approved_at: string | null
+          authorization_code: string | null
+          authorization_id: string
+          client_id: string
+          code_challenge: string | null
+          code_challenge_method:
+            | Database["auth"]["Enums"]["code_challenge_method"]
+            | null
+          created_at: string
+          expires_at: string
+          id: string
+          nonce: string | null
+          redirect_uri: string
+          resource: string | null
+          response_type: Database["auth"]["Enums"]["oauth_response_type"]
+          scope: string
+          state: string | null
+          status: Database["auth"]["Enums"]["oauth_authorization_status"]
+          user_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          authorization_code?: string | null
+          authorization_id: string
+          client_id: string
+          code_challenge?: string | null
+          code_challenge_method?:
+            | Database["auth"]["Enums"]["code_challenge_method"]
+            | null
+          created_at?: string
+          expires_at?: string
+          id: string
+          nonce?: string | null
+          redirect_uri: string
+          resource?: string | null
+          response_type?: Database["auth"]["Enums"]["oauth_response_type"]
+          scope: string
+          state?: string | null
+          status?: Database["auth"]["Enums"]["oauth_authorization_status"]
+          user_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          authorization_code?: string | null
+          authorization_id?: string
+          client_id?: string
+          code_challenge?: string | null
+          code_challenge_method?:
+            | Database["auth"]["Enums"]["code_challenge_method"]
+            | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          nonce?: string | null
+          redirect_uri?: string
+          resource?: string | null
+          response_type?: Database["auth"]["Enums"]["oauth_response_type"]
+          scope?: string
+          state?: string | null
+          status?: Database["auth"]["Enums"]["oauth_authorization_status"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_authorizations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "oauth_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oauth_authorizations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oauth_client_states: {
+        Row: {
+          code_verifier: string | null
+          created_at: string
+          id: string
+          provider_type: string
+        }
+        Insert: {
+          code_verifier?: string | null
+          created_at: string
+          id: string
+          provider_type: string
+        }
+        Update: {
+          code_verifier?: string | null
+          created_at?: string
+          id?: string
+          provider_type?: string
+        }
+        Relationships: []
+      }
+      oauth_clients: {
+        Row: {
+          client_name: string | null
+          client_secret_hash: string | null
+          client_type: Database["auth"]["Enums"]["oauth_client_type"]
+          client_uri: string | null
+          created_at: string
+          deleted_at: string | null
+          grant_types: string
+          id: string
+          logo_uri: string | null
+          redirect_uris: string
+          registration_type: Database["auth"]["Enums"]["oauth_registration_type"]
+          updated_at: string
+        }
+        Insert: {
+          client_name?: string | null
+          client_secret_hash?: string | null
+          client_type?: Database["auth"]["Enums"]["oauth_client_type"]
+          client_uri?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          grant_types: string
+          id: string
+          logo_uri?: string | null
+          redirect_uris: string
+          registration_type: Database["auth"]["Enums"]["oauth_registration_type"]
+          updated_at?: string
+        }
+        Update: {
+          client_name?: string | null
+          client_secret_hash?: string | null
+          client_type?: Database["auth"]["Enums"]["oauth_client_type"]
+          client_uri?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          grant_types?: string
+          id?: string
+          logo_uri?: string | null
+          redirect_uris?: string
+          registration_type?: Database["auth"]["Enums"]["oauth_registration_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      oauth_consents: {
+        Row: {
+          client_id: string
+          granted_at: string
+          id: string
+          revoked_at: string | null
+          scopes: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          granted_at?: string
+          id: string
+          revoked_at?: string | null
+          scopes: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          granted_at?: string
+          id?: string
+          revoked_at?: string | null
+          scopes?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_consents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "oauth_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oauth_consents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      one_time_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          relates_to: string
+          token_hash: string
+          token_type: Database["auth"]["Enums"]["one_time_token_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          relates_to: string
+          token_hash: string
+          token_type: Database["auth"]["Enums"]["one_time_token_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          relates_to?: string
+          token_hash?: string
+          token_type?: Database["auth"]["Enums"]["one_time_token_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "one_time_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refresh_tokens: {
+        Row: {
+          created_at: string | null
+          id: number
+          instance_id: string | null
+          parent: string | null
+          revoked: boolean | null
+          session_id: string | null
+          token: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          instance_id?: string | null
+          parent?: string | null
+          revoked?: boolean | null
+          session_id?: string | null
+          token?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          instance_id?: string | null
+          parent?: string | null
+          revoked?: boolean | null
+          session_id?: string | null
+          token?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refresh_tokens_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saml_providers: {
+        Row: {
+          attribute_mapping: Json | null
+          created_at: string | null
+          entity_id: string
+          id: string
+          metadata_url: string | null
+          metadata_xml: string
+          name_id_format: string | null
+          sso_provider_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          attribute_mapping?: Json | null
+          created_at?: string | null
+          entity_id: string
+          id: string
+          metadata_url?: string | null
+          metadata_xml: string
+          name_id_format?: string | null
+          sso_provider_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          attribute_mapping?: Json | null
+          created_at?: string | null
+          entity_id?: string
+          id?: string
+          metadata_url?: string | null
+          metadata_xml?: string
+          name_id_format?: string | null
+          sso_provider_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saml_providers_sso_provider_id_fkey"
+            columns: ["sso_provider_id"]
+            isOneToOne: false
+            referencedRelation: "sso_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saml_relay_states: {
+        Row: {
+          created_at: string | null
+          flow_state_id: string | null
+          for_email: string | null
+          id: string
+          redirect_to: string | null
+          request_id: string
+          sso_provider_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          flow_state_id?: string | null
+          for_email?: string | null
+          id: string
+          redirect_to?: string | null
+          request_id: string
+          sso_provider_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          flow_state_id?: string | null
+          for_email?: string | null
+          id?: string
+          redirect_to?: string | null
+          request_id?: string
+          sso_provider_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saml_relay_states_flow_state_id_fkey"
+            columns: ["flow_state_id"]
+            isOneToOne: false
+            referencedRelation: "flow_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saml_relay_states_sso_provider_id_fkey"
+            columns: ["sso_provider_id"]
+            isOneToOne: false
+            referencedRelation: "sso_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schema_migrations: {
+        Row: {
+          version: string
+        }
+        Insert: {
+          version: string
+        }
+        Update: {
+          version?: string
+        }
+        Relationships: []
+      }
+      sessions: {
+        Row: {
+          aal: Database["auth"]["Enums"]["aal_level"] | null
+          created_at: string | null
+          factor_id: string | null
+          id: string
+          ip: unknown
+          not_after: string | null
+          oauth_client_id: string | null
+          refresh_token_counter: number | null
+          refresh_token_hmac_key: string | null
+          refreshed_at: string | null
+          scopes: string | null
+          tag: string | null
+          updated_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          aal?: Database["auth"]["Enums"]["aal_level"] | null
+          created_at?: string | null
+          factor_id?: string | null
+          id: string
+          ip?: unknown
+          not_after?: string | null
+          oauth_client_id?: string | null
+          refresh_token_counter?: number | null
+          refresh_token_hmac_key?: string | null
+          refreshed_at?: string | null
+          scopes?: string | null
+          tag?: string | null
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          aal?: Database["auth"]["Enums"]["aal_level"] | null
+          created_at?: string | null
+          factor_id?: string | null
+          id?: string
+          ip?: unknown
+          not_after?: string | null
+          oauth_client_id?: string | null
+          refresh_token_counter?: number | null
+          refresh_token_hmac_key?: string | null
+          refreshed_at?: string | null
+          scopes?: string | null
+          tag?: string | null
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_oauth_client_id_fkey"
+            columns: ["oauth_client_id"]
+            isOneToOne: false
+            referencedRelation: "oauth_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sso_domains: {
+        Row: {
+          created_at: string | null
+          domain: string
+          id: string
+          sso_provider_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          domain: string
+          id: string
+          sso_provider_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          domain?: string
+          id?: string
+          sso_provider_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sso_domains_sso_provider_id_fkey"
+            columns: ["sso_provider_id"]
+            isOneToOne: false
+            referencedRelation: "sso_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sso_providers: {
+        Row: {
+          created_at: string | null
+          disabled: boolean | null
+          id: string
+          resource_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          disabled?: boolean | null
+          id: string
+          resource_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          disabled?: boolean | null
+          id?: string
+          resource_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          aud: string | null
+          banned_until: string | null
+          confirmation_sent_at: string | null
+          confirmation_token: string | null
+          confirmed_at: string | null
+          created_at: string | null
+          deleted_at: string | null
+          email: string | null
+          email_change: string | null
+          email_change_confirm_status: number | null
+          email_change_sent_at: string | null
+          email_change_token_current: string | null
+          email_change_token_new: string | null
+          email_confirmed_at: string | null
+          encrypted_password: string | null
+          id: string
+          instance_id: string | null
+          invited_at: string | null
+          is_anonymous: boolean
+          is_sso_user: boolean
+          is_super_admin: boolean | null
+          last_sign_in_at: string | null
+          phone: string | null
+          phone_change: string | null
+          phone_change_sent_at: string | null
+          phone_change_token: string | null
+          phone_confirmed_at: string | null
+          raw_app_meta_data: Json | null
+          raw_user_meta_data: Json | null
+          reauthentication_sent_at: string | null
+          reauthentication_token: string | null
+          recovery_sent_at: string | null
+          recovery_token: string | null
+          role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          aud?: string | null
+          banned_until?: string | null
+          confirmation_sent_at?: string | null
+          confirmation_token?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          email_change?: string | null
+          email_change_confirm_status?: number | null
+          email_change_sent_at?: string | null
+          email_change_token_current?: string | null
+          email_change_token_new?: string | null
+          email_confirmed_at?: string | null
+          encrypted_password?: string | null
+          id: string
+          instance_id?: string | null
+          invited_at?: string | null
+          is_anonymous?: boolean
+          is_sso_user?: boolean
+          is_super_admin?: boolean | null
+          last_sign_in_at?: string | null
+          phone?: string | null
+          phone_change?: string | null
+          phone_change_sent_at?: string | null
+          phone_change_token?: string | null
+          phone_confirmed_at?: string | null
+          raw_app_meta_data?: Json | null
+          raw_user_meta_data?: Json | null
+          reauthentication_sent_at?: string | null
+          reauthentication_token?: string | null
+          recovery_sent_at?: string | null
+          recovery_token?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          aud?: string | null
+          banned_until?: string | null
+          confirmation_sent_at?: string | null
+          confirmation_token?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          email_change?: string | null
+          email_change_confirm_status?: number | null
+          email_change_sent_at?: string | null
+          email_change_token_current?: string | null
+          email_change_token_new?: string | null
+          email_confirmed_at?: string | null
+          encrypted_password?: string | null
+          id?: string
+          instance_id?: string | null
+          invited_at?: string | null
+          is_anonymous?: boolean
+          is_sso_user?: boolean
+          is_super_admin?: boolean | null
+          last_sign_in_at?: string | null
+          phone?: string | null
+          phone_change?: string | null
+          phone_change_sent_at?: string | null
+          phone_change_token?: string | null
+          phone_confirmed_at?: string | null
+          raw_app_meta_data?: Json | null
+          raw_user_meta_data?: Json | null
+          reauthentication_sent_at?: string | null
+          reauthentication_token?: string | null
+          recovery_sent_at?: string | null
+          recovery_token?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      email: { Args: never; Returns: string }
+      jwt: { Args: never; Returns: Json }
+      role: { Args: never; Returns: string }
+      uid: { Args: never; Returns: string }
+    }
+    Enums: {
+      aal_level: "aal1" | "aal2" | "aal3"
+      code_challenge_method: "s256" | "plain"
+      factor_status: "unverified" | "verified"
+      factor_type: "totp" | "webauthn" | "phone"
+      oauth_authorization_status: "pending" | "approved" | "denied" | "expired"
+      oauth_client_type: "public" | "confidential"
+      oauth_registration_type: "dynamic" | "manual"
+      oauth_response_type: "code"
+      one_time_token_type:
+        | "confirmation_token"
+        | "reauthentication_token"
+        | "recovery_token"
+        | "email_change_token_new"
+        | "email_change_token_current"
+        | "phone_change_token"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -306,6 +1216,7 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           id: string
+          is_preset: boolean
           updated_at: string
           url: string
         }
@@ -313,6 +1224,7 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           id?: string
+          is_preset?: boolean
           updated_at?: string
           url: string
         }
@@ -320,6 +1232,7 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           id?: string
+          is_preset?: boolean
           updated_at?: string
           url?: string
         }
@@ -2981,6 +3894,54 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_member_rates: {
+        Row: {
+          created_at: string
+          effective_end: string | null
+          effective_start: string
+          id: string
+          membership_id: string
+          rate_amount: number
+          rate_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          effective_end?: string | null
+          effective_start: string
+          id?: string
+          membership_id: string
+          rate_amount: number
+          rate_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          effective_end?: string | null
+          effective_start?: string
+          id?: string
+          membership_id?: string
+          rate_amount?: number
+          rate_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_member_rates_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_member_rates_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members_active"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           created_at: string | null
@@ -3099,6 +4060,45 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects_active"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_service_areas: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          service_area_text: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          service_area_text: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          service_area_text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_service_areas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_service_areas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_active"
             referencedColumns: ["id"]
           },
         ]
@@ -3438,7 +4438,7 @@ export type Database = {
       }
       profiles: {
         Row: {
-          avatar_url: string | null
+          avatar_id: string | null
           created_at: string | null
           deleted_at: string | null
           email: string
@@ -3447,11 +4447,12 @@ export type Database = {
           job_title_id: string | null
           organization_id: string | null
           phone: string | null
+          profile_completed_at: string | null
           role: Database["public"]["Enums"]["user_role_type"] | null
           updated_at: string
         }
         Insert: {
-          avatar_url?: string | null
+          avatar_id?: string | null
           created_at?: string | null
           deleted_at?: string | null
           email: string
@@ -3460,11 +4461,12 @@ export type Database = {
           job_title_id?: string | null
           organization_id?: string | null
           phone?: string | null
+          profile_completed_at?: string | null
           role?: Database["public"]["Enums"]["user_role_type"] | null
           updated_at?: string
         }
         Update: {
-          avatar_url?: string | null
+          avatar_id?: string | null
           created_at?: string | null
           deleted_at?: string | null
           email?: string
@@ -3473,10 +4475,25 @@ export type Database = {
           job_title_id?: string | null
           organization_id?: string | null
           phone?: string | null
+          profile_completed_at?: string | null
           role?: Database["public"]["Enums"]["user_role_type"] | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_profiles_avatar_id"
+            columns: ["avatar_id"]
+            isOneToOne: false
+            referencedRelation: "avatars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_profiles_avatar_id"
+            columns: ["avatar_id"]
+            isOneToOne: false
+            referencedRelation: "avatars_active"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_profiles_job_titles"
             columns: ["job_title_id"]
@@ -3632,6 +4649,142 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects_active"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_invites: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          invited_by_profile_id: string
+          invited_profile_id: string
+          project_id: string
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          invited_by_profile_id: string
+          invited_profile_id: string
+          project_id: string
+          responded_at?: string | null
+          status: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          invited_by_profile_id?: string
+          invited_profile_id?: string
+          project_id?: string
+          responded_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_invites_invited_by_profile_id_fkey"
+            columns: ["invited_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_invites_invited_by_profile_id_fkey"
+            columns: ["invited_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_invites_invited_profile_id_fkey"
+            columns: ["invited_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_invites_invited_profile_id_fkey"
+            columns: ["invited_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_invites_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_invites_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_invites_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_active"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_service_areas: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          service_area_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          service_area_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          service_area_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_service_areas_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summary"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_service_areas_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_service_areas_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_service_areas_service_area_id_fkey"
+            columns: ["service_area_id"]
+            isOneToOne: false
+            referencedRelation: "organization_service_areas"
             referencedColumns: ["id"]
           },
         ]
@@ -8510,7 +9663,7 @@ export type Database = {
       }
       profiles_active: {
         Row: {
-          avatar_url: string | null
+          avatar_id: string | null
           created_at: string | null
           deleted_at: string | null
           email: string | null
@@ -8519,11 +9672,12 @@ export type Database = {
           job_title_id: string | null
           organization_id: string | null
           phone: string | null
+          profile_completed_at: string | null
           role: Database["public"]["Enums"]["user_role_type"] | null
           updated_at: string | null
         }
         Insert: {
-          avatar_url?: string | null
+          avatar_id?: string | null
           created_at?: string | null
           deleted_at?: string | null
           email?: string | null
@@ -8532,11 +9686,12 @@ export type Database = {
           job_title_id?: string | null
           organization_id?: string | null
           phone?: string | null
+          profile_completed_at?: string | null
           role?: Database["public"]["Enums"]["user_role_type"] | null
           updated_at?: string | null
         }
         Update: {
-          avatar_url?: string | null
+          avatar_id?: string | null
           created_at?: string | null
           deleted_at?: string | null
           email?: string | null
@@ -8545,10 +9700,25 @@ export type Database = {
           job_title_id?: string | null
           organization_id?: string | null
           phone?: string | null
+          profile_completed_at?: string | null
           role?: Database["public"]["Enums"]["user_role_type"] | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_profiles_avatar_id"
+            columns: ["avatar_id"]
+            isOneToOne: false
+            referencedRelation: "avatars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_profiles_avatar_id"
+            columns: ["avatar_id"]
+            isOneToOne: false
+            referencedRelation: "avatars_active"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_profiles_job_titles"
             columns: ["job_title_id"]
@@ -10181,136 +11351,87 @@ export type Database = {
           updated_at: string
           workflow_name: Database["public"]["Enums"]["workflow_name"]
         }
+        SetofOptions: {
+          from: "*"
+          to: "workflows"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       check_access: {
         Args: {
           _action: string
-          _resource: string
-          _project_id?: string
           _organization_id?: string
+          _project_id?: string
+          _resource: string
         }
         Returns: undefined
       }
       check_access_bool: {
-        Args: { _action: string; _table: string; _proj: string; _org: string }
+        Args: { _action: string; _org: string; _proj: string; _table: string }
         Returns: boolean
       }
-      count_unread_notifications: {
-        Args: Record<PropertyKey, never>
-        Returns: number
+      complete_my_profile: {
+        Args: {
+          p_avatar_id: string
+          p_full_name: string
+          p_job_title_id: string
+          p_phone: string
+          p_role: Database["public"]["Enums"]["user_role_type"]
+        }
+        Returns: {
+          avatar_id: string | null
+          created_at: string | null
+          deleted_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          job_title_id: string | null
+          organization_id: string | null
+          phone: string | null
+          profile_completed_at: string | null
+          role: Database["public"]["Enums"]["user_role_type"] | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
-      delete_accounts_payable: {
-        Args: { _id: string }
-        Returns: undefined
+      count_unread_notifications: { Args: never; Returns: number }
+      create_my_organization: {
+        Args: { p_description: string; p_name: string }
+        Returns: string
       }
-      delete_accounts_receivable: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_activity_logs: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_asphalt_types: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_audit_log: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_audit_logs: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_avatars: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_bid_packages: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_bid_vendors: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_bids: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_bim_models: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_certifications: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_change_orders: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_commitments: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_compliance_checks: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_compliance_tracking: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_cost_codes: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_crew_assignments: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_crew_members: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_crews: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_daily_logs: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_dashboard_configs: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_document_references: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_documents: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_drawing_versions: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_dump_trucks: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_employees: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_equipment: {
-        Args: { _id: string }
-        Returns: undefined
-      }
+      delete_accounts_payable: { Args: { _id: string }; Returns: undefined }
+      delete_accounts_receivable: { Args: { _id: string }; Returns: undefined }
+      delete_activity_logs: { Args: { _id: string }; Returns: undefined }
+      delete_asphalt_types: { Args: { _id: string }; Returns: undefined }
+      delete_audit_logs: { Args: { _id: string }; Returns: undefined }
+      delete_avatars: { Args: { _id: string }; Returns: undefined }
+      delete_bid_packages: { Args: { _id: string }; Returns: undefined }
+      delete_bid_vendors: { Args: { _id: string }; Returns: undefined }
+      delete_bids: { Args: { _id: string }; Returns: undefined }
+      delete_bim_models: { Args: { _id: string }; Returns: undefined }
+      delete_certifications: { Args: { _id: string }; Returns: undefined }
+      delete_change_orders: { Args: { _id: string }; Returns: undefined }
+      delete_commitments: { Args: { _id: string }; Returns: undefined }
+      delete_compliance_checks: { Args: { _id: string }; Returns: undefined }
+      delete_compliance_tracking: { Args: { _id: string }; Returns: undefined }
+      delete_cost_codes: { Args: { _id: string }; Returns: undefined }
+      delete_crew_assignments: { Args: { _id: string }; Returns: undefined }
+      delete_crew_members: { Args: { _id: string }; Returns: undefined }
+      delete_crews: { Args: { _id: string }; Returns: undefined }
+      delete_daily_logs: { Args: { _id: string }; Returns: undefined }
+      delete_dashboard_configs: { Args: { _id: string }; Returns: undefined }
+      delete_document_references: { Args: { _id: string }; Returns: undefined }
+      delete_documents: { Args: { _id: string }; Returns: undefined }
+      delete_drawing_versions: { Args: { _id: string }; Returns: undefined }
+      delete_dump_trucks: { Args: { _id: string }; Returns: undefined }
+      delete_employees: { Args: { _id: string }; Returns: undefined }
+      delete_equipment: { Args: { _id: string }; Returns: undefined }
       delete_equipment_assignments: {
         Args: { _id: string }
         Returns: undefined
@@ -10319,250 +11440,92 @@ export type Database = {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_equipment_usage: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_estimate_line_items: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_estimates: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_financial_documents: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_general_ledger: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_hr_documents: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_inspections: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_integration_tokens: {
-        Args: { _id: string }
-        Returns: undefined
-      }
+      delete_equipment_usage: { Args: { _id: string }; Returns: undefined }
+      delete_estimate_line_items: { Args: { _id: string }; Returns: undefined }
+      delete_estimates: { Args: { _id: string }; Returns: undefined }
+      delete_financial_documents: { Args: { _id: string }; Returns: undefined }
+      delete_general_ledger: { Args: { _id: string }; Returns: undefined }
+      delete_hr_documents: { Args: { _id: string }; Returns: undefined }
+      delete_inspections: { Args: { _id: string }; Returns: undefined }
+      delete_integration_tokens: { Args: { _id: string }; Returns: undefined }
       delete_inventory_transactions: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_issues: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_job_titles: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_labor_records: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_line_item_entries: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_line_item_templates: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_line_items: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_maps: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_material_inventory: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_material_orders: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_material_receipts: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_materials: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_meeting_minutes: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_notifications: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_organization_members: {
-        Args: { _id: string }
-        Returns: undefined
-      }
+      delete_issues: { Args: { _id: string }; Returns: undefined }
+      delete_job_titles: { Args: { _id: string }; Returns: undefined }
+      delete_labor_records: { Args: { _id: string }; Returns: undefined }
+      delete_line_item_entries: { Args: { _id: string }; Returns: undefined }
+      delete_line_item_templates: { Args: { _id: string }; Returns: undefined }
+      delete_line_items: { Args: { _id: string }; Returns: undefined }
+      delete_maps: { Args: { _id: string }; Returns: undefined }
+      delete_material_inventory: { Args: { _id: string }; Returns: undefined }
+      delete_material_orders: { Args: { _id: string }; Returns: undefined }
+      delete_material_receipts: { Args: { _id: string }; Returns: undefined }
+      delete_materials: { Args: { _id: string }; Returns: undefined }
+      delete_meeting_minutes: { Args: { _id: string }; Returns: undefined }
+      delete_notifications: { Args: { _id: string }; Returns: undefined }
+      delete_organization_members: { Args: { _id: string }; Returns: undefined }
       delete_organization_projects: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_organizations: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_payments: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_payroll: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_photos: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_prequalifications: {
-        Args: { _id: string }
-        Returns: undefined
-      }
+      delete_organizations: { Args: { _id: string }; Returns: undefined }
+      delete_payments: { Args: { _id: string }; Returns: undefined }
+      delete_payroll: { Args: { _id: string }; Returns: undefined }
+      delete_photos: { Args: { _id: string }; Returns: undefined }
+      delete_prequalifications: { Args: { _id: string }; Returns: undefined }
       delete_procurement_workflows: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_profiles: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_progress_billings: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_project_inspectors: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_projects: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_punch_lists: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_purchase_orders: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_quality_reviews: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_regulatory_documents: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_reports: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_rfis: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_safety_incidents: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_sensor_data: {
-        Args: { _id: string }
-        Returns: undefined
-      }
+      delete_profiles: { Args: { _id: string }; Returns: undefined }
+      delete_progress_billings: { Args: { _id: string }; Returns: undefined }
+      delete_project_inspectors: { Args: { _id: string }; Returns: undefined }
+      delete_projects: { Args: { _id: string }; Returns: undefined }
+      delete_punch_lists: { Args: { _id: string }; Returns: undefined }
+      delete_purchase_orders: { Args: { _id: string }; Returns: undefined }
+      delete_quality_reviews: { Args: { _id: string }; Returns: undefined }
+      delete_regulatory_documents: { Args: { _id: string }; Returns: undefined }
+      delete_reports: { Args: { _id: string }; Returns: undefined }
+      delete_rfis: { Args: { _id: string }; Returns: undefined }
+      delete_safety_incidents: { Args: { _id: string }; Returns: undefined }
+      delete_sensor_data: { Args: { _id: string }; Returns: undefined }
       delete_subcontractor_agreements: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_subcontracts: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_submittals: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_tack_rates: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_task_dependencies: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_task_status_logs: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_tasks: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_training_records: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_user_projects: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_vendor_bid_packages: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_vendor_contacts: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_vendor_documents: {
-        Args: { _id: string }
-        Returns: undefined
-      }
+      delete_subcontracts: { Args: { _id: string }; Returns: undefined }
+      delete_submittals: { Args: { _id: string }; Returns: undefined }
+      delete_tack_rates: { Args: { _id: string }; Returns: undefined }
+      delete_task_dependencies: { Args: { _id: string }; Returns: undefined }
+      delete_task_status_logs: { Args: { _id: string }; Returns: undefined }
+      delete_tasks: { Args: { _id: string }; Returns: undefined }
+      delete_training_records: { Args: { _id: string }; Returns: undefined }
+      delete_user_projects: { Args: { _id: string }; Returns: undefined }
+      delete_vendor_bid_packages: { Args: { _id: string }; Returns: undefined }
+      delete_vendor_contacts: { Args: { _id: string }; Returns: undefined }
+      delete_vendor_documents: { Args: { _id: string }; Returns: undefined }
       delete_vendor_qualifications: {
         Args: { _id: string }
         Returns: undefined
       }
-      delete_vendors: {
-        Args: { _id: string }
+      delete_vendors: { Args: { _id: string }; Returns: undefined }
+      delete_wbs: { Args: { _id: string }; Returns: undefined }
+      delete_workflows: { Args: { _id: string }; Returns: undefined }
+      ensure_fk_indexes_for_schema: {
+        Args: { _schema?: string }
         Returns: undefined
       }
-      delete_wbs: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      delete_workflows: {
-        Args: { _id: string }
-        Returns: undefined
-      }
-      ensure_soft_delete_cols: {
-        Args: { _tbl: unknown }
-        Returns: undefined
-      }
+      ensure_soft_delete_cols: { Args: { _tbl: unknown }; Returns: undefined }
       filter_accounts_payable: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           amount_due: number | null
@@ -10574,15 +11537,21 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "accounts_payable"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_accounts_receivable: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           amount_due: number | null
@@ -10594,15 +11563,21 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "accounts_receivable"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_activity_logs: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           activity_at: string | null
@@ -10613,15 +11588,21 @@ export type Database = {
           profile_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "activity_logs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_asphalt_types: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -10631,36 +11612,21 @@ export type Database = {
           name: string
           updated_at: string
         }[]
-      }
-      filter_audit_log: {
-        Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
-          _direction?: string
-          _limit?: number
-          _offset?: number
+        SetofOptions: {
+          from: "*"
+          to: "asphalt_types"
+          isOneToOne: false
+          isSetofReturn: true
         }
-        Returns: {
-          action: string
-          after_data: Json | null
-          before_data: Json | null
-          changed_at: string | null
-          changed_by: string | null
-          deleted_at: string | null
-          id: string
-          row_id: string | null
-          table_name: string
-        }[]
       }
       filter_audit_logs: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           action: string | null
@@ -10672,32 +11638,45 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "audit_logs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_avatars: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
           deleted_at: string | null
           id: string
+          is_preset: boolean
           updated_at: string
           url: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "avatars"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_bid_packages: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -10709,15 +11688,21 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "bid_packages"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_bid_vendors: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           bid_package_id: string | null
@@ -10728,15 +11713,21 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "bid_vendors"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_bids: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           amount: number | null
@@ -10749,15 +11740,21 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "bids"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_bim_models: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -10769,15 +11766,21 @@ export type Database = {
           uploaded_at: string | null
           url: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "bim_models"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_certifications: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           certification_type: string | null
@@ -10789,15 +11792,21 @@ export type Database = {
           issue_date: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "certifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_change_orders: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           amount: number | null
@@ -10810,15 +11819,21 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "change_orders"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_commitments: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           amount: number | null
@@ -10831,15 +11846,21 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "commitments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_compliance_checks: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           check_date: string | null
@@ -10851,15 +11872,21 @@ export type Database = {
           result: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "compliance_checks"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_compliance_tracking: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -10871,15 +11898,21 @@ export type Database = {
           tracking_type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "compliance_tracking"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_cost_codes: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           code: string
@@ -10889,15 +11922,21 @@ export type Database = {
           id: string
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "cost_codes"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_crew_assignments: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           assigned_date: string | null
@@ -10908,15 +11947,21 @@ export type Database = {
           profile_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "crew_assignments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_crew_members: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -10929,15 +11974,21 @@ export type Database = {
           start_date: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "crew_members"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_crews: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -10947,15 +11998,21 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "crews"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_daily_logs: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -10967,15 +12024,21 @@ export type Database = {
           updated_at: string
           weather: Json | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "daily_logs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_dashboard_configs: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           config: Json | null
@@ -10985,15 +12048,21 @@ export type Database = {
           profile_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "dashboard_configs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_document_references: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11004,15 +12073,21 @@ export type Database = {
           reference_type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "document_references"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_documents: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -11026,15 +12101,21 @@ export type Database = {
           uploaded_by: string | null
           url: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "documents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_drawing_versions: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -11046,15 +12127,21 @@ export type Database = {
           uploaded_by: string | null
           version: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "drawing_versions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_dump_trucks: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           capacity: number | null
@@ -11066,15 +12153,21 @@ export type Database = {
           organization_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "dump_trucks"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_employees: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -11086,15 +12179,21 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "employees"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_equipment: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11108,15 +12207,21 @@ export type Database = {
           type: Database["public"]["Enums"]["equipment_type"] | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "equipment"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_equipment_assignments: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           assigned_date: string | null
@@ -11130,15 +12235,21 @@ export type Database = {
           released_date: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "equipment_assignments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_equipment_maintenance: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11151,15 +12262,21 @@ export type Database = {
           type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "equipment_maintenance"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_equipment_usage: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11172,15 +12289,21 @@ export type Database = {
           quantity: number | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "equipment_usage"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_estimate_line_items: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           cost_code_id: string | null
@@ -11195,15 +12318,21 @@ export type Database = {
           unit_price: number | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "estimate_line_items"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_estimates: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11215,15 +12344,21 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "estimates"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_financial_documents: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -11235,15 +12370,21 @@ export type Database = {
           uploaded_at: string | null
           url: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "financial_documents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_general_ledger: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           balance: number | null
@@ -11257,15 +12398,21 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "general_ledger"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_hr_documents: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -11277,15 +12424,21 @@ export type Database = {
           uploaded_at: string | null
           url: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "hr_documents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_inspections: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11300,15 +12453,21 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "inspections"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_integration_tokens: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11319,15 +12478,21 @@ export type Database = {
           token: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "integration_tokens"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_inventory_transactions: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -11340,15 +12505,21 @@ export type Database = {
           transaction_type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "inventory_transactions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_issues: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11363,15 +12534,21 @@ export type Database = {
           type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "issues"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_job_titles: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -11380,15 +12557,21 @@ export type Database = {
           name: string
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "job_titles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_labor_records: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11402,15 +12585,21 @@ export type Database = {
           work_type: string | null
           worker_count: number | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "labor_records"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_line_item_entries: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11422,15 +12611,21 @@ export type Database = {
           quantity_completed: number | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "line_item_entries"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_line_item_templates: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11442,15 +12637,21 @@ export type Database = {
           updated_at: string
           variables: Json | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "line_item_templates"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_line_items: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           cost_code_id: string | null
@@ -11468,15 +12669,21 @@ export type Database = {
           updated_at: string
           wbs_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "line_items"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_maps: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           coordinates: string | null
@@ -11491,15 +12698,21 @@ export type Database = {
           updated_at: string
           wbs_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "maps"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_material_inventory: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -11511,15 +12724,21 @@ export type Database = {
           quantity: number | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "material_inventory"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_material_orders: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -11532,15 +12751,21 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "material_orders"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_material_receipts: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -11552,15 +12777,21 @@ export type Database = {
           received_date: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "material_receipts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_materials: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11572,15 +12803,21 @@ export type Database = {
           unit: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "materials"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_meeting_minutes: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11592,15 +12829,21 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "meeting_minutes"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_notifications: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           category: Database["public"]["Enums"]["notification_category"]
@@ -11613,15 +12856,21 @@ export type Database = {
           updated_at: string
           user_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "notifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_organization_members: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11632,15 +12881,21 @@ export type Database = {
           role: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_members"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_organization_projects: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11650,15 +12905,21 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_projects"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_organizations: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11668,15 +12929,21 @@ export type Database = {
           name: string
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "organizations"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_payments: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           amount: number | null
@@ -11688,15 +12955,21 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "payments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_payroll: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11709,15 +12982,21 @@ export type Database = {
           pay_period_start: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "payroll"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_photos: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           caption: string | null
@@ -11730,15 +13009,21 @@ export type Database = {
           uploaded_by: string | null
           url: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "photos"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_prequalifications: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -11750,15 +13035,21 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "prequalifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_procurement_workflows: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11769,18 +13060,24 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "procurement_workflows"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_profiles: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
-          avatar_url: string | null
+          avatar_id: string | null
           created_at: string | null
           deleted_at: string | null
           email: string
@@ -11789,18 +13086,25 @@ export type Database = {
           job_title_id: string | null
           organization_id: string | null
           phone: string | null
+          profile_completed_at: string | null
           role: Database["public"]["Enums"]["user_role_type"] | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_progress_billings: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           amount: number | null
@@ -11812,15 +13116,21 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "progress_billings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_project_inspectors: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           assigned_at: string | null
@@ -11829,15 +13139,21 @@ export type Database = {
           profile_id: string
           project_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "project_inspectors"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_projects: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -11851,15 +13167,21 @@ export type Database = {
           status: Database["public"]["Enums"]["project_status"] | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "projects"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_punch_lists: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           assigned_to: string | null
@@ -11871,15 +13193,21 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "punch_lists"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_purchase_orders: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           amount: number | null
@@ -11893,15 +13221,21 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "purchase_orders"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_quality_reviews: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -11913,15 +13247,21 @@ export type Database = {
           reviewer: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "quality_reviews"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_regulatory_documents: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -11933,15 +13273,21 @@ export type Database = {
           uploaded_at: string | null
           url: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "regulatory_documents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_reports: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -11952,15 +13298,21 @@ export type Database = {
           report_type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "reports"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_rfis: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           answer: string | null
@@ -11977,15 +13329,21 @@ export type Database = {
           submitted_by: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "rfis"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_safety_incidents: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -11999,15 +13357,21 @@ export type Database = {
           severity: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "safety_incidents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_sensor_data: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           collected_at: string | null
@@ -12018,15 +13382,21 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "sensor_data"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_subcontractor_agreements: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           agreement_url: string | null
@@ -12037,15 +13407,21 @@ export type Database = {
           subcontract_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "subcontractor_agreements"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_subcontracts: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           amount: number | null
@@ -12058,15 +13434,21 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "subcontracts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_submittals: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -12081,15 +13463,21 @@ export type Database = {
           submitted_by: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "submittals"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_tack_rates: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -12100,15 +13488,21 @@ export type Database = {
           rate: number | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "tack_rates"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_task_dependencies: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -12117,15 +13511,21 @@ export type Database = {
           id: string
           task_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "task_dependencies"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_task_status_logs: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           changed_at: string
@@ -12133,15 +13533,21 @@ export type Database = {
           status: Database["public"]["Enums"]["task_status"]
           task_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "task_status_logs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_tasks: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -12155,15 +13561,21 @@ export type Database = {
           status: Database["public"]["Enums"]["task_status"]
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "tasks"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_training_records: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           completion_date: string | null
@@ -12174,15 +13586,21 @@ export type Database = {
           training_type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "training_records"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_user_projects: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -12193,15 +13611,21 @@ export type Database = {
           updated_at: string
           user_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "user_projects"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_vendor_bid_packages: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           bid_package_id: string | null
@@ -12211,15 +13635,21 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "vendor_bid_packages"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_vendor_contacts: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -12231,15 +13661,21 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "vendor_contacts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_vendor_documents: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -12251,15 +13687,21 @@ export type Database = {
           url: string | null
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "vendor_documents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_vendor_qualifications: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -12271,15 +13713,21 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "vendor_qualifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_vendors: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           contact_email: string | null
@@ -12292,15 +13740,21 @@ export type Database = {
           status: Database["public"]["Enums"]["general_status"] | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "vendors"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_wbs: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string | null
@@ -12312,15 +13766,21 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "wbs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       filter_workflows: {
         Args: {
-          _filters?: Json
-          _select_cols?: string[]
-          _order_by?: string
           _direction?: string
+          _filters?: Json
           _limit?: number
           _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
         }
         Returns: {
           created_at: string
@@ -12333,81 +13793,176 @@ export type Database = {
           updated_at: string
           workflow_name: Database["public"]["Enums"]["workflow_name"]
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "workflows"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       fn_cashflow_curve: {
         Args: { p_project_id: string }
         Returns: {
-          cur_date: string
           billed: number
           cost: number
+          cur_date: string
         }[]
       }
       fn_eqp_7d_avg_hours: {
         Args: { p_equipment_id: string }
         Returns: {
-          day: string
           avg_hours: number
+          day: string
         }[]
       }
       fn_find_rpc_dupes: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
-          fname: string
           args: string
           cnt: number
+          fname: string
         }[]
       }
       fn_inventory_balance: {
         Args: { _material_id: string }
         Returns: {
-          day: string
           balance: number
+          day: string
         }[]
       }
       fn_list_tables_and_columns: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
-          table_name: string
           column_name: string
+          table_name: string
         }[]
       }
       fn_materials_on_hand: {
         Args: { p_material_id: string }
         Returns: {
-          trans_date: string
           on_hand: number
+          trans_date: string
         }[]
       }
       fn_task_cycle_time: {
         Args: { p_task_id: string }
         Returns: {
-          status: string
           days_in_phase: number
+          status: string
         }[]
       }
       fn_top5_cost_codes: {
         Args: { p_project_id: string }
         Returns: {
           cost_code_id: string
-          total_spend: number
           rank: number
+          total_spend: number
         }[]
       }
       fn_weekly_receipt_perf: {
         Args: { p_project_id: string }
         Returns: {
-          week_start: string
-          on_time_count: number
           late_count: number
+          on_time_count: number
+          week_start: string
         }[]
       }
       fn_worst10_crews_by_incidents: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           crew_id: string
           incident_count: number
           rank: number
         }[]
+      }
+      get_avatar_by_id_public: {
+        Args: { p_avatar_id: string }
+        Returns: {
+          created_at: string | null
+          deleted_at: string | null
+          id: string
+          is_preset: boolean
+          updated_at: string
+          url: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "avatars"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_job_titles_public: {
+        Args: never
+        Returns: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "job_titles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_my_org_profiles_minimal: {
+        Args: never
+        Returns: {
+          avatar_id: string
+          email: string
+          full_name: string
+          id: string
+        }[]
+      }
+      get_my_profile: {
+        Args: never
+        Returns: {
+          avatar_id: string | null
+          created_at: string | null
+          deleted_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          job_title_id: string | null
+          organization_id: string | null
+          phone: string | null
+          profile_completed_at: string | null
+          role: Database["public"]["Enums"]["user_role_type"] | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_organizations_public: {
+        Args: { p_query: string }
+        Returns: {
+          id: string
+          name: string
+        }[]
+      }
+      get_preset_avatars_public: {
+        Args: never
+        Returns: {
+          created_at: string | null
+          deleted_at: string | null
+          id: string
+          is_preset: boolean
+          updated_at: string
+          url: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "avatars"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_accounts_payable: {
         Args: { _input: Json }
@@ -12421,6 +13976,12 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "accounts_payable"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_accounts_receivable: {
         Args: { _input: Json }
@@ -12434,6 +13995,12 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "accounts_receivable"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_activity_logs: {
         Args: { _input: Json }
@@ -12446,6 +14013,12 @@ export type Database = {
           profile_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "activity_logs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_asphalt_types: {
         Args: { _input: Json }
@@ -12457,20 +14030,12 @@ export type Database = {
           name: string
           updated_at: string
         }[]
-      }
-      insert_audit_log: {
-        Args: { _input: Json }
-        Returns: {
-          action: string
-          after_data: Json | null
-          before_data: Json | null
-          changed_at: string | null
-          changed_by: string | null
-          deleted_at: string | null
-          id: string
-          row_id: string | null
-          table_name: string
-        }[]
+        SetofOptions: {
+          from: "*"
+          to: "asphalt_types"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_audit_logs: {
         Args: { _input: Json }
@@ -12484,6 +14049,12 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "audit_logs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_avatars: {
         Args: { _input: Json }
@@ -12491,9 +14062,16 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           id: string
+          is_preset: boolean
           updated_at: string
           url: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "avatars"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_bid_packages: {
         Args: { _input: Json }
@@ -12507,6 +14085,12 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "bid_packages"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_bid_vendors: {
         Args: { _input: Json }
@@ -12519,6 +14103,12 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "bid_vendors"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_bids: {
         Args: { _input: Json }
@@ -12533,6 +14123,12 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "bids"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_bim_models: {
         Args: { _input: Json }
@@ -12546,6 +14142,12 @@ export type Database = {
           uploaded_at: string | null
           url: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "bim_models"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_certifications: {
         Args: { _input: Json }
@@ -12559,6 +14161,12 @@ export type Database = {
           issue_date: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "certifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_change_orders: {
         Args: { _input: Json }
@@ -12573,6 +14181,12 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "change_orders"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_commitments: {
         Args: { _input: Json }
@@ -12587,6 +14201,12 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "commitments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_compliance_checks: {
         Args: { _input: Json }
@@ -12600,6 +14220,12 @@ export type Database = {
           result: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "compliance_checks"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_compliance_tracking: {
         Args: { _input: Json }
@@ -12613,6 +14239,12 @@ export type Database = {
           tracking_type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "compliance_tracking"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_cost_codes: {
         Args: { _input: Json }
@@ -12624,6 +14256,12 @@ export type Database = {
           id: string
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "cost_codes"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_crew_assignments: {
         Args: { _input: Json }
@@ -12636,6 +14274,12 @@ export type Database = {
           profile_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "crew_assignments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_crew_members: {
         Args: { _input: Json }
@@ -12650,6 +14294,12 @@ export type Database = {
           start_date: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "crew_members"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_crews: {
         Args: { _input: Json }
@@ -12661,6 +14311,12 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "crews"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_daily_logs: {
         Args: { _input: Json }
@@ -12674,6 +14330,12 @@ export type Database = {
           updated_at: string
           weather: Json | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "daily_logs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_dashboard_configs: {
         Args: { _input: Json }
@@ -12685,6 +14347,12 @@ export type Database = {
           profile_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "dashboard_configs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_document_references: {
         Args: { _input: Json }
@@ -12697,6 +14365,12 @@ export type Database = {
           reference_type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "document_references"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_documents: {
         Args: { _input: Json }
@@ -12712,6 +14386,12 @@ export type Database = {
           uploaded_by: string | null
           url: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "documents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_drawing_versions: {
         Args: { _input: Json }
@@ -12725,6 +14405,12 @@ export type Database = {
           uploaded_by: string | null
           version: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "drawing_versions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_dump_trucks: {
         Args: { _input: Json }
@@ -12738,6 +14424,12 @@ export type Database = {
           organization_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "dump_trucks"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_employees: {
         Args: { _input: Json }
@@ -12751,6 +14443,12 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "employees"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_equipment: {
         Args: { _input: Json }
@@ -12766,6 +14464,12 @@ export type Database = {
           type: Database["public"]["Enums"]["equipment_type"] | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "equipment"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_equipment_assignments: {
         Args: { _input: Json }
@@ -12781,6 +14485,12 @@ export type Database = {
           released_date: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "equipment_assignments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_equipment_maintenance: {
         Args: { _input: Json }
@@ -12795,6 +14505,12 @@ export type Database = {
           type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "equipment_maintenance"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_equipment_usage: {
         Args: { _input: Json }
@@ -12809,6 +14525,12 @@ export type Database = {
           quantity: number | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "equipment_usage"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_estimate_line_items: {
         Args: { _input: Json }
@@ -12825,6 +14547,12 @@ export type Database = {
           unit_price: number | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "estimate_line_items"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_estimates: {
         Args: { _input: Json }
@@ -12838,6 +14566,12 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "estimates"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_financial_documents: {
         Args: { _input: Json }
@@ -12851,6 +14585,12 @@ export type Database = {
           uploaded_at: string | null
           url: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "financial_documents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_general_ledger: {
         Args: { _input: Json }
@@ -12866,6 +14606,12 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "general_ledger"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_hr_documents: {
         Args: { _input: Json }
@@ -12879,6 +14625,12 @@ export type Database = {
           uploaded_at: string | null
           url: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "hr_documents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_inspections: {
         Args: { _input: Json }
@@ -12895,6 +14647,12 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "inspections"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_integration_tokens: {
         Args: { _input: Json }
@@ -12907,6 +14665,12 @@ export type Database = {
           token: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "integration_tokens"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_inventory_transactions: {
         Args: { _input: Json }
@@ -12921,6 +14685,12 @@ export type Database = {
           transaction_type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "inventory_transactions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_issues: {
         Args: { _input: Json }
@@ -12937,6 +14707,28 @@ export type Database = {
           type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "issues"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      insert_job_title_public: {
+        Args: { p_name: string }
+        Returns: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "job_titles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       insert_job_titles: {
         Args: { _input: Json }
@@ -12947,6 +14739,12 @@ export type Database = {
           name: string
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "job_titles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_labor_records: {
         Args: { _input: Json }
@@ -12962,6 +14760,12 @@ export type Database = {
           work_type: string | null
           worker_count: number | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "labor_records"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_line_item_entries: {
         Args: { _input: Json }
@@ -12975,6 +14779,12 @@ export type Database = {
           quantity_completed: number | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "line_item_entries"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_line_item_templates: {
         Args: { _input: Json }
@@ -12988,6 +14798,12 @@ export type Database = {
           updated_at: string
           variables: Json | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "line_item_templates"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_line_items: {
         Args: { _input: Json }
@@ -13007,6 +14823,12 @@ export type Database = {
           updated_at: string
           wbs_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "line_items"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_maps: {
         Args: { _input: Json }
@@ -13023,6 +14845,12 @@ export type Database = {
           updated_at: string
           wbs_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "maps"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_material_inventory: {
         Args: { _input: Json }
@@ -13036,6 +14864,12 @@ export type Database = {
           quantity: number | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "material_inventory"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_material_orders: {
         Args: { _input: Json }
@@ -13050,6 +14884,12 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "material_orders"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_material_receipts: {
         Args: { _input: Json }
@@ -13063,6 +14903,12 @@ export type Database = {
           received_date: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "material_receipts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_materials: {
         Args: { _input: Json }
@@ -13076,6 +14922,12 @@ export type Database = {
           unit: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "materials"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_meeting_minutes: {
         Args: { _input: Json }
@@ -13089,6 +14941,12 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "meeting_minutes"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_notifications: {
         Args: { _input: Json }
@@ -13103,6 +14961,12 @@ export type Database = {
           updated_at: string
           user_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "notifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_organization_members: {
         Args: { _input: Json }
@@ -13115,6 +14979,12 @@ export type Database = {
           role: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_members"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_organization_projects: {
         Args: { _input: Json }
@@ -13126,6 +14996,12 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_projects"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_organizations: {
         Args: { _input: Json }
@@ -13137,6 +15013,12 @@ export type Database = {
           name: string
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "organizations"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_payments: {
         Args: { _input: Json }
@@ -13150,6 +15032,12 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "payments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_payroll: {
         Args: { _input: Json }
@@ -13164,6 +15052,12 @@ export type Database = {
           pay_period_start: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "payroll"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_photos: {
         Args: { _input: Json }
@@ -13178,6 +15072,12 @@ export type Database = {
           uploaded_by: string | null
           url: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "photos"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_prequalifications: {
         Args: { _input: Json }
@@ -13191,6 +15091,12 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "prequalifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_procurement_workflows: {
         Args: { _input: Json }
@@ -13203,11 +15109,17 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "procurement_workflows"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_profiles: {
         Args: { _input: Json }
         Returns: {
-          avatar_url: string | null
+          avatar_id: string | null
           created_at: string | null
           deleted_at: string | null
           email: string
@@ -13216,9 +15128,16 @@ export type Database = {
           job_title_id: string | null
           organization_id: string | null
           phone: string | null
+          profile_completed_at: string | null
           role: Database["public"]["Enums"]["user_role_type"] | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_progress_billings: {
         Args: { _input: Json }
@@ -13232,6 +15151,12 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "progress_billings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_project_inspectors: {
         Args: { _input: Json }
@@ -13242,6 +15167,12 @@ export type Database = {
           profile_id: string
           project_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "project_inspectors"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_projects: {
         Args: { _input: Json }
@@ -13257,6 +15188,12 @@ export type Database = {
           status: Database["public"]["Enums"]["project_status"] | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "projects"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_punch_lists: {
         Args: { _input: Json }
@@ -13270,6 +15207,12 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "punch_lists"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_purchase_orders: {
         Args: { _input: Json }
@@ -13285,6 +15228,12 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "purchase_orders"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_quality_reviews: {
         Args: { _input: Json }
@@ -13298,6 +15247,12 @@ export type Database = {
           reviewer: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "quality_reviews"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_regulatory_documents: {
         Args: { _input: Json }
@@ -13311,6 +15266,12 @@ export type Database = {
           uploaded_at: string | null
           url: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "regulatory_documents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_reports: {
         Args: { _input: Json }
@@ -13323,6 +15284,12 @@ export type Database = {
           report_type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "reports"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_rfis: {
         Args: { _input: Json }
@@ -13341,6 +15308,12 @@ export type Database = {
           submitted_by: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "rfis"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_safety_incidents: {
         Args: { _input: Json }
@@ -13356,6 +15329,12 @@ export type Database = {
           severity: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "safety_incidents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_sensor_data: {
         Args: { _input: Json }
@@ -13368,6 +15347,12 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "sensor_data"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_subcontractor_agreements: {
         Args: { _input: Json }
@@ -13380,6 +15365,12 @@ export type Database = {
           subcontract_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "subcontractor_agreements"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_subcontracts: {
         Args: { _input: Json }
@@ -13394,6 +15385,12 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "subcontracts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_submittals: {
         Args: { _input: Json }
@@ -13410,6 +15407,12 @@ export type Database = {
           submitted_by: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "submittals"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_tack_rates: {
         Args: { _input: Json }
@@ -13422,6 +15425,12 @@ export type Database = {
           rate: number | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "tack_rates"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_task_dependencies: {
         Args: { _input: Json }
@@ -13432,6 +15441,12 @@ export type Database = {
           id: string
           task_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "task_dependencies"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_task_status_logs: {
         Args: { _input: Json }
@@ -13441,6 +15456,12 @@ export type Database = {
           status: Database["public"]["Enums"]["task_status"]
           task_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "task_status_logs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_tasks: {
         Args: { _input: Json }
@@ -13456,6 +15477,12 @@ export type Database = {
           status: Database["public"]["Enums"]["task_status"]
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "tasks"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_training_records: {
         Args: { _input: Json }
@@ -13468,6 +15495,12 @@ export type Database = {
           training_type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "training_records"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_user_projects: {
         Args: { _input: Json }
@@ -13480,6 +15513,12 @@ export type Database = {
           updated_at: string
           user_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "user_projects"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_vendor_bid_packages: {
         Args: { _input: Json }
@@ -13491,6 +15530,12 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "vendor_bid_packages"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_vendor_contacts: {
         Args: { _input: Json }
@@ -13504,6 +15549,12 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "vendor_contacts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_vendor_documents: {
         Args: { _input: Json }
@@ -13517,6 +15568,12 @@ export type Database = {
           url: string | null
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "vendor_documents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_vendor_qualifications: {
         Args: { _input: Json }
@@ -13530,6 +15587,12 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "vendor_qualifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_vendors: {
         Args: { _input: Json }
@@ -13544,6 +15607,12 @@ export type Database = {
           status: Database["public"]["Enums"]["general_status"] | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "vendors"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_wbs: {
         Args: { _input: Json }
@@ -13557,6 +15626,12 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "wbs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       insert_workflows: {
         Args: { _input: Json }
@@ -13571,6 +15646,12 @@ export type Database = {
           updated_at: string
           workflow_name: Database["public"]["Enums"]["workflow_name"]
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "workflows"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       rank_equipment_usage: {
         Args: { p_project_id: string }
@@ -13580,20 +15661,17 @@ export type Database = {
           usage_rank: number
         }[]
       }
-      refresh_project_cost_summary: {
-        Args: Record<PropertyKey, never>
+      refresh_project_cost_summary: { Args: never; Returns: undefined }
+      set_org_member_role: {
+        Args: {
+          p_org_id: string
+          p_profile_id: string
+          p_role: Database["public"]["Enums"]["org_role"]
+        }
         Returns: undefined
       }
       update_accounts_payable: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _amount_due?: number
-          _due_date?: string
-          _status?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           amount_due: number | null
           created_at: string
@@ -13604,17 +15682,15 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "accounts_payable"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_accounts_receivable: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _amount_due?: number
-          _due_date?: string
-          _status?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           amount_due: number | null
           created_at: string
@@ -13625,16 +15701,15 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "accounts_receivable"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_activity_logs: {
-        Args: {
-          _id: string
-          _profile_id?: string
-          _activity_type?: string
-          _activity_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           activity_at: string | null
           activity_type: string | null
@@ -13644,15 +15719,15 @@ export type Database = {
           profile_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "activity_logs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_asphalt_types: {
-        Args: {
-          _id: string
-          _name?: string
-          _description?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -13661,40 +15736,15 @@ export type Database = {
           name: string
           updated_at: string
         }[]
-      }
-      update_audit_log: {
-        Args: {
-          _id: string
-          _table_name?: string
-          _action?: string
-          _row_id?: string
-          _before_data?: Json
-          _after_data?: Json
-          _changed_by?: string
-          _changed_at?: string
+        SetofOptions: {
+          from: "*"
+          to: "asphalt_types"
+          isOneToOne: false
+          isSetofReturn: true
         }
-        Returns: {
-          action: string
-          after_data: Json | null
-          before_data: Json | null
-          changed_at: string | null
-          changed_by: string | null
-          deleted_at: string | null
-          id: string
-          row_id: string | null
-          table_name: string
-        }[]
       }
       update_audit_logs: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _action?: string
-          _performed_by?: string
-          _performed_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           action: string | null
           created_at: string
@@ -13705,32 +15755,32 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "audit_logs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_avatars: {
-        Args: {
-          _id: string
-          _url?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           deleted_at: string | null
           id: string
+          is_preset: boolean
           updated_at: string
           url: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "avatars"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_bid_packages: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _name?: string
-          _status?: string
-          _created_by?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           created_by: string | null
@@ -13741,16 +15791,15 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "bid_packages"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_bid_vendors: {
-        Args: {
-          _id: string
-          _bid_package_id?: string
-          _vendor_id?: string
-          _invited_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           bid_package_id: string | null
           created_at: string
@@ -13760,18 +15809,15 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "bid_vendors"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_bids: {
-        Args: {
-          _id: string
-          _bid_package_id?: string
-          _vendor_id?: string
-          _amount?: number
-          _submitted_at?: string
-          _status?: Database["public"]["Enums"]["general_status"]
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           amount: number | null
           bid_package_id: string | null
@@ -13783,17 +15829,15 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "bids"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_bim_models: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _name?: string
-          _url?: string
-          _uploaded_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -13804,17 +15848,15 @@ export type Database = {
           uploaded_at: string | null
           url: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "bim_models"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_certifications: {
-        Args: {
-          _id: string
-          _employee_id?: string
-          _certification_type?: string
-          _issue_date?: string
-          _expiry_date?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           certification_type: string | null
           created_at: string
@@ -13825,18 +15867,15 @@ export type Database = {
           issue_date: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "certifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_change_orders: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _number?: string
-          _description?: string
-          _status?: string
-          _amount?: number
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           amount: number | null
           created_at: string | null
@@ -13848,18 +15887,15 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "change_orders"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_commitments: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _vendor_id?: string
-          _type?: Database["public"]["Enums"]["commitment_type"]
-          _amount?: number
-          _status?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           amount: number | null
           created_at: string | null
@@ -13871,17 +15907,15 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "commitments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_compliance_checks: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _check_date?: string
-          _description?: string
-          _result?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           check_date: string | null
           created_at: string
@@ -13892,17 +15926,15 @@ export type Database = {
           result: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "compliance_checks"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_compliance_tracking: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _tracking_type?: string
-          _status?: string
-          _notes?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -13913,15 +15945,15 @@ export type Database = {
           tracking_type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "compliance_tracking"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_cost_codes: {
-        Args: {
-          _id: string
-          _code?: string
-          _description?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           code: string
           created_at: string
@@ -13930,16 +15962,15 @@ export type Database = {
           id: string
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "cost_codes"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_crew_assignments: {
-        Args: {
-          _id: string
-          _crew_id?: string
-          _profile_id?: string
-          _assigned_date?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           assigned_date: string | null
           created_at: string | null
@@ -13949,18 +15980,15 @@ export type Database = {
           profile_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "crew_assignments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_crew_members: {
-        Args: {
-          _id: string
-          _crew_id?: string
-          _profile_id?: string
-          _role?: string
-          _start_date?: string
-          _end_date?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           crew_id: string | null
@@ -13972,15 +16000,15 @@ export type Database = {
           start_date: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "crew_members"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_crews: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _name?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           deleted_at: string | null
@@ -13989,17 +16017,15 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "crews"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_daily_logs: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _date?: string
-          _weather?: Json
-          _notes?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           date: string
@@ -14010,15 +16036,15 @@ export type Database = {
           updated_at: string
           weather: Json | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "daily_logs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_dashboard_configs: {
-        Args: {
-          _id: string
-          _profile_id?: string
-          _config?: Json
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           config: Json | null
           created_at: string | null
@@ -14027,16 +16053,15 @@ export type Database = {
           profile_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "dashboard_configs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_document_references: {
-        Args: {
-          _id: string
-          _document_id?: string
-          _reference_type?: string
-          _reference_id?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           deleted_at: string | null
@@ -14046,19 +16071,15 @@ export type Database = {
           reference_type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "document_references"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_documents: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _name?: string
-          _type?: string
-          _url?: string
-          _uploaded_by?: string
-          _uploaded_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -14071,17 +16092,15 @@ export type Database = {
           uploaded_by: string | null
           url: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "documents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_drawing_versions: {
-        Args: {
-          _id: string
-          _document_id?: string
-          _version?: string
-          _uploaded_by?: string
-          _uploaded_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -14092,17 +16111,15 @@ export type Database = {
           uploaded_by: string | null
           version: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "drawing_versions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_dump_trucks: {
-        Args: {
-          _id: string
-          _organization_id?: string
-          _make?: string
-          _model?: string
-          _capacity?: number
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           capacity: number | null
           created_at: string
@@ -14113,17 +16130,15 @@ export type Database = {
           organization_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "dump_trucks"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_employees: {
-        Args: {
-          _id: string
-          _organization_id?: string
-          _profile_id?: string
-          _hire_date?: string
-          _status?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -14134,19 +16149,15 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "employees"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_equipment: {
-        Args: {
-          _id: string
-          _organization_id?: string
-          _name?: string
-          _type?: Database["public"]["Enums"]["equipment_type"]
-          _model?: string
-          _serial_number?: string
-          _status?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           deleted_at: string | null
@@ -14159,19 +16170,15 @@ export type Database = {
           type: Database["public"]["Enums"]["equipment_type"] | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "equipment"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_equipment_assignments: {
-        Args: {
-          _id: string
-          _equipment_id?: string
-          _project_id?: string
-          _assigned_to?: string
-          _assigned_date?: string
-          _released_date?: string
-          _notes?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           assigned_date: string | null
           assigned_to: string | null
@@ -14184,18 +16191,15 @@ export type Database = {
           released_date: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "equipment_assignments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_equipment_maintenance: {
-        Args: {
-          _id: string
-          _equipment_id?: string
-          _maintenance_date?: string
-          _type?: string
-          _description?: string
-          _performed_by?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           deleted_at: string | null
@@ -14207,18 +16211,15 @@ export type Database = {
           type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "equipment_maintenance"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_equipment_usage: {
-        Args: {
-          _id: string
-          _equipment_id?: string
-          _date?: string
-          _hours_used?: number
-          _quantity?: number
-          _notes?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           date: string
@@ -14230,20 +16231,15 @@ export type Database = {
           quantity: number | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "equipment_usage"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_estimate_line_items: {
-        Args: {
-          _id: string
-          _estimate_id?: string
-          _cost_code_id?: string
-          _name?: string
-          _unit_measure?: string
-          _quantity?: number
-          _unit_price?: number
-          _total_cost?: number
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           cost_code_id: string | null
           created_at: string | null
@@ -14257,17 +16253,15 @@ export type Database = {
           unit_price: number | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "estimate_line_items"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_estimates: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _name?: string
-          _status?: string
-          _created_by?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           created_by: string | null
@@ -14278,17 +16272,15 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "estimates"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_financial_documents: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _document_type?: string
-          _url?: string
-          _uploaded_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -14299,19 +16291,15 @@ export type Database = {
           uploaded_at: string | null
           url: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "financial_documents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_general_ledger: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _entry_date?: string
-          _description?: string
-          _debit?: number
-          _credit?: number
-          _balance?: number
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           balance: number | null
           created_at: string
@@ -14324,17 +16312,15 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "general_ledger"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_hr_documents: {
-        Args: {
-          _id: string
-          _employee_id?: string
-          _document_type?: string
-          _url?: string
-          _uploaded_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -14345,20 +16331,15 @@ export type Database = {
           uploaded_at: string | null
           url: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "hr_documents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_inspections: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _name?: string
-          _inspection_type?: string
-          _date?: string
-          _status?: string
-          _result?: Json
-          _notes?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           date: string | null
@@ -14372,16 +16353,15 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "inspections"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_integration_tokens: {
-        Args: {
-          _id: string
-          _profile_id?: string
-          _service_name?: string
-          _token?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           deleted_at: string | null
@@ -14391,18 +16371,15 @@ export type Database = {
           token: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "integration_tokens"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_inventory_transactions: {
-        Args: {
-          _id: string
-          _material_id?: string
-          _transaction_type?: string
-          _quantity?: number
-          _transaction_date?: string
-          _notes?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -14414,20 +16391,15 @@ export type Database = {
           transaction_type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "inventory_transactions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_issues: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _name?: string
-          _type?: string
-          _status?: string
-          _reported_by?: string
-          _description?: string
-          _resolved?: boolean
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           deleted_at: string | null
@@ -14441,14 +16413,15 @@ export type Database = {
           type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "issues"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_job_titles: {
-        Args: {
-          _id: string
-          _name?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -14456,19 +16429,15 @@ export type Database = {
           name: string
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "job_titles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_labor_records: {
-        Args: {
-          _id: string
-          _line_item_id?: string
-          _worker_count?: number
-          _hours_worked?: number
-          _work_date?: string
-          _work_type?: string
-          _notes?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           deleted_at: string | null
@@ -14481,17 +16450,15 @@ export type Database = {
           work_type: string | null
           worker_count: number | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "labor_records"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_line_item_entries: {
-        Args: {
-          _id: string
-          _line_item_id?: string
-          _date?: string
-          _quantity_completed?: number
-          _notes?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           date: string
@@ -14502,17 +16469,15 @@ export type Database = {
           quantity_completed: number | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "line_item_entries"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_line_item_templates: {
-        Args: {
-          _id: string
-          _name?: string
-          _formula?: Json
-          _variables?: Json
-          _created_by?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           created_by: string | null
@@ -14523,23 +16488,15 @@ export type Database = {
           updated_at: string
           variables: Json | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "line_item_templates"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_line_items: {
-        Args: {
-          _id: string
-          _map_id?: string
-          _wbs_id?: string
-          _project_id?: string
-          _cost_code_id?: string
-          _template_id?: string
-          _name?: string
-          _description?: string
-          _unit_measure?: string
-          _quantity?: number
-          _unit_price?: number
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           cost_code_id: string | null
           created_at: string | null
@@ -14556,20 +16513,15 @@ export type Database = {
           updated_at: string
           wbs_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "line_items"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_maps: {
-        Args: {
-          _id: string
-          _wbs_id?: string
-          _project_id?: string
-          _name?: string
-          _description?: string
-          _coordinates?: string
-          _scope?: string
-          _order_num?: number
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           coordinates: string | null
           created_at: string | null
@@ -14583,17 +16535,15 @@ export type Database = {
           updated_at: string
           wbs_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "maps"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_material_inventory: {
-        Args: {
-          _id: string
-          _material_id?: string
-          _organization_id?: string
-          _quantity?: number
-          _last_updated?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -14604,18 +16554,15 @@ export type Database = {
           quantity: number | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "material_inventory"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_material_orders: {
-        Args: {
-          _id: string
-          _material_id?: string
-          _project_id?: string
-          _order_date?: string
-          _quantity?: number
-          _status?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -14627,17 +16574,15 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "material_orders"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_material_receipts: {
-        Args: {
-          _id: string
-          _material_order_id?: string
-          _received_date?: string
-          _quantity?: number
-          _received_by?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -14648,17 +16593,15 @@ export type Database = {
           received_date: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "material_receipts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_materials: {
-        Args: {
-          _id: string
-          _organization_id?: string
-          _name?: string
-          _description?: string
-          _unit?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           deleted_at: string | null
@@ -14669,17 +16612,15 @@ export type Database = {
           unit: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "materials"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_meeting_minutes: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _meeting_date?: string
-          _notes?: string
-          _created_by?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           created_by: string | null
@@ -14690,18 +16631,15 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "meeting_minutes"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_notifications: {
-        Args: {
-          _id: string
-          _user_id?: string
-          _category?: Database["public"]["Enums"]["notification_category"]
-          _message?: string
-          _payload?: Json
-          _is_read?: boolean
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           category: Database["public"]["Enums"]["notification_category"]
           created_at: string
@@ -14713,16 +16651,15 @@ export type Database = {
           updated_at: string
           user_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "notifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_organization_members: {
-        Args: {
-          _id: string
-          _profile_id?: string
-          _organization_id?: string
-          _role?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           deleted_at: string | null
@@ -14732,15 +16669,15 @@ export type Database = {
           role: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_members"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_organization_projects: {
-        Args: {
-          _id: string
-          _organization_id?: string
-          _project_id?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           deleted_at: string | null
@@ -14749,15 +16686,15 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_projects"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_organizations: {
-        Args: {
-          _id: string
-          _name?: string
-          _description?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           deleted_at: string | null
@@ -14766,17 +16703,15 @@ export type Database = {
           name: string
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "organizations"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_payments: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _commitment_id?: string
-          _amount?: number
-          _paid_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           amount: number | null
           commitment_id: string | null
@@ -14787,18 +16722,15 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "payments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_payroll: {
-        Args: {
-          _id: string
-          _employee_id?: string
-          _pay_period_start?: string
-          _pay_period_end?: string
-          _gross_pay?: number
-          _net_pay?: number
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           deleted_at: string | null
@@ -14810,18 +16742,15 @@ export type Database = {
           pay_period_start: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "payroll"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_photos: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _url?: string
-          _caption?: string
-          _uploaded_by?: string
-          _uploaded_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           caption: string | null
           created_at: string
@@ -14833,17 +16762,15 @@ export type Database = {
           uploaded_by: string | null
           url: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "photos"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_prequalifications: {
-        Args: {
-          _id: string
-          _vendor_id?: string
-          _status?: string
-          _reviewed_by?: string
-          _reviewed_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -14854,16 +16781,15 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "prequalifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_procurement_workflows: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _name?: string
-          _status?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           deleted_at: string | null
@@ -14873,22 +16799,17 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "procurement_workflows"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_profiles: {
-        Args: {
-          _id: string
-          _email?: string
-          _full_name?: string
-          _phone?: string
-          _job_title_id?: string
-          _organization_id?: string
-          _avatar_url?: string
-          _created_at?: string
-          _updated_at?: string
-          _role?: Database["public"]["Enums"]["user_role_type"]
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
-          avatar_url: string | null
+          avatar_id: string | null
           created_at: string | null
           deleted_at: string | null
           email: string
@@ -14897,20 +16818,19 @@ export type Database = {
           job_title_id: string | null
           organization_id: string | null
           phone: string | null
+          profile_completed_at: string | null
           role: Database["public"]["Enums"]["user_role_type"] | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_progress_billings: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _billing_number?: string
-          _amount?: number
-          _status?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           amount: number | null
           billing_number: string | null
@@ -14921,15 +16841,15 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "progress_billings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_project_inspectors: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _profile_id?: string
-          _assigned_by?: string
-          _assigned_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           assigned_at: string | null
           assigned_by: string | null
@@ -14937,19 +16857,15 @@ export type Database = {
           profile_id: string
           project_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "project_inspectors"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_projects: {
-        Args: {
-          _id: string
-          _organization_id?: string
-          _name?: string
-          _description?: string
-          _status?: Database["public"]["Enums"]["project_status"]
-          _start_date?: string
-          _end_date?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           deleted_at: string | null
@@ -14962,17 +16878,15 @@ export type Database = {
           status: Database["public"]["Enums"]["project_status"] | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "projects"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_punch_lists: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _item?: string
-          _status?: string
-          _assigned_to?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           assigned_to: string | null
           created_at: string | null
@@ -14983,19 +16897,15 @@ export type Database = {
           status: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "punch_lists"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_purchase_orders: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _vendor_id?: string
-          _order_number?: string
-          _order_date?: string
-          _amount?: number
-          _status?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           amount: number | null
           created_at: string
@@ -15008,17 +16918,15 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "purchase_orders"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_quality_reviews: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _review_date?: string
-          _reviewer?: string
-          _findings?: Json
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -15029,17 +16937,15 @@ export type Database = {
           reviewer: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "quality_reviews"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_regulatory_documents: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _document_type?: string
-          _url?: string
-          _uploaded_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -15050,16 +16956,15 @@ export type Database = {
           uploaded_at: string | null
           url: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "regulatory_documents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_reports: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _report_type?: string
-          _generated_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -15069,22 +16974,15 @@ export type Database = {
           report_type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "reports"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_rfis: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _subject?: string
-          _status?: string
-          _question?: string
-          _answer?: string
-          _submitted_by?: string
-          _reviewed_by?: string
-          _submitted_at?: string
-          _reviewed_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           answer: string | null
           created_at: string
@@ -15100,19 +16998,15 @@ export type Database = {
           submitted_by: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "rfis"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_safety_incidents: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _incident_date?: string
-          _description?: string
-          _reported_by?: string
-          _severity?: string
-          _resolved?: boolean
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -15125,16 +17019,15 @@ export type Database = {
           severity: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "safety_incidents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_sensor_data: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _data?: Json
-          _collected_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           collected_at: string | null
           created_at: string
@@ -15144,16 +17037,15 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "sensor_data"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_subcontractor_agreements: {
-        Args: {
-          _id: string
-          _subcontract_id?: string
-          _agreement_url?: string
-          _signed_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           agreement_url: string | null
           created_at: string
@@ -15163,18 +17055,15 @@ export type Database = {
           subcontract_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "subcontractor_agreements"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_subcontracts: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _vendor_id?: string
-          _amount?: number
-          _status?: string
-          _signed_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           amount: number | null
           created_at: string
@@ -15186,20 +17075,15 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "subcontracts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_submittals: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _name?: string
-          _status?: Database["public"]["Enums"]["general_status"]
-          _submitted_by?: string
-          _reviewed_by?: string
-          _submitted_at?: string
-          _reviewed_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -15213,16 +17097,15 @@ export type Database = {
           submitted_by: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "submittals"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_tack_rates: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _rate?: number
-          _material_type?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -15232,14 +17115,15 @@ export type Database = {
           rate: number | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "tack_rates"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_task_dependencies: {
-        Args: {
-          _id: string
-          _task_id?: string
-          _depends_on_task_id?: string
-          _created_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -15247,33 +17131,30 @@ export type Database = {
           id: string
           task_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "task_dependencies"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_task_status_logs: {
-        Args: {
-          _id: string
-          _task_id?: string
-          _status?: Database["public"]["Enums"]["task_status"]
-          _changed_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           changed_at: string
           deleted_at: string | null
           status: Database["public"]["Enums"]["task_status"]
           task_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "task_status_logs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_tasks: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _name?: string
-          _description?: string
-          _start_date?: string
-          _end_date?: string
-          _status?: Database["public"]["Enums"]["task_status"]
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -15286,16 +17167,15 @@ export type Database = {
           status: Database["public"]["Enums"]["task_status"]
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "tasks"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_training_records: {
-        Args: {
-          _id: string
-          _employee_id?: string
-          _training_type?: string
-          _completion_date?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           completion_date: string | null
           created_at: string
@@ -15305,16 +17185,15 @@ export type Database = {
           training_type: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "training_records"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_user_projects: {
-        Args: {
-          _id: string
-          _user_id?: string
-          _project_id?: string
-          _role?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           deleted_at: string | null
@@ -15324,15 +17203,15 @@ export type Database = {
           updated_at: string
           user_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "user_projects"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_vendor_bid_packages: {
-        Args: {
-          _id: string
-          _bid_package_id?: string
-          _vendor_id?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           bid_package_id: string | null
           created_at: string | null
@@ -15341,17 +17220,15 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "vendor_bid_packages"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_vendor_contacts: {
-        Args: {
-          _id: string
-          _vendor_id?: string
-          _name?: string
-          _email?: string
-          _phone?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -15362,17 +17239,15 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "vendor_contacts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_vendor_documents: {
-        Args: {
-          _id: string
-          _vendor_id?: string
-          _document_type?: string
-          _url?: string
-          _uploaded_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -15383,17 +17258,15 @@ export type Database = {
           url: string | null
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "vendor_documents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_vendor_qualifications: {
-        Args: {
-          _id: string
-          _vendor_id?: string
-          _qualification_type?: string
-          _status?: string
-          _reviewed_at?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           deleted_at: string | null
@@ -15404,18 +17277,15 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "vendor_qualifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_vendors: {
-        Args: {
-          _id: string
-          _organization_id?: string
-          _name?: string
-          _status?: Database["public"]["Enums"]["general_status"]
-          _contact_email?: string
-          _contact_phone?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           contact_email: string | null
           contact_phone: string | null
@@ -15427,17 +17297,15 @@ export type Database = {
           status: Database["public"]["Enums"]["general_status"] | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "vendors"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_wbs: {
-        Args: {
-          _id: string
-          _project_id?: string
-          _name?: string
-          _location?: string
-          _order_num?: number
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string | null
           deleted_at: string | null
@@ -15448,18 +17316,15 @@ export type Database = {
           project_id: string | null
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "wbs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       update_workflows: {
-        Args: {
-          _id: string
-          _entity_schema?: string
-          _entity_table?: string
-          _entity_id?: string
-          _workflow_name?: Database["public"]["Enums"]["workflow_name"]
-          _current_state?: string
-          _created_at?: string
-          _updated_at?: string
-        }
+        Args: { _id: string; _input: Json }
         Returns: {
           created_at: string
           current_state: string
@@ -15471,6 +17336,12 @@ export type Database = {
           updated_at: string
           workflow_name: Database["public"]["Enums"]["workflow_name"]
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "workflows"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
     }
     Enums: {
@@ -15524,6 +17395,7 @@ export type Database = {
         | "hr"
         | "estimator"
         | "guest"
+        | "owner"
       project_status:
         | "planned"
         | "active"
@@ -15698,6 +17570,26 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  auth: {
+    Enums: {
+      aal_level: ["aal1", "aal2", "aal3"],
+      code_challenge_method: ["s256", "plain"],
+      factor_status: ["unverified", "verified"],
+      factor_type: ["totp", "webauthn", "phone"],
+      oauth_authorization_status: ["pending", "approved", "denied", "expired"],
+      oauth_client_type: ["public", "confidential"],
+      oauth_registration_type: ["dynamic", "manual"],
+      oauth_response_type: ["code"],
+      one_time_token_type: [
+        "confirmation_token",
+        "reauthentication_token",
+        "recovery_token",
+        "email_change_token_new",
+        "email_change_token_current",
+        "phone_change_token",
+      ],
+    },
+  },
   public: {
     Enums: {
       certification_type: [
@@ -15755,6 +17647,7 @@ export const Constants = {
         "hr",
         "estimator",
         "guest",
+        "owner",
       ],
       project_status: [
         "planned",

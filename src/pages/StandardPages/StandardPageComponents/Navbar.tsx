@@ -1,5 +1,5 @@
 import { useNavigate, Link } from 'react-router-dom'; // Hooks for routing
-import { LogOut, Home } from 'lucide-react'; // Icons for logout and home
+import { LogOut, Home, Building2 } from 'lucide-react'; // Icons for logout and home
 import { useAuthStore } from '@/lib/store'; // Auth store for user management
 import { supabase } from '@/lib/supabase'; // Supabase client for authentication
 
@@ -26,13 +26,20 @@ export function Navbar() {
     <nav className="bg-background-light border-b border-background-lighter">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center">
+          <div className="flex items-center gap-6">
             <Link
               to="/dashboard" // Link to dashboard page
               className="flex items-center text-gray-300 hover:text-white transition-colors"
             >
               <Home className="w-5 h-5 mr-2" /> {/* Home icon */}
               <span className="font-medium">Dashboard</span> {/* Dashboard label */}
+            </Link>
+            <Link
+              to="/organizations"
+              className="flex items-center text-gray-300 hover:text-white transition-colors"
+            >
+              <Building2 className="w-5 h-5 mr-2" />
+              <span className="font-medium">Organization</span>
             </Link>
           </div>
 

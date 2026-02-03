@@ -28,7 +28,7 @@ export default function Calculators() {
   // Function to fetch templates from the database
   const fetchTemplates = async () => {
     try {
-      const data = await rpcClient.getAllLineItemTemplates();
+      const data = await rpcClient.filter_line_item_templates({});
       interface FormulaJson {
         variables?: { name: string; value: string | number }[];
       }
@@ -37,7 +37,7 @@ export default function Calculators() {
         return {
           id: template.id,
           name: template.name ?? 'Untitled',
-          description: template.description ?? '',
+          description: '',
           line_code: 'N/A', // replace if your schema includes it
           // Safely extract item_code or line_code from template (typed as unknown)
           item_code: typeof template === 'object' && template !== null && 'item_code' in template && typeof (template as { item_code?: string }).item_code === 'string'
@@ -134,4 +134,5 @@ export default function Calculators() {
         </div>
       </div>
     </div>
-  );}
+  );
+}

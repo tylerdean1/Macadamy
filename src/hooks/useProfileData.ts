@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { rpcClient } from '@/lib/rpc.client';
+import { supabase } from '@/lib/supabase';
+import { disableOrderByForTable, getOrderByColumn } from '@/lib/utils/rpcOrderBy';
 import { useAuthStore, type EnrichedProfile } from '@/lib/store';
-import type { Tables } from '@/lib/database.types';
+import type { Tables, Json } from '@/lib/database.types';
 
 type OrganizationsRow = Tables<'organizations'>;
 type JobTitlesRow = Tables<'job_titles'>;
@@ -10,7 +12,7 @@ type JobTitlesRow = Tables<'job_titles'>;
 // Interface for edit form state
 interface EditFormState {
     full_name: string;
-    avatar_url: string | null;
+    avatar_id: string | null;
     organization_id?: string | null;
     job_title_id?: string | null;
     email?: string;
@@ -35,7 +37,7 @@ export function useProfileData(): {
     const [jobTitles, setJobTitles] = useState<JobTitlesRow[]>([]);
     const [editForm, setEditForm] = useState<EditFormState>({
         full_name: '',
-        avatar_url: null,
+        avatar_id: null,
         organization_id: null,
         job_title_id: null,
         email: '',
@@ -45,12 +47,25 @@ export function useProfileData(): {
     const [loading, setLoading] = useState(false);
     const [editLoading, setEditLoading] = useState(false);
 
+    const runPublicRpc = async <T,>(
+        fn: string,
+        args?: Record<string, unknown>
+    ): Promise<{ data: T | null; error: unknown | null }> => {
+        const rpc = supabase.rpc as unknown as (
+            this: typeof supabase,
+            name: string,
+            params?: Record<string, unknown>
+        ) => Promise<{ data: T | null; error: unknown | null }>;
+
+        return rpc.call(supabase, fn, args);
+    };
+
     // Update form when profile changes
     useEffect(() => {
         if (profile) {
             setEditForm({
                 full_name: profile.full_name ?? '',
-                avatar_url: profile.avatar_url ?? null,
+                avatar_id: profile.avatar_id ?? null,
                 organization_id: profile.organization_id ?? null,
                 job_title_id: profile.job_title_id ?? null,
                 email: profile.email ?? '',
@@ -62,17 +77,78 @@ export function useProfileData(): {
 
     const loadData = useCallback(async (): Promise<void> => {
         if (!profile) return;
+        if (!profile.organization_id) {
+            setOrganizations([]);
+            setJobTitles([]);
+            return;
+        }
 
         setLoading(true);
         try {
-            // Load organizations and job titles
-            const [allOrgsData, allJobsData] = await Promise.all([
-                rpcClient.filter_organizations({}),
-                rpcClient.filter_job_titles({})
+            const fetchOrganizations = async () => {
+                const orderBy = await getOrderByColumn('organizations');
+                if (orderBy) {
+                    const { data, error } = await supabase.rpc('filter_organizations', {
+                        _filters: {
+                            id: profile.organization_id,
+                            organization_id: profile.organization_id,
+                        },
+                        _order_by: orderBy,
+                        _direction: 'asc',
+                        _limit: 1,
+                    });
+
+                    if (!error && Array.isArray(data)) {
+                        return data;
+                    }
+
+                    if (error?.message === 'unknown order_by column') {
+                        disableOrderByForTable('organizations');
+                    } else if (error) {
+                        throw error;
+                    }
+                }
+
+                const orgs = await rpcClient.get_organizations_public({ p_query: '' });
+                const matched = Array.isArray(orgs)
+                    ? orgs.filter((org) => org.id === profile.organization_id)
+                    : [];
+                return matched.map((org) => ({
+                    id: org.id,
+                    name: org.name,
+                    description: null,
+                    created_at: null,
+                    updated_at: '',
+                    deleted_at: null,
+                }));
+            };
+
+            const [allOrgsData, jobTitlesResult] = await Promise.all([
+                fetchOrganizations(),
+                runPublicRpc<JobTitlesRow[]>('get_job_titles_public'),
             ]);
 
-            setOrganizations(Array.isArray(allOrgsData) ? allOrgsData : []);
-            setJobTitles(Array.isArray(allJobsData) ? allJobsData : []);
+            if (jobTitlesResult.error) {
+                throw jobTitlesResult.error;
+            }
+
+            const normalizedOrganizations = Array.isArray(allOrgsData) ? allOrgsData : [];
+            setOrganizations(normalizedOrganizations);
+            setJobTitles(Array.isArray(jobTitlesResult.data) ? jobTitlesResult.data : []);
+
+            if (normalizedOrganizations.length > 0) {
+                const orgRow = normalizedOrganizations[0] as Record<string, unknown>;
+                const organizationName = typeof orgRow.name === 'string' ? orgRow.name : null;
+                const organizationAddress = typeof orgRow.address === 'string' ? orgRow.address : null;
+
+                if (organizationName !== profile.organization_name || organizationAddress !== profile.organization_address) {
+                    setProfile({
+                        ...profile,
+                        organization_name: organizationName,
+                        organization_address: organizationAddress,
+                    });
+                }
+            }
         } catch (error) {
             console.error('Error loading profile data:', error);
             toast.error('Failed to load profile data');
@@ -105,11 +181,8 @@ export function useProfileData(): {
             if (editForm.phone !== (profile.phone ?? '')) {
                 updatePayload._phone = editForm.phone;
             }
-            if (editForm.avatar_url !== (profile.avatar_url ?? null)) {
-                updatePayload._avatar_url = editForm.avatar_url;
-            }
-            if (editForm.organization_id !== (profile.organization_id ?? null)) {
-                updatePayload._organization_id = editForm.organization_id;
+            if (editForm.avatar_id !== (profile.avatar_id ?? null)) {
+                updatePayload._avatar_id = editForm.avatar_id;
             }
             if (editForm.job_title_id !== (profile.job_title_id ?? null)) {
                 updatePayload._job_title_id = editForm.job_title_id;
@@ -123,18 +196,39 @@ export function useProfileData(): {
             // Update the profile using RPC
             const rpcArgs = {
                 _id: profile.id,
-                ...updatePayload
+                _input: updatePayload as Json
             };
 
             await rpcClient.update_profiles(rpcArgs);
 
             // Update the local profile state
+            let avatarUrl = profile.avatar_url;
+            if (editForm.avatar_id !== (profile.avatar_id ?? null)) {
+                if (editForm.avatar_id) {
+                    const rpc = supabase.rpc as unknown as (
+                        this: typeof supabase,
+                        name: string,
+                        params?: Record<string, unknown>
+                    ) => Promise<{ data: { url?: string | null } | null; error: unknown | null }>;
+
+                    const { data, error } = await rpc.call(supabase, 'get_avatar_by_id_public', {
+                        p_avatar_id: editForm.avatar_id
+                    });
+                    if (error) {
+                        throw error;
+                    }
+                    avatarUrl = data?.url ?? null;
+                } else {
+                    avatarUrl = null;
+                }
+            }
             const updatedProfile: EnrichedProfile = {
                 ...profile,
                 full_name: editForm.full_name || null,
                 email: editForm.email || profile.email,
                 phone: editForm.phone || null,
-                avatar_url: editForm.avatar_url,
+                avatar_id: editForm.avatar_id,
+                avatar_url: avatarUrl ?? profile.avatar_url,
                 organization_id: editForm.organization_id ?? null,
                 job_title_id: editForm.job_title_id ?? null,
                 updated_at: new Date().toISOString(),
@@ -161,22 +255,23 @@ export function useProfileData(): {
         }
 
         try {
-            const jobTitlePayload = {
-                _input: {
-                    name: title.trim(),
-                }
-            };
+            const { data: newJobTitle, error: jobTitleError } = await runPublicRpc<JobTitlesRow>(
+                'insert_job_title_public',
+                { p_name: title.trim() }
+            );
 
-            const newJobTitle = await rpcClient.insert_job_titles(jobTitlePayload);
+            if (jobTitleError) {
+                throw jobTitleError;
+            }
 
-            if (Array.isArray(newJobTitle) && newJobTitle.length > 0 && newJobTitle[0].id) {
+            if (newJobTitle?.id) {
                 // Reload job titles to include the new one
                 await loadData();
 
                 // Set the new job title as selected
                 setEditForm(prev => ({
                     ...prev,
-                    job_title_id: newJobTitle[0].id,
+                    job_title_id: newJobTitle.id,
                     custom_job_title: '',
                 }));
 
