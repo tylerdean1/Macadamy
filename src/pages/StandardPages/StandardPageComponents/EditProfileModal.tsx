@@ -12,7 +12,7 @@ import { useAuthStore } from '@/lib/store';
 
 type Avatars = Database['public']['Tables']['avatars']['Row'];
 import type { Area } from 'react-easy-crop';
-import { getCroppedImg } from '@/utils/cropImage';
+import { getCroppedImg } from './ImageCropper';
 
 interface EditProfileModalProps {
   isOpen: boolean;

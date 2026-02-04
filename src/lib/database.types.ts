@@ -4108,7 +4108,10 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           description: string | null
+          headquarters: string | null
           id: string
+          logo_url: string | null
+          mission_statement: string | null
           name: string
           updated_at: string
         }
@@ -4116,7 +4119,10 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           description?: string | null
+          headquarters?: string | null
           id?: string
+          logo_url?: string | null
+          mission_statement?: string | null
           name: string
           updated_at?: string
         }
@@ -4124,7 +4130,10 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           description?: string | null
+          headquarters?: string | null
           id?: string
+          logo_url?: string | null
+          mission_statement?: string | null
           name?: string
           updated_at?: string
         }
@@ -12925,7 +12934,10 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           description: string | null
+          headquarters: string | null
           id: string
+          logo_url: string | null
+          mission_statement: string | null
           name: string
           updated_at: string
         }[]
@@ -15009,7 +15021,10 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           description: string | null
+          headquarters: string | null
           id: string
+          logo_url: string | null
+          mission_statement: string | null
           name: string
           updated_at: string
         }[]
@@ -15662,6 +15677,14 @@ export type Database = {
         }[]
       }
       refresh_project_cost_summary: { Args: never; Returns: undefined }
+      rpc_org_dashboard_payload: {
+        Args: {
+          p_members_page?: number
+          p_organization_id: string
+          p_page_size?: number
+        }
+        Returns: Json
+      }
       set_org_member_role: {
         Args: {
           p_org_id: string
@@ -16699,7 +16722,10 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           description: string | null
+          headquarters: string | null
           id: string
+          logo_url: string | null
+          mission_statement: string | null
           name: string
           updated_at: string
         }[]

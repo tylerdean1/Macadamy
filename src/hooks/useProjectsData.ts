@@ -1,8 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { disableOrderByForTable, getOrderByColumn } from '@/lib/utils/rpcOrderBy';
 import { supabase } from '@/lib/supabase';
-import { warnMissingRpc } from '@/lib/rpc.missing';
 import { useAuthStore } from '@/lib/store';
 import type { EnrichedUserContract } from '@/lib/types';
 import type { ProjectStatus, UserRoleType } from '@/lib/types';
@@ -56,31 +55,96 @@ export function useProjectsData(): {
     handleSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     reloadProjects: () => Promise<void>;
 } {
-    const { profile } = useAuthStore();
+    const { user, profile, loading: authLoading } = useAuthStore();
     const [projects, setProjects] = useState<EnrichedUserContract[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [accessDenied, setAccessDenied] = useState(false);
+    const requestSeq = useRef(0);
+    const isMountedRef = useRef(true);
+
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
 
     const loadProjects = useCallback(async (): Promise<void> => {
-        if (!profile || !profile.id) {
-            setLoading(false);
+        const requestId = ++requestSeq.current;
+        const canUpdate = () => isMountedRef.current && requestId === requestSeq.current;
+        if (authLoading.initialization || authLoading.profile || authLoading.auth) {
+            console.debug('[useProjectsData] Skipping load: auth still bootstrapping', {
+                initialization: authLoading.initialization,
+                auth: authLoading.auth,
+                profile: authLoading.profile,
+            });
+            if (canUpdate()) {
+                setLoading(true);
+            }
+            return;
+        }
+        if (!user?.id) {
+            console.debug('[useProjectsData] Skipping load: user not ready', {
+                userId: user?.id ?? null,
+            });
+            if (canUpdate()) {
+                setProjects([]);
+                setLoading(false);
+            }
+            return;
+        }
+        if (!profile || profile.id !== user.id) {
+            console.debug('[useProjectsData] Skipping load: profile not synced to user', {
+                userId: user.id,
+                profileId: profile?.id ?? null,
+            });
+            if (canUpdate()) {
+                setLoading(true);
+            }
             return;
         }
         if (!profile.organization_id) {
-            setProjects([]);
-            setLoading(false);
+            console.debug('[useProjectsData] Skipping load: missing organization_id');
+            if (canUpdate()) {
+                setProjects([]);
+                setLoading(false);
+            }
             return;
         }
-        setLoading(true);
-        setError(null);
+        if (accessDenied) {
+            console.debug('[useProjectsData] Skipping load: access denied flag set');
+            if (canUpdate()) {
+                setProjects([]);
+                setLoading(false);
+            }
+            return;
+        }
+        const canUseProjectRpc = profile.role === 'system_admin'
+            || profile.role === 'org_admin'
+            || profile.role === 'org_supervisor';
+        if (!canUseProjectRpc) {
+            console.debug('[useProjectsData] Skipping load: role not permitted', {
+                role: profile.role ?? null,
+            });
+            if (canUpdate()) {
+                setProjects([]);
+                setLoading(false);
+            }
+            return;
+        }
+        if (canUpdate()) {
+            setLoading(true);
+            setError(null);
+        }
         try {
-            // TODO: Replace fallback with get_enriched_user_contracts RPC when available.
-            warnMissingRpc('getEnrichedUserContracts');
             const orderBy = await getOrderByColumn('projects');
             if (!orderBy) {
-                setProjects([]);
-                setError(null);
+                if (canUpdate()) {
+                    setProjects([]);
+                    setError(null);
+                }
                 return;
             }
 
@@ -90,46 +154,85 @@ export function useProjectsData(): {
                 _direction: 'asc'
             } as Record<string, unknown>;
 
+            console.debug('[useProjectsData] Calling filter_projects', {
+                userId: user.id,
+                profileId: profile.id,
+                role: profile.role ?? null,
+                organizationId: profile.organization_id ?? null,
+                payload,
+            });
+
             const { data: fetchedProjects, error: projectsError } = await supabase
                 .rpc('filter_projects', payload);
 
             if (projectsError) {
+                console.error('[useProjectsData] filter_projects error', {
+                    code: projectsError.code,
+                    message: projectsError.message,
+                    details: projectsError.details,
+                    hint: projectsError.hint,
+                });
+                const message = projectsError.message?.toLowerCase() ?? '';
+                const isPermissionDenied = projectsError.code === '42501'
+                    || message.includes('access denied')
+                    || message.includes('permission denied');
+                if (isPermissionDenied) {
+                    if (canUpdate()) {
+                        console.warn('[useProjectsData] Access denied for filter_projects; suppressing retries');
+                        setAccessDenied(true);
+                        setProjects([]);
+                        setError(null);
+                    }
+                    return;
+                }
                 if (projectsError.message === 'unknown order_by column') {
                     disableOrderByForTable('projects');
-                    setProjects([]);
-                    setError(null);
+                    if (canUpdate()) {
+                        setProjects([]);
+                        setError(null);
+                    }
                     return;
                 }
                 throw projectsError;
             }
-            setProjects(
-                Array.isArray(fetchedProjects)
-                    ? fetchedProjects.map((proj) => normalizeEnrichedUserContract({
-                        id: proj.id,
-                        name: proj.name,
-                        description: proj.description,
-                        start_date: proj.start_date,
-                        end_date: proj.end_date,
-                        created_at: proj.created_at,
-                        updated_at: proj.updated_at,
-                        status: proj.status,
-                        organization_id: proj.organization_id,
-                        user_contract_role: null,
-                    }))
-                    : []
-            );
+            if (canUpdate()) {
+                setProjects(
+                    Array.isArray(fetchedProjects)
+                        ? fetchedProjects.map((proj) => normalizeEnrichedUserContract({
+                            id: proj.id,
+                            name: proj.name,
+                            description: proj.description,
+                            start_date: proj.start_date,
+                            end_date: proj.end_date,
+                            created_at: proj.created_at,
+                            updated_at: proj.updated_at,
+                            status: proj.status,
+                            organization_id: proj.organization_id,
+                            user_contract_role: null,
+                        }))
+                        : []
+                );
+            }
         } catch (err) {
-            console.error('Error loading user projects:', err);
-            toast.error('Failed to load projects');
-            setError('Failed to load projects.');
+            console.error('[useProjectsData] Error loading user projects', err);
+            if (canUpdate()) {
+                toast.error('Failed to load projects');
+                setError('Failed to load projects.');
+            }
         } finally {
-            setLoading(false);
+            if (canUpdate()) {
+                setLoading(false);
+            }
         }
-    }, [profile?.id, profile?.organization_id]);
+    }, [accessDenied, authLoading.initialization, authLoading.profile, authLoading.auth, profile?.id, profile?.organization_id, profile?.role, user?.id]);
 
     useEffect(() => {
         void loadProjects();
     }, [loadProjects]);
+
+    useEffect(() => {
+        setAccessDenied(false);
+    }, [user?.id]);
 
     const filteredProjects = useMemo(() => {
         return projects.filter(c => {

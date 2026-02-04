@@ -2,7 +2,13 @@ import { Area } from '../lib/types';
 
 export async function getCroppedImg(
   imageSrc: string,
-  pixelCrop: Area
+  pixelCrop: Area,
+  options?: {
+    mimeType?: string;
+    quality?: number;
+    maxWidth?: number;
+    maxHeight?: number;
+  }
 ): Promise<Blob> {
   const image = await createImage(imageSrc);
   const canvas = document.createElement('canvas');
@@ -10,8 +16,14 @@ export async function getCroppedImg(
 
   if (!ctx) throw new Error('No canvas context');
 
-  canvas.width = pixelCrop.width;
-  canvas.height = pixelCrop.height;
+  const maxWidth = options?.maxWidth ?? pixelCrop.width;
+  const maxHeight = options?.maxHeight ?? pixelCrop.height;
+  const scale = Math.min(maxWidth / pixelCrop.width, maxHeight / pixelCrop.height, 1);
+  const targetWidth = Math.max(1, Math.round(pixelCrop.width * scale));
+  const targetHeight = Math.max(1, Math.round(pixelCrop.height * scale));
+
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
 
   ctx.drawImage(
     image,
@@ -21,8 +33,8 @@ export async function getCroppedImg(
     pixelCrop.height,
     0,
     0,
-    pixelCrop.width,
-    pixelCrop.height
+    targetWidth,
+    targetHeight
   );
 
   return new Promise((resolve, reject) => {
@@ -31,7 +43,8 @@ export async function getCroppedImg(
         if (blob) resolve(blob);
         else reject(new Error('Canvas is empty'));
       },
-      'image/png' // Changed from image/jpeg to image/png
+      options?.mimeType ?? 'image/png',
+      options?.quality
     );
   });
 }

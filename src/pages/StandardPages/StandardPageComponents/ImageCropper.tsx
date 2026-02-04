@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
-import { getCroppedImg } from '@/utils/cropImage';
 import { Area } from '@/lib/types';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 
@@ -8,7 +7,72 @@ interface ImageCropperProps {
   imageSrc: string; // Source URL of the image to be cropped
   onCropComplete: (croppedImage: Blob) => void; // Callback for when cropping is complete
   aspectRatio?: number; // Optional aspect ratio for cropping (default is 1:1)
+  cropShape?: 'round' | 'rect';
+  compressionOptions?: {
+    mimeType?: string;
+    quality?: number;
+    maxWidth?: number;
+    maxHeight?: number;
+  };
 }
+
+export async function getCroppedImg(
+  imageSrc: string,
+  pixelCrop: Area,
+  options?: {
+    mimeType?: string;
+    quality?: number;
+    maxWidth?: number;
+    maxHeight?: number;
+  }
+): Promise<Blob> {
+  const image = await createImage(imageSrc);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  if (!ctx) throw new Error('No canvas context');
+
+  const maxWidth = options?.maxWidth ?? pixelCrop.width;
+  const maxHeight = options?.maxHeight ?? pixelCrop.height;
+  const scale = Math.min(maxWidth / pixelCrop.width, maxHeight / pixelCrop.height, 1);
+  const targetWidth = Math.max(1, Math.round(pixelCrop.width * scale));
+  const targetHeight = Math.max(1, Math.round(pixelCrop.height * scale));
+
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    targetWidth,
+    targetHeight
+  );
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('Canvas is empty'));
+      },
+      options?.mimeType ?? 'image/png',
+      options?.quality
+    );
+  });
+}
+
+const createImage = (url: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.onload = () => resolve(image);
+    image.onerror = (err) => reject(new Error(err instanceof Error ? err.message : 'Image failed to load'));
+    image.src = url;
+  });
 
 /**
  * ImageCropper component allows users to crop an image using react-easy-crop
@@ -17,7 +81,13 @@ interface ImageCropperProps {
  * @param onCropComplete - Callback executed when cropping is finished
  * @param aspectRatio - Aspect ratio for the crop (default is 1:1)
  */
-const ImageCropper = ({ imageSrc, onCropComplete, aspectRatio = 1 }: ImageCropperProps) => {
+const ImageCropper = ({
+  imageSrc,
+  onCropComplete,
+  aspectRatio = 1,
+  cropShape = 'round',
+  compressionOptions,
+}: ImageCropperProps) => {
   const [crop, setCrop] = useState({ x: 0, y: 0 }); // Crop coordinates
   const [zoom, setZoom] = useState(1); // Zoom level for cropping
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null); // Pixels area for cropping
@@ -42,12 +112,17 @@ const ImageCropper = ({ imageSrc, onCropComplete, aspectRatio = 1 }: ImageCroppe
     if (!croppedAreaPixels) return; // Ensure the cropped area is set
 
     try {
-      const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels); // Get cropped image blob
+      const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels, {
+        mimeType: compressionOptions?.mimeType ?? 'image/jpeg',
+        quality: compressionOptions?.quality ?? 0.8,
+        maxWidth: compressionOptions?.maxWidth ?? 512,
+        maxHeight: compressionOptions?.maxHeight ?? 512,
+      }); // Get cropped image blob
       onCropComplete(croppedImage); // Call the callback with cropped image
     } catch (e) {
       console.error('Error cropping image:', e); // Handle any errors
     }
-  }, [croppedAreaPixels, imageSrc, onCropComplete]);
+  }, [compressionOptions?.maxHeight, compressionOptions?.maxWidth, compressionOptions?.mimeType, compressionOptions?.quality, croppedAreaPixels, imageSrc, onCropComplete]);
 
   return (
     <div className="relative h-80 w-full"> {/* Container for the cropper */}
@@ -62,7 +137,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, aspectRatio = 1 }: ImageCroppe
             onCropChange={onCropChange} // Update crop coordinates
             onZoomChange={onZoomChange} // Update zoom level
             onCropComplete={onCropAreaChange} // Handle crop area change
-            cropShape="round" // Crop shape (round or rectangular)
+            cropShape={cropShape} // Crop shape (round or rectangular)
             showGrid={false} // Option to show grid overlay
           />
         </div>
@@ -77,7 +152,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, aspectRatio = 1 }: ImageCroppe
             max={3}
             step={0.1}
             value={zoom}
-            onChange={() => { void handleCropComplete(); }}
+            onChange={(event) => setZoom(Number(event.target.value))}
             className="w-full accent-primary"
             aria-label="Zoom Level"
           />

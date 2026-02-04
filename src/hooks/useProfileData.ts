@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { rpcClient } from '@/lib/rpc.client';
 import { supabase } from '@/lib/supabase';
-import { disableOrderByForTable, getOrderByColumn } from '@/lib/utils/rpcOrderBy';
 import { useAuthStore, type EnrichedProfile } from '@/lib/store';
 import type { Tables, Json } from '@/lib/database.types';
 
@@ -85,30 +84,7 @@ export function useProfileData(): {
 
         setLoading(true);
         try {
-            const fetchOrganizations = async () => {
-                const orderBy = await getOrderByColumn('organizations');
-                if (orderBy) {
-                    const { data, error } = await supabase.rpc('filter_organizations', {
-                        _filters: {
-                            id: profile.organization_id,
-                            organization_id: profile.organization_id,
-                        },
-                        _order_by: orderBy,
-                        _direction: 'asc',
-                        _limit: 1,
-                    });
-
-                    if (!error && Array.isArray(data)) {
-                        return data;
-                    }
-
-                    if (error?.message === 'unknown order_by column') {
-                        disableOrderByForTable('organizations');
-                    } else if (error) {
-                        throw error;
-                    }
-                }
-
+            const fetchOrganizations = async (): Promise<OrganizationsRow[]> => {
                 const orgs = await rpcClient.get_organizations_public({ p_query: '' });
                 const matched = Array.isArray(orgs)
                     ? orgs.filter((org) => org.id === profile.organization_id)
@@ -117,10 +93,13 @@ export function useProfileData(): {
                     id: org.id,
                     name: org.name,
                     description: null,
+                    mission_statement: null,
+                    headquarters: null,
+                    logo_url: null,
                     created_at: null,
                     updated_at: '',
                     deleted_at: null,
-                }));
+                } satisfies OrganizationsRow));
             };
 
             const [allOrgsData, jobTitlesResult] = await Promise.all([
@@ -132,7 +111,9 @@ export function useProfileData(): {
                 throw jobTitlesResult.error;
             }
 
-            const normalizedOrganizations = Array.isArray(allOrgsData) ? allOrgsData : [];
+            const normalizedOrganizations: OrganizationsRow[] = Array.isArray(allOrgsData)
+                ? (allOrgsData as OrganizationsRow[])
+                : [];
             setOrganizations(normalizedOrganizations);
             setJobTitles(Array.isArray(jobTitlesResult.data) ? jobTitlesResult.data : []);
 

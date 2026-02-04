@@ -291,6 +291,7 @@ export const RPC_NAMES = [
   'insert_workflows',
   'rank_equipment_usage',
   'refresh_project_cost_summary',
+  'rpc_org_dashboard_payload',
   'set_org_member_role',
   'update_accounts_payable',
   'update_accounts_receivable',
