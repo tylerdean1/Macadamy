@@ -49,7 +49,10 @@ export function usePlacesLocationAutocomplete(query: string, opts?: Options): Pl
                     sessionToken: tokenRef.current,
                 } as unknown as google.maps.places.AutocompletionRequest;
 
-                svcRef.current.getPlacePredictions(req, (preds, status) => {
+                svcRef.current.getPlacePredictions(req, (
+                    preds: google.maps.places.AutocompletePrediction[] | null,
+                    status: google.maps.places.PlacesServiceStatus,
+                ) => {
                     if (cancelled) return;
                     const ok =
                         status === google.maps.places.PlacesServiceStatus.OK ||

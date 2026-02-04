@@ -1,4 +1,4 @@
-import { Loader } from '@googlemaps/js-api-loader';
+import { importLibrary, setOptions } from '@googlemaps/js-api-loader';
 import { getOptionalEnvAny } from '@/utils/env-validator';
 
 const mapsApiKey = getOptionalEnvAny(
@@ -10,9 +10,29 @@ if (mapsApiKey === '' && typeof import.meta !== 'undefined' && 'env' in import.m
   console.warn('Google Maps API key is missing. Map features will be unavailable.');
 }
 
-export const googleMapsLoader: Loader = new Loader({
-  apiKey: mapsApiKey,
-  version: 'weekly',
-  id: '__googleMapsScriptId',
-  libraries: ['drawing', 'geometry', 'places']
-});
+let loadPromise: Promise<void> | null = null;
+
+async function loadGoogleMaps(): Promise<void> {
+  if (loadPromise) return loadPromise;
+
+  setOptions({
+    key: mapsApiKey,
+    v: 'weekly',
+    libraries: ['drawing', 'geometry', 'places'],
+    mapIds: [],
+    solutionChannel: 'macadamy',
+  });
+
+  loadPromise = Promise.all([
+    importLibrary('maps'),
+    importLibrary('places'),
+    importLibrary('drawing'),
+    importLibrary('geometry'),
+  ]).then(() => undefined);
+
+  return loadPromise;
+}
+
+export const googleMapsLoader = {
+  load: loadGoogleMaps,
+};

@@ -1,0 +1,454 @@
+schema,table,policy,permissive,roles,command,using,check
+public,accounts_payable,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,accounts_payable,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'accounts_payable'::text, project_id, NULL::uuid)",
+public,accounts_payable,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'accounts_payable'::text, project_id, NULL::uuid)"
+public,accounts_payable,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'accounts_payable'::text, project_id, NULL::uuid)",
+public,accounts_payable,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'accounts_payable'::text, project_id, NULL::uuid)",
+public,accounts_receivable,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,accounts_receivable,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'accounts_receivable'::text, project_id, NULL::uuid)",
+public,accounts_receivable,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'accounts_receivable'::text, project_id, NULL::uuid)"
+public,accounts_receivable,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'accounts_receivable'::text, project_id, NULL::uuid)",
+public,accounts_receivable,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'accounts_receivable'::text, project_id, NULL::uuid)",
+public,activity_logs,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,activity_logs,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'activity_logs'::text, NULL::uuid, NULL::uuid)",
+public,activity_logs,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'activity_logs'::text, NULL::uuid, NULL::uuid)"
+public,activity_logs,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'activity_logs'::text, NULL::uuid, NULL::uuid)",
+public,activity_logs,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'activity_logs'::text, NULL::uuid, NULL::uuid)",
+public,asphalt_types,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,asphalt_types,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'asphalt_types'::text, NULL::uuid, NULL::uuid)",
+public,asphalt_types,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'asphalt_types'::text, NULL::uuid, NULL::uuid)"
+public,asphalt_types,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'asphalt_types'::text, NULL::uuid, NULL::uuid)",
+public,asphalt_types,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'asphalt_types'::text, NULL::uuid, NULL::uuid)",
+public,audit_log,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,audit_log,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'audit_log'::text, NULL::uuid, NULL::uuid)",
+public,audit_log,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'audit_log'::text, NULL::uuid, NULL::uuid)"
+public,audit_log,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'audit_log'::text, NULL::uuid, NULL::uuid)",
+public,audit_log,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'audit_log'::text, NULL::uuid, NULL::uuid)",
+public,audit_logs,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,audit_logs,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'audit_logs'::text, project_id, NULL::uuid)",
+public,audit_logs,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'audit_logs'::text, project_id, NULL::uuid)"
+public,audit_logs,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'audit_logs'::text, project_id, NULL::uuid)",
+public,audit_logs,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'audit_logs'::text, project_id, NULL::uuid)",
+public,avatars,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,avatars,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'avatars'::text, NULL::uuid, NULL::uuid)",
+public,avatars,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'avatars'::text, NULL::uuid, NULL::uuid)"
+public,avatars,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'avatars'::text, NULL::uuid, NULL::uuid)",
+public,avatars,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'avatars'::text, NULL::uuid, NULL::uuid)",
+public,bid_packages,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,bid_packages,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'bid_packages'::text, project_id, NULL::uuid)",
+public,bid_packages,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'bid_packages'::text, project_id, NULL::uuid)"
+public,bid_packages,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'bid_packages'::text, project_id, NULL::uuid)",
+public,bid_packages,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'bid_packages'::text, project_id, NULL::uuid)",
+public,bid_vendors,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,bid_vendors,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'bid_vendors'::text, NULL::uuid, NULL::uuid)",
+public,bid_vendors,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'bid_vendors'::text, NULL::uuid, NULL::uuid)"
+public,bid_vendors,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'bid_vendors'::text, NULL::uuid, NULL::uuid)",
+public,bid_vendors,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'bid_vendors'::text, NULL::uuid, NULL::uuid)",
+public,bids,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,bids,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'bids'::text, NULL::uuid, NULL::uuid)",
+public,bids,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'bids'::text, NULL::uuid, NULL::uuid)"
+public,bids,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'bids'::text, NULL::uuid, NULL::uuid)",
+public,bids,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'bids'::text, NULL::uuid, NULL::uuid)",
+public,bim_models,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,bim_models,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'bim_models'::text, project_id, NULL::uuid)",
+public,bim_models,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'bim_models'::text, project_id, NULL::uuid)"
+public,bim_models,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'bim_models'::text, project_id, NULL::uuid)",
+public,bim_models,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'bim_models'::text, project_id, NULL::uuid)",
+public,certifications,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,certifications,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'certifications'::text, NULL::uuid, NULL::uuid)",
+public,certifications,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'certifications'::text, NULL::uuid, NULL::uuid)"
+public,certifications,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'certifications'::text, NULL::uuid, NULL::uuid)",
+public,certifications,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'certifications'::text, NULL::uuid, NULL::uuid)",
+public,change_orders,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,change_orders,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'change_orders'::text, project_id, NULL::uuid)",
+public,change_orders,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'change_orders'::text, project_id, NULL::uuid)"
+public,change_orders,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'change_orders'::text, project_id, NULL::uuid)",
+public,change_orders,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'change_orders'::text, project_id, NULL::uuid)",
+public,commitments,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,commitments,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'commitments'::text, project_id, NULL::uuid)",
+public,commitments,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'commitments'::text, project_id, NULL::uuid)"
+public,commitments,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'commitments'::text, project_id, NULL::uuid)",
+public,commitments,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'commitments'::text, project_id, NULL::uuid)",
+public,compliance_checks,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,compliance_checks,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'compliance_checks'::text, project_id, NULL::uuid)",
+public,compliance_checks,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'compliance_checks'::text, project_id, NULL::uuid)"
+public,compliance_checks,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'compliance_checks'::text, project_id, NULL::uuid)",
+public,compliance_checks,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'compliance_checks'::text, project_id, NULL::uuid)",
+public,compliance_tracking,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,compliance_tracking,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'compliance_tracking'::text, project_id, NULL::uuid)",
+public,compliance_tracking,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'compliance_tracking'::text, project_id, NULL::uuid)"
+public,compliance_tracking,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'compliance_tracking'::text, project_id, NULL::uuid)",
+public,compliance_tracking,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'compliance_tracking'::text, project_id, NULL::uuid)",
+public,cost_codes,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,cost_codes,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'cost_codes'::text, NULL::uuid, NULL::uuid)",
+public,cost_codes,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'cost_codes'::text, NULL::uuid, NULL::uuid)"
+public,cost_codes,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'cost_codes'::text, NULL::uuid, NULL::uuid)",
+public,cost_codes,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'cost_codes'::text, NULL::uuid, NULL::uuid)",
+public,crew_assignments,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,crew_assignments,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'crew_assignments'::text, NULL::uuid, NULL::uuid)",
+public,crew_assignments,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'crew_assignments'::text, NULL::uuid, NULL::uuid)"
+public,crew_assignments,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'crew_assignments'::text, NULL::uuid, NULL::uuid)",
+public,crew_assignments,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'crew_assignments'::text, NULL::uuid, NULL::uuid)",
+public,crew_members,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,crew_members,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'crew_members'::text, NULL::uuid, NULL::uuid)",
+public,crew_members,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'crew_members'::text, NULL::uuid, NULL::uuid)"
+public,crew_members,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'crew_members'::text, NULL::uuid, NULL::uuid)",
+public,crew_members,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'crew_members'::text, NULL::uuid, NULL::uuid)",
+public,crews,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,crews,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'crews'::text, project_id, NULL::uuid)",
+public,crews,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'crews'::text, project_id, NULL::uuid)"
+public,crews,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'crews'::text, project_id, NULL::uuid)",
+public,crews,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'crews'::text, project_id, NULL::uuid)",
+public,daily_logs,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,daily_logs,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'daily_logs'::text, project_id, NULL::uuid)",
+public,daily_logs,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'daily_logs'::text, project_id, NULL::uuid)"
+public,daily_logs,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'daily_logs'::text, project_id, NULL::uuid)",
+public,daily_logs,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'daily_logs'::text, project_id, NULL::uuid)",
+public,dashboard_configs,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,dashboard_configs,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'dashboard_configs'::text, NULL::uuid, NULL::uuid)",
+public,dashboard_configs,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'dashboard_configs'::text, NULL::uuid, NULL::uuid)"
+public,dashboard_configs,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'dashboard_configs'::text, NULL::uuid, NULL::uuid)",
+public,dashboard_configs,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'dashboard_configs'::text, NULL::uuid, NULL::uuid)",
+public,document_references,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,document_references,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'document_references'::text, NULL::uuid, NULL::uuid)",
+public,document_references,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'document_references'::text, NULL::uuid, NULL::uuid)"
+public,document_references,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'document_references'::text, NULL::uuid, NULL::uuid)",
+public,document_references,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'document_references'::text, NULL::uuid, NULL::uuid)",
+public,documents,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,documents,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'documents'::text, project_id, NULL::uuid)",
+public,documents,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'documents'::text, project_id, NULL::uuid)"
+public,documents,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'documents'::text, project_id, NULL::uuid)",
+public,documents,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'documents'::text, project_id, NULL::uuid)",
+public,drawing_versions,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,drawing_versions,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'drawing_versions'::text, NULL::uuid, NULL::uuid)",
+public,drawing_versions,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'drawing_versions'::text, NULL::uuid, NULL::uuid)"
+public,drawing_versions,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'drawing_versions'::text, NULL::uuid, NULL::uuid)",
+public,drawing_versions,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'drawing_versions'::text, NULL::uuid, NULL::uuid)",
+public,dump_trucks,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,dump_trucks,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'dump_trucks'::text, NULL::uuid, organization_id)",
+public,dump_trucks,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'dump_trucks'::text, NULL::uuid, organization_id)"
+public,dump_trucks,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'dump_trucks'::text, NULL::uuid, organization_id)",
+public,dump_trucks,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'dump_trucks'::text, NULL::uuid, organization_id)",
+public,employees,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,employees,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'employees'::text, NULL::uuid, organization_id)",
+public,employees,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'employees'::text, NULL::uuid, organization_id)"
+public,employees,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'employees'::text, NULL::uuid, organization_id)",
+public,employees,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'employees'::text, NULL::uuid, organization_id)",
+public,equipment,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,equipment,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'equipment'::text, NULL::uuid, organization_id)",
+public,equipment,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'equipment'::text, NULL::uuid, organization_id)"
+public,equipment,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'equipment'::text, NULL::uuid, organization_id)",
+public,equipment,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'equipment'::text, NULL::uuid, organization_id)",
+public,equipment_assignments,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,equipment_assignments,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'equipment_assignments'::text, project_id, NULL::uuid)",
+public,equipment_assignments,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'equipment_assignments'::text, project_id, NULL::uuid)"
+public,equipment_assignments,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'equipment_assignments'::text, project_id, NULL::uuid)",
+public,equipment_assignments,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'equipment_assignments'::text, project_id, NULL::uuid)",
+public,equipment_maintenance,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,equipment_maintenance,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'equipment_maintenance'::text, NULL::uuid, NULL::uuid)",
+public,equipment_maintenance,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'equipment_maintenance'::text, NULL::uuid, NULL::uuid)"
+public,equipment_maintenance,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'equipment_maintenance'::text, NULL::uuid, NULL::uuid)",
+public,equipment_maintenance,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'equipment_maintenance'::text, NULL::uuid, NULL::uuid)",
+public,equipment_usage,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,equipment_usage,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'equipment_usage'::text, NULL::uuid, NULL::uuid)",
+public,equipment_usage,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'equipment_usage'::text, NULL::uuid, NULL::uuid)"
+public,equipment_usage,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'equipment_usage'::text, NULL::uuid, NULL::uuid)",
+public,equipment_usage,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'equipment_usage'::text, NULL::uuid, NULL::uuid)",
+public,estimate_line_items,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,estimate_line_items,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'estimate_line_items'::text, NULL::uuid, NULL::uuid)",
+public,estimate_line_items,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'estimate_line_items'::text, NULL::uuid, NULL::uuid)"
+public,estimate_line_items,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'estimate_line_items'::text, NULL::uuid, NULL::uuid)",
+public,estimate_line_items,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'estimate_line_items'::text, NULL::uuid, NULL::uuid)",
+public,estimates,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,estimates,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'estimates'::text, project_id, NULL::uuid)",
+public,estimates,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'estimates'::text, project_id, NULL::uuid)"
+public,estimates,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'estimates'::text, project_id, NULL::uuid)",
+public,estimates,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'estimates'::text, project_id, NULL::uuid)",
+public,financial_documents,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,financial_documents,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'financial_documents'::text, project_id, NULL::uuid)",
+public,financial_documents,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'financial_documents'::text, project_id, NULL::uuid)"
+public,financial_documents,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'financial_documents'::text, project_id, NULL::uuid)",
+public,financial_documents,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'financial_documents'::text, project_id, NULL::uuid)",
+public,general_ledger,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,general_ledger,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'general_ledger'::text, project_id, NULL::uuid)",
+public,general_ledger,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'general_ledger'::text, project_id, NULL::uuid)"
+public,general_ledger,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'general_ledger'::text, project_id, NULL::uuid)",
+public,general_ledger,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'general_ledger'::text, project_id, NULL::uuid)",
+public,hr_documents,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,hr_documents,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'hr_documents'::text, NULL::uuid, NULL::uuid)",
+public,hr_documents,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'hr_documents'::text, NULL::uuid, NULL::uuid)"
+public,hr_documents,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'hr_documents'::text, NULL::uuid, NULL::uuid)",
+public,hr_documents,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'hr_documents'::text, NULL::uuid, NULL::uuid)",
+public,inspections,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,inspections,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'inspections'::text, project_id, NULL::uuid)",
+public,inspections,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'inspections'::text, project_id, NULL::uuid)"
+public,inspections,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'inspections'::text, project_id, NULL::uuid)",
+public,inspections,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'inspections'::text, project_id, NULL::uuid)",
+public,integration_tokens,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,integration_tokens,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'integration_tokens'::text, NULL::uuid, NULL::uuid)",
+public,integration_tokens,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'integration_tokens'::text, NULL::uuid, NULL::uuid)"
+public,integration_tokens,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'integration_tokens'::text, NULL::uuid, NULL::uuid)",
+public,integration_tokens,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'integration_tokens'::text, NULL::uuid, NULL::uuid)",
+public,inventory_transactions,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,inventory_transactions,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'inventory_transactions'::text, NULL::uuid, NULL::uuid)",
+public,inventory_transactions,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'inventory_transactions'::text, NULL::uuid, NULL::uuid)"
+public,inventory_transactions,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'inventory_transactions'::text, NULL::uuid, NULL::uuid)",
+public,inventory_transactions,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'inventory_transactions'::text, NULL::uuid, NULL::uuid)",
+public,issues,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,issues,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'issues'::text, project_id, NULL::uuid)",
+public,issues,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'issues'::text, project_id, NULL::uuid)"
+public,issues,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'issues'::text, project_id, NULL::uuid)",
+public,issues,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'issues'::text, project_id, NULL::uuid)",
+public,job_titles,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,job_titles,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'job_titles'::text, NULL::uuid, NULL::uuid)",
+public,job_titles,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'job_titles'::text, NULL::uuid, NULL::uuid)"
+public,job_titles,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'job_titles'::text, NULL::uuid, NULL::uuid)",
+public,job_titles,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'job_titles'::text, NULL::uuid, NULL::uuid)",
+public,labor_records,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,labor_records,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'labor_records'::text, NULL::uuid, NULL::uuid)",
+public,labor_records,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'labor_records'::text, NULL::uuid, NULL::uuid)"
+public,labor_records,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'labor_records'::text, NULL::uuid, NULL::uuid)",
+public,labor_records,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'labor_records'::text, NULL::uuid, NULL::uuid)",
+public,line_item_entries,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,line_item_entries,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'line_item_entries'::text, NULL::uuid, NULL::uuid)",
+public,line_item_entries,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'line_item_entries'::text, NULL::uuid, NULL::uuid)"
+public,line_item_entries,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'line_item_entries'::text, NULL::uuid, NULL::uuid)",
+public,line_item_entries,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'line_item_entries'::text, NULL::uuid, NULL::uuid)",
+public,line_item_templates,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,line_item_templates,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'line_item_templates'::text, NULL::uuid, NULL::uuid)",
+public,line_item_templates,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'line_item_templates'::text, NULL::uuid, NULL::uuid)"
+public,line_item_templates,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'line_item_templates'::text, NULL::uuid, NULL::uuid)",
+public,line_item_templates,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'line_item_templates'::text, NULL::uuid, NULL::uuid)",
+public,line_items,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,line_items,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'line_items'::text, project_id, NULL::uuid)",
+public,line_items,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'line_items'::text, project_id, NULL::uuid)"
+public,line_items,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'line_items'::text, project_id, NULL::uuid)",
+public,line_items,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'line_items'::text, project_id, NULL::uuid)",
+public,maps,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,maps,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'maps'::text, project_id, NULL::uuid)",
+public,maps,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'maps'::text, project_id, NULL::uuid)"
+public,maps,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'maps'::text, project_id, NULL::uuid)",
+public,maps,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'maps'::text, project_id, NULL::uuid)",
+public,material_inventory,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,material_inventory,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'material_inventory'::text, NULL::uuid, organization_id)",
+public,material_inventory,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'material_inventory'::text, NULL::uuid, organization_id)"
+public,material_inventory,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'material_inventory'::text, NULL::uuid, organization_id)",
+public,material_inventory,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'material_inventory'::text, NULL::uuid, organization_id)",
+public,material_orders,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,material_orders,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'material_orders'::text, project_id, NULL::uuid)",
+public,material_orders,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'material_orders'::text, project_id, NULL::uuid)"
+public,material_orders,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'material_orders'::text, project_id, NULL::uuid)",
+public,material_orders,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'material_orders'::text, project_id, NULL::uuid)",
+public,material_receipts,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,material_receipts,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'material_receipts'::text, NULL::uuid, NULL::uuid)",
+public,material_receipts,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'material_receipts'::text, NULL::uuid, NULL::uuid)"
+public,material_receipts,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'material_receipts'::text, NULL::uuid, NULL::uuid)",
+public,material_receipts,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'material_receipts'::text, NULL::uuid, NULL::uuid)",
+public,materials,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,materials,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'materials'::text, NULL::uuid, organization_id)",
+public,materials,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'materials'::text, NULL::uuid, organization_id)"
+public,materials,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'materials'::text, NULL::uuid, organization_id)",
+public,materials,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'materials'::text, NULL::uuid, organization_id)",
+public,meeting_minutes,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,meeting_minutes,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'meeting_minutes'::text, project_id, NULL::uuid)",
+public,meeting_minutes,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'meeting_minutes'::text, project_id, NULL::uuid)"
+public,meeting_minutes,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'meeting_minutes'::text, project_id, NULL::uuid)",
+public,meeting_minutes,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'meeting_minutes'::text, project_id, NULL::uuid)",
+public,notifications,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,notifications,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'notifications'::text, NULL::uuid, NULL::uuid)",
+public,notifications,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'notifications'::text, NULL::uuid, NULL::uuid)"
+public,notifications,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'notifications'::text, NULL::uuid, NULL::uuid)",
+public,notifications,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'notifications'::text, NULL::uuid, NULL::uuid)",
+public,organization_member_rates,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,organization_members,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,organization_members,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'organization_members'::text, NULL::uuid, organization_id)",
+public,organization_members,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'organization_members'::text, NULL::uuid, organization_id)"
+public,organization_members,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'organization_members'::text, NULL::uuid, organization_id)",
+public,organization_members,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'organization_members'::text, NULL::uuid, organization_id)",
+public,organization_projects,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,organization_projects,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'organization_projects'::text, project_id, organization_id)",
+public,organization_projects,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'organization_projects'::text, project_id, organization_id)"
+public,organization_projects,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'organization_projects'::text, project_id, organization_id)",
+public,organization_projects,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'organization_projects'::text, project_id, organization_id)",
+public,organization_service_areas,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,organizations,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,organizations,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'organizations'::text, NULL::uuid, NULL::uuid)",
+public,organizations,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'organizations'::text, NULL::uuid, NULL::uuid)"
+public,organizations,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'organizations'::text, NULL::uuid, NULL::uuid)",
+public,organizations,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'organizations'::text, NULL::uuid, NULL::uuid)",
+public,payments,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,payments,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'payments'::text, project_id, NULL::uuid)",
+public,payments,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'payments'::text, project_id, NULL::uuid)"
+public,payments,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'payments'::text, project_id, NULL::uuid)",
+public,payments,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'payments'::text, project_id, NULL::uuid)",
+public,payroll,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,payroll,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'payroll'::text, NULL::uuid, NULL::uuid)",
+public,payroll,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'payroll'::text, NULL::uuid, NULL::uuid)"
+public,payroll,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'payroll'::text, NULL::uuid, NULL::uuid)",
+public,payroll,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'payroll'::text, NULL::uuid, NULL::uuid)",
+public,photos,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,photos,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'photos'::text, project_id, NULL::uuid)",
+public,photos,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'photos'::text, project_id, NULL::uuid)"
+public,photos,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'photos'::text, project_id, NULL::uuid)",
+public,photos,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'photos'::text, project_id, NULL::uuid)",
+public,prequalifications,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,prequalifications,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'prequalifications'::text, NULL::uuid, NULL::uuid)",
+public,prequalifications,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'prequalifications'::text, NULL::uuid, NULL::uuid)"
+public,prequalifications,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'prequalifications'::text, NULL::uuid, NULL::uuid)",
+public,prequalifications,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'prequalifications'::text, NULL::uuid, NULL::uuid)",
+public,procurement_workflows,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,procurement_workflows,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'procurement_workflows'::text, project_id, NULL::uuid)",
+public,procurement_workflows,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'procurement_workflows'::text, project_id, NULL::uuid)"
+public,procurement_workflows,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'procurement_workflows'::text, project_id, NULL::uuid)",
+public,procurement_workflows,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'procurement_workflows'::text, project_id, NULL::uuid)",
+public,profiles,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,profiles,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'profiles'::text, NULL::uuid, organization_id)",
+public,profiles,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'profiles'::text, NULL::uuid, organization_id)"
+public,profiles,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'profiles'::text, NULL::uuid, organization_id)",
+public,profiles,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'profiles'::text, NULL::uuid, organization_id)",
+public,profiles,profiles_bootstrap_insert,PERMISSIVE,{authenticated},INSERT,,"((id = auth.uid()) AND (NOT (EXISTS ( SELECT 1
+   FROM profiles p
+  WHERE (p.id = auth.uid())))))"
+public,profiles,profiles_insert_own,PERMISSIVE,{authenticated},INSERT,,(id = auth.uid())
+public,profiles,profiles_select_own,PERMISSIVE,{authenticated},SELECT,(id = auth.uid()),
+public,profiles,profiles_update_own,PERMISSIVE,{authenticated},UPDATE,(id = auth.uid()),(id = auth.uid())
+public,progress_billings,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,progress_billings,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'progress_billings'::text, project_id, NULL::uuid)",
+public,progress_billings,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'progress_billings'::text, project_id, NULL::uuid)"
+public,progress_billings,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'progress_billings'::text, project_id, NULL::uuid)",
+public,progress_billings,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'progress_billings'::text, project_id, NULL::uuid)",
+public,project_inspectors,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,project_inspectors,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'project_inspectors'::text, project_id, NULL::uuid)",
+public,project_inspectors,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'project_inspectors'::text, project_id, NULL::uuid)"
+public,project_inspectors,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'project_inspectors'::text, project_id, NULL::uuid)",
+public,project_inspectors,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'project_inspectors'::text, project_id, NULL::uuid)",
+public,project_invites,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,project_service_areas,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,projects,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,projects,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'projects'::text, NULL::uuid, organization_id)",
+public,projects,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'projects'::text, NULL::uuid, organization_id)"
+public,projects,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'projects'::text, NULL::uuid, organization_id)",
+public,projects,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'projects'::text, NULL::uuid, organization_id)",
+public,punch_lists,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,punch_lists,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'punch_lists'::text, project_id, NULL::uuid)",
+public,punch_lists,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'punch_lists'::text, project_id, NULL::uuid)"
+public,punch_lists,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'punch_lists'::text, project_id, NULL::uuid)",
+public,punch_lists,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'punch_lists'::text, project_id, NULL::uuid)",
+public,purchase_orders,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,purchase_orders,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'purchase_orders'::text, project_id, NULL::uuid)",
+public,purchase_orders,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'purchase_orders'::text, project_id, NULL::uuid)"
+public,purchase_orders,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'purchase_orders'::text, project_id, NULL::uuid)",
+public,purchase_orders,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'purchase_orders'::text, project_id, NULL::uuid)",
+public,quality_reviews,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,quality_reviews,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'quality_reviews'::text, project_id, NULL::uuid)",
+public,quality_reviews,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'quality_reviews'::text, project_id, NULL::uuid)"
+public,quality_reviews,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'quality_reviews'::text, project_id, NULL::uuid)",
+public,quality_reviews,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'quality_reviews'::text, project_id, NULL::uuid)",
+public,regulatory_documents,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,regulatory_documents,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'regulatory_documents'::text, project_id, NULL::uuid)",
+public,regulatory_documents,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'regulatory_documents'::text, project_id, NULL::uuid)"
+public,regulatory_documents,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'regulatory_documents'::text, project_id, NULL::uuid)",
+public,regulatory_documents,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'regulatory_documents'::text, project_id, NULL::uuid)",
+public,reports,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,reports,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'reports'::text, project_id, NULL::uuid)",
+public,reports,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'reports'::text, project_id, NULL::uuid)"
+public,reports,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'reports'::text, project_id, NULL::uuid)",
+public,reports,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'reports'::text, project_id, NULL::uuid)",
+public,rfis,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,rfis,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'rfis'::text, project_id, NULL::uuid)",
+public,rfis,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'rfis'::text, project_id, NULL::uuid)"
+public,rfis,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'rfis'::text, project_id, NULL::uuid)",
+public,rfis,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'rfis'::text, project_id, NULL::uuid)",
+public,safety_incidents,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,safety_incidents,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'safety_incidents'::text, project_id, NULL::uuid)",
+public,safety_incidents,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'safety_incidents'::text, project_id, NULL::uuid)"
+public,safety_incidents,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'safety_incidents'::text, project_id, NULL::uuid)",
+public,safety_incidents,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'safety_incidents'::text, project_id, NULL::uuid)",
+public,sensor_data,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,sensor_data,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'sensor_data'::text, project_id, NULL::uuid)",
+public,sensor_data,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'sensor_data'::text, project_id, NULL::uuid)"
+public,sensor_data,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'sensor_data'::text, project_id, NULL::uuid)",
+public,sensor_data,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'sensor_data'::text, project_id, NULL::uuid)",
+public,subcontractor_agreements,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,subcontractor_agreements,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'subcontractor_agreements'::text, NULL::uuid, NULL::uuid)",
+public,subcontractor_agreements,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'subcontractor_agreements'::text, NULL::uuid, NULL::uuid)"
+public,subcontractor_agreements,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'subcontractor_agreements'::text, NULL::uuid, NULL::uuid)",
+public,subcontractor_agreements,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'subcontractor_agreements'::text, NULL::uuid, NULL::uuid)",
+public,subcontracts,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,subcontracts,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'subcontracts'::text, project_id, NULL::uuid)",
+public,subcontracts,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'subcontracts'::text, project_id, NULL::uuid)"
+public,subcontracts,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'subcontracts'::text, project_id, NULL::uuid)",
+public,subcontracts,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'subcontracts'::text, project_id, NULL::uuid)",
+public,submittals,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,submittals,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'submittals'::text, project_id, NULL::uuid)",
+public,submittals,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'submittals'::text, project_id, NULL::uuid)"
+public,submittals,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'submittals'::text, project_id, NULL::uuid)",
+public,submittals,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'submittals'::text, project_id, NULL::uuid)",
+public,tack_rates,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,tack_rates,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'tack_rates'::text, project_id, NULL::uuid)",
+public,tack_rates,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'tack_rates'::text, project_id, NULL::uuid)"
+public,tack_rates,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'tack_rates'::text, project_id, NULL::uuid)",
+public,tack_rates,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'tack_rates'::text, project_id, NULL::uuid)",
+public,task_dependencies,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,task_dependencies,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'task_dependencies'::text, NULL::uuid, NULL::uuid)",
+public,task_dependencies,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'task_dependencies'::text, NULL::uuid, NULL::uuid)"
+public,task_dependencies,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'task_dependencies'::text, NULL::uuid, NULL::uuid)",
+public,task_dependencies,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'task_dependencies'::text, NULL::uuid, NULL::uuid)",
+public,task_status_logs,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,task_status_logs,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'task_status_logs'::text, NULL::uuid, NULL::uuid)",
+public,task_status_logs,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'task_status_logs'::text, NULL::uuid, NULL::uuid)"
+public,task_status_logs,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'task_status_logs'::text, NULL::uuid, NULL::uuid)",
+public,task_status_logs,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'task_status_logs'::text, NULL::uuid, NULL::uuid)",
+public,tasks,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,tasks,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'tasks'::text, project_id, NULL::uuid)",
+public,tasks,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'tasks'::text, project_id, NULL::uuid)"
+public,tasks,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'tasks'::text, project_id, NULL::uuid)",
+public,tasks,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'tasks'::text, project_id, NULL::uuid)",
+public,training_records,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,training_records,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'training_records'::text, NULL::uuid, NULL::uuid)",
+public,training_records,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'training_records'::text, NULL::uuid, NULL::uuid)"
+public,training_records,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'training_records'::text, NULL::uuid, NULL::uuid)",
+public,training_records,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'training_records'::text, NULL::uuid, NULL::uuid)",
+public,user_projects,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,user_projects,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'user_projects'::text, project_id, NULL::uuid)",
+public,user_projects,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'user_projects'::text, project_id, NULL::uuid)"
+public,user_projects,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'user_projects'::text, project_id, NULL::uuid)",
+public,user_projects,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'user_projects'::text, project_id, NULL::uuid)",
+public,vendor_bid_packages,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,vendor_bid_packages,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'vendor_bid_packages'::text, NULL::uuid, NULL::uuid)",
+public,vendor_bid_packages,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'vendor_bid_packages'::text, NULL::uuid, NULL::uuid)"
+public,vendor_bid_packages,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'vendor_bid_packages'::text, NULL::uuid, NULL::uuid)",
+public,vendor_bid_packages,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'vendor_bid_packages'::text, NULL::uuid, NULL::uuid)",
+public,vendor_contacts,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,vendor_contacts,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'vendor_contacts'::text, NULL::uuid, NULL::uuid)",
+public,vendor_contacts,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'vendor_contacts'::text, NULL::uuid, NULL::uuid)"
+public,vendor_contacts,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'vendor_contacts'::text, NULL::uuid, NULL::uuid)",
+public,vendor_contacts,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'vendor_contacts'::text, NULL::uuid, NULL::uuid)",
+public,vendor_documents,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,vendor_documents,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'vendor_documents'::text, NULL::uuid, NULL::uuid)",
+public,vendor_documents,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'vendor_documents'::text, NULL::uuid, NULL::uuid)"
+public,vendor_documents,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'vendor_documents'::text, NULL::uuid, NULL::uuid)",
+public,vendor_documents,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'vendor_documents'::text, NULL::uuid, NULL::uuid)",
+public,vendor_qualifications,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,vendor_qualifications,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'vendor_qualifications'::text, NULL::uuid, NULL::uuid)",
+public,vendor_qualifications,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'vendor_qualifications'::text, NULL::uuid, NULL::uuid)"
+public,vendor_qualifications,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'vendor_qualifications'::text, NULL::uuid, NULL::uuid)",
+public,vendor_qualifications,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'vendor_qualifications'::text, NULL::uuid, NULL::uuid)",
+public,vendors,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,vendors,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'vendors'::text, NULL::uuid, organization_id)",
+public,vendors,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'vendors'::text, NULL::uuid, organization_id)"
+public,vendors,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'vendors'::text, NULL::uuid, organization_id)",
+public,vendors,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'vendors'::text, NULL::uuid, organization_id)",
+public,wbs,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,wbs,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'wbs'::text, project_id, NULL::uuid)",
+public,wbs,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'wbs'::text, project_id, NULL::uuid)"
+public,wbs,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'wbs'::text, project_id, NULL::uuid)",
+public,wbs,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'wbs'::text, project_id, NULL::uuid)",
+public,workflows,no_access,PERMISSIVE,"{anon,authenticated}",ALL,false,false
+public,workflows,p_check_access_delete,PERMISSIVE,{public},DELETE,"check_access_bool('delete'::text, 'workflows'::text, NULL::uuid, NULL::uuid)",
+public,workflows,p_check_access_insert,PERMISSIVE,{public},INSERT,,"check_access_bool('insert'::text, 'workflows'::text, NULL::uuid, NULL::uuid)"
+public,workflows,p_check_access_select,PERMISSIVE,{public},SELECT,"check_access_bool('select'::text, 'workflows'::text, NULL::uuid, NULL::uuid)",
+public,workflows,p_check_access_update,PERMISSIVE,{public},UPDATE,"check_access_bool('update'::text, 'workflows'::text, NULL::uuid, NULL::uuid)",
+storage,objects,avatars_personal_delete_own,PERMISSIVE,{authenticated},DELETE,((bucket_id = 'avatars-personal'::text) AND (owner = auth.uid())),
+storage,objects,avatars_personal_insert_own,PERMISSIVE,{authenticated},INSERT,,((bucket_id = 'avatars-personal'::text) AND (owner = auth.uid()))
+storage,objects,avatars_personal_update_own,PERMISSIVE,{authenticated},UPDATE,((bucket_id = 'avatars-personal'::text) AND (owner = auth.uid())),((bucket_id = 'avatars-personal'::text) AND (owner = auth.uid()))

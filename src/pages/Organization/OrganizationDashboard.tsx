@@ -140,6 +140,8 @@ export default function OrganizationDashboard(): JSX.Element {
   });
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const [logoImageSrc, setLogoImageSrc] = useState<string | null>(null);
+  const [pendingLogoBlob, setPendingLogoBlob] = useState<Blob | null>(null);
+  const [pendingLogoPreviewUrl, setPendingLogoPreviewUrl] = useState<string | null>(null);
   const safePayload = payload ?? emptyPayload;
 
   const serviceAreas = useMemo(() => {
@@ -157,6 +159,7 @@ export default function OrganizationDashboard(): JSX.Element {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join('') || 'ORG';
+  const logoPreviewSrc = pendingLogoPreviewUrl ?? logoImageSrc ?? formState.logo_url;
 
   const totalMembers = safePayload.members.total_count;
   const totalPages = Math.max(1, Math.ceil(totalMembers / pageSize));
@@ -172,6 +175,11 @@ export default function OrganizationDashboard(): JSX.Element {
     setEditStep(0);
     setEditError(null);
     setLogoImageSrc(null);
+    if (pendingLogoPreviewUrl) {
+      URL.revokeObjectURL(pendingLogoPreviewUrl);
+    }
+    setPendingLogoPreviewUrl(null);
+    setPendingLogoBlob(null);
     setFormState({
       name: safePayload.organization.name,
       description: safePayload.organization.description ?? '',
@@ -179,7 +187,7 @@ export default function OrganizationDashboard(): JSX.Element {
       headquarters: safePayload.organization.headquarters ?? '',
       logo_url: safePayload.organization.logo_url ?? '',
     });
-  }, [isEditOpen, safePayload.organization]);
+  }, [isEditOpen, pendingLogoPreviewUrl, safePayload.organization]);
 
   const loadDashboard = useCallback(async () => {
     if (!profile?.organization_id) {
@@ -205,6 +213,63 @@ export default function OrganizationDashboard(): JSX.Element {
     }
   }, [page, profile?.organization_id]);
 
+  const uploadLogoBlob = useCallback(async (blob: Blob): Promise<string> => {
+    if (!safePayload.organization.id) {
+      setEditError('Organization is not available yet.');
+      throw new Error('Organization is not available yet.');
+    }
+    if (!profile?.id) {
+      setEditError('Profile is not ready yet.');
+      throw new Error('Profile is not ready yet.');
+    }
+    if (!blob || blob.size === 0) {
+      setEditError('Selected file is empty.');
+      throw new Error('Selected file is empty.');
+    }
+
+    setEditError(null);
+
+    try {
+      const inferredExt = blob.type?.split('/')?.[1] ?? 'jpg';
+      const fileName = `${crypto.randomUUID()}.${inferredExt}`;
+      const file = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
+      console.debug('[OrganizationDashboard] Uploading logo', {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+      });
+      const filePath = `${profile.id}/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('avatars-personal')
+        .upload(filePath, file, {
+          upsert: false,
+          cacheControl: '3600',
+          contentType: file.type || 'image/png',
+        });
+
+      if (error) {
+        console.error('[OrganizationDashboard] Logo upload error', error);
+        throw error;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from('avatars-personal')
+        .getPublicUrl(data.path);
+
+      const publicUrl = publicUrlData?.publicUrl;
+      if (!publicUrl) {
+        throw new Error('Unable to generate logo URL');
+      }
+
+      return publicUrl;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to upload logo.';
+      setEditError(message);
+      throw err instanceof Error ? err : new Error(message);
+    }
+  }, [profile?.id, safePayload.organization.id]);
+
   const saveOrganization = useCallback(async () => {
     if (!safePayload.organization.id) {
       setEditError('Organization is not available yet.');
@@ -220,12 +285,29 @@ export default function OrganizationDashboard(): JSX.Element {
     setEditError(null);
 
     try {
+      let nextLogoUrl = formState.logo_url.trim() || null;
+      if (pendingLogoBlob) {
+        setIsUploadingLogo(true);
+        try {
+          const uploadedUrl = await uploadLogoBlob(pendingLogoBlob);
+          nextLogoUrl = uploadedUrl;
+          setFormState((prev) => ({ ...prev, logo_url: uploadedUrl }));
+          if (pendingLogoPreviewUrl) {
+            URL.revokeObjectURL(pendingLogoPreviewUrl);
+          }
+          setPendingLogoPreviewUrl(null);
+          setPendingLogoBlob(null);
+        } finally {
+          setIsUploadingLogo(false);
+        }
+      }
+
       const updates = {
         name: formState.name.trim(),
         description: formState.description.trim() || null,
         mission_statement: formState.mission_statement.trim() || null,
         headquarters: formState.headquarters.trim() || null,
-        logo_url: formState.logo_url.trim() || null,
+        logo_url: nextLogoUrl,
       };
 
       const rows = await rpcClient.update_organizations({
@@ -261,77 +343,15 @@ export default function OrganizationDashboard(): JSX.Element {
     } finally {
       setIsSaving(false);
     }
-  }, [formState, safePayload.organization.id]);
-
-  const handleLogoUpload = useCallback(async (file: File): Promise<void> => {
-    if (!safePayload.organization.id) {
-      setEditError('Organization is not available yet.');
-      return;
-    }
-    if (!profile?.id) {
-      setEditError('Profile is not ready yet.');
-      return;
-    }
-    if (!file || file.size === 0) {
-      setEditError('Selected file is empty.');
-      return;
-    }
-
-    setIsUploadingLogo(true);
-    setEditError(null);
-
-    try {
-      console.debug('[OrganizationDashboard] Uploading logo', {
-        name: file.name,
-        type: file.type,
-        size: file.size,
-      });
-      const ext = file.name.split('.').pop() ?? 'png';
-      const fileName = `${crypto.randomUUID()}.${ext}`;
-      const filePath = `${profile.id}/${fileName}`;
-
-      const { data, error } = await supabase.storage
-        .from('avatars-personal')
-        .upload(filePath, file, {
-          upsert: false,
-          cacheControl: '3600',
-          contentType: file.type || 'image/png',
-        });
-
-      if (error) {
-        console.error('[OrganizationDashboard] Logo upload error', error);
-        throw error;
-      }
-
-      const { data: publicUrlData } = supabase.storage
-        .from('avatars-personal')
-        .getPublicUrl(data.path);
-
-      const publicUrl = publicUrlData?.publicUrl;
-      if (!publicUrl) {
-        throw new Error('Unable to generate logo URL');
-      }
-
-      const insertedRows = await rpcClient.insert_avatars({ _input: { url: publicUrl } });
-      const insertedAvatar = Array.isArray(insertedRows) ? insertedRows[0] : null;
-      if (!insertedAvatar) {
-        throw new Error('Unable to save logo');
-      }
-
-      setFormState((prev) => ({ ...prev, logo_url: publicUrl }));
-      setLogoImageSrc(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unable to upload logo.';
-      setEditError(message);
-    } finally {
-      setIsUploadingLogo(false);
-      if (logoInputRef.current) {
-        logoInputRef.current.value = '';
-      }
-    }
-  }, [profile?.id, safePayload.organization.id]);
+  }, [formState, pendingLogoBlob, pendingLogoPreviewUrl, safePayload.organization.id, uploadLogoBlob]);
 
   const handleLogoFileSelected = useCallback((file: File): void => {
+    setEditError(null);
+    if (pendingLogoPreviewUrl) {
+      URL.revokeObjectURL(pendingLogoPreviewUrl);
+      setPendingLogoPreviewUrl(null);
+    }
+    setPendingLogoBlob(null);
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
@@ -339,13 +359,21 @@ export default function OrganizationDashboard(): JSX.Element {
       }
     };
     reader.readAsDataURL(file);
-  }, []);
+  }, [pendingLogoPreviewUrl]);
 
   const handleLogoCropped = useCallback(async (blob: Blob): Promise<void> => {
-    const fileName = `org-logo-${Date.now()}.jpg`;
-    const file = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
-    await handleLogoUpload(file);
-  }, [handleLogoUpload]);
+    setEditError(null);
+    setPendingLogoBlob(blob);
+    const previewUrl = URL.createObjectURL(blob);
+    if (pendingLogoPreviewUrl) {
+      URL.revokeObjectURL(pendingLogoPreviewUrl);
+    }
+    setPendingLogoPreviewUrl(previewUrl);
+    setLogoImageSrc(null);
+    if (logoInputRef.current) {
+      logoInputRef.current.value = '';
+    }
+  }, [pendingLogoPreviewUrl]);
 
   useEffect(() => {
     void loadDashboard();
@@ -520,7 +548,7 @@ export default function OrganizationDashboard(): JSX.Element {
       </PageContainer>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Edit organization</DialogTitle>
             <DialogDescription>
@@ -528,147 +556,158 @@ export default function OrganizationDashboard(): JSX.Element {
             </DialogDescription>
           </DialogHeader>
 
-          {/* Wizard body */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-gray-400">
-              {['Basics', 'Mission', 'Branding'].map((label, index) => (
-                <div key={label} className="flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${index <= editStep ? 'bg-primary' : 'bg-gray-600'}`} />
-                  <span>{label}</span>
-                  {index < 2 && <span className="text-gray-600">/</span>}
-                </div>
-              ))}
-            </div>
-
-            {editStep === 0 && (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm text-gray-300">Organization name</label>
-                  <input
-                    className="mt-2 w-full rounded border border-background-lighter bg-background px-3 py-2 text-sm text-white"
-                    value={formState.name}
-                    onChange={(event) => setFormState((prev) => ({ ...prev, name: event.target.value }))}
-                    placeholder="Macadamy"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-300">Description</label>
-                  <textarea
-                    className="mt-2 w-full rounded border border-background-lighter bg-background px-3 py-2 text-sm text-white"
-                    value={formState.description}
-                    onChange={(event) => setFormState((prev) => ({ ...prev, description: event.target.value }))}
-                    rows={4}
-                    placeholder="Short description of your organization"
-                  />
-                </div>
+          <div className="flex-1 overflow-y-auto pr-2 -mr-2">
+            {/* Wizard body */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-gray-400">
+                {['Basics', 'Mission', 'Branding'].map((label, index) => (
+                  <div key={label} className="flex items-center gap-2">
+                    <span className={`h-2 w-2 rounded-full ${index <= editStep ? 'bg-primary' : 'bg-gray-600'}`} />
+                    <span>{label}</span>
+                    {index < 2 && <span className="text-gray-600">/</span>}
+                  </div>
+                ))}
               </div>
-            )}
 
-            {editStep === 1 && (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm text-gray-300">Mission statement</label>
-                  <textarea
-                    className="mt-2 w-full rounded border border-background-lighter bg-background px-3 py-2 text-sm text-white"
-                    value={formState.mission_statement}
-                    onChange={(event) => setFormState((prev) => ({ ...prev, mission_statement: event.target.value }))}
-                    rows={4}
-                    placeholder="Describe your mission"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-300">Headquarters</label>
-                  <input
-                    className="mt-2 w-full rounded border border-background-lighter bg-background px-3 py-2 text-sm text-white"
-                    value={formState.headquarters}
-                    onChange={(event) => setFormState((prev) => ({ ...prev, headquarters: event.target.value }))}
-                    placeholder="City, State"
-                  />
-                </div>
-              </div>
-            )}
-
-            {editStep === 2 && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="h-16 w-16 rounded-full bg-background-lighter flex items-center justify-center overflow-hidden">
-                    {formState.logo_url ? (
-                      <img src={formState.logo_url} alt="Organization logo" className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="text-lg font-semibold text-white">{initials}</span>
-                    )}
+              {editStep === 0 && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm text-gray-300">Organization name</label>
+                    <input
+                      className="mt-2 w-full rounded border border-background-lighter bg-background px-3 py-2 text-sm text-white"
+                      value={formState.name}
+                      onChange={(event) => setFormState((prev) => ({ ...prev, name: event.target.value }))}
+                      placeholder="Macadamy"
+                    />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-300">Logo preview</p>
-                    <p className="text-xs text-gray-500">Upload a square image for best results.</p>
+                    <label className="text-sm text-gray-300">Description</label>
+                    <textarea
+                      className="mt-2 w-full rounded border border-background-lighter bg-background px-3 py-2 text-sm text-white"
+                      value={formState.description}
+                      onChange={(event) => setFormState((prev) => ({ ...prev, description: event.target.value }))}
+                      rows={4}
+                      placeholder="Short description of your organization"
+                    />
                   </div>
                 </div>
-                <div>
-                  <label htmlFor="org-logo-upload" className="text-sm text-gray-300">Organization logo</label>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <input
-                      id="org-logo-upload"
-                      ref={logoInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      aria-label="Upload organization logo"
-                      title="Upload organization logo"
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        if (file) {
-                          handleLogoFileSelected(file);
-                        }
-                      }}
+              )}
+
+              {editStep === 1 && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm text-gray-300">Mission statement</label>
+                    <textarea
+                      className="mt-2 w-full rounded border border-background-lighter bg-background px-3 py-2 text-sm text-white"
+                      value={formState.mission_statement}
+                      onChange={(event) => setFormState((prev) => ({ ...prev, mission_statement: event.target.value }))}
+                      rows={4}
+                      placeholder="Describe your mission"
                     />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => logoInputRef.current?.click()}
-                      isLoading={isUploadingLogo}
-                    >
-                      Upload logo
-                    </Button>
-                    {formState.logo_url && (
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-300">Headquarters</label>
+                    <input
+                      className="mt-2 w-full rounded border border-background-lighter bg-background px-3 py-2 text-sm text-white"
+                      value={formState.headquarters}
+                      onChange={(event) => setFormState((prev) => ({ ...prev, headquarters: event.target.value }))}
+                      placeholder="City, State"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {editStep === 2 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="h-16 w-16 rounded-full bg-background-lighter flex items-center justify-center overflow-hidden">
+                      {logoPreviewSrc ? (
+                        <img src={logoPreviewSrc} alt="Organization logo" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="text-lg font-semibold text-white">{initials}</span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-300">Logo preview</p>
+                      <p className="text-xs text-gray-500">Upload a square image for best results.</p>
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="org-logo-upload" className="text-sm text-gray-300">Organization logo</label>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <input
+                        id="org-logo-upload"
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        aria-label="Upload organization logo"
+                        title="Upload organization logo"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (file) {
+                            handleLogoFileSelected(file);
+                          }
+                        }}
+                      />
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setFormState((prev) => ({ ...prev, logo_url: '' }))}
-                        disabled={isUploadingLogo}
+                        onClick={() => logoInputRef.current?.click()}
+                        isLoading={isUploadingLogo}
                       >
-                        Remove
+                        Upload logo
                       </Button>
-                    )}
+                      {formState.logo_url && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (pendingLogoPreviewUrl) {
+                              URL.revokeObjectURL(pendingLogoPreviewUrl);
+                            }
+                            setPendingLogoPreviewUrl(null);
+                            setPendingLogoBlob(null);
+                            setLogoImageSrc(null);
+                            setFormState((prev) => ({ ...prev, logo_url: '' }));
+                          }}
+                          disabled={isUploadingLogo}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
                   </div>
+
+                  {logoImageSrc && (
+                    <div className="mt-4">
+                      <ImageCropper
+                        key={logoImageSrc}
+                        imageSrc={logoImageSrc}
+                        onCropComplete={(blob) => { void handleLogoCropped(blob); }}
+                        aspectRatio={1}
+                        cropShape="rect"
+                        compressionOptions={{
+                          mimeType: 'image/jpeg',
+                          quality: 0.8,
+                          maxWidth: 512,
+                          maxHeight: 512,
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
+              )}
 
-                {logoImageSrc && (
-                  <div className="mt-4">
-                    <ImageCropper
-                      imageSrc={logoImageSrc}
-                      onCropComplete={(blob) => { void handleLogoCropped(blob); }}
-                      aspectRatio={1}
-                      cropShape="rect"
-                      compressionOptions={{
-                        mimeType: 'image/jpeg',
-                        quality: 0.8,
-                        maxWidth: 512,
-                        maxHeight: 512,
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {editError && (
-              <div className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-                {editError}
-              </div>
-            )}
+              {editError && (
+                <div className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                  {editError}
+                </div>
+              )}
+            </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="pt-4">
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex gap-2">
                 <Button

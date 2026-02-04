@@ -30,7 +30,7 @@ export async function getOrderByColumn(
         const resolved = preferredColumns.find((col) => columns.includes(col)) ?? columns[0] ?? null;
         tableOrderByCache.set(tableName, resolved);
         return resolved;
-    } catch (_error) {
+    } catch {
         tableOrderByCache.set(tableName, null);
         return null;
     }

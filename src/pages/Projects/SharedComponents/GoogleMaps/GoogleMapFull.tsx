@@ -76,13 +76,13 @@ function extendBoundsWithOverlay(
     ov
       .getPath()
       .getArray()
-      .forEach(ll => bounds.extend(ll));
+      .forEach((ll: google.maps.LatLng) => bounds.extend(ll));
   } else if (ov instanceof google.maps.Polygon) {
     ov
       .getPaths()
       .getArray()
-      .forEach(path =>
-        path.getArray().forEach(ll => bounds.extend(ll)),
+      .forEach((path: google.maps.MVCArray<google.maps.LatLng>) =>
+        path.getArray().forEach((ll: google.maps.LatLng) => bounds.extend(ll)),
       );
   }
 }
@@ -311,7 +311,7 @@ export class GoogleMapFull extends Component<Props, State> {
             coordinates: ev.overlay
               .getPath()
               .getArray()
-              .map(ll => [ll.lng(), ll.lat()]),
+              .map((ll: google.maps.LatLng) => [ll.lng(), ll.lat()]),
           };
         } else if (ev.overlay instanceof google.maps.Polygon) {
           geom = {
@@ -320,7 +320,7 @@ export class GoogleMapFull extends Component<Props, State> {
               ev.overlay
                 .getPath()
                 .getArray()
-                .map(ll => [ll.lng(), ll.lat()]),
+                .map((ll: google.maps.LatLng) => [ll.lng(), ll.lat()]),
             ],
           };
         }

@@ -74,7 +74,7 @@ export function MapPreview({
 
     // Clear existing overlays
     mapInstance.overlayMapTypes.clear();
-    mapInstance.data.forEach((feature) => {
+    mapInstance.data.forEach((feature: google.maps.Data.Feature) => {
       mapInstance.data.remove(feature);
     });
 
@@ -115,7 +115,7 @@ export function MapPreview({
 
           // Fit bounds to the line
           const bounds = new google.maps.LatLngBounds();
-          path.forEach((point) => bounds.extend(point));
+          path.forEach((point: google.maps.LatLng) => bounds.extend(point));
           mapInstance.fitBounds(bounds);
           break;
         }
@@ -135,7 +135,7 @@ export function MapPreview({
 
           // Fit bounds to the polygon
           const bounds = new google.maps.LatLngBounds();
-          paths[0].forEach((point) => bounds.extend(point));
+          paths[0].forEach((point: google.maps.LatLng) => bounds.extend(point));
           mapInstance.fitBounds(bounds);
           break;
         }

@@ -1,0 +1,13 @@
+Generated: 2026-02-04T20:15:47.118Z
+Input: audits/supabase
+
+P0:
+- (none)
+
+P1:
+- Investigate top slowest/most time-consuming queries (EXPLAIN ANALYZE).
+
+P2:
+- (none)
+
+Triage reminder: security → queries → performance → deps

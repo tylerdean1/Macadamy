@@ -1,0 +1,217 @@
+schema,table,table_type
+auth,audit_log_entries,BASE TABLE
+auth,flow_state,BASE TABLE
+auth,identities,BASE TABLE
+auth,instances,BASE TABLE
+auth,mfa_amr_claims,BASE TABLE
+auth,mfa_challenges,BASE TABLE
+auth,mfa_factors,BASE TABLE
+auth,oauth_authorizations,BASE TABLE
+auth,oauth_client_states,BASE TABLE
+auth,oauth_clients,BASE TABLE
+auth,oauth_consents,BASE TABLE
+auth,one_time_tokens,BASE TABLE
+auth,refresh_tokens,BASE TABLE
+auth,saml_providers,BASE TABLE
+auth,saml_relay_states,BASE TABLE
+auth,schema_migrations,BASE TABLE
+auth,sessions,BASE TABLE
+auth,sso_domains,BASE TABLE
+auth,sso_providers,BASE TABLE
+auth,users,BASE TABLE
+extensions,pg_stat_statements,VIEW
+extensions,pg_stat_statements_info,VIEW
+public,accounts_payable,BASE TABLE
+public,accounts_payable_active,VIEW
+public,accounts_receivable,BASE TABLE
+public,accounts_receivable_active,VIEW
+public,activity_logs,BASE TABLE
+public,activity_logs_active,VIEW
+public,asphalt_types,BASE TABLE
+public,asphalt_types_active,VIEW
+public,audit_log,BASE TABLE
+public,audit_log_active,VIEW
+public,audit_logs,BASE TABLE
+public,audit_logs_active,VIEW
+public,avatars,BASE TABLE
+public,avatars_active,VIEW
+public,bid_packages,BASE TABLE
+public,bid_packages_active,VIEW
+public,bid_vendors,BASE TABLE
+public,bid_vendors_active,VIEW
+public,bids,BASE TABLE
+public,bids_active,VIEW
+public,bim_models,BASE TABLE
+public,bim_models_active,VIEW
+public,certifications,BASE TABLE
+public,certifications_active,VIEW
+public,change_orders,BASE TABLE
+public,change_orders_active,VIEW
+public,commitments,BASE TABLE
+public,commitments_active,VIEW
+public,compliance_checks,BASE TABLE
+public,compliance_checks_active,VIEW
+public,compliance_tracking,BASE TABLE
+public,compliance_tracking_active,VIEW
+public,cost_codes,BASE TABLE
+public,cost_codes_active,VIEW
+public,crew_assignments,BASE TABLE
+public,crew_assignments_active,VIEW
+public,crew_members,BASE TABLE
+public,crew_members_active,VIEW
+public,crews,BASE TABLE
+public,crews_active,VIEW
+public,daily_logs,BASE TABLE
+public,daily_logs_active,VIEW
+public,dashboard_configs,BASE TABLE
+public,dashboard_configs_active,VIEW
+public,document_references,BASE TABLE
+public,document_references_active,VIEW
+public,documents,BASE TABLE
+public,documents_active,VIEW
+public,drawing_versions,BASE TABLE
+public,drawing_versions_active,VIEW
+public,dump_trucks,BASE TABLE
+public,dump_trucks_active,VIEW
+public,employees,BASE TABLE
+public,employees_active,VIEW
+public,equipment,BASE TABLE
+public,equipment_active,VIEW
+public,equipment_assignments,BASE TABLE
+public,equipment_assignments_active,VIEW
+public,equipment_maintenance,BASE TABLE
+public,equipment_maintenance_active,VIEW
+public,equipment_usage,BASE TABLE
+public,equipment_usage_active,VIEW
+public,estimate_line_items,BASE TABLE
+public,estimate_line_items_active,VIEW
+public,estimates,BASE TABLE
+public,estimates_active,VIEW
+public,financial_documents,BASE TABLE
+public,financial_documents_active,VIEW
+public,general_ledger,BASE TABLE
+public,general_ledger_active,VIEW
+public,hr_documents,BASE TABLE
+public,hr_documents_active,VIEW
+public,inspections,BASE TABLE
+public,inspections_active,VIEW
+public,integration_tokens,BASE TABLE
+public,integration_tokens_active,VIEW
+public,inventory_transactions,BASE TABLE
+public,inventory_transactions_active,VIEW
+public,issues,BASE TABLE
+public,issues_active,VIEW
+public,job_titles,BASE TABLE
+public,job_titles_active,VIEW
+public,labor_records,BASE TABLE
+public,labor_records_active,VIEW
+public,line_item_entries,BASE TABLE
+public,line_item_entries_active,VIEW
+public,line_item_templates,BASE TABLE
+public,line_item_templates_active,VIEW
+public,line_items,BASE TABLE
+public,line_items_active,VIEW
+public,maps,BASE TABLE
+public,maps_active,VIEW
+public,material_inventory,BASE TABLE
+public,material_inventory_active,VIEW
+public,material_orders,BASE TABLE
+public,material_orders_active,VIEW
+public,material_receipts,BASE TABLE
+public,material_receipts_active,VIEW
+public,materials,BASE TABLE
+public,materials_active,VIEW
+public,meeting_minutes,BASE TABLE
+public,meeting_minutes_active,VIEW
+public,notifications,BASE TABLE
+public,notifications_active,VIEW
+public,organization_member_rates,BASE TABLE
+public,organization_members,BASE TABLE
+public,organization_members_active,VIEW
+public,organization_projects,BASE TABLE
+public,organization_projects_active,VIEW
+public,organization_service_areas,BASE TABLE
+public,organizations,BASE TABLE
+public,organizations_active,VIEW
+public,payments,BASE TABLE
+public,payments_active,VIEW
+public,payroll,BASE TABLE
+public,payroll_active,VIEW
+public,photos,BASE TABLE
+public,photos_active,VIEW
+public,prequalifications,BASE TABLE
+public,prequalifications_active,VIEW
+public,procurement_workflows,BASE TABLE
+public,procurement_workflows_active,VIEW
+public,profiles,BASE TABLE
+public,profiles_active,VIEW
+public,progress_billings,BASE TABLE
+public,progress_billings_active,VIEW
+public,project_inspectors,BASE TABLE
+public,project_inspectors_active,VIEW
+public,project_invites,BASE TABLE
+public,project_service_areas,BASE TABLE
+public,projects,BASE TABLE
+public,projects_active,VIEW
+public,punch_lists,BASE TABLE
+public,punch_lists_active,VIEW
+public,purchase_orders,BASE TABLE
+public,purchase_orders_active,VIEW
+public,quality_reviews,BASE TABLE
+public,quality_reviews_active,VIEW
+public,regulatory_documents,BASE TABLE
+public,regulatory_documents_active,VIEW
+public,reports,BASE TABLE
+public,reports_active,VIEW
+public,rfis,BASE TABLE
+public,rfis_active,VIEW
+public,safety_incidents,BASE TABLE
+public,safety_incidents_active,VIEW
+public,sensor_data,BASE TABLE
+public,sensor_data_active,VIEW
+public,subcontractor_agreements,BASE TABLE
+public,subcontractor_agreements_active,VIEW
+public,subcontracts,BASE TABLE
+public,subcontracts_active,VIEW
+public,submittals,BASE TABLE
+public,submittals_active,VIEW
+public,tack_rates,BASE TABLE
+public,tack_rates_active,VIEW
+public,task_dependencies,BASE TABLE
+public,task_dependencies_active,VIEW
+public,task_status_logs,BASE TABLE
+public,task_status_logs_active,VIEW
+public,tasks,BASE TABLE
+public,tasks_active,VIEW
+public,training_records,BASE TABLE
+public,training_records_active,VIEW
+public,user_projects,BASE TABLE
+public,user_projects_active,VIEW
+public,vendor_bid_packages,BASE TABLE
+public,vendor_bid_packages_active,VIEW
+public,vendor_contacts,BASE TABLE
+public,vendor_contacts_active,VIEW
+public,vendor_documents,BASE TABLE
+public,vendor_documents_active,VIEW
+public,vendor_qualifications,BASE TABLE
+public,vendor_qualifications_active,VIEW
+public,vendors,BASE TABLE
+public,vendors_active,VIEW
+public,wbs,BASE TABLE
+public,wbs_active,VIEW
+public,workflows,BASE TABLE
+public,workflows_active,VIEW
+realtime,messages,BASE TABLE
+realtime,schema_migrations,BASE TABLE
+realtime,subscription,BASE TABLE
+storage,buckets,BASE TABLE
+storage,buckets_analytics,BASE TABLE
+storage,buckets_vectors,BASE TABLE
+storage,migrations,BASE TABLE
+storage,objects,BASE TABLE
+storage,prefixes,BASE TABLE
+storage,s3_multipart_uploads,BASE TABLE
+storage,s3_multipart_uploads_parts,BASE TABLE
+storage,vector_indexes,BASE TABLE
+vault,decrypted_secrets,VIEW
+vault,secrets,BASE TABLE
