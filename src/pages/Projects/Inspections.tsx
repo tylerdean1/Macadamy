@@ -20,7 +20,6 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
 import { FileText, Plus, Pencil } from 'lucide-react';
 import { rpcClient } from '@/lib/rpc.client';
-import { getOrderByColumn } from '@/lib/utils/rpcOrderBy';
 
 // Define the structure of an inspection record
 interface Inspection {
@@ -43,6 +42,14 @@ interface Inspection {
 interface Option {
   id: string;
   name: string;
+}
+
+interface InspectionsPayload {
+  projects: Array<Record<string, unknown>>;
+  wbs: Array<Record<string, unknown>>;
+  maps: Array<Record<string, unknown>>;
+  line_items: Array<Record<string, unknown>>;
+  inspections: Array<Record<string, unknown>>;
 }
 
 export default function Inspections() {
@@ -84,168 +91,82 @@ export default function Inspections() {
   // Check if the user has edit permissions
   const canEdit = typeof user?.role === 'string' && ['admin', 'engineer', 'inspector'].includes(user.role);
 
-  // Initial load
-  useEffect(() => {
-    void loadOptions();
-    void fetchInspections();
-  }, []);
+  const normalizeOptions = (items: Array<Record<string, unknown>>): Option[] =>
+    items
+      .map((item) => ({
+        id: typeof item.id === 'string' ? item.id : '',
+        name: typeof item.name === 'string' ? item.name : 'Unnamed',
+      }))
+      .filter((item) => item.id !== '');
 
-  // Dynamically load WBS after contract is selected
-  useEffect(() => {
-    if (newInspection.contract_id) void fetchWbs(newInspection.contract_id);
-  }, [newInspection.contract_id]);
+  const extractResult = (raw: unknown): Record<string, unknown> =>
+    raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
 
-  // Load maps once WBS is selected
-  useEffect(() => {
-    if (newInspection.wbs_id) void fetchMaps(newInspection.wbs_id);
-  }, [newInspection.wbs_id]);
-
-  // Load line items when map is selected
-  useEffect(() => {
-    if (newInspection.map_id) void fetchLineItems(newInspection.map_id);
-  }, [newInspection.map_id]);
-
-  // Fetch contract list using RPC
-  async function loadOptions() {
+  async function loadPayload(): Promise<void> {
     try {
-      // Note: get_contract_with_wkt normally expects a contract_id parameter,
-      // but when called without it, it should return all contracts
-      const orderBy = await getOrderByColumn('projects');
-      if (!orderBy) {
-        setContracts([]);
-        return;
-      }
+      const projectId = typeof newInspection.contract_id === 'string' && newInspection.contract_id.length > 0
+        ? newInspection.contract_id
+        : undefined;
+      const wbsId = typeof newInspection.wbs_id === 'string' && newInspection.wbs_id.length > 0
+        ? newInspection.wbs_id
+        : undefined;
+      const mapId = typeof newInspection.map_id === 'string' && newInspection.map_id.length > 0
+        ? newInspection.map_id
+        : undefined;
 
-      const { data, error } = await supabase.rpc('filter_projects', {
-        _filters: {},
-        _order_by: orderBy,
-        _direction: 'asc'
+      const raw = await rpcClient.rpc_inspections_payload({
+        p_project_id: projectId,
+        p_wbs_id: wbsId,
+        p_map_id: mapId,
       });
 
-      if (error) {
-        console.error('Error fetching contracts:', error);
-        return;
-      }
+      const payload = raw && typeof raw === 'object' && !Array.isArray(raw)
+        ? (raw as unknown as InspectionsPayload)
+        : null;
+      const projects = payload?.projects ?? [];
+      const wbs = payload?.wbs ?? [];
+      const maps = payload?.maps ?? [];
+      const lineItemsPayload = payload?.line_items ?? [];
+      const inspectionsPayload = payload?.inspections ?? [];
 
-      if (Array.isArray(data)) {
-        setContracts(data.map((contract) => ({
-          id: contract.id,
-          name: contract.name
-        })));
-      }
-    } catch (err) {
-      console.error('Unexpected error in loadOptions:', err);
-    }
-  }
+      setContracts(normalizeOptions(projects));
+      setWbsList(normalizeOptions(wbs));
+      setMapList(normalizeOptions(maps));
+      setLineItems(normalizeOptions(lineItemsPayload));
 
-  // Fetch WBS entries for a contract using RPC
-  async function fetchWbs(contractId: string) {
-    try {
-      const { data, error } = await supabase.rpc('filter_wbs', {
-        _filters: { project_id: contractId }
-      });
+      const normalized: Inspection[] = inspectionsPayload.map((insp) => {
+        const result = extractResult(insp.result);
+        const photoUrls = Array.isArray(result.photo_urls)
+          ? result.photo_urls.filter((url) => typeof url === 'string')
+          : [];
 
-      if (error) {
-        console.error('Error fetching WBS:', error);
-        setWbsList([]);
-        return;
-      }
-
-      if (Array.isArray(data)) {
-        setWbsList(data.map((wbs) => ({
-          id: wbs.id,
-          name: wbs.name || 'Unnamed WBS',
-        })));
-      } else {
-        setWbsList([]);
-      }
-    } catch (err) {
-      console.error('Unexpected error in fetchWbs:', err);
-      setWbsList([]);
-    }
-  }
-
-  // Fetch maps for a WBS using RPC
-  async function fetchMaps(wbsId: string) {
-    try {
-      // In this application, get_maps_with_wkt needs contract_id, not wbs_id
-      // This is likely a design issue in the API, but we need to work with it
-      const { data, error } = await supabase.rpc('filter_maps', {
-        _filters: { wbs_id: wbsId }
-      });
-
-      if (error) {
-        console.error('Error fetching maps:', error);
-        setMapList([]);
-        return;
-      }
-
-      if (Array.isArray(data)) {
-        // Filter maps to only show ones related to the selected WBS
-        const filteredMaps = data.filter(map => map.wbs_id === wbsId);
-        setMapList(filteredMaps.map((map) => ({
-          id: map.id,
-          name: map.name
-        })));
-      } else {
-        setMapList([]);
-      }
-    } catch (err) {
-      console.error('Unexpected error in fetchMaps:', err);
-      setMapList([]);
-    }
-  }
-
-  // Fetch line items for a map
-  async function fetchLineItems(mapId: string) {
-    try {
-      const data = await rpcClient.filter_line_items({
-        _filters: { map_id: mapId }
-      });
-
-      if (Array.isArray(data) && data.length > 0) {
-        setLineItems(data.map(li => ({
-          id: li.id,
-          name: li.description || li.name || 'Unnamed Line Item'
-        })));
-      } else {
-        setLineItems([]);
-      }
-    } catch (err) {
-      console.error('Error in fetchLineItems:', err);
-      setLineItems([]);
-    }
-  }
-
-  // Fetch inspections using RPC
-  async function fetchInspections() {
-    try {
-      const data = await rpcClient.filter_inspections({
-        _filters: {}
-      });
-
-      const normalized: Inspection[] = Array.isArray(data)
-        ? data.map(insp => ({
-          id: insp.id,
-          name: insp.name,
-          description: insp.notes ?? null,
-          contract_id: insp.project_id ?? '',
-          wbs_id: null,
-          map_id: null,
-          line_item_id: null,
-          pdf_url: null,
-          photo_urls: null,
+        return {
+          id: typeof insp.id === 'string' ? insp.id : undefined,
+          name: typeof insp.name === 'string' ? insp.name : 'Inspection',
+          description: typeof insp.notes === 'string' ? insp.notes : null,
+          contract_id: typeof insp.project_id === 'string' ? insp.project_id : '',
+          wbs_id: typeof result.wbs_id === 'string' ? result.wbs_id : null,
+          map_id: typeof result.map_id === 'string' ? result.map_id : null,
+          line_item_id: typeof result.line_item_id === 'string' ? result.line_item_id : null,
+          pdf_url: typeof result.pdf_url === 'string' ? result.pdf_url : null,
+          photo_urls: photoUrls.length > 0 ? photoUrls : null,
           created_by: null,
           updated_by: null,
-          created_at: insp.created_at ?? null,
-          updated_at: insp.updated_at ?? null
-        }))
-        : [];
+          created_at: typeof insp.created_at === 'string' ? insp.created_at : null,
+          updated_at: typeof insp.updated_at === 'string' ? insp.updated_at : null,
+        };
+      });
+
       setInspections(normalized);
     } catch (err) {
-      console.error('Unexpected error in fetchInspections:', err);
+      console.error('Unexpected error loading inspections payload:', err);
     }
   }
+
+  // Initial load + refresh payload when selections change
+  useEffect(() => {
+    void loadPayload();
+  }, [newInspection.contract_id, newInspection.wbs_id, newInspection.map_id]);
 
   // Upload file (PDF or image) to Supabase Storage and return public URL
   async function uploadFile(file: File, folder: string): Promise<string | null> {
@@ -301,17 +222,47 @@ export default function Inspections() {
         }
       };
 
-      if (typeof editingId === 'string' && editingId.length > 0) {
-        // Use correct backend function for updating inspection
-        await rpcClient.update_inspections({
+      const savedRows = typeof editingId === 'string' && editingId.length > 0
+        ? await rpcClient.update_inspections({
           _id: editingId,
           _input: input
-        });
-      } else {
-        // Use correct backend function for inserting inspection
-        await rpcClient.insert_inspections({
+        })
+        : await rpcClient.insert_inspections({
           _input: input
         });
+
+      // Use returned row to update inspections without refetching the full payload.
+      const savedRow = Array.isArray(savedRows) && savedRows.length > 0 ? savedRows[0] : null;
+      if (savedRow) {
+        const result = extractResult(savedRow.result);
+        const photoUrls = Array.isArray(result.photo_urls)
+          ? result.photo_urls.filter((url) => typeof url === 'string')
+          : [];
+
+        const normalized: Inspection = {
+          id: typeof savedRow.id === 'string' ? savedRow.id : undefined,
+          name: typeof savedRow.name === 'string' ? savedRow.name : newInspection.name,
+          description: typeof savedRow.notes === 'string' ? savedRow.notes : (newInspection.description || null),
+          contract_id: typeof savedRow.project_id === 'string' ? savedRow.project_id : newInspection.contract_id,
+          wbs_id: typeof result.wbs_id === 'string' ? result.wbs_id : (newInspection.wbs_id || null),
+          map_id: typeof result.map_id === 'string' ? result.map_id : (newInspection.map_id || null),
+          line_item_id: typeof result.line_item_id === 'string' ? result.line_item_id : (newInspection.line_item_id || null),
+          pdf_url: typeof result.pdf_url === 'string' ? result.pdf_url : pdfUrl,
+          photo_urls: photoUrls.length > 0 ? photoUrls : null,
+          created_by: null,
+          updated_by: null,
+          created_at: typeof savedRow.created_at === 'string' ? savedRow.created_at : null,
+          updated_at: typeof savedRow.updated_at === 'string' ? savedRow.updated_at : null,
+        };
+
+        setInspections((prev) => {
+          if (typeof editingId === 'string' && editingId.length > 0) {
+            return prev.map((item) => (item.id === normalized.id ? normalized : item));
+          }
+          return [normalized, ...prev];
+        });
+      } else {
+        void loadPayload();
       }
 
       setCreating(false);
@@ -327,7 +278,6 @@ export default function Inspections() {
       });
       setPdfFile(null);
       setPhotoFiles(null);
-      void fetchInspections();
     } catch (err) {
       console.error('Unexpected error in handleSave:', err);
       alert('Error saving inspection');

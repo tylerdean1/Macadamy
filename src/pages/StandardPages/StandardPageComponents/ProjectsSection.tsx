@@ -20,11 +20,11 @@ import { toast } from 'sonner';
 /* ---------- props ---------- */
 // Define a type for a contract (customize as needed)
 // This interface should match the structure of the objects returned by
-// the `filteredProjects` mapping in `useProjectsData.ts`
+// the dashboard payload mapping.
 interface ProjectsSectionProps {
-  filteredProjects: ContractWithWktRow[]; // Data now comes from useProjectsData via Dashboard
-  searchQuery: string; // State managed by useProjectsData
-  onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void; // Handler from useProjectsData
+  filteredProjects: ContractWithWktRow[]; // Data comes from the dashboard payload
+  searchQuery: string; // State managed by the parent dashboard
+  onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void; // Handler from the parent dashboard
 }
 
 export function ProjectsSection({
@@ -34,10 +34,7 @@ export function ProjectsSection({
 }: ProjectsSectionProps): JSX.Element {
   const navigate = useNavigate();
 
-  // Remove local state for projects, searchQuery, and related useEffects/handlers
-  // as these are now managed by the useProjectsData hook and passed as props.
-
-  // The `filteredProjects` prop is already filtered and mapped by `useProjectsData`
+  // The `filteredProjects` prop is already filtered and mapped by the parent.
   const projectsToDisplay = filteredProjects;
 
   if (!projectsToDisplay.length && !searchQuery) { // Adjusted condition for empty state

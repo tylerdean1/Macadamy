@@ -3,7 +3,6 @@ import { persist } from "zustand/middleware";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { rpcClient } from "@/lib/rpc.client";
-import { supabase } from "@/lib/supabase";
 import type { UserRoleType } from "@/lib/types";
 
 // Types - using imported types from types.ts for consistency
@@ -30,19 +29,8 @@ export interface EnrichedProfile {
 async function resolveAvatarUrl(avatarId: string | null): Promise<string | null> {
   if (!avatarId) return null;
   try {
-    const rpc = supabase.rpc as unknown as (
-      this: typeof supabase,
-      name: string,
-      params?: Record<string, unknown>
-    ) => Promise<{ data: { url?: string | null } | null; error: unknown | null }>;
-
-    const { data, error } = await rpc.call(supabase, 'get_avatar_by_id_public', {
-      p_avatar_id: avatarId
-    });
-    if (error) {
-      throw error;
-    }
-    return data?.url ?? null;
+    const data = await rpcClient.get_avatar_by_id_public({ p_avatar_id: avatarId });
+    return typeof data?.url === 'string' ? data.url : null;
   } catch (error) {
     console.error("Error resolving avatar URL:", error);
     return null;

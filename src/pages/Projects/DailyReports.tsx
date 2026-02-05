@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'; // Import React and hooks
 import { useParams, useNavigate } from 'react-router-dom'; // Import hooks for routing
 import { ArrowLeft, Plus, Save } from 'lucide-react'; // Import action icons
-import { supabase } from '@/lib/supabase'; // Import Supabase client for interacting with the database
+import { rpcClient } from '@/lib/rpc.client'; // Import RPC client for interacting with the database
 import type { Database } from '@/lib/database.types';
 import { useAuthStore } from '@/lib/store'; // Import auth state management
 
@@ -52,13 +52,7 @@ export default function DailyReports() {
     async function fetchData() {
       if (typeof contract_id !== 'string' || contract_id.length === 0) return;
       try {
-        // Query daily_logs table directly since the structure doesn't match the custom RPC
-        const { data, error } = await supabase
-          .from('daily_logs')
-          .select('*')
-          .eq('project_id', contract_id);
-
-        if (error) throw error;
+        const data = await rpcClient.filter_daily_logs({ _filters: { project_id: contract_id } });
 
         // Map database fields to our interface
         const mappedLogs: DailyLog[] = Array.isArray(data)
@@ -118,16 +112,10 @@ export default function DailyReports() {
       if (typeof contract_id !== 'string' || contract_id.length === 0) return;
 
       try {
-        // Query projects table instead of contracts table
-        const { data, error } = await supabase
-          .from('projects')
-          .select('status')
-          .eq('id', contract_id)
-          .single();
-
-        if (error) throw error;
-        if (data && typeof data.status === 'string') {
-          setContractStatus(data.status);
+        const rows = await rpcClient.filter_projects({ _filters: { id: contract_id }, _limit: 1 });
+        const first = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+        if (first && typeof first.status === 'string') {
+          setContractStatus(first.status);
         }
       } catch (err) {
         console.error('Error fetching contract status:', err);
@@ -143,12 +131,7 @@ export default function DailyReports() {
   async function fetchData() {
     if (typeof contract_id !== 'string' || contract_id.length === 0) return;
     try {
-      const { data, error } = await supabase
-        .from('daily_logs')
-        .select('*')
-        .eq('project_id', contract_id);
-
-      if (error) throw error;
+      const data = await rpcClient.filter_daily_logs({ _filters: { project_id: contract_id } });
 
       const mappedLogs: DailyLog[] = Array.isArray(data)
         ? data.map((log) => {
@@ -201,16 +184,14 @@ export default function DailyReports() {
       };
 
       // Update daily_logs table directly
-      const { error } = await supabase
-        .from('daily_logs')
-        .update({
+      await rpcClient.update_daily_logs({
+        _id: currentLog.id,
+        _input: {
           weather: weatherData,
           notes: currentLog.notes,
           updated_at: new Date().toISOString(),
-        })
-        .eq('id', currentLog.id);
-
-      if (error) throw error;
+        }
+      });
       setEditing(false);
       void fetchData();
     } catch (err) {

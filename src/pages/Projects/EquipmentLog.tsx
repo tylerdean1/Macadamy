@@ -26,10 +26,15 @@ interface EquipmentItem {
   description: string;
 }
 
+interface EquipmentLogPayload {
+  logs: Array<Record<string, unknown>>;
+  equipment: Array<Record<string, unknown>>;
+  operators: Array<Record<string, unknown>>;
+}
+
 export default function EquipmentLog() {
-  const { user, profile } = useAuthStore(state => ({
+  const { user } = useAuthStore(state => ({
     user: state.user,
-    profile: state.profile,
   }));
 
   const [logs, setLogs] = useState<EquipmentUsage[]>([]);
@@ -54,69 +59,61 @@ export default function EquipmentLog() {
     notes: '',
   });
 
-  const fetchLogs = useCallback(async () => {
+  const loadPayload = useCallback(async () => {
     try {
-      const data = await rpcClient.filter_equipment_usage({ _filters: {} });
-      const processedData: EquipmentUsage[] = Array.isArray(data)
-        ? data.map(log => ({
-          id: log.id,
-          equipment_id: log.equipment_id ?? '',
-          usage_date: log.date,
-          hours_used: typeof log.hours_used === 'number' ? log.hours_used : 0,
-          operator_id: null,
-          operator_name: null,
-          notes: log.notes ?? ''
-        }))
-        : [];
-      setLogs(processedData);
+      const raw = await rpcClient.rpc_equipment_log_payload();
+      const payload = raw && typeof raw === 'object' && !Array.isArray(raw)
+        ? (raw as unknown as EquipmentLogPayload)
+        : null;
+
+      const logsRaw = payload?.logs ?? [];
+      const equipmentRaw = payload?.equipment ?? [];
+      const operatorsRaw = payload?.operators ?? [];
+
+      const processedLogs: EquipmentUsage[] = logsRaw.map((log) => ({
+        id: typeof log.id === 'string' ? log.id : undefined,
+        equipment_id: typeof log.equipment_id === 'string' ? log.equipment_id : '',
+        usage_date: typeof log.usage_date === 'string' ? log.usage_date : new Date().toISOString().split('T')[0],
+        hours_used: typeof log.hours_used === 'number' ? log.hours_used : 0,
+        operator_id: null,
+        operator_name: null,
+        notes: typeof log.notes === 'string' ? log.notes : ''
+      }));
+
+      const normalizedEquipment: EquipmentItem[] = equipmentRaw.map((item) => ({
+        id: typeof item.id === 'string' ? item.id : '',
+        user_defined_id: typeof item.serial_number === 'string' && item.serial_number.length > 0
+          ? item.serial_number
+          : (typeof item.id === 'string' ? item.id : ''),
+        name: typeof item.name === 'string' ? item.name : 'Unnamed',
+        description: typeof item.model === 'string' ? item.model : ''
+      })).filter((item) => item.id !== '');
+
+      const normalizedOperators: Operator[] = operatorsRaw.map((profile) => ({
+        id: typeof profile.id === 'string' ? profile.id : '',
+        full_name: typeof profile.full_name === 'string' ? profile.full_name : 'Unknown'
+      })).filter((op) => op.id !== '');
+
+      setLogs(processedLogs);
+      setEquipmentList(normalizedEquipment);
+      setOperators(normalizedOperators);
     } catch (error) {
-      console.error('Error fetching logs:', error);
+      console.error('Error loading equipment log payload:', error);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const fetchOperators = useCallback(async () => {
-    const orgReady = Boolean(profile?.organization_id) && Boolean(profile?.profile_completed_at);
-    if (!orgReady) {
-      setOperators([]);
-      return;
-    }
-    const data = await rpcClient.get_my_org_profiles_minimal();
-    if (Array.isArray(data)) {
-      const operators: Operator[] = data.map(profile => ({
-        id: profile.id,
-        full_name: profile.full_name || 'Unknown'
-      }));
-      setOperators(operators);
-    }
-  }, [profile?.organization_id, profile?.profile_completed_at]);
-
-  const fetchEquipment = useCallback(async () => {
-    const data = await rpcClient.filter_equipment({ _filters: {} });
-    if (Array.isArray(data)) {
-      const normalized: EquipmentItem[] = data.map(item => ({
-        id: item.id,
-        user_defined_id: item.serial_number ?? item.id,
-        name: item.name,
-        description: item.model ?? ''
-      }));
-      setEquipmentList(normalized);
-    }
-  }, []);
-
   useEffect(() => {
-    void fetchLogs();
-    void fetchOperators();
-    void fetchEquipment();
-  }, [fetchLogs, fetchOperators, fetchEquipment]);
+    void loadPayload();
+  }, [loadPayload]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     try {
-      await rpcClient.insert_equipment_usage({
+      const createdLogs = await rpcClient.insert_equipment_usage({
         _input: {
           equipment_id: newLog.equipment_id,
           date: newLog.usage_date,
@@ -125,8 +122,28 @@ export default function EquipmentLog() {
         }
       });
 
+      // Use returned row to update UI without a full refetch.
+      const created = Array.isArray(createdLogs) && createdLogs.length > 0
+        ? createdLogs[0]
+        : null;
+
+      if (created) {
+        const operatorName = operators.find((op) => op.id === newLog.operator_id)?.full_name ?? null;
+        setLogs((prev) => ([
+          {
+            id: typeof created.id === 'string' ? created.id : undefined,
+            equipment_id: typeof created.equipment_id === 'string' ? created.equipment_id : newLog.equipment_id,
+            usage_date: typeof created.date === 'string' ? created.date : newLog.usage_date,
+            hours_used: typeof created.hours_used === 'number' ? created.hours_used : newLog.hours_used,
+            operator_id: newLog.operator_id ?? null,
+            operator_name: operatorName,
+            notes: typeof created.notes === 'string' ? created.notes : newLog.notes,
+          },
+          ...prev,
+        ]));
+      }
+
       setIsCreating(false);
-      void fetchLogs();
       setNewLog({
         equipment_id: '',
         usage_date: new Date().toISOString().split('T')[0],
@@ -144,16 +161,33 @@ export default function EquipmentLog() {
   const handleAddEquipment = async () => {
     if (!user) return;
     try {
-      await rpcClient.insert_equipment({
+      const createdEquipment = await rpcClient.insert_equipment({
         _input: {
           name: newEquipment.name,
           serial_number: newEquipment.user_defined_id || null,
           model: newEquipment.description || null
         }
       });
+      // Use returned row to update equipment list without refetching.
+      const created = Array.isArray(createdEquipment) && createdEquipment.length > 0
+        ? createdEquipment[0]
+        : null;
+
+      if (created) {
+        setEquipmentList((prev) => ([
+          {
+            id: typeof created.id === 'string' ? created.id : '',
+            user_defined_id: typeof created.serial_number === 'string' && created.serial_number.length > 0
+              ? created.serial_number
+              : (typeof created.id === 'string' ? created.id : ''),
+            name: typeof created.name === 'string' ? created.name : 'Unnamed',
+            description: typeof created.model === 'string' ? created.model : '',
+          },
+          ...prev,
+        ].filter((item) => item.id !== '')));
+      }
       setShowAddEquipment(false);
       setNewEquipment({ user_defined_id: '', name: '', description: '' });
-      void fetchEquipment();
     } catch (error) {
       alert('Error adding equipment');
       console.error('Error adding equipment:', error);

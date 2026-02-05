@@ -9,12 +9,11 @@ import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { ContractStatusSelect } from './SharedComponents/ContractStatusSelect';
 import { useAuthStore } from '@/lib/store';
 import { rpcClient } from '@/lib/rpc.client';
-import { warnMissingRpc } from '@/lib/rpc.missing';
 import type { ContractWithWktRow, ProfilesByContractRow } from '@/lib/rpc.types';
 import type { Database } from '@/lib/database.types';
 
 type ContractStatus = Database['public']['Enums']['project_status'];
-type UserRole = Database['public']['Enums']['user_role_type'];
+type ContractRole = string;
 
 export default function ContractSettings() {
   const { contractId } = useParams<{ contractId: string }>();
@@ -28,7 +27,6 @@ export default function ContractSettings() {
   const [teamMembers, setTeamMembers] = useState<ProfilesByContractRow[]>([]);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-  const [isMissingRpc, setIsMissingRpc] = useState(false);
 
   // Fetch contract data
   useEffect(() => {
@@ -36,13 +34,18 @@ export default function ContractSettings() {
       if (typeof contractId !== 'string' || contractId.length === 0) return;
       setIsLoading(true);
       try {
-        // Get contract data
-        // TODO: Restore with get_contract_with_wkt and get_profiles_by_contract RPCs when available.
-        warnMissingRpc('getContractWithWkt');
-        warnMissingRpc('getProfilesByContract');
-        setIsMissingRpc(true);
-        setTeamMembers([]);
-        return;
+        const contractRows = await rpcClient.get_contract_with_wkt({ p_contract_id: contractId });
+        const currentContract = Array.isArray(contractRows) ? contractRows[0] : null;
+        if (!currentContract) {
+          setContract(null);
+          setTeamMembers([]);
+          return;
+        }
+
+        const members = await rpcClient.get_profiles_by_contract({ p_contract_id: contractId });
+        setContract(currentContract as ContractWithWktRow);
+        setSelectedStatus(currentContract.status ?? 'planned');
+        setTeamMembers(Array.isArray(members) ? members : []);
       } catch (error) {
         console.error('Error fetching contract data:', error);
         toast.error('Failed to load contract data');
@@ -76,11 +79,12 @@ export default function ContractSettings() {
   const handleRemoveTeamMember = async (userId: string) => {
     if (typeof contractId !== 'string' || contractId.length === 0) return;
     try {
-      void userId;
-      // TODO: Replace with remove_profile_from_contract RPC when available.
-      warnMissingRpc('removeProfileFromContract');
-      toast.error('Remove team member is disabled (missing RPC).');
-      return;
+      await rpcClient.remove_profile_from_contract({
+        p_contract_id: contractId,
+        p_profile_id: userId,
+      });
+      setTeamMembers((prev) => prev.filter((member) => member.id !== userId));
+      toast.success('Team member removed');
     } catch (error) {
       console.error('Error removing team member:', error);
       toast.error('Failed to remove team member');
@@ -88,15 +92,18 @@ export default function ContractSettings() {
   };
 
   // Update team member role
-  const handleUpdateTeamMemberRole = async (userId: string, role: UserRole) => {
+  const handleUpdateTeamMemberRole = async (userId: string, role: ContractRole) => {
     if (typeof contractId !== 'string' || contractId.length === 0) return;
     try {
-      void userId;
-      void role;
-      // TODO: Replace with update_profile_contract_role RPC when available.
-      warnMissingRpc('updateProfileContractRole');
-      toast.error('Role update is disabled (missing RPC).');
-      return;
+      await rpcClient.update_profile_contract_role({
+        p_contract_id: contractId,
+        p_profile_id: userId,
+        p_role: role,
+      });
+      setTeamMembers((prev) => prev.map((member) => (
+        member.id === userId ? { ...member, contract_role: role } : member
+      )));
+      toast.success('Role updated');
     } catch (error) {
       console.error('Error updating team member role:', error);
       toast.error('Failed to update role');
@@ -120,30 +127,6 @@ export default function ContractSettings() {
   // Fix: Add null checks before accessing contract properties
   const contractTitle = contract?.title ?? '';
 
-  if (isMissingRpc) {
-    return (
-      <Page>
-        <div className="max-w-5xl mx-auto px-4 py-8">
-          <div className="mb-6 flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Contract Settings</h1>
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/contract/${contractId}`)}
-            >
-              Back to Dashboard
-            </Button>
-          </div>
-          <Card className="p-6 border border-yellow-700 bg-yellow-500/10">
-            <h2 className="text-xl font-semibold mb-2">Contract Settings unavailable (missing RPCs)</h2>
-            <p className="text-sm text-gray-300">
-              This screen depends on backend RPCs that are not present in the current schema.
-              Actions are disabled until those RPCs are restored.
-            </p>
-          </Card>
-        </div>
-      </Page>
-    );
-  }
 
   if (!isLoading && !contract) {
     return (
@@ -153,7 +136,7 @@ export default function ContractSettings() {
             <h1 className="text-2xl font-bold">Contract Settings</h1>
             <Button
               variant="outline"
-              onClick={() => navigate(`/contract/${contractId}`)}
+              onClick={() => navigate(`/projects/${contractId}`)}
             >
               Back to Dashboard
             </Button>
@@ -176,7 +159,7 @@ export default function ContractSettings() {
           <h1 className="text-2xl font-bold">Contract Settings</h1>
           <Button
             variant="outline"
-            onClick={() => navigate(`/contract/${contractId}`)}
+            onClick={() => navigate(`/projects/${contractId}`)}
           >
             Back to Dashboard
           </Button>
@@ -240,13 +223,14 @@ export default function ContractSettings() {
                             <td className="px-4 py-3 text-gray-300">{member.email}</td>
                             <td className="px-4 py-3">
                               <select
-                                value={member.role ?? ''}
-                                onChange={(e) => { void handleUpdateTeamMemberRole(member.id, e.target.value as UserRole); }}
+                                value={member.contract_role ?? ''}
+                                onChange={(e) => { void handleUpdateTeamMemberRole(member.id, e.target.value); }}
                                 className="bg-gray-700 text-white border-0 rounded-md px-3 py-1.5 text-sm"
                                 disabled={member.id === profile?.id}
                                 title="Select option"
                               >
                                 <option value="">Unassigned</option>
+                                <option value="project_manager">Project Manager</option>
                                 <option value="admin">Admin</option>
                                 <option value="member">Member</option>
                                 <option value="viewer">Viewer</option>

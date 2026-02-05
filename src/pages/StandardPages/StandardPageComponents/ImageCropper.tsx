@@ -100,6 +100,11 @@ const ImageCropper = ({
     setZoom(newZoom); // Update zoom level
   }, []);
 
+  const handleWheelZoom = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
+    const delta = event.deltaY > 0 ? -0.05 : 0.05;
+    setZoom((prev) => Math.min(3, Math.max(1, prev + delta)));
+  }, []);
+
   const onCropAreaChange = useCallback(
     (_: unknown, croppedAreaPixels: Area) => {
       setCroppedAreaPixels(croppedAreaPixels); // Store the cropped area size
@@ -127,8 +132,25 @@ const ImageCropper = ({
   return (
     <div className="relative h-80 w-full"> {/* Container for the cropper */}
       {/* Removed duplicate aria-label from this outer div */}
-      <div className="relative h-full w-full">
-        <div className="relative h-64 w-full rounded-lg overflow-hidden bg-gray-800" aria-label="Image Cropper Area">
+      <div className="flex h-full w-full gap-3">
+        <div className="flex h-64 w-8 items-center justify-center">
+          <input
+            type="range"
+            min={1}
+            max={3}
+            step={0.1}
+            value={zoom}
+            onChange={(event) => setZoom(Number(event.target.value))}
+            className="h-64 w-2 accent-primary"
+            aria-label="Zoom Level"
+            style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
+          />
+        </div>
+        <div
+          className="relative h-64 flex-1 rounded-lg overflow-hidden bg-gray-800"
+          aria-label="Image Cropper Area"
+          onWheel={handleWheelZoom}
+        >
           <Cropper
             image={imageSrc} // Source image for cropping
             crop={crop} // Current crop state
@@ -140,33 +162,19 @@ const ImageCropper = ({
             cropShape={cropShape} // Crop shape (round or rectangular)
             showGrid={false} // Option to show grid overlay
           />
+          <div className="absolute bottom-3 right-4">
+            <Button
+              type="button"
+              onClick={() => { void handleCropComplete(); }} // Trigger the crop and upload
+              className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
+              aria-label="Complete Crop"
+            >
+              Save crop
+            </Button>
+          </div>
         </div>
       </div>
-      <div className="mt-4">
-        <div className="flex items-center justify-between mb-2">
-          <label htmlFor="zoom-slider" className="text-sm text-gray-600">Zoom</label>
-          <input
-            id="zoom-slider"
-            type="range"
-            min={1}
-            max={3}
-            step={0.1}
-            value={zoom}
-            onChange={(event) => setZoom(Number(event.target.value))}
-            className="w-full accent-primary"
-            aria-label="Zoom Level"
-          />
-
-        </div>
-      </div>
-      <Button
-        type="button"
-        onClick={() => { void handleCropComplete(); }} // Trigger the crop and upload
-        className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
-        aria-label="Complete Crop"
-      >
-        Crop & Save
-      </Button>
+      <div className="mt-2 text-xs text-gray-400">Scroll to zoom</div>
     </div>
   );
 };

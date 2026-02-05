@@ -176,7 +176,9 @@ export default function OrganizationDashboard(): JSX.Element {
     setEditError(null);
     setLogoImageSrc(null);
     if (pendingLogoPreviewUrl) {
-      URL.revokeObjectURL(pendingLogoPreviewUrl);
+      setTimeout(() => {
+        URL.revokeObjectURL(pendingLogoPreviewUrl);
+      }, 0);
     }
     setPendingLogoPreviewUrl(null);
     setPendingLogoBlob(null);
@@ -187,7 +189,7 @@ export default function OrganizationDashboard(): JSX.Element {
       headquarters: safePayload.organization.headquarters ?? '',
       logo_url: safePayload.organization.logo_url ?? '',
     });
-  }, [isEditOpen, pendingLogoPreviewUrl, safePayload.organization]);
+  }, [isEditOpen, safePayload.organization]);
 
   const loadDashboard = useCallback(async () => {
     if (!profile?.organization_id) {
@@ -276,21 +278,77 @@ export default function OrganizationDashboard(): JSX.Element {
       return;
     }
 
-    if (!formState.name.trim()) {
+    const withTimeout = async <T,>(promise: Promise<T>, label: string, timeoutMs = 15000): Promise<T> => {
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error(`${label} timed out. Please retry.`));
+        }, timeoutMs);
+      });
+
+      try {
+        return await Promise.race([promise, timeoutPromise]);
+      } finally {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      }
+    };
+
+    const normalizeOptionalText = (value: string): string | null => {
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    };
+
+    const nextName = formState.name.trim();
+    if (!nextName) {
       setEditError('Organization name is required.');
+      return;
+    }
+
+    const original = safePayload.organization;
+    const originalName = original.name.trim();
+    const originalDescription = original.description?.trim() ?? null;
+    const originalMission = original.mission_statement?.trim() ?? null;
+    const originalHeadquarters = original.headquarters?.trim() ?? null;
+    const originalLogoUrl = original.logo_url ?? null;
+    const nextDescription = normalizeOptionalText(formState.description);
+    const nextMission = normalizeOptionalText(formState.mission_statement);
+    const nextHeadquarters = normalizeOptionalText(formState.headquarters);
+    const nextLogoUrl = normalizeOptionalText(formState.logo_url);
+
+    const updates: Record<string, string | null> = {};
+    if (nextName !== originalName) {
+      updates.name = nextName;
+    }
+    if (nextDescription !== originalDescription) {
+      updates.description = nextDescription;
+    }
+    if (nextMission !== originalMission) {
+      updates.mission_statement = nextMission;
+    }
+    if (nextHeadquarters !== originalHeadquarters) {
+      updates.headquarters = nextHeadquarters;
+    }
+    if (!pendingLogoBlob && nextLogoUrl !== originalLogoUrl) {
+      updates.logo_url = nextLogoUrl;
+    }
+
+    if (!pendingLogoBlob && Object.keys(updates).length === 0) {
+      setIsEditOpen(false);
       return;
     }
 
     setIsSaving(true);
     setEditError(null);
+    console.debug('[OrganizationDashboard] Saving organization updates', updates);
 
     try {
-      let nextLogoUrl = formState.logo_url.trim() || null;
       if (pendingLogoBlob) {
         setIsUploadingLogo(true);
         try {
-          const uploadedUrl = await uploadLogoBlob(pendingLogoBlob);
-          nextLogoUrl = uploadedUrl;
+          const uploadedUrl = await withTimeout(uploadLogoBlob(pendingLogoBlob), 'Logo upload');
+          updates.logo_url = uploadedUrl;
           setFormState((prev) => ({ ...prev, logo_url: uploadedUrl }));
           if (pendingLogoPreviewUrl) {
             URL.revokeObjectURL(pendingLogoPreviewUrl);
@@ -302,18 +360,9 @@ export default function OrganizationDashboard(): JSX.Element {
         }
       }
 
-      const updates = {
-        name: formState.name.trim(),
-        description: formState.description.trim() || null,
-        mission_statement: formState.mission_statement.trim() || null,
-        headquarters: formState.headquarters.trim() || null,
-        logo_url: nextLogoUrl,
-      };
-
-      const rows = await rpcClient.update_organizations({
-        _id: safePayload.organization.id,
+      const rows = await withTimeout(rpcClient.update_my_organization({
         _input: updates,
-      });
+      }), 'Saving organization');
 
       const updated = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
       if (!updated) {
@@ -343,12 +392,14 @@ export default function OrganizationDashboard(): JSX.Element {
     } finally {
       setIsSaving(false);
     }
-  }, [formState, pendingLogoBlob, pendingLogoPreviewUrl, safePayload.organization.id, uploadLogoBlob]);
+  }, [formState, pendingLogoBlob, pendingLogoPreviewUrl, safePayload.organization, uploadLogoBlob]);
 
   const handleLogoFileSelected = useCallback((file: File): void => {
     setEditError(null);
     if (pendingLogoPreviewUrl) {
-      URL.revokeObjectURL(pendingLogoPreviewUrl);
+      setTimeout(() => {
+        URL.revokeObjectURL(pendingLogoPreviewUrl);
+      }, 0);
       setPendingLogoPreviewUrl(null);
     }
     setPendingLogoBlob(null);
@@ -363,10 +414,13 @@ export default function OrganizationDashboard(): JSX.Element {
 
   const handleLogoCropped = useCallback(async (blob: Blob): Promise<void> => {
     setEditError(null);
+    const previousUrl = pendingLogoPreviewUrl;
     setPendingLogoBlob(blob);
     const previewUrl = URL.createObjectURL(blob);
-    if (pendingLogoPreviewUrl) {
-      URL.revokeObjectURL(pendingLogoPreviewUrl);
+    if (previousUrl && previousUrl !== previewUrl) {
+      setTimeout(() => {
+        URL.revokeObjectURL(previousUrl);
+      }, 0);
     }
     setPendingLogoPreviewUrl(previewUrl);
     setLogoImageSrc(null);
@@ -664,7 +718,9 @@ export default function OrganizationDashboard(): JSX.Element {
                           size="sm"
                           onClick={() => {
                             if (pendingLogoPreviewUrl) {
-                              URL.revokeObjectURL(pendingLogoPreviewUrl);
+                              setTimeout(() => {
+                                URL.revokeObjectURL(pendingLogoPreviewUrl);
+                              }, 0);
                             }
                             setPendingLogoPreviewUrl(null);
                             setPendingLogoBlob(null);
@@ -686,10 +742,10 @@ export default function OrganizationDashboard(): JSX.Element {
                         imageSrc={logoImageSrc}
                         onCropComplete={(blob) => { void handleLogoCropped(blob); }}
                         aspectRatio={1}
-                        cropShape="rect"
+                        cropShape="round"
                         compressionOptions={{
                           mimeType: 'image/jpeg',
-                          quality: 0.8,
+                          quality: 0.92,
                           maxWidth: 512,
                           maxHeight: 512,
                         }}
@@ -731,9 +787,11 @@ export default function OrganizationDashboard(): JSX.Element {
                 <Button variant="outline" size="sm" onClick={() => setIsEditOpen(false)} disabled={isSaving || isUploadingLogo}>
                   Cancel
                 </Button>
-                <Button size="sm" onClick={() => { void saveOrganization(); }} isLoading={isSaving} disabled={isUploadingLogo}>
-                  Save changes
-                </Button>
+                {editStep === 2 && (
+                  <Button size="sm" onClick={() => { void saveOrganization(); }} isLoading={isSaving} disabled={isUploadingLogo}>
+                    Save changes
+                  </Button>
+                )}
               </div>
             </div>
           </DialogFooter>

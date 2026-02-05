@@ -28,22 +28,24 @@ export function useOrganizationsData(): {
     setLoading(true);
     setError(null);
     try {
-      const data = await rpcClient.get_organizations_public({ p_query: '' });
-      const matched = Array.isArray(data)
-        ? data.filter((org) => org.id === organizationId)
-        : [];
-      const normalized = matched.map((org) => ({
-        id: org.id,
-        name: org.name,
-        description: null,
-        mission_statement: null,
-        headquarters: null,
-        logo_url: null,
-        created_at: null,
-        updated_at: '',
+      const raw = await rpcClient.get_organization_by_id({ p_organization_id: organizationId });
+      const data = raw && typeof raw === 'object' ? raw as Record<string, unknown> : null;
+      if (!data) {
+        setOrganizations([]);
+        return;
+      }
+      const normalized: OrganizationsRow = {
+        id: typeof data.id === 'string' ? data.id : organizationId,
+        name: typeof data.name === 'string' ? data.name : '',
+        description: typeof data.description === 'string' ? data.description : null,
+        mission_statement: typeof data.mission_statement === 'string' ? data.mission_statement : null,
+        headquarters: typeof data.headquarters === 'string' ? data.headquarters : null,
+        logo_url: typeof data.logo_url === 'string' ? data.logo_url : null,
+        created_at: typeof data.created_at === 'string' ? data.created_at : null,
+        updated_at: typeof data.updated_at === 'string' ? data.updated_at : '',
         deleted_at: null,
-      }));
-      setOrganizations(normalized);
+      };
+      setOrganizations([normalized]);
     } catch (err) {
       console.error('Error loading organizations:', err);
       setError('Failed to load organizations.');

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Page } from '@/components/Layout';
-import { supabase } from '@/lib/supabase';
+import { rpcClient } from '@/lib/rpc.client';
 import type { Database } from '@/lib/database.types';
 
 type AccountsPayableRow = Database['public']['Tables']['accounts_payable']['Row'];
@@ -11,14 +11,11 @@ export default function AccountsPayable() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data, error } = await supabase
-        .from('accounts_payable')
-        .select('*')
-        .returns<AccountsPayableRow[]>();
-      if (error) {
+      try {
+        const data = await rpcClient.filter_accounts_payable({ _filters: {} });
+        setRows(Array.isArray(data) ? data : []);
+      } catch (error) {
         console.error('Error fetching accounts payable', error);
-      } else {
-        setRows(data);
       }
       setLoading(false);
     };

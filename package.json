@@ -14,8 +14,10 @@
     "preview": "vite preview",
     "typegen": "node scripts/typegen.cjs && node scripts/gen-rpc-definitions.mjs",
     "gen:rpc": "node scripts/gen-rpc-definitions.mjs",
+    "gen:policies": "node scripts/gen-policies.mjs",
+    "rpcmap": "node scripts/gen-rpc-map.mjs",
     "backend-snapshot": "node scripts/backend-snapshot.js",
-    "fulldb": "npm run typegen && npm run backend-snapshot",
+    "fulldb": "npm run typegen && npm run backend-snapshot && npm run gen:rpc && npm run gen:policies && npm run rpcmap",
     "funcgen": "node -r dotenv/config -e \"const { execSync } = require('child_process'); const dbUrl = process.env.SUPABASE_DB_URL; if (!dbUrl) { console.error('ERROR: DATABASE_URL not set in .env file.'); process.exit(1); } const cmd = `pg_dump \\\"${dbUrl}\\\" --schema=public --section=pre-data --section=post-data --no-owner --no-privileges --no-tablespaces --no-unlogged-table-data --no-comments --file=src/lib/functions.sql --verbose`; execSync(cmd, { stdio: 'inherit', env: process.env });\"",
     "open-all": "node scripts/open-all-files.js",
     "openall": "npm run open-all",
@@ -25,7 +27,8 @@
     "audit:supabase:perf": "node scripts/supabase_audit.mjs --in audits/supabase --out audits/supabase/supabase_audit.md --only performance --top 20 --format both",
     "audit:supabase:queries": "node scripts/supabase_audit.mjs --in audits/supabase --out audits/supabase/supabase_audit.md --only queries --top 20 --format both",
     "audit:supabase:collect": "node scripts/supabase_collect.mjs",
-    "audit:all": "npm run audit:deps && npm run audit:supabase:collect && npm run audit:supabase"
+    "audit:all": "npm run audit:deps && npm run audit:supabase:collect && npm run audit:supabase",
+    "avatars:purge": "node scripts/purge-orphaned-avatars.mjs"
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^2.0.2",

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Page } from '@/components/Layout';
-import { supabase } from '@/lib/supabase';
+import { rpcClient } from '@/lib/rpc.client';
 import type { Database } from '@/lib/database.types';
 
 type ProjectRow = Database['public']['Tables']['projects']['Row'];
@@ -11,14 +11,11 @@ export default function Projects() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .returns<ProjectRow[]>();
-      if (error) {
+      try {
+        const data = await rpcClient.filter_projects({ _filters: {} });
+        setProjects(Array.isArray(data) ? data : []);
+      } catch (error) {
         console.error('Error fetching projects', error);
-      } else if (data) {
-        setProjects(data);
       }
       setLoading(false);
     };

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Page } from '@/components/Layout';
-import { supabase } from '@/lib/supabase';
+import { rpcClient } from '@/lib/rpc.client';
 import type { Database } from '@/lib/database.types';
 
 type TaskRow = Database['public']['Tables']['tasks']['Row'];
@@ -11,14 +11,11 @@ export default function ScheduleTasks() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .returns<TaskRow[]>();
-      if (error) {
+      try {
+        const data = await rpcClient.filter_tasks({ _filters: {} });
+        setTasks(Array.isArray(data) ? data : []);
+      } catch (error) {
         console.error('Error fetching tasks', error);
-      } else if (data) {
-        setTasks(data);
       }
       setLoading(false);
     };

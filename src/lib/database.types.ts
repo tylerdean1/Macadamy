@@ -11414,10 +11414,32 @@ export type Database = {
         Args: { p_description: string; p_name: string }
         Returns: string
       }
+      create_project_with_owner: {
+        Args: { _input: Json; _role?: string }
+        Returns: {
+          created_at: string | null
+          deleted_at: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          organization_id: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["project_status"] | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "projects"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       delete_accounts_payable: { Args: { _id: string }; Returns: undefined }
       delete_accounts_receivable: { Args: { _id: string }; Returns: undefined }
       delete_activity_logs: { Args: { _id: string }; Returns: undefined }
       delete_asphalt_types: { Args: { _id: string }; Returns: undefined }
+      delete_audit_log: { Args: { _id: string }; Returns: undefined }
       delete_audit_logs: { Args: { _id: string }; Returns: undefined }
       delete_avatars: { Args: { _id: string }; Returns: undefined }
       delete_bid_packages: { Args: { _id: string }; Returns: undefined }
@@ -11474,8 +11496,16 @@ export type Database = {
       delete_materials: { Args: { _id: string }; Returns: undefined }
       delete_meeting_minutes: { Args: { _id: string }; Returns: undefined }
       delete_notifications: { Args: { _id: string }; Returns: undefined }
+      delete_organization_member_rates: {
+        Args: { _id: string }
+        Returns: undefined
+      }
       delete_organization_members: { Args: { _id: string }; Returns: undefined }
       delete_organization_projects: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      delete_organization_service_areas: {
         Args: { _id: string }
         Returns: undefined
       }
@@ -11491,6 +11521,11 @@ export type Database = {
       delete_profiles: { Args: { _id: string }; Returns: undefined }
       delete_progress_billings: { Args: { _id: string }; Returns: undefined }
       delete_project_inspectors: { Args: { _id: string }; Returns: undefined }
+      delete_project_invites: { Args: { _id: string }; Returns: undefined }
+      delete_project_service_areas: {
+        Args: { _id: string }
+        Returns: undefined
+      }
       delete_projects: { Args: { _id: string }; Returns: undefined }
       delete_punch_lists: { Args: { _id: string }; Returns: undefined }
       delete_purchase_orders: { Args: { _id: string }; Returns: undefined }
@@ -11624,6 +11659,33 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "asphalt_types"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      filter_audit_log: {
+        Args: {
+          _direction?: string
+          _filters?: Json
+          _limit?: number
+          _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
+        }
+        Returns: {
+          action: string
+          after_data: Json | null
+          before_data: Json | null
+          changed_at: string | null
+          changed_by: string | null
+          deleted_at: string | null
+          id: string
+          row_id: string | null
+          table_name: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "audit_log"
           isOneToOne: false
           isSetofReturn: true
         }
@@ -12872,6 +12934,32 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      filter_organization_member_rates: {
+        Args: {
+          _direction?: string
+          _filters?: Json
+          _limit?: number
+          _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
+        }
+        Returns: {
+          created_at: string
+          effective_end: string | null
+          effective_start: string
+          id: string
+          membership_id: string
+          rate_amount: number
+          rate_type: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_member_rates"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       filter_organization_members: {
         Args: {
           _direction?: string
@@ -12917,6 +13005,29 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "organization_projects"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      filter_organization_service_areas: {
+        Args: {
+          _direction?: string
+          _filters?: Json
+          _limit?: number
+          _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
+        }
+        Returns: {
+          created_at: string
+          id: string
+          organization_id: string
+          service_area_text: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_service_areas"
           isOneToOne: false
           isSetofReturn: true
         }
@@ -13154,6 +13265,55 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "project_inspectors"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      filter_project_invites: {
+        Args: {
+          _direction?: string
+          _filters?: Json
+          _limit?: number
+          _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
+        }
+        Returns: {
+          comment: string | null
+          created_at: string
+          id: string
+          invited_by_profile_id: string
+          invited_profile_id: string
+          project_id: string
+          responded_at: string | null
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "project_invites"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      filter_project_service_areas: {
+        Args: {
+          _direction?: string
+          _filters?: Json
+          _limit?: number
+          _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
+        }
+        Returns: {
+          created_at: string
+          id: string
+          project_id: string
+          service_area_id: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "project_service_areas"
           isOneToOne: false
           isSetofReturn: true
         }
@@ -13904,6 +14064,24 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_avatar_storage_paths: { Args: never; Returns: string[] }
+      get_contract_with_wkt: {
+        Args: { p_contract_id: string }
+        Returns: {
+          budget: number
+          contract_number: string
+          coordinates_wkt: string
+          created_at: string
+          description: string
+          end_date: string
+          id: string
+          project_id: string
+          start_date: string
+          status: Database["public"]["Enums"]["project_status"]
+          title: string
+          updated_at: string
+        }[]
+      }
       get_job_titles_public: {
         Args: never
         Returns: {
@@ -13952,6 +14130,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_organization_by_id: {
+        Args: { p_organization_id: string }
+        Returns: Json
+      }
       get_organizations_public: {
         Args: { p_query: string }
         Returns: {
@@ -13975,6 +14157,17 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      get_profiles_by_contract: {
+        Args: { p_contract_id: string }
+        Returns: {
+          assigned_at: string
+          contract_role: string
+          email: string
+          full_name: string
+          id: string
+          role: Database["public"]["Enums"]["user_role_type"]
+        }[]
       }
       insert_accounts_payable: {
         Args: { _input: Json }
@@ -14045,6 +14238,26 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "asphalt_types"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      insert_audit_log: {
+        Args: { _input: Json }
+        Returns: {
+          action: string
+          after_data: Json | null
+          before_data: Json | null
+          changed_at: string | null
+          changed_by: string | null
+          deleted_at: string | null
+          id: string
+          row_id: string | null
+          table_name: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "audit_log"
           isOneToOne: false
           isSetofReturn: true
         }
@@ -14980,6 +15193,25 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      insert_organization_member_rates: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          effective_end: string | null
+          effective_start: string
+          id: string
+          membership_id: string
+          rate_amount: number
+          rate_type: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_member_rates"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       insert_organization_members: {
         Args: { _input: Json }
         Returns: {
@@ -15011,6 +15243,22 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "organization_projects"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      insert_organization_service_areas: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          id: string
+          organization_id: string
+          service_area_text: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_service_areas"
           isOneToOne: false
           isSetofReturn: true
         }
@@ -15185,6 +15433,41 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "project_inspectors"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      insert_project_invites: {
+        Args: { _input: Json }
+        Returns: {
+          comment: string | null
+          created_at: string
+          id: string
+          invited_by_profile_id: string
+          invited_profile_id: string
+          project_id: string
+          responded_at: string | null
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "project_invites"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      insert_project_service_areas: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          id: string
+          project_id: string
+          service_area_id: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "project_service_areas"
           isOneToOne: false
           isSetofReturn: true
         }
@@ -15668,6 +15951,23 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      purge_orphaned_avatars: {
+        Args: never
+        Returns: {
+          created_at: string | null
+          deleted_at: string | null
+          id: string
+          is_preset: boolean
+          updated_at: string
+          url: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "avatars"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       rank_equipment_usage: {
         Args: { p_project_id: string }
         Returns: {
@@ -15677,11 +15977,40 @@ export type Database = {
         }[]
       }
       refresh_project_cost_summary: { Args: never; Returns: undefined }
+      remove_profile_from_contract: {
+        Args: { p_contract_id: string; p_profile_id: string }
+        Returns: undefined
+      }
+      rpc_calculator_template_payload: {
+        Args: { p_template_id: string }
+        Returns: Json
+      }
+      rpc_calculators_payload: { Args: never; Returns: Json }
+      rpc_equipment_log_payload: { Args: never; Returns: Json }
+      rpc_equipment_maintenance_payload: { Args: never; Returns: Json }
+      rpc_estimates_payload: { Args: never; Returns: Json }
+      rpc_inspections_payload: {
+        Args: { p_map_id?: string; p_project_id?: string; p_wbs_id?: string }
+        Returns: Json
+      }
+      rpc_issues_payload: { Args: { p_project_id: string }; Returns: Json }
       rpc_org_dashboard_payload: {
         Args: {
           p_members_page?: number
           p_organization_id: string
           p_page_size?: number
+        }
+        Returns: Json
+      }
+      rpc_profile_dashboard_payload: {
+        Args: { p_page_size?: number; p_projects_page?: number }
+        Returns: Json
+      }
+      rpc_project_dashboard_payload: {
+        Args: {
+          p_line_items_page?: number
+          p_page_size?: number
+          p_project_id: string
         }
         Returns: Json
       }
@@ -15762,6 +16091,26 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "asphalt_types"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      update_audit_log: {
+        Args: { _id: string; _input: Json }
+        Returns: {
+          action: string
+          after_data: Json | null
+          before_data: Json | null
+          changed_at: string | null
+          changed_by: string | null
+          deleted_at: string | null
+          id: string
+          row_id: string | null
+          table_name: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "audit_log"
           isOneToOne: false
           isSetofReturn: true
         }
@@ -16661,6 +17010,55 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      update_my_organization: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string | null
+          deleted_at: string | null
+          description: string | null
+          headquarters: string | null
+          id: string
+          logo_url: string | null
+          mission_statement: string | null
+          name: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organizations"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      update_my_profile: {
+        Args: {
+          p_avatar_id?: string
+          p_full_name?: string
+          p_job_title_id?: string
+          p_phone?: string
+          p_role?: Database["public"]["Enums"]["user_role_type"]
+        }
+        Returns: {
+          avatar_id: string | null
+          created_at: string | null
+          deleted_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          job_title_id: string | null
+          organization_id: string | null
+          phone: string | null
+          profile_completed_at: string | null
+          role: Database["public"]["Enums"]["user_role_type"] | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       update_notifications: {
         Args: { _id: string; _input: Json }
         Returns: {
@@ -16677,6 +17075,25 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "notifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      update_organization_member_rates: {
+        Args: { _id: string; _input: Json }
+        Returns: {
+          created_at: string
+          effective_end: string | null
+          effective_start: string
+          id: string
+          membership_id: string
+          rate_amount: number
+          rate_type: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_member_rates"
           isOneToOne: false
           isSetofReturn: true
         }
@@ -16712,6 +17129,22 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "organization_projects"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      update_organization_service_areas: {
+        Args: { _id: string; _input: Json }
+        Returns: {
+          created_at: string
+          id: string
+          organization_id: string
+          service_area_text: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_service_areas"
           isOneToOne: false
           isSetofReturn: true
         }
@@ -16832,6 +17265,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      update_profile_contract_role: {
+        Args: { p_contract_id: string; p_profile_id: string; p_role: string }
+        Returns: undefined
+      }
       update_profiles: {
         Args: { _id: string; _input: Json }
         Returns: {
@@ -16886,6 +17323,41 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "project_inspectors"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      update_project_invites: {
+        Args: { _id: string; _input: Json }
+        Returns: {
+          comment: string | null
+          created_at: string
+          id: string
+          invited_by_profile_id: string
+          invited_profile_id: string
+          project_id: string
+          responded_at: string | null
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "project_invites"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      update_project_service_areas: {
+        Args: { _id: string; _input: Json }
+        Returns: {
+          created_at: string
+          id: string
+          project_id: string
+          service_area_id: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "project_service_areas"
           isOneToOne: false
           isSetofReturn: true
         }
@@ -17365,6 +17837,23 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "workflows"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      upsert_my_avatar: {
+        Args: { p_is_preset?: boolean; p_url: string }
+        Returns: {
+          created_at: string | null
+          deleted_at: string | null
+          id: string
+          is_preset: boolean
+          updated_at: string
+          url: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "avatars"
           isOneToOne: false
           isSetofReturn: true
         }

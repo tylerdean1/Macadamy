@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Page } from '@/components/Layout';
 import { rpcClient } from '@/lib/rpc.client';
-import type { Database } from '@/lib/database.types';
-
-type EstimateRow = Database['public']['Functions']['filter_estimates']['Returns'][number];
+type EstimateRow = {
+  id: string;
+  project_id: string | null;
+  name: string;
+  status: string | null;
+  created_at: string | null;
+  updated_at: string;
+};
 
 export default function Estimates() {
   const [estimates, setEstimates] = useState<EstimateRow[]>([]);
@@ -11,8 +16,22 @@ export default function Estimates() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const data = await rpcClient.filter_estimates({});
-      setEstimates(Array.isArray(data) ? data : []);
+      const raw = await rpcClient.rpc_estimates_payload();
+      const payload = raw && typeof raw === 'object' && !Array.isArray(raw)
+        ? (raw as Record<string, unknown>)
+        : {};
+      const data = Array.isArray(payload.estimates) ? payload.estimates : [];
+      const normalized: EstimateRow[] = data
+        .map((item) => ({
+          id: typeof item.id === 'string' ? item.id : '',
+          project_id: typeof item.project_id === 'string' ? item.project_id : null,
+          name: typeof item.name === 'string' ? item.name : 'Unnamed',
+          status: typeof item.status === 'string' ? item.status : null,
+          created_at: typeof item.created_at === 'string' ? item.created_at : null,
+          updated_at: typeof item.updated_at === 'string' ? item.updated_at : '',
+        }))
+        .filter((item) => item.id !== '');
+      setEstimates(normalized);
       setLoading(false);
     };
     void fetchData();

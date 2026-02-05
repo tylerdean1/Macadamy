@@ -13,16 +13,17 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FileText } from 'lucide-react';
 import { rpcClient } from '@/lib/rpc.client';
-import { getOrderByColumn } from '@/lib/utils/rpcOrderBy';
 import { supabase } from '@/lib/supabase';
 import { Page, PageContainer, SectionContainer } from '@/components/Layout';
 import { LoadingState } from '@/components/ui/loading-state';
 import { EmptyState } from '@/components/ui/empty-state';
 import type { ContractWithWktRow, WbsWithWktRow, LineItemsWithWktRow } from '@/lib/rpc.types';
-import type { Database } from '@/lib/database.types';
-
-type WbsRow = Database['public']['Functions']['filter_wbs']['Returns'][number];
-type LineItemRow = Database['public']['Functions']['filter_line_items']['Returns'][number];
+type ProjectPayload = {
+  project: Record<string, unknown>;
+  wbs: { total_count: number; items: Array<Record<string, unknown>> };
+  line_items: { total_count: number; items: Array<Record<string, unknown>> };
+  counts: { issues: number; change_orders: number; inspections: number };
+};
 
 import { ProjectHeader } from './ProjectDashboardComponents/ProjectHeader';
 import { ProjectInfoForm, type ProjectInfoVM } from './ProjectDashboardComponents/ProjectInfoForm';
@@ -70,94 +71,71 @@ export default function ProjectDashboard() {
     setError(null);
 
     try {
-      const orderBy = await getOrderByColumn('projects');
-      if (!orderBy) {
-        throw new Error('Project ordering unavailable');
-      }
-
-      const projects = await rpcClient.filter_projects({
-        _filters: { id: contractId },
-        _order_by: orderBy,
-        _direction: 'asc'
+      const raw = await rpcClient.rpc_project_dashboard_payload({
+        p_project_id: contractId,
+        p_line_items_page: 1,
+        p_page_size: 500,
       });
 
-      const project = Array.isArray(projects) ? projects[0] : null;
-      if (!project) throw new Error('Project not found');
+      const payload = raw && typeof raw === 'object' ? raw as ProjectPayload : null;
+      const projectRaw = payload?.project ?? {};
+      if (!payload || typeof projectRaw !== 'object') {
+        throw new Error('Project not found');
+      }
 
       const mappedContract: ContractWithWktRow = {
-        id: project.id,
-        project_id: project.id,
+        id: typeof projectRaw.id === 'string' ? projectRaw.id : contractId,
+        project_id: typeof projectRaw.id === 'string' ? projectRaw.id : contractId,
         contract_number: '',
-        title: project.name,
-        description: project.description,
-        start_date: project.start_date,
-        end_date: project.end_date,
+        title: typeof projectRaw.name === 'string' ? projectRaw.name : 'Project',
+        description: typeof projectRaw.description === 'string' ? projectRaw.description : null,
+        start_date: typeof projectRaw.start_date === 'string' ? projectRaw.start_date : null,
+        end_date: typeof projectRaw.end_date === 'string' ? projectRaw.end_date : null,
         budget: null,
-        status: project.status as ContractWithWktRow['status'],
-        created_at: project.created_at,
-        updated_at: project.updated_at,
+        status: projectRaw.status as ContractWithWktRow['status'],
+        created_at: typeof projectRaw.created_at === 'string' ? projectRaw.created_at : null,
+        updated_at: typeof projectRaw.updated_at === 'string' ? projectRaw.updated_at : '',
         coordinates_wkt: null
       };
       setContract(mappedContract);
 
-      const wbsData = await rpcClient.filter_wbs({
-        _filters: { project_id: contractId }
-      });
-
-      const normalizedWbs: WbsWithWktRow[] = Array.isArray(wbsData)
-        ? wbsData.map((wbs: WbsRow) => ({
-          id: wbs.id,
-          contract_id: wbs.project_id ?? contractId,
-          wbs_number: typeof wbs.order_num === 'number' ? String(wbs.order_num) : wbs.name,
-          description: wbs.name,
-          budget: null,
-          scope: null,
-          location: wbs.location,
-          created_at: wbs.created_at,
-          updated_at: wbs.updated_at,
-          coordinates_wkt: null
-        }))
-        : [];
+      const wbsItemsRaw = Array.isArray(payload?.wbs?.items) ? payload?.wbs?.items : [];
+      const normalizedWbs: WbsWithWktRow[] = wbsItemsRaw.map((wbs) => ({
+        id: typeof wbs.id === 'string' ? wbs.id : '',
+        contract_id: typeof wbs.project_id === 'string' ? wbs.project_id : contractId,
+        wbs_number: typeof wbs.order_num === 'number' ? String(wbs.order_num) : (typeof wbs.name === 'string' ? wbs.name : null),
+        description: typeof wbs.name === 'string' ? wbs.name : null,
+        budget: null,
+        scope: null,
+        location: typeof wbs.location === 'string' ? wbs.location : null,
+        created_at: typeof wbs.created_at === 'string' ? wbs.created_at : null,
+        updated_at: typeof wbs.updated_at === 'string' ? wbs.updated_at : '',
+        coordinates_wkt: null
+      })).filter((item) => item.id !== '');
       setWbsItems(normalizedWbs);
 
-      const lineItemsData = await rpcClient.filter_line_items({
-        _filters: { project_id: contractId }
-      });
-
-      const normalizedLineItems: LineItemsWithWktRow[] = Array.isArray(lineItemsData)
-        ? lineItemsData.map((item: LineItemRow) => ({
-          id: item.id,
-          contract_id: item.project_id ?? contractId,
-          wbs_id: item.wbs_id ?? '',
-          map_id: item.map_id ?? null,
-          item_code: item.cost_code_id ?? item.name ?? null,
-          description: item.description ?? item.name ?? null,
-          quantity: typeof item.quantity === 'number' ? item.quantity : 0,
-          unit_price: typeof item.unit_price === 'number' ? item.unit_price : 0,
-          unit_measure: item.unit_measure as LineItemsWithWktRow['unit_measure'],
-          reference_doc: null,
-          template_id: item.template_id ?? null,
-          created_at: item.created_at,
-          updated_at: item.updated_at,
-          coordinates_wkt: null
-        }))
-        : [];
+      const lineItemsRaw = Array.isArray(payload?.line_items?.items) ? payload?.line_items?.items : [];
+      const normalizedLineItems: LineItemsWithWktRow[] = lineItemsRaw.map((item) => ({
+        id: typeof item.id === 'string' ? item.id : '',
+        contract_id: typeof item.project_id === 'string' ? item.project_id : contractId,
+        wbs_id: typeof item.wbs_id === 'string' ? item.wbs_id : '',
+        map_id: typeof item.map_id === 'string' ? item.map_id : null,
+        item_code: typeof item.cost_code_id === 'string' ? item.cost_code_id : (typeof item.name === 'string' ? item.name : null),
+        description: typeof item.description === 'string' ? item.description : (typeof item.name === 'string' ? item.name : null),
+        quantity: typeof item.quantity === 'number' ? item.quantity : 0,
+        unit_price: typeof item.unit_price === 'number' ? item.unit_price : 0,
+        unit_measure: (typeof item.unit_measure === 'string' ? item.unit_measure : null) as LineItemsWithWktRow['unit_measure'],
+        reference_doc: null,
+        template_id: typeof item.template_id === 'string' ? item.template_id : null,
+        created_at: typeof item.created_at === 'string' ? item.created_at : null,
+        updated_at: typeof item.updated_at === 'string' ? item.updated_at : '',
+        coordinates_wkt: null
+      })).filter((item) => item.id !== '');
       setLineItems(normalizedLineItems);
 
-      const issues = await rpcClient.filter_issues({
-        _filters: { project_id: contractId }
-      });
-      setIssuesCount(Array.isArray(issues) ? issues.length : 0);
-
-      const changeOrders = await rpcClient.filter_change_orders({
-        _filters: { project_id: contractId }
-      });
-      setChangeOrdersCount(Array.isArray(changeOrders) ? changeOrders.length : 0);
-
-      const inspections = await rpcClient.filter_inspections({
-        _filters: { project_id: contractId }
-      });
-      setInspectionsCount(Array.isArray(inspections) ? inspections.length : 0);
+      setIssuesCount(typeof payload?.counts?.issues === 'number' ? payload.counts.issues : 0);
+      setChangeOrdersCount(typeof payload?.counts?.change_orders === 'number' ? payload.counts.change_orders : 0);
+      setInspectionsCount(typeof payload?.counts?.inspections === 'number' ? payload.counts.inspections : 0);
 
     } catch (err) {
       console.error('Error fetching contract data:', err);

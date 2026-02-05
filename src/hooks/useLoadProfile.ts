@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { rpcClient } from '@/lib/rpc.client';
-import { supabase } from '@/lib/supabase';
 import type { EnrichedProfile } from '@/lib/store';
 import { useAuthStore } from '@/lib/store';
 
@@ -28,19 +27,8 @@ export function useLoadProfile(userId: string | null): EnrichedProfile | null {
 
     const resolveAvatarUrl = async (avatarId: string | null): Promise<string | null> => {
       if (!avatarId) return null;
-      const rpc = supabase.rpc as unknown as (
-        this: typeof supabase,
-        name: string,
-        params?: Record<string, unknown>
-      ) => Promise<{ data: { url?: string | null } | null; error: unknown | null }>;
-
-      const { data, error } = await rpc.call(supabase, 'get_avatar_by_id_public', {
-        p_avatar_id: avatarId
-      });
-      if (error) {
-        throw error;
-      }
-      return data?.url ?? null;
+      const data = await rpcClient.get_avatar_by_id_public({ p_avatar_id: avatarId });
+      return typeof data?.url === 'string' ? data.url : null;
     };
 
     const fetchProfile = async (): Promise<void> => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Save, Pencil, Download } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
+import { rpcClient } from '@/lib/rpc.client';
 import { useParams } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import type { Issues } from '@/lib/types';
@@ -14,6 +14,21 @@ type IssueWithProfile = Issue & {
   } | null
 };
 
+const toIssueList = (value: unknown): Array<Record<string, unknown>> => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return [];
+  }
+
+  const issues = (value as { issues?: unknown }).issues;
+  if (!Array.isArray(issues)) {
+    return [];
+  }
+
+  return issues.filter(
+    (item): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item)
+  );
+};
+
 const STATUSES = ['Open', 'In Progress', 'Resolved'] as const;
 
 const getStatusColor = (status: string) =>
@@ -23,7 +38,10 @@ const getStatusColor = (status: string) =>
 
 export default function Issues() {
   const { id: project_id } = useParams();
-  const user = useAuthStore((state) => state.user);
+  const { user, profile } = useAuthStore((state) => ({
+    user: state.user,
+    profile: state.profile,
+  }));
   const canEdit = typeof user?.role === 'string' && ['admin', 'engineer', 'inspector'].includes(user.role);
 
   const [issues, setIssues] = useState<IssueWithProfile[]>([]);
@@ -40,36 +58,48 @@ export default function Issues() {
   });
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch issues from Supabase
+  const normalizeIssue = (raw: Record<string, unknown>): IssueWithProfile => {
+    const rawProfiles = raw.profiles && typeof raw.profiles === 'object'
+      ? (raw.profiles as Record<string, unknown>)
+      : null;
+
+    return {
+      id: typeof raw.id === 'string' ? raw.id : '',
+      project_id: typeof raw.project_id === 'string' ? raw.project_id : null,
+      name: typeof raw.name === 'string' ? raw.name : 'Untitled Issue',
+      description: typeof raw.description === 'string' ? raw.description : null,
+      type: typeof raw.type === 'string' ? raw.type : null,
+      status: typeof raw.status === 'string' ? raw.status : null,
+      resolved: typeof raw.resolved === 'boolean' ? raw.resolved : null,
+      reported_by: typeof raw.reported_by === 'string' ? raw.reported_by : null,
+      created_at: typeof raw.created_at === 'string' ? raw.created_at : null,
+      updated_at: typeof raw.updated_at === 'string' ? raw.updated_at : '',
+      deleted_at: typeof raw.deleted_at === 'string' ? raw.deleted_at : null,
+      profiles: rawProfiles
+        ? {
+          full_name: typeof rawProfiles.full_name === 'string' ? rawProfiles.full_name : null,
+          email: typeof rawProfiles.email === 'string' ? rawProfiles.email : '',
+        }
+        : null,
+    } as IssueWithProfile;
+  };
+
+  // Fetch issues via RPC payload
   const fetchIssues = useCallback(async () => {
     if (!project_id) return;
 
-    const { data: issuesData, error } = await supabase
-      .from('issues')
-      .select(`
-        *,
-        profiles:reported_by(full_name, email)
-      `)
-      .eq('project_id', project_id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+      const raw = await rpcClient.rpc_issues_payload({ p_project_id: project_id });
+      const list = toIssueList(raw);
+      setIssues(list.map((item) => normalizeIssue(item)));
+    } catch (error) {
       console.error('Error fetching issues:', error);
-      return;
     }
-
-    setIssues(issuesData || []);
   }, [project_id]);
-
-  // Fetch assignees from profiles table (simplified - not needed for basic functionality)
-  const fetchAssignees = async () => {
-    // Removed for simplicity since assignees field not in current form
-  };
 
   // Fetch issues when component mounts
   useEffect(() => {
     void fetchIssues();
-    void fetchAssignees();
   }, [fetchIssues]);
 
   // Handle save action for form submission
@@ -87,27 +117,47 @@ export default function Issues() {
       reported_by: form.reported_by || user.id,
     };
 
-    if (editingId) {
-      // Update existing issue
-      const { error } = await supabase
-        .from('issues')
-        .update(issueData)
-        .eq('id', editingId);
+    try {
+      const savedRows = editingId
+        ? await rpcClient.update_issues({
+          _id: editingId,
+          _input: issueData
+        })
+        : await rpcClient.insert_issues({
+          _input: issueData
+        });
 
-      if (error) {
-        console.error('Error updating issue:', error);
-        return;
-      }
-    } else {
-      // Create new issue
-      const { error } = await supabase
-        .from('issues')
-        .insert([issueData]);
+      const saved = Array.isArray(savedRows) && savedRows.length > 0 ? savedRows[0] : null;
+      if (saved) {
+        const profileForIssue = profile && saved.reported_by === profile.id
+          ? { full_name: profile.full_name, email: profile.email }
+          : issues.find((item) => item.id === saved.id)?.profiles ?? null;
 
-      if (error) {
-        console.error('Error creating issue:', error);
-        return;
+        const normalized: IssueWithProfile = {
+          id: saved.id,
+          project_id: saved.project_id ?? null,
+          name: saved.name,
+          description: saved.description ?? null,
+          type: saved.type ?? null,
+          status: saved.status ?? null,
+          resolved: saved.resolved ?? null,
+          reported_by: saved.reported_by ?? null,
+          created_at: saved.created_at ?? null,
+          updated_at: saved.updated_at ?? '',
+          deleted_at: saved.deleted_at ?? null,
+          profiles: profileForIssue,
+        };
+
+        setIssues((prev) => {
+          if (editingId) {
+            return prev.map((item) => (item.id === normalized.id ? normalized : item));
+          }
+          return [normalized, ...prev];
+        });
       }
+    } catch (error) {
+      console.error('Error saving issue:', error);
+      return;
     }
 
     // Reset form and refresh data
@@ -121,7 +171,6 @@ export default function Issues() {
       reported_by: user?.id,
     });
     setEditingId(null);
-    void fetchIssues();
   };
 
   // Handle edit action
@@ -148,17 +197,12 @@ export default function Issues() {
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this issue?')) return;
 
-    const { error } = await supabase
-      .from('issues')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
+    try {
+      await rpcClient.delete_issues({ _id: id });
+      setIssues((prev) => prev.filter((issue) => issue.id !== id));
+    } catch (error) {
       console.error('Error deleting issue:', error);
-      return;
     }
-
-    void fetchIssues();
   };
 
   // Export to PDF

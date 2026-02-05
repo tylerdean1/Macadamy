@@ -24,7 +24,7 @@ $bulkPrefixes = @(
   "coverage/"
 )
 
-function Starts-WithAnyPrefix {
+function Test-AnyPrefix {
   param(
     [string]$RelPath,
     [string[]]$Prefixes
@@ -50,7 +50,7 @@ function Get-BulkPrefixHit {
   return ""
 }
 
-function Is-DeepNoteTarget {
+function Test-DeepNoteTarget {
   param(
     [string]$RelPath
   )
@@ -83,11 +83,11 @@ while ($true) {
     $m = [regex]::Match($line, $pattern)
     if ($m.Success) {
       $entries.Add([PSCustomObject]@{
-        LineIndex = $i
-        RelPath   = $m.Groups["p"].Value
-        Size      = [int64]$m.Groups["s"].Value
-        Checked   = ($m.Groups["chk"].Value -match '[xX]')
-      })
+          LineIndex = $i
+          RelPath   = $m.Groups["p"].Value
+          Size      = [int64]$m.Groups["s"].Value
+          Checked   = ($m.Groups["chk"].Value -match '[xX]')
+        })
     }
   }
 
@@ -105,7 +105,7 @@ while ($true) {
   $batchBytes = ($batch | Measure-Object -Property Size -Sum).Sum
 
   $batchPrefixes = $batch | ForEach-Object { Get-BulkPrefixHit -RelPath $_.RelPath -Prefixes $bulkPrefixes } | Where-Object { $_ -ne "" } | Select-Object -Unique
-  $allBulk = ($batch | Where-Object { -not (Starts-WithAnyPrefix -RelPath $_.RelPath -Prefixes $bulkPrefixes) }).Count -eq 0
+  $allBulk = ($batch | Where-Object { -not (Test-AnyPrefix -RelPath $_.RelPath -Prefixes $bulkPrefixes) }).Count -eq 0
   $singleBulkPrefix = $allBulk -and ($batchPrefixes.Count -eq 1)
 
   @(
@@ -127,9 +127,10 @@ while ($true) {
       "  - .git/: only valid if publicOG is the repo root; otherwise likely accidental nested repo.",
       ""
     ) | Out-File -FilePath $notesPath -Append -Encoding utf8
-  } else {
-    $bulkItems = $batch | Where-Object { Starts-WithAnyPrefix -RelPath $_.RelPath -Prefixes $bulkPrefixes }
-    $deepItems = $batch | Where-Object { -not (Starts-WithAnyPrefix -RelPath $_.RelPath -Prefixes $bulkPrefixes) }
+  }
+  else {
+    $bulkItems = $batch | Where-Object { Test-AnyPrefix -RelPath $_.RelPath -Prefixes $bulkPrefixes }
+    $deepItems = $batch | Where-Object { -not (Test-AnyPrefix -RelPath $_.RelPath -Prefixes $bulkPrefixes) }
 
     if ($bulkItems.Count -gt 0) {
       $bulkBytes = ($bulkItems | Measure-Object -Property Size -Sum).Sum
@@ -151,7 +152,7 @@ while ($true) {
         }
       }
 
-      if (Is-DeepNoteTarget -RelPath $item.RelPath) {
+      if (Test-DeepNoteTarget -RelPath $item.RelPath) {
         @(
           "#### $($item.RelPath)",
           "- Exists: $exists",
@@ -160,7 +161,8 @@ while ($true) {
           "- Notes: (write real audit notes here if you want to expand later)",
           ""
         ) | Out-File -FilePath $notesPath -Append -Encoding utf8
-      } else {
+      }
+      else {
         @(
           "#### $($item.RelPath)",
           "- Exists: $exists",
@@ -185,7 +187,7 @@ while ($true) {
   $nextPath = if ($null -ne $remaining) { $remaining.RelPath } else { "(none)" }
 
   "- Batch ${batchNumber}: $startPath → $endPath | next: $nextPath" |
-    Out-File -FilePath $auditPath -Append -Encoding utf8
+  Out-File -FilePath $auditPath -Append -Encoding utf8
 
   Write-Host "Completed batch $batchNumber. Next: $nextPath"
 }

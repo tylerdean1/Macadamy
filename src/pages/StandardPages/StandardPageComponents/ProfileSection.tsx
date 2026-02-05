@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import type { EnrichedProfile } from '@/lib/store';
+import { formatPhoneUS } from '@/lib/utils/formatters';
 
 export interface ProfileSectionProps {
   profile: EnrichedProfile; // Profile data is now directly passed
@@ -52,7 +53,7 @@ export function ProfileSection({ profile, onEdit }: ProfileSectionProps) {
             {typeof profile.phone === 'string' && profile.phone.trim() !== '' && (
               <p className="flex items-center">
                 <Phone className="w-4 h-4 mr-2" />
-                {profile.phone}
+                {formatPhoneUS(profile.phone)}
               </p>
             )}
             {typeof profile.organization_name === 'string' && profile.organization_name.trim() !== '' && (

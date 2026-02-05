@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'; // Import React hooks
 import { useParams, useNavigate } from 'react-router-dom'; // Import hooks for routing
 import { ArrowLeft } from 'lucide-react'; // Import arrow icon for navigation
-import { supabase } from '@/lib/supabase'; // Import Supabase client
+import { rpcClient } from '@/lib/rpc.client'; // Import RPC client
 
 /** 
  * Change Order interface representing a change order record.
@@ -72,24 +72,14 @@ export default function ChangeOrders() {
       try {
         const safeContractId = typeof contract_id === 'string' && contract_id.length > 0 ? contract_id : '';
 
-        // Fetch line items directly from table
-        const lineItemRes = await supabase
-          .from('line_items')
-          .select('*')
-          .eq('project_id', safeContractId);
-
-        // Fetch change orders directly from table
-        const orderRes = await supabase
-          .from('change_orders')
-          .select('*')
-          .eq('project_id', safeContractId);
-
-        if (orderRes.error) throw orderRes.error;
-        if (lineItemRes.error) throw lineItemRes.error;
+        const [lineItemRes, orderRes] = await Promise.all([
+          rpcClient.filter_line_items({ _filters: { project_id: safeContractId } }),
+          rpcClient.filter_change_orders({ _filters: { project_id: safeContractId } })
+        ]);
 
         // Map the actual change_orders table structure to component expectations
-        const typedOrders = Array.isArray(orderRes.data)
-          ? orderRes.data.map(order => ({
+        const typedOrders = Array.isArray(orderRes)
+          ? orderRes.map(order => ({
             id: order.id,
             contract_id: safeContractId,
             line_item_id: '', // Not in database schema
@@ -108,8 +98,8 @@ export default function ChangeOrders() {
           : [];
         setOrders(typedOrders);
 
-        const lineItemData = Array.isArray(lineItemRes.data)
-          ? lineItemRes.data.map(item => ({
+        const lineItemData = Array.isArray(lineItemRes)
+          ? lineItemRes.map(item => ({
             id: item.id,
             description: item.description ?? ''
           }))
@@ -129,47 +119,35 @@ export default function ChangeOrders() {
     if (typeof newOrder.title !== 'string' || newOrder.title.length === 0) return; // Ensure necessary fields are filled
 
     // Use direct table insert with actual database schema
-    const { error } = await supabase
-      .from('change_orders')
-      .insert({
-        project_id: contract_id || null,
-        number: newOrder.title, // Map title to number field
-        description: newOrder.description || null,
-        amount: (newOrder.new_quantity || 0) * (newOrder.new_unit_price || 0) || null,
-        status: newOrder.status || 'draft',
+    try {
+      const createdRows = await rpcClient.insert_change_orders({
+        _input: {
+          project_id: contract_id || null,
+          number: newOrder.title, // Map title to number field
+          description: newOrder.description || null,
+          amount: (newOrder.new_quantity || 0) * (newOrder.new_unit_price || 0) || null,
+          status: newOrder.status || 'draft',
+        }
       });
 
-    if (error) {
-      console.error('Error creating change order:', error);
-      return;
-    }
-
-    // Refresh orders after creating a new one using direct table query
-    try {
-      const orderRes = await supabase
-        .from('change_orders')
-        .select('*')
-        .eq('project_id', contract_id || '');
-
-      if (orderRes.error) throw orderRes.error;
-
-      const typedOrders = Array.isArray(orderRes.data)
-        ? orderRes.data.map(order => ({
-          id: order.id,
-          contract_id: order.project_id || '',
-          line_item_id: '', // Not available in actual schema
-          title: order.number || '', // Map number to title
-          description: order.description || undefined,
-          new_quantity: 0, // Not available in actual schema
-          new_unit_price: undefined, // Not available in actual schema
-          status: order.status || 'draft',
-          submitted_date: order.created_at || undefined,
-          approved_date: order.updated_at || undefined,
-          approved_by: undefined, // Not available in actual schema
-          attachments: undefined, // Not available in actual schema
-        }))
-        : [];
-      setOrders(typedOrders);
+      const created = Array.isArray(createdRows) && createdRows.length > 0 ? createdRows[0] : null;
+      if (created) {
+        const mapped: ChangeOrder = {
+          id: created.id,
+          contract_id: created.project_id || (contract_id || ''),
+          line_item_id: '',
+          title: created.number || '',
+          description: created.description ?? undefined,
+          new_quantity: 0,
+          new_unit_price: undefined,
+          status: created.status ?? 'draft',
+          submitted_date: created.created_at || undefined,
+          approved_date: created.updated_at || undefined,
+          approved_by: undefined,
+          attachments: undefined,
+        };
+        setOrders((prev) => [mapped, ...prev]);
+      }
       setNewOrder({
         title: '',
         line_item_id: '',

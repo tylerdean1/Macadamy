@@ -1,14 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Page } from '@/components/Layout';
-import { supabase } from '@/lib/supabase';
+import { rpcClient } from '@/lib/rpc.client';
+import type { Database } from '@/lib/database.types';
 
-interface PaymentRow {
-  id: string;
-  project_id: string | null;
-  commitment_id: string | null;
-  amount: number | null;
-  paid_at: string | null;
-}
+type PaymentRow = Database['public']['Tables']['payments']['Row'];
 
 export default function Payments() {
   const [rows, setRows] = useState<PaymentRow[]>([]);
@@ -16,13 +11,11 @@ export default function Payments() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data, error } = await supabase
-        .from('payments')
-        .select('*');
-      if (error) {
+      try {
+        const data = await rpcClient.filter_payments({ _filters: {} });
+        setRows(Array.isArray(data) ? data : []);
+      } catch (error) {
         console.error('Error fetching payments', error);
-      } else {
-        setRows(data as PaymentRow[]);
       }
       setLoading(false);
     };

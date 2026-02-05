@@ -4,7 +4,7 @@ import { X, RefreshCcw, Save } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { googleMapsLoader } from '@/lib/utils/googleMapsLoader';
 import { parseWktToGeoJson, convertToGooglePath } from '@/lib/utils/geometryUtils';
-import { supabase } from '@/lib/supabase';
+import { rpcClient } from '@/lib/rpc.client';
 import type { GeometryData } from '@/lib/types';
 
 import { GeometryTypeButton } from './GeometryTypeButton';
@@ -386,17 +386,36 @@ export class MapModal extends Component<MapModalProps, MapModalState> {
       return;
     }
     this.setState({ saving: true });
-    const { error } = await supabase
-      .from(this.props.table)
-      .update({ coordinates: wkt })
-      .eq('id', this.props.targetId);
-    this.setState({ saving: false });
-    if (error) {
+    try {
+      if (this.props.table === 'maps') {
+        await rpcClient.update_maps({
+          _id: this.props.targetId,
+          _input: { coordinates: wkt }
+        });
+      } else if (this.props.table === 'projects') {
+        await rpcClient.update_projects({
+          _id: this.props.targetId,
+          _input: { coordinates_wkt: wkt }
+        });
+      } else if (this.props.table === 'wbs') {
+        await rpcClient.update_wbs({
+          _id: this.props.targetId,
+          _input: { coordinates_wkt: wkt }
+        });
+      } else {
+        await rpcClient.update_line_items({
+          _id: this.props.targetId,
+          _input: { coordinates_wkt: wkt }
+        });
+      }
+      this.props.onClose();
+      this.props.onSaveSuccess?.();
+    } catch (error) {
+      console.error('Error saving geometry:', error);
       this.setState({ errorMsg: 'Failed to save geometry. Please try again.' });
-      return;
+    } finally {
+      this.setState({ saving: false });
     }
-    this.props.onClose();
-    this.props.onSaveSuccess?.();
   }
 
   render() {

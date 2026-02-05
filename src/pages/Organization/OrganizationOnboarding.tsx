@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/lib/store';
 import { rpcClient } from '@/lib/rpc.client';
-import { supabase } from '@/lib/supabase';
 import type { Database } from '@/lib/database.types';
 
 export default function OrganizationOnboarding(): JSX.Element {
@@ -31,16 +30,7 @@ export default function OrganizationOnboarding(): JSX.Element {
         }
         const run = async (): Promise<void> => {
             try {
-                const rpc = supabase.rpc as unknown as (
-                    this: typeof supabase,
-                    name: string,
-                    params?: Record<string, unknown>
-                ) => Promise<{ data: Array<{ id: string; name: string }> | null; error: unknown | null }>;
-
-                const { data, error } = await rpc.call(supabase, 'get_organizations_public', { p_query: q });
-                if (error) {
-                    throw error;
-                }
+                const data = await rpcClient.get_organizations_public({ p_query: q });
                 if (!cancelled) {
                     setSearchResults(Array.isArray(data) ? data : []);
                 }

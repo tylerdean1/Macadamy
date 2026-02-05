@@ -263,21 +263,6 @@ export function useAuth(): UseAuthReturn {
       }
 
       try {
-        const { data: exists } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', email.toLowerCase())
-          .maybeSingle();
-
-        const accountFound = exists !== null && exists !== undefined;
-
-        if (!accountFound) {
-          const msg = 'No account found with this email address';
-          setError(msg);
-          toast.error(msg);
-          return false;
-        }
-
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
@@ -291,7 +276,7 @@ export function useAuth(): UseAuthReturn {
           return false;
         }
 
-        toast.success('Password reset email sent! Check your inbox.');
+        toast.success('If an account exists, a reset email has been sent.');
         return true;
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Unexpected reset error';

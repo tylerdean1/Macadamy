@@ -86,7 +86,7 @@ export default function LaborRecords() {
 
     try {
       if (typeof id !== 'string' || id.trim() === '') return;
-      await rpcClient.insert_labor_records({
+      const createdRows = await rpcClient.insert_labor_records({
         _input: {
           line_item_id: id,
           worker_count,
@@ -97,9 +97,16 @@ export default function LaborRecords() {
         }
       });
 
+      // Use returned record to update UI without a full refetch.
+      const created = Array.isArray(createdRows) && createdRows.length > 0
+        ? createdRows[0]
+        : null;
+
+      if (created) {
+        setRecords((prev) => [created, ...prev]);
+      }
+
       setIsCreating(false); // Close the creation form
-      // Fix: void fetchRecords()
-      void fetchRecords(); // Refresh the records list
       // Reset the newRecord state to initial values
       setNewRecord({
         id: crypto.randomUUID(),

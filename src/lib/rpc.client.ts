@@ -1,7 +1,6 @@
 import { supabase } from './supabase';
 import type { Database } from './database.types';
 import { RPC_NAMES } from './rpc.definitions';
-import { missingRpcFallbackFor, warnMissingRpc } from './rpc.missing';
 
 /**
  * Typed RPC client generated from database functions.
@@ -23,8 +22,7 @@ export const rpcClient: RpcClient = new Proxy({} as RpcClient, {
   get: (_target, prop: string) => {
     return async (args?: Record<string, unknown>) => {
       if (!rpcNameSet.has(prop)) {
-        warnMissingRpc(prop);
-        return missingRpcFallbackFor(prop) as unknown;
+        throw new Error(`[rpcClient] Unknown RPC: ${prop}`);
       }
       const { data, error } = args === undefined
         // @ts-expect-error dynamic RPC name provided at runtime

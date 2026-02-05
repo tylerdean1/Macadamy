@@ -66,14 +66,15 @@ export const ContractCreation = () => {
     setIsSubmitting(true);
 
     try {
-      const createdProjects = await rpcClient.insert_projects({
+      const createdProjects = await rpcClient.create_project_with_owner({
         _input: {
           name: contractData.title,
           description: contractData.description || null,
           start_date: contractData.start_date,
           end_date: contractData.end_date,
           status: contractData.status
-        }
+        },
+        _role: 'project_manager'
       });
 
       const createdProject = Array.isArray(createdProjects) ? createdProjects[0] : null;
@@ -82,14 +83,6 @@ export const ContractCreation = () => {
       if (typeof projectId !== 'string' || projectId.length === 0) {
         throw new Error('Failed to create project');
       }
-
-      await rpcClient.insert_user_projects({
-        _input: {
-          user_id: user.id,
-          project_id: projectId,
-          role: 'project_manager'
-        }
-      });
 
       toast.success('Contract created successfully!');
       navigate(`/projects/${projectId}`);

@@ -7,10 +7,10 @@ The name **Macadamy** comes from the verb **"macadamize,"** which means _to pave
 
 ## ✅ Key Design Principles
 - Row Level Security (RLS) is enabled on every table with no policies, so direct table access is denied by default.
-- Each RPC begins with a `check_auth` call that scopes what the current user can do before any action is taken.
-- All table reads use `get_*` RPCs with `SELECT ...` + optional `ST_AsText(...)` for WKT geometry
+- Each RPC begins with a `check_access` call that scopes what the current user can do before any action is taken.
+- All table reads use `get_*` and `filter_*` RPCs (plus payload RPCs) with optional `ST_AsText(...)` for WKT geometry
 - All inserts/updates/deletes go through `insert_*`, `update_*`, `delete_*` RPCs with flexible JSONB inputs
-- Frontend primarily uses RPCs; current-user profile bootstrap uses direct `profiles` reads/upserts
+- Frontend data access uses `rpcClient` for all reads/writes (auth + storage are the only direct Supabase calls)
 - All geometry is stored as WKT in PostGIS geometry columns and parsed on the frontend
 
 ## 📦 Geometry Utilities
@@ -18,6 +18,7 @@ The name **Macadamy** comes from the verb **"macadamize,"** which means _to pave
 - `convertToGooglePath(geo)` — converts GeoJSON → Google Maps path format
 
 ## 🔍 Read RPCs (`get_*`)
+- `get_organization_by_id`
 - `get_all_line_item_templates`
 - `get_all_profiles`
 - `get_avatars_for_profile`
@@ -43,15 +44,27 @@ The name **Macadamy** comes from the verb **"macadamize,"** which means _to pave
 - `get_profiles_by_organization`
 - `get_user_contracts`
 - `get_wbs_with_wkt`
+- `rpc_profile_dashboard_payload`
+- `rpc_project_dashboard_payload`
+- `rpc_inspections_payload`
+- `rpc_equipment_log_payload`
+- `rpc_equipment_maintenance_payload`
+- `rpc_estimates_payload`
+- `rpc_calculators_payload`
+- `rpc_calculator_template_payload`
+- `rpc_issues_payload`
 
 ## ✏️ Write RPCs
 - Each editable table includes:
   - `insert_<table>`
   - `update_<table>`
   - `delete_<table>`
-  - `insert_labor_record(line_item_id uuid, worker_count integer, hours_worked numeric, work_date date, work_type text, notes text?) -> uuid`
-  - `update_labor_record(id uuid, worker_count?, hours_worked?, work_date?, work_type?, notes?) -> void`
-  - `delete_labor_record(id uuid) -> void`
+  - `create_project_with_owner(_input, _role?)`
+  - `remove_profile_from_contract(p_contract_id, p_profile_id)`
+  - `update_profile_contract_role(p_contract_id, p_profile_id, p_role)`
+  - `insert_labor_records(_input)`
+  - `update_labor_records(_id, _input)`
+  - `delete_labor_records(_id)`
 
 ## 🗄 Database Tables
 The backend schema was recently overhauled. It now spans dozens of tables to
@@ -100,10 +113,11 @@ wbs                       workflows
 - Project-related pages now live in `src/pages/Projects` (previously `Contract`)
 - Shared layout components (`Page`, `PageContainer`, `SectionContainer`) live in `src/components/Layout.tsx`
 - `FeatureListPage` simplifies our feature pages. Find it in `src/components/FeatureListPage.tsx`
-- `useProjectsData` and `useOrganizationsData` hooks provide searchable data for dashboards
+- `useOrganizationsData` hook provides searchable data for organization views
 - New feature pages `QualitySafety` and `SubcontractorManagement` outline future compliance and vendor management modules
 - Added `Payments` page to list project payments
 - `ProfileOnboarding` at `/onboarding/profile` completes user profiles with job title search/custom creation and avatar picker/upload
+- `npm run avatars:purge` cleans up orphaned avatar rows and unreferenced files in the `avatars-personal` bucket (requires `SUPABASE_SERVICE_ROLE_KEY`)
 
 ---
 This structure gives you a true API-less, secure backend with full control and complete type safety.

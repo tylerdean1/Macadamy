@@ -28,18 +28,23 @@ export default function Calculators() {
   // Function to fetch templates from the database
   const fetchTemplates = async () => {
     try {
-      const data = await rpcClient.filter_line_item_templates({});
+      const raw = await rpcClient.rpc_calculators_payload();
+      const payload = raw && typeof raw === 'object' && !Array.isArray(raw)
+        ? (raw as Record<string, unknown>)
+        : {};
+      const data = Array.isArray(payload.templates) ? payload.templates : [];
       interface FormulaJson {
         variables?: { name: string; value: string | number }[];
       }
-      const parsedTemplates: CalculatorTemplate[] = (Array.isArray(data) ? data : []).map((template) => {
-        const formulaData = template.formula as FormulaJson;
+      const parsedTemplates: CalculatorTemplate[] = data.map((template) => {
+        const formulaData = typeof template.formula === 'object' && template.formula !== null
+          ? (template.formula as FormulaJson)
+          : {};
         return {
-          id: template.id,
-          name: template.name ?? 'Untitled',
+          id: typeof template.id === 'string' ? template.id : '',
+          name: typeof template.name === 'string' ? template.name : 'Untitled',
           description: '',
-          line_code: 'N/A', // replace if your schema includes it
-          // Safely extract item_code or line_code from template (typed as unknown)
+          line_code: 'N/A',
           item_code: typeof template === 'object' && template !== null && 'item_code' in template && typeof (template as { item_code?: string }).item_code === 'string'
             ? (template as { item_code: string }).item_code
             : (typeof template === 'object' && template !== null && 'line_code' in template && typeof (template as { line_code?: string }).line_code === 'string'
@@ -47,7 +52,7 @@ export default function Calculators() {
               : 'N/A'),
           variables: Array.isArray(formulaData?.variables) ? formulaData.variables : [],
         };
-      });
+      }).filter((template) => template.id !== '');
       setTemplates(parsedTemplates);
     } catch (error) {
       console.error('Error fetching line item templates:', error);

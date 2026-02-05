@@ -12,18 +12,30 @@ interface MaintenanceRecord {
   notes: string | null;
 }
 
+interface MaintenancePayload {
+  records: Array<Record<string, unknown>>;
+}
+
 export default function EquipmentMaintenance() {
   const [records, setRecords] = useState<MaintenanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchRecords = async () => {
-      const data = await rpcClient.filter_equipment_maintenance({});
-      const normalized = Array.isArray(data)
-        ? data.map(record => ({
-          ...record,
+      const raw = await rpcClient.rpc_equipment_maintenance_payload();
+      const payload = raw && typeof raw === 'object' && !Array.isArray(raw)
+        ? (raw as unknown as MaintenancePayload)
+        : { records: [] };
+      const normalized = Array.isArray(payload.records)
+        ? payload.records.map((record) => ({
+          id: typeof record.id === 'string' ? record.id : '',
+          equipment_id: typeof record.equipment_id === 'string' ? record.equipment_id : null,
+          description: typeof record.description === 'string' ? record.description : null,
+          maintenance_date: typeof record.maintenance_date === 'string' ? record.maintenance_date : null,
+          performed_by: typeof record.performed_by === 'string' ? record.performed_by : null,
+          type: typeof record.type === 'string' ? record.type : null,
           notes: null
-        }))
+        })).filter((record) => record.id !== '')
         : [];
       setRecords(normalized);
       setLoading(false);

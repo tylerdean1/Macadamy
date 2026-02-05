@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
-import { supabase } from '@/lib/supabase';
+import { rpcClient } from '@/lib/rpc.client';
 import type { UnitMeasure, Database } from '@/lib/types';
 
 type LineItem = Database['public']['Tables']['line_items']['Row'];
@@ -83,37 +83,31 @@ export const EditableLineItemsTable: React.FC<EditableLineItemsTableProps> = ({
         unit_price: newItem.unit_price,
       };
 
-      const { error } = await supabase.rpc('insert_line_items', {
+      const createdData = await rpcClient.insert_line_items({
         _input: lineItemData
       });
 
-      if (error) throw error;
+      const createdLineItem = Array.isArray(createdData) && createdData.length > 0
+        ? (createdData[0] as LineItem)
+        : null;
 
-      // Fetch the updated line items
-      const { data: lineItemsData, error: fetchError } = await supabase
-        .rpc('filter_line_items', {
-          _filters: { project_id: contractId }
-        });
-
-      if (fetchError) throw fetchError;
-
-      if (lineItemsData && Array.isArray(lineItemsData) && lineItemsData.length > 0) {
-        // Find the newly created item (should be the last one)
-        const createdLineItem = lineItemsData[lineItemsData.length - 1] as LineItem;
-        onLineItemCreate(createdLineItem);
-        toast.success('Line item created successfully');
-
-        // Reset form
-        setNewItem({
-          wbs_id: '',
-          map_id: '',
-          name: '',
-          description: '',
-          unit_measure: 'Feet (FT)' as UnitMeasure,
-          quantity: 1,
-          unit_price: 0,
-        });
+      if (!createdLineItem) {
+        throw new Error('Failed to create line item');
       }
+
+      onLineItemCreate(createdLineItem);
+      toast.success('Line item created successfully');
+
+      // Reset form
+      setNewItem({
+        wbs_id: '',
+        map_id: '',
+        name: '',
+        description: '',
+        unit_measure: 'Feet (FT)' as UnitMeasure,
+        quantity: 1,
+        unit_price: 0,
+      });
 
       setIsCreating(false);
     } catch (error) {

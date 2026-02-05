@@ -1,25 +1,30 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, type EnrichedProfile } from '@/lib/store';
 import { rpcClient } from '@/lib/rpc.client';
-import { supabase } from '@/lib/supabase';
+import { useAvatarUpload } from '@/hooks/useAvatarUpload';
 import type { Database, Tables } from '@/lib/database.types';
-import { USER_ROLE_TYPE_OPTIONS } from '@/lib/enums';
+import { USER_ROLE_TYPE_OPTIONS } from '@/lib/types';
+import { formatPhoneUS } from '@/lib/utils/formatters';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
+import ImageCropper from '@/pages/StandardPages/StandardPageComponents/ImageCropper';
 
 type JobTitleRow = Tables<'job_titles'>;
 type AvatarRow = Tables<'avatars'>;
 
+let cachedJobTitles: JobTitleRow[] | null = null;
+let cachedAvatars: AvatarRow[] | null = null;
+
 export default function ProfileOnboarding(): JSX.Element {
     const navigate = useNavigate();
-    const { user, profile, loading } = useAuthStore();
+    const { user, profile, loading, setProfile } = useAuthStore();
     const isLoading = loading.profile || loading.auth;
 
     const [fullName, setFullName] = useState(profile?.full_name ?? '');
-    const [phone, setPhone] = useState(profile?.phone ?? '');
+    const [phone, setPhone] = useState(formatPhoneUS(profile?.phone ?? ''));
     const [jobTitleId, setJobTitleId] = useState<string | null>(profile?.job_title_id ?? null);
     const [jobTitleQuery, setJobTitleQuery] = useState('');
     const [jobTitles, setJobTitles] = useState<JobTitleRow[]>([]);
@@ -31,21 +36,26 @@ export default function ProfileOnboarding(): JSX.Element {
 
     const [avatars, setAvatars] = useState<AvatarRow[]>([]);
     const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(profile?.avatar_id ?? null);
-    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
-    const avatarInputRef = useRef<HTMLInputElement | null>(null);
+    const {
+        avatarImageSrc,
+        pendingAvatarBlob,
+        pendingAvatarPreviewUrl,
+        isUploadingAvatar,
+        avatarInputRef,
+        handleAvatarFileSelected,
+        handleAvatarCropped,
+        uploadAvatar,
+        resetPendingAvatar,
+    } = useAvatarUpload({
+        userId: user?.id ?? null,
+        onCustomAvatarSelected: () => setSelectedAvatarId(null),
+    });
 
-    const runPublicRpc = async <T,>(
-        fn: string,
-        args?: Record<string, unknown>
-    ): Promise<{ data: T | null; error: unknown | null }> => {
-        const rpc = supabase.rpc as unknown as (
-            this: typeof supabase,
-            name: string,
-            params?: Record<string, unknown>
-        ) => Promise<{ data: T | null; error: unknown | null }>;
-
-        return rpc.call(supabase, fn, args);
+    const resolveAvatarUrl = async (avatarId: string | null): Promise<string | null> => {
+        if (!avatarId) return null;
+        const data = await rpcClient.get_avatar_by_id_public({ p_avatar_id: avatarId });
+        return typeof data?.url === 'string' ? data.url : null;
     };
 
     useEffect(() => {
@@ -63,7 +73,7 @@ export default function ProfileOnboarding(): JSX.Element {
     useEffect(() => {
         if (!profile) return;
         setFullName(profile.full_name ?? '');
-        setPhone(profile.phone ?? '');
+        setPhone(formatPhoneUS(profile.phone ?? ''));
         setJobTitleId(profile.job_title_id ?? null);
         setSelectedAvatarId(profile.avatar_id ?? null);
         setSelectedRole(profile.role ?? 'org_user');
@@ -72,20 +82,23 @@ export default function ProfileOnboarding(): JSX.Element {
     useEffect(() => {
         const loadOptions = async (): Promise<void> => {
             try {
-                const [{ data: jobTitleRows, error: jobTitleError }, { data: avatarRows, error: avatarError }] = await Promise.all([
-                    runPublicRpc<JobTitleRow[]>('get_job_titles_public'),
-                    runPublicRpc<AvatarRow[]>('get_preset_avatars_public'),
+                if (cachedJobTitles && cachedAvatars) {
+                    setJobTitles(cachedJobTitles);
+                    setAvatars(cachedAvatars);
+                    return;
+                }
+
+                const [jobTitleRows, avatarRows] = await Promise.all([
+                    rpcClient.get_job_titles_public(),
+                    rpcClient.get_preset_avatars_public(),
                 ]);
 
-                if (jobTitleError) {
-                    throw jobTitleError;
-                }
-                if (avatarError) {
-                    throw avatarError;
-                }
-
-                setJobTitles(Array.isArray(jobTitleRows) ? jobTitleRows : []);
-                setAvatars(Array.isArray(avatarRows) ? avatarRows : []);
+                const resolvedJobTitles = Array.isArray(jobTitleRows) ? jobTitleRows : [];
+                const resolvedAvatars = Array.isArray(avatarRows) ? avatarRows : [];
+                cachedJobTitles = resolvedJobTitles;
+                cachedAvatars = resolvedAvatars;
+                setJobTitles(resolvedJobTitles);
+                setAvatars(resolvedAvatars);
             } catch (err) {
                 console.error(err);
                 toast.error('Unable to load profile options. Please refresh.');
@@ -117,18 +130,13 @@ export default function ProfileOnboarding(): JSX.Element {
 
         setIsAddingJobTitle(true);
         try {
-            const { data: newJobTitle, error: jobTitleError } = await runPublicRpc<JobTitleRow>(
-                'insert_job_title_public',
-                { p_name: jobTitleQuery.trim() }
-            );
-            if (jobTitleError) {
-                throw jobTitleError;
-            }
+            const newJobTitle = await rpcClient.insert_job_title_public({ p_name: jobTitleQuery.trim() });
             if (!newJobTitle) {
                 throw new Error('No job title returned');
             }
 
             setJobTitles((prev) => [newJobTitle, ...prev]);
+            cachedJobTitles = [newJobTitle, ...(cachedJobTitles ?? [])];
             setJobTitleId(newJobTitle.id);
             setJobTitleQuery(newJobTitle.name);
             toast.success('Job title added');
@@ -137,49 +145,6 @@ export default function ProfileOnboarding(): JSX.Element {
             toast.error('Unable to add job title');
         } finally {
             setIsAddingJobTitle(false);
-        }
-    };
-
-    const handleAvatarUpload = async (file: File): Promise<void> => {
-        if (!user) return;
-        setIsUploadingAvatar(true);
-
-        try {
-            const ext = file.name.split('.').pop() ?? 'png';
-            const fileName = `${crypto.randomUUID()}.${ext}`;
-            const filePath = `${user.id}/${fileName}`;
-
-            const { data, error } = await supabase.storage
-                .from('avatars-personal')
-                .upload(filePath, file, { upsert: false });
-
-            if (error) {
-                throw error;
-            }
-
-            const { data: publicUrlData } = supabase.storage
-                .from('avatars-personal')
-                .getPublicUrl(data.path);
-
-            const publicUrl = publicUrlData?.publicUrl;
-            if (!publicUrl) {
-                throw new Error('Unable to generate avatar URL');
-            }
-
-            const insertedRows = await rpcClient.insert_avatars({ _input: { url: publicUrl } });
-            const insertedAvatar = Array.isArray(insertedRows) ? insertedRows[0] : null;
-            if (!insertedAvatar) {
-                throw new Error('Unable to save avatar');
-            }
-
-            setAvatars((prev) => [insertedAvatar, ...prev]);
-            setSelectedAvatarId(insertedAvatar.id);
-            toast.success('Avatar uploaded');
-        } catch (err) {
-            console.error(err);
-            toast.error('Unable to upload avatar');
-        } finally {
-            setIsUploadingAvatar(false);
         }
     };
 
@@ -213,16 +178,67 @@ export default function ProfileOnboarding(): JSX.Element {
         }
 
         try {
+            let resolvedAvatarId = selectedAvatarId || null;
+            if (pendingAvatarBlob) {
+                const uploadedAvatar = await uploadAvatar(pendingAvatarBlob);
+                if (uploadedAvatar) {
+                    setAvatars((prev) => {
+                        const existingIndex = prev.findIndex((item) => item.id === uploadedAvatar.id);
+                        if (existingIndex >= 0) {
+                            const next = [...prev];
+                            next[existingIndex] = uploadedAvatar;
+                            return next;
+                        }
+                        return [uploadedAvatar, ...prev];
+                    });
+                    cachedAvatars = cachedAvatars
+                        ? cachedAvatars.some((item) => item.id === uploadedAvatar.id)
+                            ? cachedAvatars.map((item) => (item.id === uploadedAvatar.id ? uploadedAvatar : item))
+                            : [uploadedAvatar, ...cachedAvatars]
+                        : [uploadedAvatar];
+                    setSelectedAvatarId(uploadedAvatar.id);
+                    resolvedAvatarId = uploadedAvatar.id;
+                    resetPendingAvatar();
+                    toast.success('Avatar uploaded');
+                } else {
+                    throw new Error('Unable to save avatar');
+                }
+            }
+
             const payload = {
                 p_full_name: fullName.trim(),
                 p_phone: phone.trim() || null,
                 p_job_title_id: jobTitleId || null,
-                p_avatar_id: selectedAvatarId || null,
+                p_avatar_id: resolvedAvatarId,
                 p_role: selectedRole,
             } as unknown as Database['public']['Functions']['complete_my_profile']['Args'];
 
-            await rpcClient.complete_my_profile(payload);
-            await useAuthStore.getState().loadProfile(user.id);
+            const updatedProfile = await rpcClient.complete_my_profile(payload);
+            if (updatedProfile) {
+                const avatarUrl = await resolveAvatarUrl(updatedProfile.avatar_id ?? null);
+                const enriched: EnrichedProfile = {
+                    id: updatedProfile.id,
+                    full_name: updatedProfile.full_name,
+                    email: updatedProfile.email,
+                    phone: updatedProfile.phone,
+                    role: updatedProfile.role as EnrichedProfile['role'],
+                    job_title_id: updatedProfile.job_title_id,
+                    organization_id: updatedProfile.organization_id,
+                    organization_address: null,
+                    avatar_id: updatedProfile.avatar_id,
+                    avatar_url: avatarUrl,
+                    job_title: null,
+                    organization_name: null,
+                    created_at: updatedProfile.created_at,
+                    updated_at: updatedProfile.updated_at,
+                    deleted_at: updatedProfile.deleted_at,
+                    profile_completed_at: updatedProfile.profile_completed_at ?? null,
+                };
+                setProfile(enriched);
+            } else {
+                await useAuthStore.getState().loadProfile(user.id);
+            }
+
             const refreshedProfile = useAuthStore.getState().profile;
             toast.success('Profile completed!');
 
@@ -234,7 +250,15 @@ export default function ProfileOnboarding(): JSX.Element {
             navigate('/dashboard');
         } catch (err) {
             console.error(err);
-            toast.error('Unable to complete your profile. Please try again.');
+            const message = err instanceof Error ? err.message : String(err);
+            const isNetworkError = message.includes('Failed to fetch')
+                || message.includes('ERR_CONNECTION_CLOSED')
+                || message.includes('NetworkError');
+            toast.error(
+                isNetworkError
+                    ? 'Network error, try again in a minute.'
+                    : 'Unable to complete your profile. Please try again.'
+            );
         }
     };
 
@@ -266,7 +290,7 @@ export default function ProfileOnboarding(): JSX.Element {
                             id="profile-phone"
                             type="tel"
                             value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
+                            onChange={(e) => setPhone(formatPhoneUS(e.target.value))}
                             disabled={isLoading}
                             className="w-full bg-background border border-background-lighter text-gray-100 px-4 py-2.5 rounded-md focus:ring-2 focus:ring-primary disabled:opacity-50"
                         />
@@ -367,24 +391,46 @@ export default function ProfileOnboarding(): JSX.Element {
                             <div className="flex items-center gap-3 rounded-md border border-background-lighter px-3 py-2">
                                 {(() => {
                                     const selected = avatars.find((avatar) => avatar.id === selectedAvatarId);
-                                    if (!selected) return null;
-                                    return (
-                                        <img
-                                            src={selected.url}
-                                            alt={getAvatarLabel(selected)}
-                                            className="h-12 w-12 rounded-full object-cover"
-                                        />
-                                    );
+                                    if (selected) {
+                                        return (
+                                            <img
+                                                src={selected.url}
+                                                alt={getAvatarLabel(selected)}
+                                                className="h-12 w-12 rounded-full object-cover"
+                                            />
+                                        );
+                                    }
+                                    if (profile?.avatar_url && selectedAvatarId === profile.avatar_id) {
+                                        return (
+                                            <img
+                                                src={profile.avatar_url}
+                                                alt="Current avatar"
+                                                className="h-12 w-12 rounded-full object-cover"
+                                            />
+                                        );
+                                    }
+                                    return null;
                                 })()}
                                 <div className="text-sm text-gray-200">
                                     {(() => {
                                         const selected = avatars.find((avatar) => avatar.id === selectedAvatarId);
-                                        return selected ? getAvatarLabel(selected) : 'Selected avatar';
+                                        if (!selected) return 'Selected avatar';
+                                        return selected.is_preset ? getAvatarLabel(selected) : 'Current avatar photo';
                                     })()}
                                 </div>
                             </div>
                         ) : (
                             <p className="text-sm text-gray-400">No avatar selected yet.</p>
+                        )}
+                        {pendingAvatarPreviewUrl && (
+                            <div className="flex items-center gap-3 rounded-md border border-background-lighter px-3 py-2 mt-2">
+                                <img
+                                    src={pendingAvatarPreviewUrl}
+                                    alt="Pending avatar"
+                                    className="h-12 w-12 rounded-full object-cover"
+                                />
+                                <div className="text-sm text-gray-200">Pending avatar</div>
+                            </div>
                         )}
                         <input
                             ref={avatarInputRef}
@@ -395,9 +441,8 @@ export default function ProfileOnboarding(): JSX.Element {
                             onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (file) {
-                                    void handleAvatarUpload(file);
+                                    handleAvatarFileSelected(file);
                                 }
-                                e.currentTarget.value = '';
                             }}
                             disabled={isLoading || isUploadingAvatar}
                         />
@@ -406,7 +451,10 @@ export default function ProfileOnboarding(): JSX.Element {
                             variant="secondary"
                             className="mt-3 w-full"
                             disabled={isLoading || isUploadingAvatar}
-                            onClick={() => setIsPresetModalOpen(true)}
+                            onClick={() => {
+                                resetPendingAvatar();
+                                setIsPresetModalOpen(true);
+                            }}
                         >
                             Choose preset avatar
                         </Button>
@@ -417,12 +465,30 @@ export default function ProfileOnboarding(): JSX.Element {
                             disabled={isLoading || isUploadingAvatar}
                             onClick={() => avatarInputRef.current?.click()}
                         >
-                            {isUploadingAvatar ? 'Uploading…' : 'Upload custom avatar'}
+                            {isUploadingAvatar ? 'Uploading...' : 'Upload custom avatar'}
                         </Button>
                         <p className="mt-2 text-xs text-gray-400">
                             Pick an avatar or upload your own.
                         </p>
                     </div>
+
+                    {avatarImageSrc && (
+                        <div className="mt-4">
+                            <ImageCropper
+                                key={avatarImageSrc}
+                                imageSrc={avatarImageSrc}
+                                onCropComplete={(blob) => { void handleAvatarCropped(blob); }}
+                                aspectRatio={1}
+                                cropShape="round"
+                                compressionOptions={{
+                                    mimeType: 'image/jpeg',
+                                    quality: 0.92,
+                                    maxWidth: 512,
+                                    maxHeight: 512,
+                                }}
+                            />
+                        </div>
+                    )}
 
                     <Button
                         type="submit"

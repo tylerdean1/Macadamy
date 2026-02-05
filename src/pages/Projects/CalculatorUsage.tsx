@@ -61,8 +61,13 @@ export default function CalculatorUsage() {
   const fetchTemplate = useCallback(async () => {
     if (typeof templateId !== 'string' || templateId.length === 0) return;
     try {
-      const data = await rpcClient.filter_line_item_templates({});
-      const found = Array.isArray(data) ? data.find((t) => t.id === templateId) : undefined;
+      const raw = await rpcClient.rpc_calculator_template_payload({ p_template_id: templateId });
+      const payload = raw && typeof raw === 'object' && !Array.isArray(raw)
+        ? (raw as Record<string, unknown>)
+        : {};
+      const found = payload.template && typeof payload.template === 'object'
+        ? (payload.template as Record<string, unknown>)
+        : null;
       if (!found) throw new Error('Template not found');
       // Parse variables and formulas from formula JSON
       let variables: Variable[] = [];
@@ -92,8 +97,8 @@ export default function CalculatorUsage() {
         formulas = Array.isArray(formulaObj.formulas) ? formulaObj.formulas : [];
       } catch { /* Optionally log error */ }
       setTemplate({
-        id: found.id,
-        name: found.name ?? '',
+        id: typeof found.id === 'string' ? found.id : '',
+        name: typeof found.name === 'string' ? found.name : '',
         description: '', // Remove description field as it doesn't exist in database
         variables,
         formulas,
