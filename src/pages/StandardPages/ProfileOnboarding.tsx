@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { useAuthStore, type EnrichedProfile } from '@/lib/store';
+import { useAuthStore } from '@/lib/store';
 import { rpcClient } from '@/lib/rpc.client';
 import { useAvatarUpload } from '@/hooks/useAvatarUpload';
+import { useOrganizationsData } from '@/hooks/useOrganizationsData';
 import type { Database, Tables } from '@/lib/database.types';
 import { USER_ROLE_TYPE_OPTIONS } from '@/lib/types';
 import { formatPhoneUS } from '@/lib/utils/formatters';
@@ -20,9 +21,12 @@ let cachedAvatars: AvatarRow[] | null = null;
 
 export default function ProfileOnboarding(): JSX.Element {
     const navigate = useNavigate();
-    const { user, profile, loading, setProfile } = useAuthStore();
+    const { user, profile, loading } = useAuthStore();
     const isLoading = loading.profile || loading.auth;
 
+    // All state that depends on profile must come after profile is defined
+    const [selectedOrg, setSelectedOrg] = useState<string>(profile?.organization_id ?? '');
+    const { organizations, loading: orgsLoading, error: orgsError } = useOrganizationsData();
     const [fullName, setFullName] = useState(profile?.full_name ?? '');
     const [phone, setPhone] = useState(formatPhoneUS(profile?.phone ?? ''));
     const [jobTitleId, setJobTitleId] = useState<string | null>(profile?.job_title_id ?? null);
@@ -52,11 +56,7 @@ export default function ProfileOnboarding(): JSX.Element {
         onCustomAvatarSelected: () => setSelectedAvatarId(null),
     });
 
-    const resolveAvatarUrl = async (avatarId: string | null): Promise<string | null> => {
-        if (!avatarId) return null;
-        const data = await rpcClient.get_avatar_by_id_public({ p_avatar_id: avatarId });
-        return typeof data?.url === 'string' ? data.url : null;
-    };
+    // ...existing code...
 
     useEffect(() => {
         if (!user) {
@@ -108,13 +108,14 @@ export default function ProfileOnboarding(): JSX.Element {
         void loadOptions();
     }, []);
 
+    // Only update jobTitleQuery from jobTitleId if jobTitleId changes (not on every input change)
     useEffect(() => {
-        if (!jobTitleId || jobTitleQuery.trim() !== '') return;
+        if (!jobTitleId) return;
         const match = jobTitles.find((title) => title.id === jobTitleId);
-        if (match) {
+        if (match && jobTitleQuery !== match.name) {
             setJobTitleQuery(match.name);
         }
-    }, [jobTitleId, jobTitleQuery, jobTitles]);
+    }, [jobTitleId, jobTitles]);
 
     const filteredJobTitles = useMemo(() => {
         const query = jobTitleQuery.trim().toLowerCase();
@@ -171,6 +172,11 @@ export default function ProfileOnboarding(): JSX.Element {
     const handleSubmit = async (evt: React.FormEvent): Promise<void> => {
         evt.preventDefault();
 
+        if (selectedOrg === "__create_new__") {
+            navigate('/organizations/onboarding', { replace: true });
+            return;
+        }
+
         if (!user) return;
         if (!fullName.trim()) {
             toast.error('Please enter your full name');
@@ -211,36 +217,22 @@ export default function ProfileOnboarding(): JSX.Element {
                 p_job_title_id: jobTitleId || null,
                 p_avatar_id: resolvedAvatarId,
                 p_role: selectedRole,
+                p_organization_id: selectedOrg || null,
             } as unknown as Database['public']['Functions']['complete_my_profile']['Args'];
 
-            const updatedProfile = await rpcClient.complete_my_profile(payload);
-            if (updatedProfile) {
-                const avatarUrl = await resolveAvatarUrl(updatedProfile.avatar_id ?? null);
-                const enriched: EnrichedProfile = {
-                    id: updatedProfile.id,
-                    full_name: updatedProfile.full_name,
-                    email: updatedProfile.email,
-                    phone: updatedProfile.phone,
-                    role: updatedProfile.role as EnrichedProfile['role'],
-                    job_title_id: updatedProfile.job_title_id,
-                    organization_id: updatedProfile.organization_id,
-                    organization_address: null,
-                    avatar_id: updatedProfile.avatar_id,
-                    avatar_url: avatarUrl,
-                    job_title: null,
-                    organization_name: null,
-                    created_at: updatedProfile.created_at,
-                    updated_at: updatedProfile.updated_at,
-                    deleted_at: updatedProfile.deleted_at,
-                    profile_completed_at: updatedProfile.profile_completed_at ?? null,
-                };
-                setProfile(enriched);
-            } else {
-                await useAuthStore.getState().loadProfile(user.id);
-            }
-
+            // Save profile
+            await rpcClient.complete_my_profile(payload);
+            // Force reload profile from backend
+            await useAuthStore.getState().loadProfile(user.id);
             const refreshedProfile = useAuthStore.getState().profile;
+            console.log('[ProfileOnboarding] Refreshed profile after save:', refreshedProfile);
             toast.success('Profile completed!');
+
+            // Check if profile is now complete
+            if (!refreshedProfile?.profile_completed_at) {
+                toast.error('Profile still incomplete after save. Please check required fields.');
+                return;
+            }
 
             const noOrg = !refreshedProfile?.organization_id;
             if (noOrg) {
@@ -276,8 +268,9 @@ export default function ProfileOnboarding(): JSX.Element {
                             type="text"
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
-                            disabled={isLoading}
                             className="w-full bg-background border border-background-lighter text-gray-100 px-4 py-2.5 rounded-md focus:ring-2 focus:ring-primary disabled:opacity-50"
+                            disabled={isLoading}
+                            autoComplete="name"
                             required
                         />
                     </div>
@@ -290,42 +283,35 @@ export default function ProfileOnboarding(): JSX.Element {
                             id="profile-phone"
                             type="tel"
                             value={phone}
-                            onChange={(e) => setPhone(formatPhoneUS(e.target.value))}
-                            disabled={isLoading}
+                            onChange={(e) => setPhone(e.target.value)}
                             className="w-full bg-background border border-background-lighter text-gray-100 px-4 py-2.5 rounded-md focus:ring-2 focus:ring-primary disabled:opacity-50"
+                            disabled={isLoading}
+                            autoComplete="tel"
                         />
                     </div>
 
                     <div>
-                        <label htmlFor="profile-job-title-search" className="block text-sm text-gray-300 mb-2">
+                        <label htmlFor="profile-job-title" className="block text-sm text-gray-300 mb-2">
                             Job title (optional)
                         </label>
                         <div className="relative">
                             <input
-                                id="profile-job-title-search"
+                                id="profile-job-title"
                                 type="text"
                                 value={jobTitleQuery}
-                                onChange={(e) => {
-                                    setJobTitleQuery(e.target.value);
-                                    setIsJobTitleOpen(true);
-                                }}
+                                onChange={(e) => setJobTitleQuery(e.target.value)}
                                 onFocus={() => setIsJobTitleOpen(true)}
-                                onBlur={() => {
-                                    setTimeout(() => setIsJobTitleOpen(false), 100);
-                                }}
-                                disabled={isLoading}
                                 className="w-full bg-background border border-background-lighter text-gray-100 px-4 py-2.5 rounded-md focus:ring-2 focus:ring-primary disabled:opacity-50"
-                                placeholder="Search job titles"
+                                disabled={isLoading}
                                 autoComplete="off"
                             />
                             {isJobTitleOpen && (
-                                <div className="absolute z-10 mt-2 w-full max-h-48 overflow-y-auto rounded-md border border-background-lighter bg-background shadow-lg">
+                                <div className="absolute z-10 mt-1 w-full rounded-md bg-background-light border border-background-lighter shadow-lg max-h-48 overflow-y-auto">
                                     <button
                                         type="button"
-                                        onMouseDown={(e) => e.preventDefault()}
-                                        onClick={() => { void handleAddCustomJobTitle(); }}
-                                        className="w-full flex items-center justify-between px-3 py-2 text-left text-sm text-primary hover:bg-background-lighter"
+                                        className="w-full flex items-center justify-between px-3 py-2 text-left text-sm text-primary hover:bg-primary/10"
                                         disabled={isLoading || isAddingJobTitle}
+                                        onClick={handleAddCustomJobTitle}
                                     >
                                         <span>Add custom job title</span>
                                         <span className="text-xs text-gray-400">{jobTitleQuery.trim() || 'Enter a title'}</span>

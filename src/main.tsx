@@ -10,10 +10,11 @@ import { validateEnvVariablesAny, warnEnvVariablesAny } from './utils/env-valida
 validateEnvVariablesAny([
   ['NEXT_PUBLIC_SUPABASE_URL', 'VITE_SUPABASE_URL'],
   ['NEXT_PUBLIC_SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY'],
+  ['VITE_GOOGLE_MAPS_API_KEY'],
 ]);
 
 warnEnvVariablesAny(
-  [['NEXT_PUBLIC_GOOGLE_MAPS_API_KEY', 'VITE_GOOGLE_MAPS_API_KEY']],
+  [['VITE_GOOGLE_MAPS_API_KEY']],
   'Google Maps API key is missing. Map features will be unavailable.'
 );
 

@@ -8,7 +8,7 @@ import { ChevronDown, ChevronUp, Search, SortAsc, SortDesc, Map, FileText, Alert
 import type {
   WbsWithWktRow,
   LineItemsWithWktRow
-} from '@/lib/rpc.types';
+} from '@/lib/geospatial.types';
 import { supabase } from '@/lib/supabase';
 
 // Define sorting options

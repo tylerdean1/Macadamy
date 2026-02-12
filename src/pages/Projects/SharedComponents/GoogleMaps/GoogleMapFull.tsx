@@ -346,7 +346,7 @@ export class GoogleMapFull extends Component<Props, State> {
         // Try to load Places library
         await new Promise<void>((resolve) => {
           const script = document.createElement('script');
-          script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
           script.onload = () => resolve();
           document.head.appendChild(script);
         });

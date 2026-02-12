@@ -114,7 +114,7 @@ export type {
   EquipmentUsage,
   EquipmentItem,
   LaborRecords
-} from './rpc.types';
+} from './geospatial.types';
 
 // Add missing types that are referenced in the codebase
 export type Avatars = TableRow<'avatars'>;

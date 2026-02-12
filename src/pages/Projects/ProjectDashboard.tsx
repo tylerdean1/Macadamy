@@ -17,7 +17,7 @@ import { supabase } from '@/lib/supabase';
 import { Page, PageContainer, SectionContainer } from '@/components/Layout';
 import { LoadingState } from '@/components/ui/loading-state';
 import { EmptyState } from '@/components/ui/empty-state';
-import type { ContractWithWktRow, WbsWithWktRow, LineItemsWithWktRow } from '@/lib/rpc.types';
+import type { ContractWithWktRow, WbsWithWktRow, LineItemsWithWktRow } from '@/lib/geospatial.types';
 type ProjectPayload = {
   project: Record<string, unknown>;
   wbs: { total_count: number; items: Array<Record<string, unknown>> };

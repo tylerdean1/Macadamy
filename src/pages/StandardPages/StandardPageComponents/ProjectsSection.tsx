@@ -13,7 +13,7 @@ import { Input } from './input';
 import { Button } from './button';
 import { Badge } from './badge';
 import type { Variant } from '@/lib/ui.types';
-import type { ContractWithWktRow } from '@/lib/rpc.types';
+import type { ContractWithWktRow } from '@/lib/geospatial.types';
 
 import { toast } from 'sonner';
 

@@ -1,6 +1,6 @@
 /**
- * RPC return types for typed database responses
- * These match the actual RPC function return types from Supabase
+ * Geospatial types for WKT-enabled RPC responses
+ * These interfaces represent database rows with Well-Known Text geometry data
  */
 
 import type { Database } from "./database.types";

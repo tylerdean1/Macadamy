@@ -4,7 +4,7 @@ import { BudgetTracker } from '../SharedComponents/BudgetProgressBar';
 import type {
   LineItemsWithWktRow,
   WbsWithWktRow
-} from '@/lib/rpc.types';
+} from '@/lib/geospatial.types';
 
 // Define sorting options
 type SortableColumn = 'item_code' | 'description' | 'wbs_id' | 'map_id' | 'quantity' | 'unit_price' | 'total' | 'budget_percent';

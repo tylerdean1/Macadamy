@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Building2, Pencil, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Building2, Pencil, Users, Plus } from 'lucide-react';
 import { Page, PageContainer, SectionContainer } from '@/components/Layout';
 import { LoadingState } from '@/components/ui/loading-state';
 import { ErrorState } from '@/components/ui/error-state';
@@ -46,6 +47,8 @@ interface OrgDashboardPayload {
   metrics: {
     total_members: number;
     total_projects: number;
+    members_yoy: number;
+    projects_yoy: number;
   };
 }
 
@@ -66,6 +69,8 @@ const emptyPayload: OrgDashboardPayload = {
   metrics: {
     total_members: 0,
     total_projects: 0,
+    members_yoy: 0,
+    projects_yoy: 0,
   },
 };
 
@@ -113,6 +118,8 @@ const normalizePayload = (raw: unknown): OrgDashboardPayload => {
     metrics: {
       total_members: typeof metrics.total_members === 'number' ? metrics.total_members : 0,
       total_projects: typeof metrics.total_projects === 'number' ? metrics.total_projects : 0,
+      members_yoy: typeof metrics.members_yoy === 'number' ? metrics.members_yoy : 0,
+      projects_yoy: typeof metrics.projects_yoy === 'number' ? metrics.projects_yoy : 0,
     },
   };
 };
@@ -142,6 +149,16 @@ export default function OrganizationDashboard(): JSX.Element {
   const [logoImageSrc, setLogoImageSrc] = useState<string | null>(null);
   const [pendingLogoBlob, setPendingLogoBlob] = useState<Blob | null>(null);
   const [pendingLogoPreviewUrl, setPendingLogoPreviewUrl] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const [projects, setProjects] = useState<Array<{
+    id: string;
+    name: string;
+    description: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    status: string | null;
+  }>>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
   const safePayload = payload ?? emptyPayload;
 
   const serviceAreas = useMemo(() => {
@@ -149,9 +166,6 @@ export default function OrganizationDashboard(): JSX.Element {
   }, [safePayload.service_areas]);
 
   const organization = safePayload.organization;
-  const mission = organization.mission_statement?.trim()
-    || organization.description?.trim()
-    || 'No mission statement yet.';
   const headquarters = organization.headquarters?.trim() || 'Headquarters not set.';
   const initials = organization.name
     .split(' ')
@@ -166,8 +180,64 @@ export default function OrganizationDashboard(): JSX.Element {
   const canPrev = page > 1;
   const canNext = page < totalPages;
 
+  const formatRole = (role: string | null): string => {
+    if (!role || role === 'unassigned') return 'Unassigned';
+    return role
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  const getProjectStatusCounts = () => {
+    // Define all possible project statuses
+    const allStatuses = ['active', 'completed', 'on-hold', 'cancelled', 'planning', 'in-progress', 'unknown'];
+    const counts: Record<string, number> = {};
+
+    // Initialize all statuses with 0
+    allStatuses.forEach(status => {
+      counts[status] = 0;
+    });
+
+    // Count actual projects
+    projects.forEach(project => {
+      const status = project.status || 'unknown';
+      if (counts[status] !== undefined) {
+        counts[status] = (counts[status] || 0) + 1;
+      }
+    });
+
+    return counts;
+  };
+
   useEffect(() => {
     setPage(1);
+  }, [profile?.organization_id]);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (!profile?.organization_id) {
+        setProjects([]);
+        return;
+      }
+
+      setProjectsLoading(true);
+      try {
+        const data = await rpcClient.filter_projects({
+          _filters: { organization_id: profile.organization_id },
+          _limit: 5, // Show only first 5 projects
+          _order_by: 'created_at',
+          _direction: 'desc'
+        });
+        setProjects(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+        setProjects([]);
+      } finally {
+        setProjectsLoading(false);
+      }
+    };
+
+    void fetchProjects();
   }, [profile?.organization_id]);
 
   useEffect(() => {
@@ -478,21 +548,17 @@ export default function OrganizationDashboard(): JSX.Element {
 
           <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
             <Card className="p-6 space-y-4">
-              <div className="flex items-start justify-between">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                  <div className="h-16 w-16 rounded-full bg-background-lighter flex items-center justify-center overflow-hidden">
+              <div className="flex items-center justify-between border-b-4 border-indigo-500/20 pb-3 mb-4">
+                <div className="flex items-center gap-4 flex-shrink-0">
+                  <div className="flex-shrink-0 h-24 w-24 rounded-lg bg-background-lighter flex items-center justify-center overflow-hidden">
                     {organization.logo_url ? (
-                      <img src={organization.logo_url} alt={`${organization.name} logo`} className="h-full w-full object-cover" />
+                      <img src={organization.logo_url} alt={`${organization.name} logo`} className="h-full w-full object-contain" />
                     ) : (
                       <span className="text-lg font-semibold text-white">{initials}</span>
                     )}
                   </div>
-                  <div className="space-y-1">
-                    <h2 className="text-xl font-semibold text-white">{organization.name}</h2>
-                    <p className="text-sm text-gray-300">{mission}</p>
-                    <p className="text-sm text-gray-400">Headquarters: {headquarters}</p>
-                  </div>
                 </div>
+                <h2 className="text-4xl font-bold text-white text-center flex-1">{organization.name}</h2>
                 <Button
                   variant="outline"
                   size="sm"
@@ -503,46 +569,104 @@ export default function OrganizationDashboard(): JSX.Element {
                   <Pencil className="h-4 w-4" />
                 </Button>
               </div>
+
+              <div className="flex gap-6">
+                <div className="flex flex-col gap-3 min-w-0 flex-[0_0_15%]">
+                  <div>
+                    <span className="text-base font-semibold text-indigo-500">Headquarters:</span>
+                    <p className="text-sm text-gray-300 mt-1">{headquarters}</p>
+                  </div>
+                </div>
+
+                <div className="border-l-4 border-indigo-500/20"></div>
+
+                <div className="flex flex-col gap-3 min-w-0 flex-[0_0_85%] pr-[35px]">
+                  {organization.description && (
+                    <div className="overflow-hidden">
+                      <span className="text-base font-semibold text-indigo-500">Company description:</span>
+                      <p className="text-sm text-gray-300 mt-1 break-words overflow-wrap-anywhere max-w-full">{organization.description}</p>
+                    </div>
+                  )}
+                  {organization.mission_statement && (
+                    <div className="overflow-hidden">
+                      <span className="text-base font-semibold text-indigo-500">Mission Statement:</span>
+                      <p className="text-sm text-gray-300 mt-1 break-words overflow-wrap-anywhere max-w-full">{organization.mission_statement}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </Card>
 
             <Card className="p-6 space-y-4">
-              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Metrics</h3>
+              <h3 className="text-2xl font-semibold text-indigo-500 text-center border-b-4 border-indigo-500/20 pb-3 mb-4">Metrics:</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-lg bg-background-light p-4">
                   <p className="text-xs uppercase text-gray-400">Total Members</p>
                   <p className="text-2xl font-semibold text-white">{safePayload.metrics.total_members}</p>
+                  <p className="text-xs text-gray-500">
+                    <span className={safePayload.metrics.members_yoy >= 0 ? 'text-green-400' : 'text-red-400'}>
+                      ({safePayload.metrics.members_yoy >= 0 ? '+' : ''}{safePayload.metrics.members_yoy} YOY)
+                    </span>
+                  </p>
                 </div>
                 <div className="rounded-lg bg-background-light p-4">
                   <p className="text-xs uppercase text-gray-400">Total Projects</p>
                   <p className="text-2xl font-semibold text-white">{safePayload.metrics.total_projects}</p>
+                  <p className="text-xs text-gray-500">
+                    <span className={safePayload.metrics.projects_yoy >= 0 ? 'text-green-400' : 'text-red-400'}>
+                      ({safePayload.metrics.projects_yoy >= 0 ? '+' : ''}{safePayload.metrics.projects_yoy} YOY)
+                    </span>
+                  </p>
                 </div>
+              </div>
+              <div className="mt-4">
+                <span className="text-base font-semibold text-indigo-500">Total Project Breakdown:</span>
+                <div className="flex flex-col gap-1 mt-2">
+                  {Object.entries(getProjectStatusCounts()).map(([status, count]) => (
+                    <p key={status} className="text-sm text-gray-400">
+                      #{status}: {count}
+                    </p>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-4 flex justify-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => alert('Organization finances feature coming soon!')}
+                  className="text-indigo-500 hover:text-indigo-400"
+                >
+                  View Finances
+                </Button>
               </div>
             </Card>
           </div>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_2fr]">
             <Card className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Service Areas</h3>
-              {serviceAreas.length === 0 ? (
-                <EmptyState
-                  message="No service areas"
-                  description="Add service areas to highlight where your organization operates."
-                />
-              ) : (
-                <ul className="space-y-2">
-                  {serviceAreas.map((area) => (
-                    <li key={area.id} className="text-sm text-gray-300">
-                      {area.service_area_text}
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <h3 className="text-2xl font-semibold text-indigo-500 text-center border-b-4 border-indigo-500/20 pb-3 mb-4">Service Areas:</h3>
+              <div className="flex items-center justify-center min-h-[120px]">
+                {serviceAreas.length === 0 ? (
+                  <EmptyState
+                    message="No service areas"
+                    description="Add service areas to highlight where your organization operates."
+                  />
+                ) : (
+                  <ul className="space-y-2 text-center">
+                    {serviceAreas.map((area) => (
+                      <li key={area.id} className="text-sm text-gray-300">
+                        {area.service_area_text}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </Card>
 
             <Card className="p-6">
+              <h3 className="text-2xl font-semibold text-indigo-500 text-center border-b-4 border-indigo-500/20 pb-3 mb-4">Members:</h3>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Members</h3>
                   <p className="text-sm text-gray-400">{totalMembers} total</p>
                 </div>
                 <Users className="h-5 w-5 text-gray-500" />
@@ -568,8 +692,8 @@ export default function OrganizationDashboard(): JSX.Element {
                           <p className="text-xs text-gray-400">{member.email}</p>
                         </div>
                         <div className="text-xs text-gray-400">
-                          <span className="block">Global role: {member.global_role ?? 'unassigned'}</span>
-                          <span className="block">Membership role: {member.membership_role ?? 'unassigned'}</span>
+                          <span className="block">Global role: {formatRole(member.global_role)}</span>
+                          <span className="block">Membership role: {formatRole(member.membership_role)}</span>
                         </div>
                       </div>
                     </div>
@@ -596,6 +720,84 @@ export default function OrganizationDashboard(): JSX.Element {
                   Next
                 </Button>
               </div>
+            </Card>
+          </div>
+
+          <div className="mt-6">
+            <Card className="p-6">
+              <h3 className="text-2xl font-semibold text-indigo-500 text-center border-b-4 border-indigo-500/20 pb-3 mb-4">Projects:</h3>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col gap-1">
+                  {Object.entries(getProjectStatusCounts()).map(([status, count]) => (
+                    <p key={status} className="text-sm text-gray-400">
+                      #{status}: {count}
+                    </p>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/projects/create')}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add New
+                </Button>
+              </div>
+
+              {projectsLoading ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-gray-400">Loading projects...</p>
+                </div>
+              ) : projects.length === 0 ? (
+                <EmptyState
+                  message="No projects"
+                  description="Create your first project to get started."
+                />
+              ) : (
+                <div className="space-y-3">
+                  {projects.map((project) => (
+                    <div
+                      key={project.id}
+                      className="rounded-lg border border-background-lighter p-3 cursor-pointer hover:bg-background-lighter transition-colors"
+                      onClick={() => navigate(`/projects/${project.id}`)}
+                    >
+                      <div className="flex flex-col gap-1">
+                        <p className="text-sm font-medium text-white">
+                          {project.name}
+                        </p>
+                        {project.description && (
+                          <p className="text-xs text-gray-400 line-clamp-2">
+                            {project.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                          {project.start_date && (
+                            <span>Start: {new Date(project.start_date).toLocaleDateString()}</span>
+                          )}
+                          {project.status && (
+                            <span className="px-2 py-1 rounded bg-background text-xs text-gray-300">
+                              {project.status}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {safePayload.metrics.total_projects > 5 && (
+                    <div className="text-center pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate('/projects')}
+                        className="text-purple-500 hover:text-purple-400"
+                      >
+                        View all projects
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </Card>
           </div>
         </SectionContainer>

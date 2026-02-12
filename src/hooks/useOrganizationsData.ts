@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { rpcClient } from '@/lib/rpc.client';
-import { useAuthStore } from '@/lib/store';
 import type { Tables } from '@/lib/database.types';
 
 type OrganizationsRow = Tables<'organizations'>;
@@ -17,42 +16,39 @@ export function useOrganizationsData(): {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const organizationId = useAuthStore((state) => state.profile?.organization_id ?? null);
 
+  // Fetch all organizations using the public RPC
   const loadOrganizations = useCallback(async (): Promise<void> => {
-    if (!organizationId) {
-      setOrganizations([]);
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
-      const raw = await rpcClient.get_organization_by_id({ p_organization_id: organizationId });
-      const data = raw && typeof raw === 'object' ? raw as Record<string, unknown> : null;
-      if (!data) {
+      // Use empty string to fetch all orgs
+      const data = await rpcClient.get_organizations_public({ p_query: '' });
+      // Defensive: ensure array and shape
+      if (Array.isArray(data)) {
+        setOrganizations(
+          data.map((org) => ({
+            id: org.id,
+            name: org.name,
+            description: null,
+            mission_statement: null,
+            headquarters: null,
+            logo_url: null,
+            created_at: null,
+            updated_at: '',
+            deleted_at: null,
+          }))
+        );
+      } else {
         setOrganizations([]);
-        return;
       }
-      const normalized: OrganizationsRow = {
-        id: typeof data.id === 'string' ? data.id : organizationId,
-        name: typeof data.name === 'string' ? data.name : '',
-        description: typeof data.description === 'string' ? data.description : null,
-        mission_statement: typeof data.mission_statement === 'string' ? data.mission_statement : null,
-        headquarters: typeof data.headquarters === 'string' ? data.headquarters : null,
-        logo_url: typeof data.logo_url === 'string' ? data.logo_url : null,
-        created_at: typeof data.created_at === 'string' ? data.created_at : null,
-        updated_at: typeof data.updated_at === 'string' ? data.updated_at : '',
-        deleted_at: null,
-      };
-      setOrganizations([normalized]);
     } catch (err) {
       console.error('Error loading organizations:', err);
       setError('Failed to load organizations.');
     } finally {
       setLoading(false);
     }
-  }, [organizationId]);
+  }, []);
 
   useEffect(() => {
     void loadOrganizations();

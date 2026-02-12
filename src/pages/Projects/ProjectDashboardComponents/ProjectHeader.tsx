@@ -3,7 +3,7 @@ import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { ContractStatusBadge } from '../SharedComponents/ContractStatusBadge';
 import { LoadingState } from '@/components/ui/loading-state';
 import { ErrorState } from '@/components/ui/error-state';
-import type { ContractWithWktRow } from '@/lib/rpc.types';
+import type { ContractWithWktRow } from '@/lib/geospatial.types';
 import type { Database } from '@/lib/database.types';
 import { ErrorBoundary } from 'react-error-boundary';
 import { CalendarRange, MapPin } from 'lucide-react';

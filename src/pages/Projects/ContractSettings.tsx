@@ -9,7 +9,7 @@ import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { ContractStatusSelect } from './SharedComponents/ContractStatusSelect';
 import { useAuthStore } from '@/lib/store';
 import { rpcClient } from '@/lib/rpc.client';
-import type { ContractWithWktRow, ProfilesByContractRow } from '@/lib/rpc.types';
+import type { ContractWithWktRow, ProfilesByContractRow } from '@/lib/geospatial.types';
 import type { Database } from '@/lib/database.types';
 
 type ContractStatus = Database['public']['Enums']['project_status'];

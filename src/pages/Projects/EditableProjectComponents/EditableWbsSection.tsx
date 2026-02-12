@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { rpcClient } from '@/lib/rpc.client';
-import type { WbsWithWktRow } from '@/lib/rpc.types';
+import type { WbsWithWktRow } from '@/lib/geospatial.types';
 
 interface EditableWbsSectionProps {
   wbsItems: WbsWithWktRow[];
