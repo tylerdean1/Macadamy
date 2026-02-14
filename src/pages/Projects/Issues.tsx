@@ -42,7 +42,7 @@ export default function Issues() {
     user: state.user,
     profile: state.profile,
   }));
-  const canEdit = typeof user?.role === 'string' && ['admin', 'engineer', 'inspector'].includes(user.role);
+  const canEdit = profile?.role === 'system_admin' || profile?.role === 'org_admin' || profile?.role === 'org_supervisor' || profile?.role === 'inspector';
 
   const [issues, setIssues] = useState<IssueWithProfile[]>([]);
   const [filteredIssues, setFilteredIssues] = useState<IssueWithProfile[]>([]);

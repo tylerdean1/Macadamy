@@ -26,7 +26,7 @@ interface Inspection {
   id?: string;
   name: string;
   description: string | null;
-  contract_id: string;
+  project_id: string;
   wbs_id: string | null;
   map_id: string | null;
   line_item_id: string | null;
@@ -53,7 +53,7 @@ interface InspectionsPayload {
 }
 
 export default function Inspections() {
-  const user = useAuthStore(state => state.user);
+  const { user, profile } = useAuthStore((state) => ({ user: state.user, profile: state.profile }));
 
   // State variables
   const [inspections, setInspections] = useState<Inspection[]>([]);
@@ -67,7 +67,7 @@ export default function Inspections() {
   const [newInspection, setNewInspection] = useState<{
     name: string;
     description: string;
-    contract_id: string;
+    project_id: string;
     wbs_id: string;
     map_id: string;
     line_item_id: string;
@@ -75,7 +75,7 @@ export default function Inspections() {
   }>({
     name: '',
     description: '',
-    contract_id: '',
+    project_id: '',
     wbs_id: '',
     map_id: '',
     line_item_id: '',
@@ -89,7 +89,7 @@ export default function Inspections() {
   const [lineItems, setLineItems] = useState<Option[]>([]);
 
   // Check if the user has edit permissions
-  const canEdit = typeof user?.role === 'string' && ['admin', 'engineer', 'inspector'].includes(user.role);
+  const canEdit = profile?.role === 'system_admin' || profile?.role === 'org_admin' || profile?.role === 'org_supervisor' || profile?.role === 'inspector';
 
   const normalizeOptions = (items: Array<Record<string, unknown>>): Option[] =>
     items
@@ -104,8 +104,8 @@ export default function Inspections() {
 
   async function loadPayload(): Promise<void> {
     try {
-      const projectId = typeof newInspection.contract_id === 'string' && newInspection.contract_id.length > 0
-        ? newInspection.contract_id
+      const projectId = typeof newInspection.project_id === 'string' && newInspection.project_id.length > 0
+        ? newInspection.project_id
         : undefined;
       const wbsId = typeof newInspection.wbs_id === 'string' && newInspection.wbs_id.length > 0
         ? newInspection.wbs_id
@@ -144,7 +144,7 @@ export default function Inspections() {
           id: typeof insp.id === 'string' ? insp.id : undefined,
           name: typeof insp.name === 'string' ? insp.name : 'Inspection',
           description: typeof insp.notes === 'string' ? insp.notes : null,
-          contract_id: typeof insp.project_id === 'string' ? insp.project_id : '',
+          project_id: typeof insp.project_id === 'string' ? insp.project_id : '',
           wbs_id: typeof result.wbs_id === 'string' ? result.wbs_id : null,
           map_id: typeof result.map_id === 'string' ? result.map_id : null,
           line_item_id: typeof result.line_item_id === 'string' ? result.line_item_id : null,
@@ -166,7 +166,7 @@ export default function Inspections() {
   // Initial load + refresh payload when selections change
   useEffect(() => {
     void loadPayload();
-  }, [newInspection.contract_id, newInspection.wbs_id, newInspection.map_id]);
+  }, [newInspection.project_id, newInspection.wbs_id, newInspection.map_id]);
 
   // Upload file (PDF or image) to Supabase Storage and return public URL
   async function uploadFile(file: File, folder: string): Promise<string | null> {
@@ -183,7 +183,7 @@ export default function Inspections() {
   // Save inspection (create or update) using correct backend functions
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (!user || !newInspection.name || !newInspection.contract_id || !pdfFile) return;
+    if (!user || !newInspection.name || !newInspection.project_id || !pdfFile) return;
 
     try {
       const pdfUrl = await uploadFile(pdfFile, 'inspections');
@@ -200,7 +200,7 @@ export default function Inspections() {
       const insertData = {
         name: newInspection.name,
         description: newInspection.description,
-        contract_id: newInspection.contract_id,
+        project_id: newInspection.project_id,
         wbs_id: newInspection.wbs_id || undefined,
         map_id: newInspection.map_id || undefined,
         line_item_id: newInspection.line_item_id || undefined,
@@ -211,7 +211,7 @@ export default function Inspections() {
 
       const input = {
         name: insertData.name,
-        project_id: insertData.contract_id || null,
+        project_id: insertData.project_id || null,
         notes: insertData.description || null,
         result: {
           pdf_url: insertData.pdf_url,
@@ -243,7 +243,7 @@ export default function Inspections() {
           id: typeof savedRow.id === 'string' ? savedRow.id : undefined,
           name: typeof savedRow.name === 'string' ? savedRow.name : newInspection.name,
           description: typeof savedRow.notes === 'string' ? savedRow.notes : (newInspection.description || null),
-          contract_id: typeof savedRow.project_id === 'string' ? savedRow.project_id : newInspection.contract_id,
+          project_id: typeof savedRow.project_id === 'string' ? savedRow.project_id : newInspection.project_id,
           wbs_id: typeof result.wbs_id === 'string' ? result.wbs_id : (newInspection.wbs_id || null),
           map_id: typeof result.map_id === 'string' ? result.map_id : (newInspection.map_id || null),
           line_item_id: typeof result.line_item_id === 'string' ? result.line_item_id : (newInspection.line_item_id || null),
@@ -270,7 +270,7 @@ export default function Inspections() {
       setNewInspection({
         name: '',
         description: '',
-        contract_id: '',
+        project_id: '',
         wbs_id: '',
         map_id: '',
         line_item_id: '',
@@ -289,7 +289,7 @@ export default function Inspections() {
     setNewInspection({
       name: insp.name,
       description: typeof insp.description === 'string' ? insp.description : '',
-      contract_id: insp.contract_id,
+      project_id: insp.project_id,
       wbs_id: typeof insp.wbs_id === 'string' ? insp.wbs_id : '',
       map_id: typeof insp.map_id === 'string' ? insp.map_id : '',
       line_item_id: typeof insp.line_item_id === 'string' ? insp.line_item_id : '',
@@ -332,8 +332,8 @@ export default function Inspections() {
           <select
             id="contractSelect"
             className="w-full text-black px-4 py-2 rounded"
-            value={newInspection.contract_id}
-            onChange={(e) => setNewInspection({ ...newInspection, contract_id: e.target.value })}
+            value={newInspection.project_id}
+            onChange={(e) => setNewInspection({ ...newInspection, project_id: e.target.value })}
             required
           >
             <option value="">Select Contract</option>

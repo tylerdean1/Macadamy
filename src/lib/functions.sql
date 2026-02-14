@@ -464,7 +464,7 @@ ALTER TABLE ONLY public.profiles FORCE ROW LEVEL SECURITY;
 -- Name: complete_my_profile(text, text, uuid, uuid, public.user_role_type, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.complete_my_profile(p_full_name text, p_phone text, p_job_title_id uuid, p_avatar_id uuid, p_role public.user_role_type, p_organization_id uuid) RETURNS public.profiles
+CREATE FUNCTION public.complete_my_profile(p_full_name text, p_phone text DEFAULT NULL::text, p_job_title_id uuid DEFAULT NULL::uuid, p_avatar_id uuid DEFAULT NULL::uuid, p_role public.user_role_type DEFAULT NULL::public.user_role_type, p_organization_id uuid DEFAULT NULL::uuid) RETURNS public.profiles
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$

@@ -43,7 +43,7 @@ export default function ContractSettings() {
         }
 
         const members = await rpcClient.get_profiles_by_contract({ p_contract_id: contractId });
-        setContract(currentContract as ContractWithWktRow);
+        setContract(currentContract);
         setSelectedStatus(currentContract.status ?? 'planned');
         setTeamMembers(Array.isArray(members) ? members : []);
       } catch (error) {
@@ -65,7 +65,7 @@ export default function ContractSettings() {
     try {
       await rpcClient.update_projects({ _id: contractId, _input: { status: selectedStatus } });
 
-      setContract(prev => prev ? { ...prev, status: selectedStatus as ContractWithWktRow['status'] } : null);
+      setContract(prev => prev ? { ...prev, status: selectedStatus } : null);
       toast.success('Contract status updated successfully');
     } catch (error) {
       console.error('Error updating contract status:', error);
@@ -186,7 +186,7 @@ export default function ContractSettings() {
                   <Button
                     variant="primary"
                     onClick={() => { void handleUpdateStatus(); }}
-                    disabled={isSaving || selectedStatus === (contract?.status as ContractStatus | null)}
+                    disabled={isSaving || selectedStatus === contract?.status}
                     className="mt-2 md:mt-0"
                   >
                     {isSaving ? 'Updating...' : 'Update Status'}

@@ -11406,12 +11406,12 @@ export type Database = {
       }
       complete_my_profile: {
         Args: {
-          p_avatar_id: string
+          p_avatar_id: string | null
           p_full_name: string
-          p_job_title_id: string
-          p_organization_id: string
-          p_phone: string
-          p_role: Database["public"]["Enums"]["user_role_type"]
+          p_job_title_id: string | null
+          p_organization_id: string | null
+          p_phone: string | null
+          p_role: Database["public"]["Enums"]["user_role_type"] | null
         }
         Returns: {
           avatar_id: string | null

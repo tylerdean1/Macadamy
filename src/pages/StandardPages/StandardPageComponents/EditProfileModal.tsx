@@ -209,13 +209,21 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
         }
       }
 
-      const payload = {
+      const payload: Database['public']['Functions']['update_my_profile']['Args'] = {
         p_full_name: fullName.trim(),
-        p_phone: phone.trim() || null,
-        p_job_title_id: jobTitleId || null,
-        p_avatar_id: resolvedAvatarId,
-        p_role: selectedRole ?? profile.role ?? null,
-      } as unknown as Database['public']['Functions']['update_my_profile']['Args'];
+        p_phone: phone.trim(),
+      };
+
+      if (jobTitleId) {
+        payload.p_job_title_id = jobTitleId;
+      }
+      if (resolvedAvatarId) {
+        payload.p_avatar_id = resolvedAvatarId;
+      }
+      const resolvedRole = selectedRole ?? profile.role ?? undefined;
+      if (resolvedRole) {
+        payload.p_role = resolvedRole;
+      }
 
       const updatedRows = await rpcClient.update_my_profile(payload);
       const updatedProfile = Array.isArray(updatedRows) ? updatedRows[0] : updatedRows;

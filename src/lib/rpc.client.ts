@@ -14,7 +14,7 @@ type RpcFn<Args, Returns> = [Args] extends [never]
 
 export type RpcClient = {
   [K in keyof Functions]: RpcFn<Functions[K]['Args'], Functions[K]['Returns']>;
-} & Record<string, (args?: Record<string, unknown>) => Promise<unknown>>; // legacy fallback
+};
 
 const rpcNameSet = new Set<string>(RPC_NAMES);
 

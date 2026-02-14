@@ -53,10 +53,10 @@ export default function OrganizationOnboarding(): JSX.Element {
         if (!name) return;
         setIsBusy(true);
         try {
-            const payload = {
+            const payload: Database['public']['Functions']['create_my_organization']['Args'] = {
                 p_name: name,
-                p_description: description || null,
-            } as unknown as Database['public']['Functions']['create_my_organization']['Args'];
+                p_description: description,
+            };
 
             await rpcClient.create_my_organization(payload);
             await useAuthStore.getState().loadProfile(user.id);
