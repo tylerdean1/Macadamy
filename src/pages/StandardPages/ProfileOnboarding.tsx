@@ -26,7 +26,7 @@ export default function ProfileOnboarding(): JSX.Element {
 
     // All state that depends on profile must come after profile is defined
     const [selectedOrg, setSelectedOrg] = useState<string>(profile?.organization_id ?? '');
-    const { organizations, loading: orgsLoading, error: orgsError } = useOrganizationsData();
+    const { organizations } = useOrganizationsData();
     const [fullName, setFullName] = useState(profile?.full_name ?? '');
     const [phone, setPhone] = useState(formatPhoneUS(profile?.phone ?? ''));
     const [jobTitleId, setJobTitleId] = useState<string | null>(profile?.job_title_id ?? null);
@@ -74,6 +74,7 @@ export default function ProfileOnboarding(): JSX.Element {
         if (!profile) return;
         setFullName(profile.full_name ?? '');
         setPhone(formatPhoneUS(profile.phone ?? ''));
+        setSelectedOrg(profile.organization_id ?? '');
         setJobTitleId(profile.job_title_id ?? null);
         setSelectedAvatarId(profile.avatar_id ?? null);
         setSelectedRole(profile.role ?? 'org_user');
@@ -211,14 +212,14 @@ export default function ProfileOnboarding(): JSX.Element {
                 }
             }
 
-            const payload = {
+            const payload: Database['public']['Functions']['complete_my_profile']['Args'] = {
                 p_full_name: fullName.trim(),
                 p_phone: phone.trim() || null,
-                p_job_title_id: jobTitleId || null,
+                p_job_title_id: jobTitleId,
                 p_avatar_id: resolvedAvatarId,
                 p_role: selectedRole,
                 p_organization_id: selectedOrg || null,
-            } as unknown as Database['public']['Functions']['complete_my_profile']['Args'];
+            };
 
             // Save profile
             await rpcClient.complete_my_profile(payload);
@@ -288,6 +289,27 @@ export default function ProfileOnboarding(): JSX.Element {
                             disabled={isLoading}
                             autoComplete="tel"
                         />
+                    </div>
+
+
+                    <div>
+                        <label htmlFor="profile-organization" className="block text-sm text-gray-300 mb-2">
+                            Organization
+                        </label>
+                        <select
+                            id="profile-organization"
+                            value={selectedOrg}
+                            onChange={(e) => setSelectedOrg(e.target.value)}
+                            className="w-full bg-background border border-background-lighter text-gray-100 px-4 py-2.5 rounded-md focus:ring-2 focus:ring-primary disabled:opacity-50"
+                            disabled={isLoading}
+                            required
+                        >
+                            <option value="">Select an organization</option>
+                            {organizations.map((org) => (
+                                <option key={org.id} value={org.id}>{org.name}</option>
+                            ))}
+                            <option value="__create_new__">Create new organization…</option>
+                        </select>
                     </div>
 
                     <div>

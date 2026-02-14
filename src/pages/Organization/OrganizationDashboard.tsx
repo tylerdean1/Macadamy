@@ -189,20 +189,22 @@ export default function OrganizationDashboard(): JSX.Element {
   };
 
   const getProjectStatusCounts = () => {
-    // Define all possible project statuses
-    const allStatuses = ['active', 'completed', 'on-hold', 'cancelled', 'planning', 'in-progress', 'unknown'];
-    const counts: Record<string, number> = {};
+    const counts: Record<Database['public']['Enums']['project_status'] | 'unknown', number> = {
+      planned: 0,
+      active: 0,
+      complete: 0,
+      archived: 0,
+      on_hold: 0,
+      canceled: 0,
+      unknown: 0,
+    };
 
-    // Initialize all statuses with 0
-    allStatuses.forEach(status => {
-      counts[status] = 0;
-    });
-
-    // Count actual projects
     projects.forEach(project => {
-      const status = project.status || 'unknown';
-      if (counts[status] !== undefined) {
-        counts[status] = (counts[status] || 0) + 1;
+      const status = project.status;
+      if (status === 'planned' || status === 'active' || status === 'complete' || status === 'archived' || status === 'on_hold' || status === 'canceled') {
+        counts[status] += 1;
+      } else {
+        counts.unknown += 1;
       }
     });
 

@@ -15,7 +15,7 @@ export interface ContractWithWktRow {
     start_date: string | null;
     end_date: string | null;
     budget: number | null;
-    status: Database["public"]["Enums"]["general_status"] | null;
+    status: Database["public"]["Enums"]["project_status"] | null;
     created_at: string | null;
     updated_at: string;
     coordinates_wkt: string | null;
