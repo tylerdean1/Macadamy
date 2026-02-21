@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useRequireProfile } from '@/hooks/useRequireProfile';
 import { useProfileDashboardPayload } from '@/hooks/useProfileDashboardPayload';
+import { useAuthStore } from '@/lib/store';
+import { useMyOrganizations } from '@/hooks/useMyOrganizations';
 
 import { Page } from '@/components/Layout';
 import { PageContainer } from '@/components/Layout';
@@ -10,19 +12,15 @@ import { EditProfileModal } from './StandardPageComponents/EditProfileModal';
 
 export default function Dashboard() {
   useRequireProfile(); // Ensures user is logged in and profile exists
-
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { profile, projects, metrics, loading, error: dashboardError } = useProfileDashboardPayload();
+  const { selectedOrganizationId } = useAuthStore();
+  const { orgs: myOrgs } = useMyOrganizations(profile?.id);
 
-  const {
-    profile,
-    projects,
-    metrics,
-    loading,
-    error: dashboardError,
-  } = useProfileDashboardPayload();
-  // Explicitly check for non-empty error strings and provide a default empty string if none are found.
-  // Fix: Remove null/undefined from array before .find()
-  // Final fix: filter out null/undefined and empty strings before .find()
+  // derive override display values for ProfileSection when a dashboard org filter is active
+  const selectedMembership = selectedOrganizationId ? myOrgs.find(o => o.id === selectedOrganizationId) ?? null : null;
+  const overrideOrgName = selectedOrganizationId ? (selectedMembership?.name ?? null) : null;
+  const overrideOrgRole = selectedOrganizationId ? (selectedMembership?.role ?? null) : null;
   const errorList = [dashboardError].filter((e): e is string => typeof e === 'string' && e != null && e.trim() !== '');
   const combinedError = errorList.length > 0 ? errorList[0] : null;
 
@@ -30,7 +28,7 @@ export default function Dashboard() {
     return <div className="min-h-screen flex items-center justify-center">Loading…</div>;
   }
 
-  if (combinedError !== null && combinedError !== '') { // Check if combinedError is a non-empty string
+  if (combinedError !== null && combinedError !== '') {
     return <div className="min-h-screen flex items-center justify-center">Error: {combinedError}</div>;
   }
 
@@ -41,10 +39,14 @@ export default function Dashboard() {
   return (
     <Page>
       <PageContainer>
-        <ProfileSection
-          profile={profile}
-          onEdit={() => setIsModalOpen(true)}
-        />
+        <div className="flex items-center justify-between mb-4">
+          <ProfileSection
+            profile={profile}
+            onEdit={() => setIsModalOpen(true)}
+            overrideOrgName={overrideOrgName}
+            overrideOrgRole={overrideOrgRole}
+          />
+        </div>
 
         <EditProfileModal
           isOpen={isModalOpen}

@@ -7,6 +7,7 @@ import { useAvatarUpload } from '@/hooks/useAvatarUpload';
 import type { Database, Tables } from '@/lib/database.types';
 import { USER_ROLE_TYPE_OPTIONS } from '@/lib/types';
 import { formatPhoneUS } from '@/lib/utils/formatters';
+import { PROFILE_ERROR_MESSAGES } from '@/lib/utils/profileErrorMessages';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import ImageCropper from '@/pages/StandardPages/StandardPageComponents/ImageCropper';
 
@@ -103,7 +104,7 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
         setAvatars(resolvedAvatars);
       } catch (err) {
         console.error(err);
-        toast.error('Unable to load profile options. Please refresh.');
+        toast.error(PROFILE_ERROR_MESSAGES.LOAD_OPTIONS);
       }
     };
 
@@ -126,7 +127,7 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
 
   const handleAddCustomJobTitle = async (): Promise<void> => {
     if (!jobTitleQuery.trim()) {
-      toast.error('Please enter a job title');
+      toast.error(PROFILE_ERROR_MESSAGES.ENTER_JOB_TITLE);
       return;
     }
 
@@ -144,7 +145,7 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
       toast.success('Job title added');
     } catch (err) {
       console.error(err);
-      toast.error('Unable to add job title');
+      toast.error(PROFILE_ERROR_MESSAGES.ADD_JOB_TITLE);
     } finally {
       setIsAddingJobTitle(false);
     }
@@ -176,7 +177,7 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
     if (!user) return;
 
     if (!fullName.trim()) {
-      toast.error('Please enter your full name');
+      toast.error(PROFILE_ERROR_MESSAGES.ENTER_FULL_NAME);
       return;
     }
 
@@ -209,9 +210,12 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
         }
       }
 
+
+      // Always store phone in formatted (XXX) XXX-XXXX format or undefined
+      const formattedPhone = phone.trim() ? formatPhoneUS(phone.trim()) : undefined;
       const payload: Database['public']['Functions']['update_my_profile']['Args'] = {
         p_full_name: fullName.trim(),
-        p_phone: phone.trim(),
+        p_phone: formattedPhone,
       };
 
       if (jobTitleId) {
@@ -234,6 +238,7 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
           full_name: updatedProfile.full_name,
           email: updatedProfile.email,
           phone: updatedProfile.phone,
+          location: updatedProfile.location,
           role: updatedProfile.role as EnrichedProfile['role'],
           job_title_id: updatedProfile.job_title_id,
           organization_id: updatedProfile.organization_id,
@@ -262,7 +267,7 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
         || message.includes('NetworkError');
       toast.error(
         isNetworkError
-          ? 'Network error, try again in a minute.'
+          ? PROFILE_ERROR_MESSAGES.NETWORK_RETRY
           : 'Unable to update your profile. Please try again.'
       );
     } finally {

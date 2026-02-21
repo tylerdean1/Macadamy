@@ -12,6 +12,7 @@ export interface EnrichedProfile {
   full_name: string | null; // Allow null as per database
   email: string;
   phone: string | null;
+  location: string | null;
   role: UserRoleType | null; // Allow role to be null
   job_title_id: string | null;
   organization_id: string | null;
@@ -60,10 +61,21 @@ export type AuthState = {
     updates: Partial<EnrichedProfile>,
   ) => Promise<void>;
 
+  // Dashboard-specific UI: currently selected organization filter (null = All orgs)
+  selectedOrganizationId: string | null;
+  setSelectedOrganizationId: (orgId: string | null) => void;
+
   // Deprecated - for backwards compatibility
   isLoading: boolean;
   setIsLoading: (isLoading: boolean) => void;
 };
+
+// helper to strip surrounding quotes from UUIDs that might accidentally get stored
+function stripUuidQuotes(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const s = value.toString();
+  return s.replace(/^"|"$/g, '');
+}
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -77,6 +89,8 @@ export const useAuthStore = create<AuthState>()(
       },
       error: null,
       isLoading: false, // Deprecated but kept for backward compatibility
+      // Default dashboard org filter (null => All organizations)
+      selectedOrganizationId: null,
 
       setLoading: (loadingState: Partial<LoadingState>): void =>
         set(state => {
@@ -115,7 +129,21 @@ export const useAuthStore = create<AuthState>()(
         })),
 
       setProfile: (profile: EnrichedProfile | null): void =>
-        set((state) => ({ ...state, profile })),
+        set((state) => ({
+          ...state,
+          profile: profile
+            ? {
+              ...profile,
+              id: stripUuidQuotes(profile.id) ?? profile.id,
+              job_title_id: stripUuidQuotes(profile.job_title_id),
+              organization_id: stripUuidQuotes(profile.organization_id),
+              avatar_id: stripUuidQuotes(profile.avatar_id),
+            }
+            : null
+        })),
+
+      setSelectedOrganizationId: (orgId: string | null): void =>
+        set((state) => ({ ...state, selectedOrganizationId: orgId })),
 
       clearAuth: (): void =>
         set({
@@ -190,16 +218,24 @@ export const useAuthStore = create<AuthState>()(
             }
 
             const avatarUrl = await resolveAvatarUrl(first.avatar_id);
+            const sanitize = (field: string | null | undefined) => {
+              if (typeof field === 'string' && /^".*"$/.test(field)) {
+                console.warn('stripUuidQuotes: found quoted value', field);
+              }
+              return stripUuidQuotes(field);
+            };
+
             const prof: EnrichedProfile = {
-              id: first.id,
+              id: sanitize(first.id) as string,
               full_name: first.full_name,
               email: first.email,
               phone: first.phone,
+              location: first.location,
               role: first.role as unknown as EnrichedProfile['role'],
-              job_title_id: first.job_title_id,
-              organization_id: first.organization_id,
+              job_title_id: sanitize(first.job_title_id),
+              organization_id: sanitize(first.organization_id),
               organization_address: null,
-              avatar_id: first.avatar_id,
+              avatar_id: sanitize(first.avatar_id),
               avatar_url: avatarUrl,
               job_title: null,
               organization_name: null,
@@ -230,17 +266,26 @@ export const useAuthStore = create<AuthState>()(
             return;
           }
 
+          // sanitize returned uuids and log unexpected quotes
+          const sanitize = (field: string | null | undefined) => {
+            if (typeof field === 'string' && /^".*"$/.test(field)) {
+              console.warn('stripUuidQuotes: found quoted value', field);
+            }
+            return stripUuidQuotes(field);
+          };
+
           const avatarUrl = await resolveAvatarUrl(sourceRow.avatar_id);
           const prof: EnrichedProfile = {
-            id: sourceRow.id,
+            id: sanitize(sourceRow.id) as string,
             full_name: sourceRow.full_name,
             email: sourceRow.email,
             phone: sourceRow.phone,
+            location: sourceRow.location,
             role: sourceRow.role as unknown as EnrichedProfile['role'],
-            job_title_id: sourceRow.job_title_id,
-            organization_id: sourceRow.organization_id,
+            job_title_id: sanitize(sourceRow.job_title_id),
+            organization_id: sanitize(sourceRow.organization_id),
             organization_address: null,
-            avatar_id: sourceRow.avatar_id,
+            avatar_id: sanitize(sourceRow.avatar_id),
             avatar_url: avatarUrl,
             job_title: null,
             organization_name: null,

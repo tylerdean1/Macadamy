@@ -49,7 +49,7 @@ const resolveJobTitle = (jobTitles: JobTitleItem[], jobTitleId: string | null): 
 };
 
 export function useProfileDashboardPayload(): DashboardPayloadResult {
-    const { user, profile, loading: authLoading, setProfile } = useAuthStore();
+    const { user, profile, loading: authLoading, setProfile, selectedOrganizationId } = useAuthStore();
     const [projects, setProjects] = useState<EnrichedUserContract[]>([]);
     const [metrics, setMetrics] = useState<DashboardMetricsData>({
         activeContracts: 0,
@@ -101,6 +101,36 @@ export function useProfileDashboardPayload(): DashboardPayloadResult {
         }
 
         try {
+            // If a specific organization is selected for the dashboard (client-only filter), load org-scoped payload
+            if (selectedOrganizationId && profile?.organization_id !== selectedOrganizationId) {
+                const orgRaw = await rpcClient.rpc_org_dashboard_payload({ p_organization_id: selectedOrganizationId });
+                const orgPayload = orgRaw && typeof orgRaw === 'object' ? (orgRaw as Record<string, unknown>) : {};
+
+                // Map org metrics -> dashboard metrics (best-effort mapping)
+                const orgMetrics = (orgPayload.metrics && typeof orgPayload.metrics === 'object') ? (orgPayload.metrics as Record<string, unknown>) : {};
+                const totalProjects = typeof orgMetrics.total_projects === 'number' ? orgMetrics.total_projects : 0;
+
+                // Fetch projects for the selected org (reuse existing RPC)
+                const projectsData = await rpcClient.filter_projects({ _filters: { organization_id: selectedOrganizationId }, _limit: 25, _order_by: 'updated_at', _direction: 'desc' }) as Array<Record<string, unknown>>;
+                const nextProjects = Array.isArray(projectsData) ? projectsData.map((p) => normalizeProject(p)) : [];
+
+                const openIssues = typeof orgMetrics.open_issues === 'number' ? orgMetrics.open_issues : 0;
+                const pendingInspections = typeof orgMetrics.pending_inspections === 'number' ? orgMetrics.pending_inspections : 0;
+
+                if (canUpdate()) {
+                    setProjects(nextProjects);
+                    setMetrics({
+                        // `total_projects` is the closest available metric here
+                        activeContracts: totalProjects,
+                        openIssues,
+                        pendingInspections,
+                    });
+                }
+
+                return; // early exit — we've loaded org-scoped payload
+            }
+
+            // Default: no org filter or selected org == primary org; use profile-scoped payload
             const raw = await rpcClient.rpc_profile_dashboard_payload({
                 p_projects_page: 1,
                 p_page_size: 25,
@@ -178,15 +208,19 @@ export function useProfileDashboardPayload(): DashboardPayloadResult {
                 setLoading(false);
             }
         }
-    }, [authLoading.initialization, authLoading.profile, authLoading.auth, profile, setProfile, user?.id]);
+    }, [authLoading.initialization, authLoading.profile, authLoading.auth, profile, setProfile, user?.id, selectedOrganizationId]);
 
     useEffect(() => {
         void loadPayload();
     }, [loadPayload]);
 
+    const displayedProjects = selectedOrganizationId
+        ? projects.filter((p) => p.organization_id === selectedOrganizationId)
+        : projects;
+
     return {
         profile,
-        projects: useMemo(() => projects, [projects]),
+        projects: useMemo(() => displayedProjects, [projects, selectedOrganizationId]),
         metrics,
         loading,
         error,

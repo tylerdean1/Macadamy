@@ -4,15 +4,33 @@ import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import type { EnrichedProfile } from '@/lib/store';
 import { formatPhoneUS } from '@/lib/utils/formatters';
+import { useMyOrganizations } from '@/hooks/useMyOrganizations';
+import { useAuthStore } from '@/lib/store';
+import { usePrimaryOrganizationSwitch } from '@/hooks/usePrimaryOrganizationSwitch';
 
 export interface ProfileSectionProps {
   profile: EnrichedProfile; // Profile data is now directly passed
   onEdit: () => void;
+  // optional overrides so Dashboard can display a different org/job-title context
+  overrideOrgName?: string | null;
+  overrideOrgRole?: string | null;
 }
 
-export function ProfileSection({ profile, onEdit }: ProfileSectionProps) {
-  // No internal state or data fetching needed here anymore
-  // All data comes from the `profile` prop
+export function ProfileSection({ profile, onEdit, overrideOrgName = null, overrideOrgRole = null }: ProfileSectionProps) {
+  // Load organizations for the current profile to support org-switcher UI
+  const { orgs, loading: orgsLoading } = useMyOrganizations(profile.id);
+  const authStore = useAuthStore();
+  const selectedOrganizationId = authStore.selectedOrganizationId;
+  const { isSwitching: isOrgSwitching, switchPrimaryOrganization } = usePrimaryOrganizationSwitch();
+
+  const handleOrganizationSwitch = async (organizationId: string) => {
+    await switchPrimaryOrganization(organizationId);
+  };
+
+  const displayOrgName = overrideOrgName ?? profile.organization_name;
+  const displayJobTitle = overrideOrgRole ?? profile.job_title;
+
+  // No internal state or data fetching needed here beyond hooks above
   return (
     <Card className="mb-8">
       <div className="flex flex-col md:flex-row justify-between items-start gap-6">
@@ -56,19 +74,58 @@ export function ProfileSection({ profile, onEdit }: ProfileSectionProps) {
                 {formatPhoneUS(profile.phone)}
               </p>
             )}
-            {typeof profile.organization_name === 'string' && profile.organization_name.trim() !== '' && (
-              <Link
-                to="/organizations"
-                className="flex items-center text-gray-300 hover:text-white transition-colors"
-              >
+            {/* Organization name / org-switcher */}
+            {orgsLoading ? (
+              <p className="flex items-center text-gray-400">
                 <Building2 className="w-4 h-4 mr-2" />
-                {profile.organization_name}
-              </Link>
-            )}
-            {(typeof profile.job_title === 'string' && profile.job_title.trim() !== '') && (
+                Loading organizations…
+              </p>
+            ) : Array.isArray(orgs) && orgs.length > 1 ? (
+              (() => {
+                const selectedId = selectedOrganizationId ?? profile.organization_id ?? orgs[0].id;
+                const selected = orgs.find(o => o.id === selectedId) ?? orgs[0];
+                return (
+                  <div className="flex items-center gap-3">
+                    <Building2 className="w-4 h-4 text-gray-300" />
+                    <select
+                      title="Switch organization"
+                      aria-label="Switch organization"
+                      className={`bg-transparent text-gray-300 border border-transparent focus:border-gray-600 rounded px-2 py-1 ${isOrgSwitching ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      value={selected.id}
+                      disabled={isOrgSwitching}
+                      onChange={(e) => {
+                        const nextId = e.target.value;
+                        void handleOrganizationSwitch(nextId);
+                      }}
+                    >
+                      {orgs.map((o) => (
+                        <option key={o.id} value={o.id}>{o.name}{o.role ? ` — ${o.role}` : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })()
+            ) : (typeof displayOrgName === 'string' && displayOrgName.trim() !== '') ? (
+              (() => {
+                const membership = Array.isArray(orgs) && orgs.length > 0 ? orgs.find(o => o.id === profile.organization_id) : null;
+                return (
+                  <Link
+                    to="/organizations"
+                    className="flex items-center text-gray-300 hover:text-white transition-colors"
+                  >
+                    <Building2 className="w-4 h-4 mr-2" />
+                    {displayOrgName}
+                    {(overrideOrgRole ?? membership?.role) && (
+                      <span className="ml-3 text-xs text-gray-400">{(overrideOrgRole ?? membership?.role ?? '').replace(/_/g, ' ')}</span>
+                    )}
+                  </Link>
+                );
+              })()
+            ) : null}
+            {(typeof displayJobTitle === 'string' && displayJobTitle?.trim() !== '') && (
               <p className="flex items-center">
                 <Briefcase className="w-4 h-4 mr-2" />
-                {profile.job_title}
+                {displayJobTitle}
               </p>
             )}
             {(typeof profile.role === 'string' && profile.role.trim() !== '') && (

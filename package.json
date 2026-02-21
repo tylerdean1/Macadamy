@@ -9,6 +9,7 @@
     "lint": "eslint . --ext .ts,.tsx",
     "eslint": "node scripts/run-eslint.cjs",
     "eslint:fix": "node scripts/run-eslint.cjs --fix",
+    "test:unit": "vitest run",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "test": "node scripts/run-tests.cjs",
     "preview": "vite preview",
@@ -29,7 +30,6 @@
     "audit:supabase:collect": "node scripts/supabase_collect.mjs",
     "audit:all": "npm run audit:deps && npm run audit:supabase:collect && npm run audit:supabase",
     "avatars:purge": "node scripts/purge-orphaned-avatars.mjs"
-    
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^2.0.2",
@@ -58,7 +58,7 @@
     "zustand": "^4.5.6"
   },
   "devDependencies": {
-    "@eslint/js": "^9.27.0",
+    "@eslint/js": "^10.0.1",
     "@types/geojson": "^7946.0.16",
     "@types/google.maps": "^3.58.1",
     "@types/jspdf": "^1.3.3",
@@ -68,15 +68,16 @@
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.18",
     "dotenv": "^16.5.0",
-    "eslint": "^9.27.0",
-    "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^5.1.0-rc.0",
-    "eslint-plugin-react-refresh": "^0.4.11",
+    "eslint": "^10.0.1",
     "globals": "^15.15.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",
-    "typescript-eslint": "^8.32.1",
-    "vite": "^6.4.1"
+    "typescript-eslint": "^8.56.0",
+    "vite": "^6.4.1",
+    "vitest": "^4.0.18"
+  },
+  "overrides": {
+    "minimatch": "10.2.1"
   }
 }

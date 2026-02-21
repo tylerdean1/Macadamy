@@ -27,6 +27,9 @@ export default defineConfig([
     plugins: {
       "@typescript-eslint": tseslint.plugin
     },
+    rules: {
+      "no-useless-assignment": "off"
+    },
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",

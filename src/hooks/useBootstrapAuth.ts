@@ -251,21 +251,12 @@ export function useBootstrapAuth(): boolean {
     }
   }, [loading.initialization, user, profile, navigate]);
 
-  /* ── FOURTH EFFECT ▪ org onboarding redirect when org_id is null ──────── */
-  useEffect(() => {
-    if (loading.initialization) return;
-    if (!user || !profile) return;
-    const isProfileComplete = Boolean(profile.profile_completed_at);
-    if (!isProfileComplete) return;
-    const noOrg = profile.organization_id === null || profile.organization_id === '';
-    if (!noOrg) return;
-    const path = window.location.pathname;
-    const alreadyOnOrgOnboarding = path.startsWith('/organizations/onboarding');
-    const isAuthFlow = path.startsWith('/onboarding');
-    if (!alreadyOnOrgOnboarding && !isAuthFlow) {
-      navigate('/organizations/onboarding');
-    }
-  }, [loading.initialization, user, profile, navigate]);
+  /* ── FOURTH EFFECT ▪ (removed) automatic org onboarding redirect ───────── */
+  // Previous behavior redirected users to /organizations/onboarding when their
+  // profile had no organization_id. That forced first-time users into org setup
+  // immediately after sign-in. Per product decision, we no longer force this.
+  // Users may open the Organization wizard manually via the Dashboard → Add Organization.
+  // Leaving this comment to explain why automatic redirect was intentionally removed.
   /* ── SAFETY TIMEOUT ▪ reset stuck loading ───────────────────── */
   useEffect(() => {
     if (timeoutRef.current != null) {

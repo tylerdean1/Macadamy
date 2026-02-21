@@ -21,7 +21,7 @@ function resolveRepoRoot() {
 
 const REPO_ROOT = resolveRepoRoot();
 
-const DEFAULT_DELAY_MS = 200;
+const DEFAULT_DELAY_MS = 100;
 const delayMs = Number.parseInt(process.env.OPENALL_DELAY_MS || '', 10);
 const DELAY = Number.isFinite(delayMs) ? delayMs : DEFAULT_DELAY_MS;
 

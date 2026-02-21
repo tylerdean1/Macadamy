@@ -3918,6 +3918,42 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_invites: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          invited_by_profile_id: string
+          invited_profile_id: string
+          organization_id: string
+          responded_at: string | null
+          role: string | null
+          status: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          invited_by_profile_id: string
+          invited_profile_id: string
+          organization_id: string
+          responded_at?: string | null
+          role?: string | null
+          status: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          invited_by_profile_id?: string
+          invited_profile_id?: string
+          organization_id?: string
+          responded_at?: string | null
+          role?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       organization_member_rates: {
         Row: {
           created_at: string
@@ -4478,6 +4514,7 @@ export type Database = {
           full_name: string | null
           id: string
           job_title_id: string | null
+          location: string | null
           organization_id: string | null
           phone: string | null
           profile_completed_at: string | null
@@ -4492,6 +4529,7 @@ export type Database = {
           full_name?: string | null
           id: string
           job_title_id?: string | null
+          location?: string | null
           organization_id?: string | null
           phone?: string | null
           profile_completed_at?: string | null
@@ -4506,6 +4544,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           job_title_id?: string | null
+          location?: string | null
           organization_id?: string | null
           phone?: string | null
           profile_completed_at?: string | null
@@ -5739,18 +5778,21 @@ export type Database = {
         Row: {
           changed_at: string
           deleted_at: string | null
+          id: string
           status: Database["public"]["Enums"]["task_status"]
           task_id: string
         }
         Insert: {
           changed_at?: string
           deleted_at?: string | null
+          id?: string
           status: Database["public"]["Enums"]["task_status"]
           task_id: string
         }
         Update: {
           changed_at?: string
           deleted_at?: string | null
+          id?: string
           status?: Database["public"]["Enums"]["task_status"]
           task_id?: string
         }
@@ -11404,39 +11446,79 @@ export type Database = {
         Args: { _action: string; _org: string; _proj: string; _table: string }
         Returns: boolean
       }
-      complete_my_profile: {
-        Args: {
-          p_avatar_id: string | null
-          p_full_name: string
-          p_job_title_id: string | null
-          p_organization_id: string | null
-          p_phone: string | null
-          p_role: Database["public"]["Enums"]["user_role_type"] | null
-        }
-        Returns: {
-          avatar_id: string | null
-          created_at: string | null
-          deleted_at: string | null
-          email: string
-          full_name: string | null
-          id: string
-          job_title_id: string | null
-          organization_id: string | null
-          phone: string | null
-          profile_completed_at: string | null
-          role: Database["public"]["Enums"]["user_role_type"] | null
-          updated_at: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "profiles"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      complete_my_profile:
+        | {
+            Args: {
+              p_avatar_id?: string
+              p_full_name: string
+              p_job_title_id?: string
+              p_location?: string
+              p_organization_id?: string
+              p_phone?: string
+              p_role?: Database["public"]["Enums"]["user_role_type"]
+            }
+            Returns: {
+              avatar_id: string | null
+              created_at: string | null
+              deleted_at: string | null
+              email: string
+              full_name: string | null
+              id: string
+              job_title_id: string | null
+              location: string | null
+              organization_id: string | null
+              phone: string | null
+              profile_completed_at: string | null
+              role: Database["public"]["Enums"]["user_role_type"] | null
+              updated_at: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "profiles"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              p_avatar_id?: string
+              p_full_name: string
+              p_job_title_id?: string
+              p_organization_id?: string
+              p_phone?: string
+              p_role?: Database["public"]["Enums"]["user_role_type"]
+            }
+            Returns: {
+              avatar_id: string | null
+              created_at: string | null
+              deleted_at: string | null
+              email: string
+              full_name: string | null
+              id: string
+              job_title_id: string | null
+              location: string | null
+              organization_id: string | null
+              phone: string | null
+              profile_completed_at: string | null
+              role: Database["public"]["Enums"]["user_role_type"] | null
+              updated_at: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "profiles"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       count_unread_notifications: { Args: never; Returns: number }
       create_my_organization: {
-        Args: { p_description: string; p_name: string }
+        Args: {
+          p_description?: string
+          p_headquarters?: string
+          p_logo_url?: string
+          p_mission_statement?: string
+          p_name: string
+        }
         Returns: string
       }
       create_project_with_owner: {
@@ -11521,6 +11603,7 @@ export type Database = {
       delete_materials: { Args: { _id: string }; Returns: undefined }
       delete_meeting_minutes: { Args: { _id: string }; Returns: undefined }
       delete_notifications: { Args: { _id: string }; Returns: undefined }
+      delete_organization_invites: { Args: { _id: string }; Returns: undefined }
       delete_organization_member_rates: {
         Args: { _id: string }
         Returns: undefined
@@ -12959,6 +13042,33 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      filter_organization_invites: {
+        Args: {
+          _direction?: string
+          _filters?: Json
+          _limit?: number
+          _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
+        }
+        Returns: {
+          comment: string | null
+          created_at: string
+          id: string
+          invited_by_profile_id: string
+          invited_profile_id: string
+          organization_id: string
+          responded_at: string | null
+          role: string | null
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_invites"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       filter_organization_member_rates: {
         Args: {
           _direction?: string
@@ -13232,6 +13342,7 @@ export type Database = {
           full_name: string | null
           id: string
           job_title_id: string | null
+          location: string | null
           organization_id: string | null
           phone: string | null
           profile_completed_at: string | null
@@ -13727,6 +13838,7 @@ export type Database = {
         Returns: {
           changed_at: string
           deleted_at: string | null
+          id: string
           status: Database["public"]["Enums"]["task_status"]
           task_id: string
         }[]
@@ -14123,6 +14235,14 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_my_member_organizations: {
+        Args: never
+        Returns: {
+          id: string
+          name: string
+          role: string
+        }[]
+      }
       get_my_org_profiles_minimal: {
         Args: never
         Returns: {
@@ -14142,6 +14262,7 @@ export type Database = {
           full_name: string | null
           id: string
           job_title_id: string | null
+          location: string | null
           organization_id: string | null
           phone: string | null
           profile_completed_at: string | null
@@ -14164,6 +14285,26 @@ export type Database = {
         Returns: {
           id: string
           name: string
+        }[]
+      }
+      get_pending_organization_invites_with_profiles: {
+        Args: { p_organization_id: string }
+        Returns: {
+          comment: string
+          created_at: string
+          id: string
+          invited_by_profile_id: string
+          invited_profile_id: string
+          organization_id: string
+          requester_avatar_id: string
+          requester_avatar_url: string
+          requester_email: string
+          requester_full_name: string
+          requester_location: string
+          requester_phone: string
+          responded_at: string
+          role: string
+          status: string
         }[]
       }
       get_preset_avatars_public: {
@@ -15218,6 +15359,26 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      insert_organization_invites: {
+        Args: { _input: Json }
+        Returns: {
+          comment: string | null
+          created_at: string
+          id: string
+          invited_by_profile_id: string
+          invited_profile_id: string
+          organization_id: string
+          responded_at: string | null
+          role: string | null
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_invites"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       insert_organization_member_rates: {
         Args: { _input: Json }
         Returns: {
@@ -15414,6 +15575,7 @@ export type Database = {
           full_name: string | null
           id: string
           job_title_id: string | null
+          location: string | null
           organization_id: string | null
           phone: string | null
           profile_completed_at: string | null
@@ -15776,6 +15938,7 @@ export type Database = {
         Returns: {
           changed_at: string
           deleted_at: string | null
+          id: string
           status: Database["public"]["Enums"]["task_status"]
           task_id: string
         }[]
@@ -16006,6 +16169,31 @@ export type Database = {
         Args: { p_contract_id: string; p_profile_id: string }
         Returns: undefined
       }
+      review_organization_invite: {
+        Args: {
+          p_decision: string
+          p_invite_id: string
+          p_responded_at?: string
+          p_selected_job_title_id?: string
+        }
+        Returns: {
+          comment: string | null
+          created_at: string
+          id: string
+          invited_by_profile_id: string
+          invited_profile_id: string
+          organization_id: string
+          responded_at: string | null
+          role: string | null
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_invites"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       rpc_calculator_template_payload: {
         Args: { p_template_id: string }
         Returns: Json
@@ -16038,6 +16226,54 @@ export type Database = {
           p_project_id: string
         }
         Returns: Json
+      }
+      set_my_primary_organization: {
+        Args: { p_organization_id: string }
+        Returns: {
+          avatar_id: string | null
+          created_at: string | null
+          deleted_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          job_title_id: string | null
+          location: string | null
+          organization_id: string | null
+          phone: string | null
+          profile_completed_at: string | null
+          role: Database["public"]["Enums"]["user_role_type"] | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_org_member_job_title: {
+        Args: { p_job_title_id: string; p_org_id: string; p_profile_id: string }
+        Returns: {
+          avatar_id: string | null
+          created_at: string | null
+          deleted_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          job_title_id: string | null
+          location: string | null
+          organization_id: string | null
+          phone: string | null
+          profile_completed_at: string | null
+          role: Database["public"]["Enums"]["user_role_type"] | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       set_org_member_role: {
         Args: {
@@ -17071,6 +17307,7 @@ export type Database = {
           full_name: string | null
           id: string
           job_title_id: string | null
+          location: string | null
           organization_id: string | null
           phone: string | null
           profile_completed_at: string | null
@@ -17100,6 +17337,26 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "notifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      update_organization_invites: {
+        Args: { _id: string; _input: Json }
+        Returns: {
+          comment: string | null
+          created_at: string
+          id: string
+          invited_by_profile_id: string
+          invited_profile_id: string
+          organization_id: string
+          responded_at: string | null
+          role: string | null
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_invites"
           isOneToOne: false
           isSetofReturn: true
         }
@@ -17304,6 +17561,7 @@ export type Database = {
           full_name: string | null
           id: string
           job_title_id: string | null
+          location: string | null
           organization_id: string | null
           phone: string | null
           profile_completed_at: string | null
@@ -17666,6 +17924,7 @@ export type Database = {
         Returns: {
           changed_at: string
           deleted_at: string | null
+          id: string
           status: Database["public"]["Enums"]["task_status"]
           task_id: string
         }[]

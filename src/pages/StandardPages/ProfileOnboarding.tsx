@@ -5,10 +5,10 @@ import { toast } from 'sonner';
 import { useAuthStore } from '@/lib/store';
 import { rpcClient } from '@/lib/rpc.client';
 import { useAvatarUpload } from '@/hooks/useAvatarUpload';
-import { useOrganizationsData } from '@/hooks/useOrganizationsData';
 import type { Database, Tables } from '@/lib/database.types';
 import { USER_ROLE_TYPE_OPTIONS } from '@/lib/types';
 import { formatPhoneUS } from '@/lib/utils/formatters';
+import { PROFILE_ERROR_MESSAGES } from '@/lib/utils/profileErrorMessages';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import ImageCropper from '@/pages/StandardPages/StandardPageComponents/ImageCropper';
@@ -20,13 +20,17 @@ let cachedJobTitles: JobTitleRow[] | null = null;
 let cachedAvatars: AvatarRow[] | null = null;
 
 export default function ProfileOnboarding(): JSX.Element {
-    const navigate = useNavigate();
     const { user, profile, loading } = useAuthStore();
+    const navigate = useNavigate();
     const isLoading = loading.profile || loading.auth;
+    // Location state for city, state
+    const [location, setLocation] = useState(profile?.location ?? '');
+    // Placeholder for Google Places Autocomplete (implement or remove UI as needed)
+    const suggestions: { description: string; place_id: string }[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const setInputValue = (_value: string) => { };
 
     // All state that depends on profile must come after profile is defined
-    const [selectedOrg, setSelectedOrg] = useState<string>(profile?.organization_id ?? '');
-    const { organizations } = useOrganizationsData();
     const [fullName, setFullName] = useState(profile?.full_name ?? '');
     const [phone, setPhone] = useState(formatPhoneUS(profile?.phone ?? ''));
     const [jobTitleId, setJobTitleId] = useState<string | null>(profile?.job_title_id ?? null);
@@ -74,10 +78,10 @@ export default function ProfileOnboarding(): JSX.Element {
         if (!profile) return;
         setFullName(profile.full_name ?? '');
         setPhone(formatPhoneUS(profile.phone ?? ''));
-        setSelectedOrg(profile.organization_id ?? '');
         setJobTitleId(profile.job_title_id ?? null);
         setSelectedAvatarId(profile.avatar_id ?? null);
         setSelectedRole(profile.role ?? 'org_user');
+        setLocation(profile.location ?? '');
     }, [profile]);
 
     useEffect(() => {
@@ -102,7 +106,7 @@ export default function ProfileOnboarding(): JSX.Element {
                 setAvatars(resolvedAvatars);
             } catch (err) {
                 console.error(err);
-                toast.error('Unable to load profile options. Please refresh.');
+                toast.error(PROFILE_ERROR_MESSAGES.LOAD_OPTIONS);
             }
         };
 
@@ -126,7 +130,7 @@ export default function ProfileOnboarding(): JSX.Element {
 
     const handleAddCustomJobTitle = async (): Promise<void> => {
         if (!jobTitleQuery.trim()) {
-            toast.error('Please enter a job title');
+            toast.error(PROFILE_ERROR_MESSAGES.ENTER_JOB_TITLE);
             return;
         }
 
@@ -144,7 +148,7 @@ export default function ProfileOnboarding(): JSX.Element {
             toast.success('Job title added');
         } catch (err) {
             console.error(err);
-            toast.error('Unable to add job title');
+            toast.error(PROFILE_ERROR_MESSAGES.ADD_JOB_TITLE);
         } finally {
             setIsAddingJobTitle(false);
         }
@@ -173,14 +177,10 @@ export default function ProfileOnboarding(): JSX.Element {
     const handleSubmit = async (evt: React.FormEvent): Promise<void> => {
         evt.preventDefault();
 
-        if (selectedOrg === "__create_new__") {
-            navigate('/organizations/onboarding', { replace: true });
-            return;
-        }
-
+        // Only allow profile save if a real user and name
         if (!user) return;
         if (!fullName.trim()) {
-            toast.error('Please enter your full name');
+            toast.error(PROFILE_ERROR_MESSAGES.ENTER_FULL_NAME);
             return;
         }
 
@@ -212,13 +212,17 @@ export default function ProfileOnboarding(): JSX.Element {
                 }
             }
 
+            // Always store phone in formatted (XXX) XXX-XXXX format or undefined
+            const formattedPhone = phone.trim() ? formatPhoneUS(phone.trim()) : undefined;
+            // Use new RPC signature: p_full_name, p_avatar_id, p_job_title_id, p_organization_id, p_phone, p_role, p_location
             const payload: Database['public']['Functions']['complete_my_profile']['Args'] = {
                 p_full_name: fullName.trim(),
-                p_phone: phone.trim() || null,
-                p_job_title_id: jobTitleId,
-                p_avatar_id: resolvedAvatarId,
-                p_role: selectedRole,
-                p_organization_id: selectedOrg || null,
+                p_avatar_id: resolvedAvatarId ?? undefined,
+                p_job_title_id: jobTitleId ?? undefined,
+                p_organization_id: undefined,
+                p_phone: formattedPhone,
+                p_role: selectedRole ?? undefined,
+                p_location: location.trim() || undefined,
             };
 
             // Save profile
@@ -235,11 +239,7 @@ export default function ProfileOnboarding(): JSX.Element {
                 return;
             }
 
-            const noOrg = !refreshedProfile?.organization_id;
-            if (noOrg) {
-                navigate('/organizations/onboarding');
-                return;
-            }
+            // No org onboarding redirect
             navigate('/dashboard');
         } catch (err) {
             console.error(err);
@@ -249,7 +249,7 @@ export default function ProfileOnboarding(): JSX.Element {
                 || message.includes('NetworkError');
             toast.error(
                 isNetworkError
-                    ? 'Network error, try again in a minute.'
+                    ? PROFILE_ERROR_MESSAGES.NETWORK_RETRY
                     : 'Unable to complete your profile. Please try again.'
             );
         }
@@ -284,7 +284,7 @@ export default function ProfileOnboarding(): JSX.Element {
                             id="profile-phone"
                             type="tel"
                             value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
+                            onChange={(e) => setPhone(formatPhoneUS(e.target.value))}
                             className="w-full bg-background border border-background-lighter text-gray-100 px-4 py-2.5 rounded-md focus:ring-2 focus:ring-primary disabled:opacity-50"
                             disabled={isLoading}
                             autoComplete="tel"
@@ -292,24 +292,34 @@ export default function ProfileOnboarding(): JSX.Element {
                     </div>
 
 
+
+
                     <div>
-                        <label htmlFor="profile-organization" className="block text-sm text-gray-300 mb-2">
-                            Organization
+                        <label htmlFor="profile-location" className="block text-sm text-gray-300 mb-2">
+                            Location (City, State)
                         </label>
-                        <select
-                            id="profile-organization"
-                            value={selectedOrg}
-                            onChange={(e) => setSelectedOrg(e.target.value)}
+                        <input
+                            id="profile-location"
+                            type="text"
+                            value={location}
+                            onChange={(e) => {
+                                setLocation(e.target.value);
+                                setInputValue(e.target.value);
+                            }}
                             className="w-full bg-background border border-background-lighter text-gray-100 px-4 py-2.5 rounded-md focus:ring-2 focus:ring-primary disabled:opacity-50"
                             disabled={isLoading}
-                            required
-                        >
-                            <option value="">Select an organization</option>
-                            {organizations.map((org) => (
-                                <option key={org.id} value={org.id}>{org.name}</option>
-                            ))}
-                            <option value="__create_new__">Create new organization…</option>
-                        </select>
+                            autoComplete="off"
+                            placeholder="Start typing your city..."
+                        />
+                        {suggestions.length > 0 && (
+                            <ul className="bg-background-light border border-background-lighter rounded mt-1 max-h-40 overflow-y-auto">
+                                {suggestions.map((s) => (
+                                    <li key={s.place_id} className="px-3 py-2 hover:bg-primary/10 cursor-pointer" onClick={() => setLocation(s.description)}>
+                                        {s.description}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
 
                     <div>

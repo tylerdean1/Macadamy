@@ -6,6 +6,17 @@ import type { Database } from '@/lib/database.types';
 
 type UserRole = Database['public']['Enums']['user_role_type'];
 
+function isAuthDebugEnabled(): boolean {
+  try {
+    return import.meta.env.DEV
+      && typeof window !== 'undefined'
+      && typeof localStorage !== 'undefined'
+      && localStorage.getItem('DEBUG_AUTH') === '1';
+  } catch {
+    return false;
+  }
+}
+
 /** Route guard
  *
  *  ✔ Blocks unauthenticated users (redirects to `/`)
@@ -18,7 +29,7 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   /** Redirect if `profile` is null (default = true) */
   requireProfile?: boolean;
-  /** Redirect if `organization_id` is null (default = true) */
+  /** Redirect if `organization_id` is null (default = false) */
   requireOrganization?: boolean;
   /** Allow only these roles (empty array → any role permitted) */
   allowedRoles?: readonly UserRole[];
@@ -31,16 +42,17 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({
   children,
   requireProfile = true,
-  requireOrganization = true,
+  requireOrganization = false,
   allowedRoles = [],
   redirectUnauthenticatedTo = '/',
   redirectUnauthorizedTo = '/dashboard',
 }: ProtectedRouteProps): JSX.Element {
   const { user, profile, loading } = useAuthStore();
+  const debugAuth = isAuthDebugEnabled();
 
   /* ── 1 ▪ initial auth bootstrap ─────────────────────────────── */
   if (loading.initialization) {
-    if (import.meta.env.DEV) {
+    if (debugAuth) {
       console.log('[ProtectedRoute] waiting for auth bootstrap…');
     }
     return (
@@ -52,7 +64,7 @@ export function ProtectedRoute({
 
   /* ── 2 ▪ no user ⇒ kick to landing ──────────────────────────── */
   if (user == null) {
-    if (import.meta.env.DEV) {
+    if (debugAuth) {
       console.warn('[ProtectedRoute] no user – redirecting');
     }
     return <Navigate to={redirectUnauthenticatedTo} replace />;
@@ -61,7 +73,7 @@ export function ProtectedRoute({
   /* ── 3 ▪ profile required but missing/incomplete ─────────────── */
   const isProfileComplete = Boolean(profile?.profile_completed_at);
   if (requireProfile && !isProfileComplete) {
-    if (import.meta.env.DEV) {
+    if (debugAuth) {
       console.warn('[ProtectedRoute] profile missing or incomplete – redirecting to /onboarding/profile');
     }
     return <Navigate to="/onboarding/profile" replace />;
@@ -70,7 +82,7 @@ export function ProtectedRoute({
   /* ── 4 ▪ organization required but missing ───────────────────── */
   const hasOrganization = Boolean(profile?.organization_id);
   if (requireOrganization && !hasOrganization) {
-    if (import.meta.env.DEV) {
+    if (debugAuth) {
       console.warn('[ProtectedRoute] organization missing – redirecting to /organizations/onboarding');
     }
     return <Navigate to="/organizations/onboarding" replace />;
@@ -80,7 +92,7 @@ export function ProtectedRoute({
   if (profile && allowedRoles.length > 0) {
     const hasRole = profile.role != null && allowedRoles.includes(profile.role);
     if (!hasRole) {
-      if (import.meta.env.DEV) {
+      if (debugAuth) {
         console.warn('[ProtectedRoute] role check failed – redirecting');
       }
       return <Navigate to={redirectUnauthorizedTo} replace />;

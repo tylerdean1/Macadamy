@@ -19,6 +19,7 @@ const UpdatePassword = lazy(() => import('@/pages/StandardPages/UpdatePassword')
 const UserOnboarding = lazy(() => import('@/pages/StandardPages/UserOnboarding'));
 const ProfileOnboarding = lazy(() => import('@/pages/StandardPages/ProfileOnboarding'));
 const Dashboard = lazy(() => import('@/pages/StandardPages/Dashboard'));
+const Notifications = lazy(() => import('@/pages/StandardPages/Notifications'));
 
 const ProjectDashboard = lazy(() => import('@/pages/Projects/ProjectDashboard'));
 const ContractSettings = lazy(() => import('@/pages/Projects/ContractSettings'));
@@ -160,6 +161,14 @@ export default function App(): JSX.Element {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute requireOrganization={false}>
+                <Notifications />
               </ProtectedRoute>
             }
           />
@@ -414,7 +423,8 @@ export default function App(): JSX.Element {
           <Route
             path="/organizations"
             element={
-              <ProtectedRoute>
+              // allow users to view the organizations page even if they don't yet belong to an org
+              <ProtectedRoute requireOrganization={false}>
                 <OrganizationDashboard />
               </ProtectedRoute>
             }

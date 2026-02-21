@@ -20,9 +20,15 @@ import { useRequireProfile } from '@/hooks/useRequireProfile';
 import { rpcClient } from '@/lib/rpc.client';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
-import type { Database } from '@/lib/database.types';
+import { resolveInviteReviewErrorMessage } from '@/lib/utils/inviteErrorMessages';
+import { formatPhoneUS } from '@/lib/utils/formatters';
+import { toast } from 'sonner';
+import type { Database, Tables } from '@/lib/database.types';
 
 type RoleType = Database['public']['Enums']['user_role_type'];
+type JobTitleRow = Tables<'job_titles'>;
+
+let cachedJobTitles: JobTitleRow[] | null = null;
 
 interface OrgDashboardPayload {
   organization: {
@@ -51,6 +57,8 @@ interface OrgDashboardPayload {
     projects_yoy: number;
   };
 }
+
+type MemberListItem = OrgDashboardPayload['members']['items'][number];
 
 const emptyPayload: OrgDashboardPayload = {
   organization: {
@@ -124,6 +132,81 @@ const normalizePayload = (raw: unknown): OrgDashboardPayload => {
   };
 };
 
+function isOrganizationInvitesOrderByError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const maybeError = error as { code?: string; message?: string; details?: string | null };
+  const message = (maybeError.message ?? '').toLowerCase();
+  const details = (maybeError.details ?? '').toLowerCase();
+  return maybeError.code === 'P0001'
+    && message.includes('unknown order_by column')
+    && (details.includes('"column": "id"') || details.includes('"column":"id"'));
+}
+
+function isMissingPendingInviteProfilesRpcError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const maybeError = error as { code?: string; message?: string | null };
+  const message = (maybeError.message ?? '').toLowerCase();
+  return maybeError.code === 'PGRST202'
+    || message.includes('get_pending_organization_invites_with_profiles');
+}
+
+function isMissingSetMemberJobTitleRpcError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const maybeError = error as { code?: string; message?: string | null };
+  const message = (maybeError.message ?? '').toLowerCase();
+  return maybeError.code === 'PGRST202'
+    || message.includes('set_org_member_job_title');
+}
+
+function isMissingReviewOrganizationInviteRpcError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const maybeError = error as { code?: string; message?: string | null };
+  const message = (maybeError.message ?? '').toLowerCase();
+  return maybeError.code === 'PGRST202'
+    || message.includes('review_organization_invite');
+}
+
+type PendingInviteItem = Database['public']['Tables']['organization_invites']['Row'] & {
+  requester_full_name: string | null;
+  requester_email: string | null;
+  requester_phone: string | null;
+  requester_location: string | null;
+  requester_avatar_url: string | null;
+  requester_avatar_id: string | null;
+};
+
+function normalizePendingInviteRows(raw: unknown): PendingInviteItem[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .filter((item): item is Record<string, unknown> => item != null && typeof item === 'object')
+    .map((item) => ({
+      id: typeof item.id === 'string' ? item.id : '',
+      organization_id: typeof item.organization_id === 'string' ? item.organization_id : '',
+      invited_profile_id: typeof item.invited_profile_id === 'string' ? item.invited_profile_id : '',
+      invited_by_profile_id: typeof item.invited_by_profile_id === 'string' ? item.invited_by_profile_id : '',
+      status: typeof item.status === 'string' ? item.status : 'pending',
+      role: typeof item.role === 'string' ? item.role : null,
+      comment: typeof item.comment === 'string' ? item.comment : null,
+      created_at: typeof item.created_at === 'string' ? item.created_at : new Date(0).toISOString(),
+      responded_at: typeof item.responded_at === 'string' ? item.responded_at : null,
+      requester_full_name: typeof item.requester_full_name === 'string' ? item.requester_full_name : null,
+      requester_email: typeof item.requester_email === 'string' ? item.requester_email : null,
+      requester_phone: typeof item.requester_phone === 'string' ? item.requester_phone : null,
+      requester_location: typeof item.requester_location === 'string' ? item.requester_location : null,
+      requester_avatar_url: typeof item.requester_avatar_url === 'string' ? item.requester_avatar_url : null,
+      requester_avatar_id: typeof item.requester_avatar_id === 'string' ? item.requester_avatar_id : null,
+    }))
+    .filter((item) => item.id !== '' && item.organization_id !== '' && item.invited_profile_id !== '');
+}
+
+async function callRpcByName(name: string, args?: Record<string, unknown>): Promise<{ data: unknown; error: { code?: string; message?: string | null } | null }> {
+  const client = supabase as unknown as {
+    rpc: (fn: string, params?: Record<string, unknown>) => Promise<{ data: unknown; error: { code?: string; message?: string | null } | null }>;
+  };
+  return client.rpc(name, args);
+}
+
 export default function OrganizationDashboard(): JSX.Element {
   useRequireProfile();
 
@@ -159,7 +242,26 @@ export default function OrganizationDashboard(): JSX.Element {
     status: string | null;
   }>>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
+
+  // pending org membership requests (admins only)
+  const [pendingInvites, setPendingInvites] = useState<PendingInviteItem[]>([]);
+  const [pendingInvitesLoading, setPendingInvitesLoading] = useState(false);
+  const [inviteActionId, setInviteActionId] = useState<string | null>(null);
+  const [jobTitles, setJobTitles] = useState<JobTitleRow[]>([]);
+  const [approveJobTitleIdByInviteId, setApproveJobTitleIdByInviteId] = useState<Record<string, string>>({});
+  const [approveJobTitleQueryByInviteId, setApproveJobTitleQueryByInviteId] = useState<Record<string, string>>({});
+  const [jobTitleOpenInviteId, setJobTitleOpenInviteId] = useState<string | null>(null);
+  const [addingJobTitleInviteId, setAddingJobTitleInviteId] = useState<string | null>(null);
+  const [removeMemberDialogOpen, setRemoveMemberDialogOpen] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<MemberListItem | null>(null);
+  const [removeMemberReason, setRemoveMemberReason] = useState('');
+  const [changeTitleDialogOpen, setChangeTitleDialogOpen] = useState(false);
+  const [memberToRetitle, setMemberToRetitle] = useState<MemberListItem | null>(null);
+  const [changeTitleReason, setChangeTitleReason] = useState('');
+  const [changeTitleJobTitleId, setChangeTitleJobTitleId] = useState('');
+  const [memberActionBusyKey, setMemberActionBusyKey] = useState<string | null>(null);
   const safePayload = payload ?? emptyPayload;
+  const canManageMembers = profile?.role === 'system_admin' || profile?.role === 'org_admin';
 
   const serviceAreas = useMemo(() => {
     return [...safePayload.service_areas].sort((a, b) => a.service_area_text.localeCompare(b.service_area_text));
@@ -262,6 +364,325 @@ export default function OrganizationDashboard(): JSX.Element {
       logo_url: safePayload.organization.logo_url ?? '',
     });
   }, [isEditOpen, safePayload.organization]);
+
+  useEffect(() => {
+    if (!(profile?.role === 'system_admin' || profile?.role === 'org_admin')) {
+      return;
+    }
+
+    const loadJobTitles = async () => {
+      try {
+        if (cachedJobTitles) {
+          setJobTitles(cachedJobTitles);
+          return;
+        }
+
+        const rows = await rpcClient.get_job_titles_public();
+        const resolvedRows = Array.isArray(rows) ? rows : [];
+        cachedJobTitles = resolvedRows;
+        setJobTitles(resolvedRows);
+      } catch (err) {
+        console.error('[OrganizationDashboard] load job titles', err);
+        toast.error('Unable to load job titles.');
+      }
+    };
+
+    void loadJobTitles();
+  }, [profile?.role]);
+
+  const loadPendingInvites = useCallback(async () => {
+    if (!profile?.organization_id || !(profile.role === 'system_admin' || profile.role === 'org_admin')) {
+      setPendingInvites([]);
+      setPendingInvitesLoading(false);
+      return;
+    }
+
+    setPendingInvitesLoading(true);
+    try {
+      const { data: richData, error: richError } = await callRpcByName('get_pending_organization_invites_with_profiles', {
+        p_organization_id: profile.organization_id,
+      });
+
+      if (richError) {
+        if (!isMissingPendingInviteProfilesRpcError(richError)) {
+          throw richError;
+        }
+
+        const invitesResponse = await rpcClient.filter_organization_invites({ _filters: { organization_id: profile.organization_id, status: 'pending' }, _order_by: 'created_at', _direction: 'asc' });
+        const invites = Array.isArray(invitesResponse)
+          ? invitesResponse as Database['public']['Tables']['organization_invites']['Row'][]
+          : [];
+
+        setPendingInvites(invites.map((inv) => ({
+          ...inv,
+          requester_full_name: null,
+          requester_email: null,
+          requester_phone: null,
+          requester_location: null,
+          requester_avatar_url: null,
+          requester_avatar_id: null,
+        })));
+      } else {
+        setPendingInvites(normalizePendingInviteRows(richData));
+      }
+    } catch (err) {
+      if (!isOrganizationInvitesOrderByError(err)) {
+        console.error('[OrganizationDashboard] load pending invites', err);
+      }
+      setPendingInvites([]);
+    } finally {
+      setPendingInvitesLoading(false);
+    }
+  }, [profile?.organization_id, profile?.role]);
+
+  // load pending membership requests for org admins
+  useEffect(() => {
+    void loadPendingInvites();
+  }, [loadPendingInvites]);
+
+  const handleAddCustomJobTitle = async (inviteId: string): Promise<void> => {
+    const currentQuery = (approveJobTitleQueryByInviteId[inviteId] ?? '').trim();
+    if (!currentQuery) {
+      toast.error('Please enter a job title');
+      return;
+    }
+
+    setAddingJobTitleInviteId(inviteId);
+    try {
+      const newJobTitle = await rpcClient.insert_job_title_public({ p_name: currentQuery });
+      if (!newJobTitle) {
+        throw new Error('No job title returned');
+      }
+
+      setJobTitles((prev) => [newJobTitle, ...prev]);
+      cachedJobTitles = [newJobTitle, ...(cachedJobTitles ?? [])];
+      setApproveJobTitleIdByInviteId((prev) => ({ ...prev, [inviteId]: newJobTitle.id }));
+      setApproveJobTitleQueryByInviteId((prev) => ({ ...prev, [inviteId]: newJobTitle.name }));
+      setJobTitleOpenInviteId((current) => (current === inviteId ? null : current));
+      toast.success('Job title added');
+    } catch (err) {
+      console.error(err);
+      toast.error('Unable to add job title');
+    } finally {
+      setAddingJobTitleInviteId((current) => (current === inviteId ? null : current));
+    }
+  };
+
+  const handleReviewInvite = async (invite: PendingInviteItem, decision: 'accepted' | 'declined', selectedJobTitleId?: string | null) => {
+    if (inviteActionId != null) return;
+    setInviteActionId(invite.id);
+    try {
+      const respondedAtIso = new Date().toISOString();
+      try {
+        const { error: reviewError } = await callRpcByName('review_organization_invite', {
+          p_invite_id: invite.id,
+          p_decision: decision,
+          p_responded_at: respondedAtIso,
+          p_selected_job_title_id: selectedJobTitleId ?? null,
+        });
+
+        if (reviewError) {
+          throw reviewError;
+        }
+      } catch (reviewError) {
+        if (!isMissingReviewOrganizationInviteRpcError(reviewError)) {
+          throw reviewError;
+        }
+
+        await rpcClient.update_organization_invites({ _id: invite.id, _input: { status: decision, responded_at: respondedAtIso } });
+
+        if (decision === 'accepted' && selectedJobTitleId) {
+          try {
+            const { error: setJobTitleError } = await callRpcByName('set_org_member_job_title', {
+              p_org_id: invite.organization_id,
+              p_profile_id: invite.invited_profile_id,
+              p_job_title_id: selectedJobTitleId,
+            });
+            if (setJobTitleError) {
+              throw setJobTitleError;
+            }
+          } catch (jobTitleError) {
+            if (isMissingSetMemberJobTitleRpcError(jobTitleError)) {
+              toast.error('Membership approved, but org job-title assignment RPC is not available yet.');
+            } else {
+              console.error('[OrganizationDashboard] set approved member job title', jobTitleError);
+              toast.error('Membership approved, but unable to set job title.');
+            }
+          }
+        }
+      }
+
+      toast.success(decision === 'accepted' ? 'Membership approved' : 'Membership declined');
+      await Promise.all([
+        loadDashboard(),
+        loadPendingInvites(),
+      ]);
+    } catch (err) {
+      console.error('[OrganizationDashboard] review invite error', err);
+      toast.error(resolveInviteReviewErrorMessage(err));
+    } finally {
+      setInviteActionId(null);
+      setJobTitleOpenInviteId((current) => (current === invite.id ? null : current));
+    }
+  };
+
+  const openRemoveMemberDialog = (member: MemberListItem): void => {
+    setMemberToRemove(member);
+    setRemoveMemberReason('');
+    setRemoveMemberDialogOpen(true);
+  };
+
+  const openChangeTitleDialog = (member: MemberListItem): void => {
+    setMemberToRetitle(member);
+    setChangeTitleReason('');
+    setChangeTitleJobTitleId('');
+    setChangeTitleDialogOpen(true);
+  };
+
+  const handleRemoveMember = async (): Promise<void> => {
+    if (!profile?.organization_id || !memberToRemove) {
+      return;
+    }
+
+    if (memberToRemove.profile_id === profile.id) {
+      toast.error('You cannot remove your own membership.');
+      return;
+    }
+
+    const reason = removeMemberReason.trim();
+    if (!reason) {
+      toast.error('Please provide a removal reason.');
+      return;
+    }
+
+    setMemberActionBusyKey(`remove:${memberToRemove.profile_id}`);
+    try {
+      const memberRows = await rpcClient.filter_organization_members({
+        _filters: {
+          organization_id: profile.organization_id,
+          profile_id: memberToRemove.profile_id,
+        },
+        _order_by: 'created_at',
+        _direction: 'desc',
+        _limit: 10,
+      });
+
+      const membership = Array.isArray(memberRows)
+        ? memberRows.find((row) => row.deleted_at == null)
+        : null;
+
+      if (!membership) {
+        throw new Error('membership not found');
+      }
+
+      await rpcClient.delete_organization_members({ _id: membership.id });
+
+      const actorName = profile.full_name ?? profile.email ?? 'An organization admin';
+      const orgName = safePayload.organization.name;
+      await rpcClient.insert_notifications({
+        _input: {
+          user_id: memberToRemove.profile_id,
+          organization_id: profile.organization_id,
+          category: 'workflow_update',
+          message: `You have been removed from ${orgName}. Reason: ${reason}`,
+          payload: {
+            event: 'member_removed',
+            organization_id: profile.organization_id,
+            organization_name: orgName,
+            affected_profile_id: memberToRemove.profile_id,
+            affected_profile_email: memberToRemove.email,
+            affected_profile_name: memberToRemove.full_name,
+            removed_by_profile_id: profile.id,
+            removed_by_name: actorName,
+            reason,
+            removed_at: new Date().toISOString(),
+          },
+        },
+      });
+
+      toast.success('Member removed and notified.');
+      setRemoveMemberDialogOpen(false);
+      setMemberToRemove(null);
+      setRemoveMemberReason('');
+      await loadDashboard();
+    } catch (err) {
+      console.error('[OrganizationDashboard] remove member', err);
+      toast.error('Unable to remove member.');
+    } finally {
+      setMemberActionBusyKey(null);
+    }
+  };
+
+  const handleChangeMemberJobTitle = async (): Promise<void> => {
+    if (!profile?.organization_id || !memberToRetitle) {
+      return;
+    }
+
+    const reason = changeTitleReason.trim();
+    if (!changeTitleJobTitleId) {
+      toast.error('Please select a new job title.');
+      return;
+    }
+    if (!reason) {
+      toast.error('Please provide a reason for the job-title change.');
+      return;
+    }
+
+    const selectedTitle = jobTitles.find((title) => title.id === changeTitleJobTitleId);
+    if (!selectedTitle) {
+      toast.error('Selected job title could not be found.');
+      return;
+    }
+
+    setMemberActionBusyKey(`title:${memberToRetitle.profile_id}`);
+    try {
+      const { error: setTitleError } = await callRpcByName('set_org_member_job_title', {
+        p_org_id: profile.organization_id,
+        p_profile_id: memberToRetitle.profile_id,
+        p_job_title_id: changeTitleJobTitleId,
+      });
+      if (setTitleError) {
+        throw setTitleError;
+      }
+
+      const actorName = profile.full_name ?? profile.email ?? 'An organization admin';
+      const orgName = safePayload.organization.name;
+      await rpcClient.insert_notifications({
+        _input: {
+          user_id: memberToRetitle.profile_id,
+          organization_id: profile.organization_id,
+          category: 'workflow_update',
+          message: `Your position in ${orgName} has been changed to ${selectedTitle.name}. Reason: ${reason}`,
+          payload: {
+            event: 'member_job_title_changed',
+            organization_id: profile.organization_id,
+            organization_name: orgName,
+            affected_profile_id: memberToRetitle.profile_id,
+            affected_profile_email: memberToRetitle.email,
+            affected_profile_name: memberToRetitle.full_name,
+            selected_job_title_id: selectedTitle.id,
+            selected_job_title_name: selectedTitle.name,
+            changed_by_profile_id: profile.id,
+            changed_by_name: actorName,
+            reason,
+            changed_at: new Date().toISOString(),
+          },
+        },
+      });
+
+      toast.success('Member job title updated and notified.');
+      setChangeTitleDialogOpen(false);
+      setMemberToRetitle(null);
+      setChangeTitleReason('');
+      setChangeTitleJobTitleId('');
+      await loadDashboard();
+    } catch (err) {
+      console.error('[OrganizationDashboard] update member job title', err);
+      toast.error('Unable to change member job title.');
+    } finally {
+      setMemberActionBusyKey(null);
+    }
+  };
 
   const loadDashboard = useCallback(async () => {
     if (!profile?.organization_id) {
@@ -698,8 +1119,160 @@ export default function OrganizationDashboard(): JSX.Element {
                           <span className="block">Membership role: {formatRole(member.membership_role)}</span>
                         </div>
                       </div>
+
+                      {canManageMembers && (
+                        <div className="mt-3 flex items-center justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openChangeTitleDialog(member)}
+                            disabled={memberActionBusyKey != null}
+                          >
+                            Change Title
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openRemoveMemberDialog(member)}
+                            disabled={memberActionBusyKey != null || member.profile_id === profile?.id}
+                          >
+                            Remove Member
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ))}
+                </div>
+              )}
+
+              {(profile?.role === 'system_admin' || profile?.role === 'org_admin') && (
+                <div className="mt-6">
+                  <h4 className="text-lg font-semibold text-yellow-400 mb-3">Pending membership requests</h4>
+                  {pendingInvitesLoading ? (
+                    <LoadingState />
+                  ) : pendingInvites.length === 0 ? (
+                    <EmptyState message="No pending requests" description="No one has requested to join your organization." />
+                  ) : (
+                    <div className="space-y-3">
+                      {pendingInvites.map((inv) => (
+                        <div key={inv.id}>
+                          <div className="rounded-lg border border-background-lighter p-3 flex items-center justify-between">
+                            <div className="flex items-start gap-3">
+                              <div className="h-10 w-10 rounded-full bg-background-light overflow-hidden flex items-center justify-center shrink-0">
+                                {inv.requester_avatar_url ? (
+                                  <img src={inv.requester_avatar_url} alt="Requester avatar" className="h-full w-full object-cover" />
+                                ) : (
+                                  <span className="text-xs text-gray-300 font-semibold">
+                                    {(inv.requester_full_name ?? inv.requester_email ?? inv.invited_profile_id).slice(0, 2).toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-white">{inv.requester_full_name ?? inv.invited_profile_id}</p>
+                                {inv.requester_email && <p className="text-xs text-gray-400">{inv.requester_email}</p>}
+                                {inv.requester_phone && <p className="text-xs text-gray-400">{formatPhoneUS(inv.requester_phone)}</p>}
+                                {inv.requester_location && <p className="text-xs text-gray-400">{inv.requester_location}</p>}
+                                <p className="text-xs text-gray-400">Requested role: {inv.role ?? 'org_user'}</p>
+                                <p className="text-xs text-gray-500 mt-1">Requested at: {new Date(inv.created_at).toLocaleString()}</p>
+                              </div>
+                            </div>
+                            <div className="w-72 flex flex-col gap-2">
+                              <div className="relative">
+                                <input
+                                  id={`approve-job-title-search-${inv.id}`}
+                                  type="text"
+                                  value={approveJobTitleQueryByInviteId[inv.id] ?? ''}
+                                  onChange={(event) => {
+                                    const nextQuery = event.target.value;
+                                    setApproveJobTitleQueryByInviteId((prev) => ({ ...prev, [inv.id]: nextQuery }));
+                                    setJobTitleOpenInviteId(inv.id);
+                                  }}
+                                  onFocus={() => setJobTitleOpenInviteId(inv.id)}
+                                  onBlur={() => {
+                                    setTimeout(() => {
+                                      setJobTitleOpenInviteId((current) => (current === inv.id ? null : current));
+                                    }, 100);
+                                  }}
+                                  placeholder="Select or add job title"
+                                  className="w-full bg-background border border-background-lighter text-gray-100 px-3 py-2 rounded-md focus:ring-2 focus:ring-primary text-sm"
+                                  disabled={inviteActionId != null}
+                                />
+
+                                {jobTitleOpenInviteId === inv.id && (
+                                  <div className="absolute z-50 mt-1 w-full bg-background border border-background-lighter rounded-md max-h-48 overflow-y-auto">
+                                    {jobTitles
+                                      .filter((title) => {
+                                        const query = (approveJobTitleQueryByInviteId[inv.id] ?? '').trim().toLowerCase();
+                                        if (!query) return true;
+                                        return title.name.toLowerCase().includes(query);
+                                      })
+                                      .map((title) => (
+                                        <button
+                                          key={title.id}
+                                          type="button"
+                                          className={`w-full text-left px-3 py-2 text-sm hover:bg-background-light ${approveJobTitleIdByInviteId[inv.id] === title.id ? 'text-white' : 'text-gray-300'}`}
+                                          onMouseDown={(event) => {
+                                            event.preventDefault();
+                                            setApproveJobTitleIdByInviteId((prev) => ({ ...prev, [inv.id]: title.id }));
+                                            setApproveJobTitleQueryByInviteId((prev) => ({ ...prev, [inv.id]: title.name }));
+                                            setJobTitleOpenInviteId(null);
+                                          }}
+                                        >
+                                          {title.name}
+                                        </button>
+                                      ))}
+
+                                    {jobTitles.filter((title) => {
+                                      const query = (approveJobTitleQueryByInviteId[inv.id] ?? '').trim().toLowerCase();
+                                      if (!query) return true;
+                                      return title.name.toLowerCase().includes(query);
+                                    }).length === 0 && (
+                                        <button
+                                          type="button"
+                                          className="w-full text-left px-3 py-2 text-sm text-primary hover:bg-background-light"
+                                          onMouseDown={(event) => {
+                                            event.preventDefault();
+                                            void handleAddCustomJobTitle(inv.id);
+                                          }}
+                                          disabled={addingJobTitleInviteId === inv.id || !(approveJobTitleQueryByInviteId[inv.id] ?? '').trim()}
+                                        >
+                                          {addingJobTitleInviteId === inv.id ? 'Adding…' : 'Add custom job title'}
+                                        </button>
+                                      )}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  className="px-3 py-1 rounded bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                  onClick={() => {
+                                    const selectedTitleId = approveJobTitleIdByInviteId[inv.id] ?? null;
+                                    if (!selectedTitleId) {
+                                      toast.error('Please select or create a job title before approval.');
+                                      return;
+                                    }
+                                    void handleReviewInvite(inv, 'accepted', selectedTitleId);
+                                  }}
+                                  disabled={inviteActionId != null || !approveJobTitleIdByInviteId[inv.id]}
+                                >
+                                  {inviteActionId === inv.id ? 'Updating…' : 'Approve'}
+                                </button>
+                                <button
+                                  className="px-3 py-1 rounded bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                  onClick={() => { void handleReviewInvite(inv, 'declined'); }}
+                                  disabled={inviteActionId != null}
+                                >
+                                  {inviteActionId === inv.id ? 'Updating…' : 'Decline'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -804,6 +1377,116 @@ export default function OrganizationDashboard(): JSX.Element {
           </div>
         </SectionContainer>
       </PageContainer>
+
+      <Dialog open={removeMemberDialogOpen} onOpenChange={setRemoveMemberDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Remove member</DialogTitle>
+            <DialogDescription>
+              Remove {memberToRemove?.full_name ?? memberToRemove?.email ?? 'this member'} from {safePayload.organization.name}. A notification with your reason will be sent.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <label htmlFor="remove-member-reason" className="text-sm text-gray-300">Reason</label>
+            <textarea
+              id="remove-member-reason"
+              className="w-full rounded border border-background-lighter bg-background px-3 py-2 text-sm text-white"
+              rows={4}
+              placeholder="Reason for removal"
+              value={removeMemberReason}
+              onChange={(event) => setRemoveMemberReason(event.target.value)}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setRemoveMemberDialogOpen(false);
+                setMemberToRemove(null);
+                setRemoveMemberReason('');
+              }}
+              disabled={memberActionBusyKey != null}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { void handleRemoveMember(); }}
+              disabled={memberActionBusyKey != null || removeMemberReason.trim().length === 0}
+            >
+              {memberActionBusyKey?.startsWith('remove:') ? 'Removing…' : 'Remove Member'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={changeTitleDialogOpen} onOpenChange={setChangeTitleDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Change member job title</DialogTitle>
+            <DialogDescription>
+              Update the job title for {memberToRetitle?.full_name ?? memberToRetitle?.email ?? 'this member'}. A notification with your reason will be sent.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="change-member-title" className="text-sm text-gray-300">Job title</label>
+              <select
+                id="change-member-title"
+                className="w-full rounded border border-background-lighter bg-background px-3 py-2 text-sm text-white"
+                value={changeTitleJobTitleId}
+                onChange={(event) => setChangeTitleJobTitleId(event.target.value)}
+              >
+                <option value="">Select a job title</option>
+                {jobTitles.map((title) => (
+                  <option key={title.id} value={title.id}>{title.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="change-member-title-reason" className="text-sm text-gray-300">Reason</label>
+              <textarea
+                id="change-member-title-reason"
+                className="w-full rounded border border-background-lighter bg-background px-3 py-2 text-sm text-white"
+                rows={4}
+                placeholder="Reason for title change"
+                value={changeTitleReason}
+                onChange={(event) => setChangeTitleReason(event.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setChangeTitleDialogOpen(false);
+                setMemberToRetitle(null);
+                setChangeTitleReason('');
+                setChangeTitleJobTitleId('');
+              }}
+              disabled={memberActionBusyKey != null}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { void handleChangeMemberJobTitle(); }}
+              disabled={memberActionBusyKey != null || !changeTitleJobTitleId || changeTitleReason.trim().length === 0}
+            >
+              {memberActionBusyKey?.startsWith('title:') ? 'Updating…' : 'Update Title'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
@@ -1001,6 +1684,7 @@ export default function OrganizationDashboard(): JSX.Element {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </Page>
   );
 }

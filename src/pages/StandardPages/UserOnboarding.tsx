@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/lib/store';
-import { useOrganizationsData } from '@/hooks/useOrganizationsData';
+// import { useOrganizationsData } from '@/hooks/useOrganizationsData';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 
@@ -18,21 +18,16 @@ export default function UserOnboarding(): JSX.Element {
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [selectedOrg, setSelectedOrg] = useState<string>('');
+  // const [selectedOrg, setSelectedOrg] = useState<string>('');
 
-  // Fetch all organizations for select
-  const { organizations, loading: orgsLoading, error: orgsError } = useOrganizationsData();
+  // Removed organization select logic
 
 
 
   const handleSubmit = async (evt: React.FormEvent) => {
     evt.preventDefault();
 
-    if (selectedOrg === "__create_new__") {
-      // Redirect to organization onboarding page
-      navigate('/organizations/onboarding', { replace: true });
-      return;
-    }
+
 
     if (!fullName.trim() || !email.trim() || !password.trim()) {
       toast.error('Please enter your name, email, and password');
@@ -49,7 +44,7 @@ export default function UserOnboarding(): JSX.Element {
       return;
     }
 
-    // Pass selectedOrg to signup/profile logic as needed (not implemented here)
+    // Only user info is needed for signup
     const result = await signup(email, password, fullName);
     if (!result) return;
 
@@ -66,31 +61,7 @@ export default function UserOnboarding(): JSX.Element {
       <Card className="bg-background-light p-8 rounded-lg shadow-xl border border-background-lighter w-full max-w-md mx-auto">
         <h1 className="text-2xl font-bold text-white mb-6">Create your account</h1>
         <form onSubmit={e => { void handleSubmit(e); }} className="space-y-5">
-          {/* Organization select field */}
-          <div>
-            <label htmlFor="signup-organization" className="block text-sm text-gray-300 mb-2">
-              Organization
-            </label>
-            <select
-              id="signup-organization"
-              value={selectedOrg}
-              onChange={e => setSelectedOrg(e.target.value)}
-              disabled={isLoading || orgsLoading}
-              className="w-full bg-background border border-background-lighter text-gray-100 px-4 py-2.5 rounded-md focus:ring-2 focus:ring-primary disabled:opacity-50"
-              required
-            >
-              <option value="" disabled>
-                {orgsLoading ? 'Loading organizations...' : 'Select an organization'}
-              </option>
-              <option value="__create_new__">Create new organization…</option>
-              {organizations.map(org => (
-                <option key={org.id} value={org.id}>
-                  {org.name}
-                </option>
-              ))}
-            </select>
-            {orgsError && <div className="text-red-400 text-xs mt-1">{orgsError}</div>}
-          </div>
+
           <div>
             <label htmlFor="signup-name" className="block text-sm text-gray-300 mb-2">
               Full name

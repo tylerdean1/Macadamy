@@ -3772,6 +3772,90 @@ export type TableRpcMap = {
       }[]
     },
   },
+  organization_invites: {
+    delete_organization_invites: {
+      Args: {
+        _id: string
+      }
+      Returns: undefined
+    },
+    filter_organization_invites: {
+      Args: {
+        _direction?: string
+        _filters?: Json
+        _limit?: number
+        _offset?: number
+        _order_by?: string
+        _select_cols?: string[]
+      }
+      Returns: {
+        comment: string | null
+        created_at: string
+        id: string
+        invited_by_profile_id: string
+        invited_profile_id: string
+        organization_id: string
+        responded_at: string | null
+        role: string | null
+        status: string
+      }[]
+    },
+    get_pending_organization_invites_with_profiles: {
+      Args: {
+        p_organization_id: string
+      }
+      Returns: {
+        comment: string
+        created_at: string
+        id: string
+        invited_by_profile_id: string
+        invited_profile_id: string
+        organization_id: string
+        requester_avatar_id: string
+        requester_avatar_url: string
+        requester_email: string
+        requester_full_name: string
+        requester_location: string
+        requester_phone: string
+        responded_at: string
+        role: string
+        status: string
+      }[]
+    },
+    insert_organization_invites: {
+      Args: {
+        _input: Json
+      }
+      Returns: {
+        comment: string | null
+        created_at: string
+        id: string
+        invited_by_profile_id: string
+        invited_profile_id: string
+        organization_id: string
+        responded_at: string | null
+        role: string | null
+        status: string
+      }[]
+    },
+    update_organization_invites: {
+      Args: {
+        _id: string
+        _input: Json
+      }
+      Returns: {
+        comment: string | null
+        created_at: string
+        id: string
+        invited_by_profile_id: string
+        invited_profile_id: string
+        organization_id: string
+        responded_at: string | null
+        role: string | null
+        status: string
+      }[]
+    },
+  },
   organization_member_rates: {
     delete_organization_member_rates: {
       Args: {
@@ -4016,6 +4100,14 @@ export type TableRpcMap = {
         mission_statement: string | null
         name: string
         updated_at: string
+      }[]
+    },
+    get_my_member_organizations: {
+      Args: never
+      Returns: {
+        id: string
+        name: string
+        role: string
       }[]
     },
     get_organizations_public: {
@@ -4383,6 +4475,7 @@ export type TableRpcMap = {
         full_name: string | null
         id: string
         job_title_id: string | null
+        location: string | null
         organization_id: string | null
         phone: string | null
         profile_completed_at: string | null
@@ -4397,6 +4490,28 @@ export type TableRpcMap = {
         email: string
         full_name: string
         id: string
+      }[]
+    },
+    get_pending_organization_invites_with_profiles: {
+      Args: {
+        p_organization_id: string
+      }
+      Returns: {
+        comment: string
+        created_at: string
+        id: string
+        invited_by_profile_id: string
+        invited_profile_id: string
+        organization_id: string
+        requester_avatar_id: string
+        requester_avatar_url: string
+        requester_email: string
+        requester_full_name: string
+        requester_location: string
+        requester_phone: string
+        responded_at: string
+        role: string
+        status: string
       }[]
     },
     get_profiles_by_contract: {
@@ -4424,6 +4539,7 @@ export type TableRpcMap = {
         full_name: string | null
         id: string
         job_title_id: string | null
+        location: string | null
         organization_id: string | null
         phone: string | null
         profile_completed_at: string | null
@@ -4444,6 +4560,7 @@ export type TableRpcMap = {
         full_name: string | null
         id: string
         job_title_id: string | null
+        location: string | null
         organization_id: string | null
         phone: string | null
         profile_completed_at: string | null
@@ -5644,6 +5761,7 @@ export type TableRpcMap = {
       Returns: {
         changed_at: string
         deleted_at: string | null
+        id: string
         status: Database["public"]["Enums"]["task_status"]
         task_id: string
       }[]
@@ -5655,6 +5773,7 @@ export type TableRpcMap = {
       Returns: {
         changed_at: string
         deleted_at: string | null
+        id: string
         status: Database["public"]["Enums"]["task_status"]
         task_id: string
       }[]
@@ -5667,6 +5786,7 @@ export type TableRpcMap = {
       Returns: {
         changed_at: string
         deleted_at: string | null
+        id: string
         status: Database["public"]["Enums"]["task_status"]
         task_id: string
       }[]
