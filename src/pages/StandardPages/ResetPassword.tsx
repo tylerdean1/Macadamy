@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Mail } from 'lucide-react';
@@ -14,6 +14,27 @@ export default function ResetPassword() {
   // Cast resetPassword to the correct function type
   const { resetPassword: resetPasswordRaw } = useAuth();
   const resetPassword = resetPasswordRaw as ((email: string) => Promise<unknown>);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const hash = window.location.hash ?? '';
+    const search = window.location.search ?? '';
+
+    const hasRecoveryToken =
+      hash.includes('type=recovery') ||
+      hash.includes('access_token=') ||
+      hash.includes('refresh_token=') ||
+      search.includes('type=recovery') ||
+      search.includes('access_token=') ||
+      search.includes('refresh_token=');
+
+    if (hasRecoveryToken) {
+      navigate('/update-password', { replace: true });
+    }
+  }, [navigate]);
 
   const validateEmail = (value: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);

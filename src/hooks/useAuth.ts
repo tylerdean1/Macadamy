@@ -261,7 +261,7 @@ export function useAuth(): UseAuthReturn {
 
       try {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${SITE_URL}/reset-password`,
+          redirectTo: `${SITE_URL}/update-password`,
         });
 
         const resetFailed = error !== null && error !== undefined;
