@@ -231,6 +231,8 @@ wbs                       workflows
 
 - Browser runtime env validation reads from `import.meta.env` (Vite client bundle), with optional Node-only fallback for non-browser tooling/tests
 
+- Vite static assets that must exist in production (for example `favicon.png`) should live in `public/` so they are emitted to `dist/`
+
 - Avoid `VITE_` for secrets; keep server-only values non-public (`SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `DATABASE_URL`, and other admin credentials)
 
 - Runtime configuration now enforces canonical env names only; remove legacy `NEXT_PUBLIC_*` and older `VITE_*_KEY` variables from local/hosted environments
