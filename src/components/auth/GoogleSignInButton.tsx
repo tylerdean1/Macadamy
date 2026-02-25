@@ -8,6 +8,10 @@ interface GoogleSignInButtonProps {
   className?: string;
 }
 
+const SITE_URL = import.meta.env.PROD
+  ? 'https://macadamy.io'
+  : 'http://localhost:5173';
+
 export function GoogleSignInButton({ className = '' }: GoogleSignInButtonProps): JSX.Element {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -17,7 +21,7 @@ export function GoogleSignInButton({ className = '' }: GoogleSignInButtonProps):
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${SITE_URL}/auth/callback`,
         },
       });
 

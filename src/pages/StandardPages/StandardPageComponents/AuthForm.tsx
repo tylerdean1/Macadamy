@@ -99,10 +99,9 @@ export function AuthForm({
             />
             <button
               type="button"
-              onClick={() => setShowPwd(!showPwd)}
+              onClick={() => setShowPwd((prev) => !prev)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 focus:outline-none"
               aria-label={showPwd ? 'Hide password' : 'Show password'}
-              tabIndex={-1}
             >
               {showPwd ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>

@@ -5,7 +5,7 @@
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.5
 
--- Started on 2026-02-25 01:39:36
+-- Started on 2026-02-25 01:59:31
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -337,14 +337,20 @@ BEGIN
     RAISE EXCEPTION 'Reason is required';
   END IF;
 
-  SELECT p.job_title_id, p.full_name
+  SELECT om.job_title_id, p.full_name
     INTO v_previous_job_title_id, v_target_name
-  FROM public.profiles p
-  WHERE p.id = p_profile_id
-    AND p.deleted_at IS NULL;
+  FROM public.organization_members om
+  JOIN public.profiles p
+    ON p.id = om.profile_id
+  WHERE om.organization_id = p_org_id
+    AND om.profile_id = p_profile_id
+    AND om.deleted_at IS NULL
+    AND p.deleted_at IS NULL
+  ORDER BY om.created_at DESC
+  LIMIT 1;
 
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'Target profile not found' USING errcode = 'P0001';
+    RAISE EXCEPTION 'Target is not an active member of this organization' USING errcode = 'P0001';
   END IF;
 
   IF v_previous_job_title_id = p_job_title_id THEN
@@ -35435,7 +35441,7 @@ ALTER TABLE public.wbs ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.workflows ENABLE ROW LEVEL SECURITY;
 
--- Completed on 2026-02-25 01:40:39
+-- Completed on 2026-02-25 02:00:35
 
 --
 -- PostgreSQL database dump complete

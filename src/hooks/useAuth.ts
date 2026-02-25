@@ -8,7 +8,6 @@ import { useAuthStore } from '@/lib/store';
 import type { Database } from '@/lib/database.types';
 import type { EnrichedProfile } from '@/lib/store';
 import { logError } from '@/utils/errorLogger';
-import { getOptionalEnvAny } from '@/utils/env-validator';
 
 type UserRole = Database['public']['Enums']['user_role_type'];
 type SignUpData = Awaited<ReturnType<typeof supabase.auth.signUp>>['data'];
@@ -16,6 +15,9 @@ type SignUpData = Awaited<ReturnType<typeof supabase.auth.signUp>>['data'];
 /* ── constants ─────────────────────────────────────────────────── */
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCK_MS = 5 * 60 * 1_000;
+const SITE_URL = import.meta.env.PROD
+  ? 'https://macadamy.io'
+  : 'http://localhost:5173';
 
 /* ── helper(s) ─────────────────────────────────────────────────── */
 const isValidEmail = (email: string): boolean =>
@@ -181,11 +183,6 @@ export function useAuth(): UseAuthReturn {
       }
 
       try {
-        const redirectUrl = getOptionalEnvAny(
-          ['VITE_SUPABASE_EMAIL_REDIRECT_URL'],
-          ''
-        ) || undefined;
-
         const metadata = typeof fullName === 'string' && fullName.trim() !== ''
           ? { full_name: fullName.trim() }
           : undefined;
@@ -194,7 +191,7 @@ export function useAuth(): UseAuthReturn {
           email: trimmedEmail,
           password,
           options: {
-            ...(redirectUrl ? { emailRedirectTo: redirectUrl } : {}),
+            emailRedirectTo: `${SITE_URL}/auth/callback`,
             ...(metadata ? { data: metadata } : {}),
           },
         });
@@ -264,7 +261,7 @@ export function useAuth(): UseAuthReturn {
 
       try {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: `${SITE_URL}/reset-password`,
         });
 
         const resetFailed = error !== null && error !== undefined;
