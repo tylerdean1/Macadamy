@@ -1,6 +1,7 @@
 import { Component, createRef } from 'react';
 import { googleMapsLoader } from '@/lib/utils/googleMapsLoader';
 import type { GeometryData } from '@/lib/types';
+import { getOptionalEnvAny } from '@/utils/env-validator';
 import { Crosshair, Layers3 } from 'lucide-react';
 
 export interface GoogleMapFullRef {
@@ -345,8 +346,12 @@ export class GoogleMapFull extends Component<Props, State> {
         console.error("Google Maps Places library is not loaded");
         // Try to load Places library
         await new Promise<void>((resolve) => {
+          const mapsBrowserKey = getOptionalEnvAny(
+            ['VITE_GOOGLE_MAPS_BROWSER_KEY'],
+            ''
+          );
           const script = document.createElement('script');
-          script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsBrowserKey}&libraries=places`;
           script.onload = () => resolve();
           document.head.appendChild(script);
         });

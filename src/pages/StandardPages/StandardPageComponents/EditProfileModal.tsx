@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { useAuthStore, type EnrichedProfile } from '@/lib/store';
@@ -11,10 +11,8 @@ import { PROFILE_ERROR_MESSAGES } from '@/lib/utils/profileErrorMessages';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import ImageCropper from '@/pages/StandardPages/StandardPageComponents/ImageCropper';
 
-type JobTitleRow = Tables<'job_titles'>;
 type AvatarRow = Tables<'avatars'>;
 
-let cachedJobTitles: JobTitleRow[] | null = null;
 let cachedAvatars: AvatarRow[] | null = null;
 
 interface EditProfileModalProps {
@@ -28,11 +26,6 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
 
   const [fullName, setFullName] = useState(profile.full_name ?? '');
   const [phone, setPhone] = useState(formatPhoneUS(profile.phone ?? ''));
-  const [jobTitleId, setJobTitleId] = useState<string | null>(profile.job_title_id ?? null);
-  const [jobTitleQuery, setJobTitleQuery] = useState(profile.job_title ?? '');
-  const [jobTitles, setJobTitles] = useState<JobTitleRow[]>([]);
-  const [isAddingJobTitle, setIsAddingJobTitle] = useState(false);
-  const [isJobTitleOpen, setIsJobTitleOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Database['public']['Enums']['user_role_type'] | null>(
     profile.role ?? 'org_user'
   );
@@ -65,7 +58,6 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
   useEffect(() => {
     if (!isOpen) {
       setIsPresetModalOpen(false);
-      setIsJobTitleOpen(false);
       resetPendingAvatar();
       setIsSaving(false);
       return;
@@ -73,8 +65,6 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
 
     setFullName(profile.full_name ?? '');
     setPhone(formatPhoneUS(profile.phone ?? ''));
-    setJobTitleId(profile.job_title_id ?? null);
-    setJobTitleQuery(profile.job_title ?? '');
     setSelectedAvatarId(profile.avatar_id ?? null);
     resetPendingAvatar();
     setSelectedRole(profile.role ?? 'org_user');
@@ -85,22 +75,14 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
 
     const loadOptions = async (): Promise<void> => {
       try {
-        if (cachedJobTitles && cachedAvatars) {
-          setJobTitles(cachedJobTitles);
+        if (cachedAvatars) {
           setAvatars(cachedAvatars);
           return;
         }
 
-        const [jobTitleRows, avatarRows] = await Promise.all([
-          rpcClient.get_job_titles_public(),
-          rpcClient.get_preset_avatars_public(),
-        ]);
-
-        const resolvedJobTitles = Array.isArray(jobTitleRows) ? jobTitleRows : [];
+        const avatarRows = await rpcClient.get_preset_avatars_public();
         const resolvedAvatars = Array.isArray(avatarRows) ? avatarRows : [];
-        cachedJobTitles = resolvedJobTitles;
         cachedAvatars = resolvedAvatars;
-        setJobTitles(resolvedJobTitles);
         setAvatars(resolvedAvatars);
       } catch (err) {
         console.error(err);
@@ -110,46 +92,6 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
 
     void loadOptions();
   }, [isOpen]);
-
-  useEffect(() => {
-    if (!jobTitleId || jobTitleQuery.trim() !== '') return;
-    const match = jobTitles.find((title) => title.id === jobTitleId);
-    if (match) {
-      setJobTitleQuery(match.name);
-    }
-  }, [jobTitleId, jobTitleQuery, jobTitles]);
-
-  const filteredJobTitles = useMemo(() => {
-    const query = jobTitleQuery.trim().toLowerCase();
-    if (!query) return jobTitles;
-    return jobTitles.filter((title) => title.name.toLowerCase().includes(query));
-  }, [jobTitleQuery, jobTitles]);
-
-  const handleAddCustomJobTitle = async (): Promise<void> => {
-    if (!jobTitleQuery.trim()) {
-      toast.error(PROFILE_ERROR_MESSAGES.ENTER_JOB_TITLE);
-      return;
-    }
-
-    setIsAddingJobTitle(true);
-    try {
-      const newJobTitle = await rpcClient.insert_job_title_public({ p_name: jobTitleQuery.trim() });
-      if (!newJobTitle) {
-        throw new Error('No job title returned');
-      }
-
-      setJobTitles((prev) => [newJobTitle, ...prev]);
-      cachedJobTitles = [newJobTitle, ...(cachedJobTitles ?? [])];
-      setJobTitleId(newJobTitle.id);
-      setJobTitleQuery(newJobTitle.name);
-      toast.success('Job title added');
-    } catch (err) {
-      console.error(err);
-      toast.error(PROFILE_ERROR_MESSAGES.ADD_JOB_TITLE);
-    } finally {
-      setIsAddingJobTitle(false);
-    }
-  };
 
 
   const getAvatarLabel = (avatar: AvatarRow): string => {
@@ -218,9 +160,6 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
         p_phone: formattedPhone,
       };
 
-      if (jobTitleId) {
-        payload.p_job_title_id = jobTitleId;
-      }
       if (resolvedAvatarId) {
         payload.p_avatar_id = resolvedAvatarId;
       }
@@ -240,7 +179,7 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
           phone: updatedProfile.phone,
           location: updatedProfile.location,
           role: updatedProfile.role as EnrichedProfile['role'],
-          job_title_id: updatedProfile.job_title_id,
+          job_title_id: null,
           organization_id: updatedProfile.organization_id,
           organization_address: profile.organization_address ?? null,
           avatar_id: updatedProfile.avatar_id,
@@ -319,70 +258,6 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
               disabled={isSaving}
               className="w-full bg-background border border-background-lighter text-gray-100 px-4 py-2.5 rounded-md focus:ring-2 focus:ring-primary disabled:opacity-50"
             />
-          </div>
-
-          <div>
-            <label htmlFor="profile-job-title-search" className="block text-sm text-gray-300 mb-2">
-              Job title (optional)
-            </label>
-            <div className="relative">
-              <input
-                id="profile-job-title-search"
-                type="text"
-                value={jobTitleQuery}
-                onChange={(e) => {
-                  setJobTitleQuery(e.target.value);
-                  setIsJobTitleOpen(true);
-                }}
-                onFocus={() => setIsJobTitleOpen(true)}
-                onBlur={() => {
-                  setTimeout(() => setIsJobTitleOpen(false), 100);
-                }}
-                disabled={isSaving}
-                className="w-full bg-background border border-background-lighter text-gray-100 px-4 py-2.5 rounded-md focus:ring-2 focus:ring-primary disabled:opacity-50"
-                placeholder="Search job titles"
-                autoComplete="off"
-              />
-              {isJobTitleOpen && (
-                <div className="absolute z-10 mt-2 w-full max-h-48 overflow-y-auto rounded-md border border-background-lighter bg-background shadow-lg">
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => { void handleAddCustomJobTitle(); }}
-                    className="w-full flex items-center justify-between px-3 py-2 text-left text-sm text-primary hover:bg-background-lighter"
-                    disabled={isSaving || isAddingJobTitle}
-                  >
-                    <span>Add custom job title</span>
-                    <span className="text-xs text-gray-400">{jobTitleQuery.trim() || 'Enter a title'}</span>
-                  </button>
-                  {filteredJobTitles.length === 0 ? (
-                    <div className="px-3 py-2 text-sm text-gray-400">No matches found.</div>
-                  ) : (
-                    filteredJobTitles.map((title) => (
-                      <button
-                        key={title.id}
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                          setJobTitleId(title.id);
-                          setJobTitleQuery(title.name);
-                          setIsJobTitleOpen(false);
-                        }}
-                        className={`w-full flex items-center justify-between px-3 py-2 text-left text-sm transition ${jobTitleId === title.id
-                          ? 'bg-primary/10 text-white'
-                          : 'text-gray-200 hover:bg-background-lighter'
-                          }`}
-                      >
-                        <span>{title.name}</span>
-                        {jobTitleId === title.id && (
-                          <span className="text-xs text-primary">Selected</span>
-                        )}
-                      </button>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
           </div>
 
           <div>

@@ -4,6 +4,7 @@ import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/lib/store';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { toast } from 'sonner';
 import { User, Lock, Eye, EyeOff } from 'lucide-react';
 
@@ -127,6 +128,8 @@ export function AuthForm({
         >
           Sign In
         </Button>
+
+        <GoogleSignInButton className="w-full py-2.5 text-md" />
       </form>
 
 

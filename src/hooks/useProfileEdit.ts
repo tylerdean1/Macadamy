@@ -39,7 +39,6 @@ const useProfileEdit = (): ReturnType => {
         email: profileData.email ?? undefined,
         phone: profileData.phone ?? undefined,
         avatar_id: profileData.avatar_id ?? undefined,
-        job_title_id: profileData.job_title_id ?? undefined,
         ...(isSystemAdmin ? { role: profileData.role ?? undefined } : {}),
         ...(isSystemAdmin ? { organization_id: profileData.organization_id ?? undefined } : {}),
       };

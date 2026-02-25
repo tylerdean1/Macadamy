@@ -6,12 +6,10 @@ import { getRequiredEnvAny } from '@/utils/env-validator';    // ← shared help
    Throws at boot if the vars are missing, so you fail fast
    in dev/CI instead of getting mysterious runtime 401s.        */
 const SUPABASE_URL: string = getRequiredEnvAny([
-  'NEXT_PUBLIC_SUPABASE_URL',
   'VITE_SUPABASE_URL',
 ]);
 const SUPABASE_ANON: string = getRequiredEnvAny([
-  'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-  'VITE_SUPABASE_ANON_KEY',
+  'VITE_SUPABASE_PUBLISHABLE_TOKEN',
 ]);
 
 /* ── typed client ──────────────────────────────────────────────

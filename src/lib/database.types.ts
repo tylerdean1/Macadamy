@@ -38,6 +38,87 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_oauth_providers: {
+        Row: {
+          acceptable_client_ids: string[]
+          attribute_mapping: Json
+          authorization_params: Json
+          authorization_url: string | null
+          cached_discovery: Json | null
+          client_id: string
+          client_secret: string
+          created_at: string
+          discovery_cached_at: string | null
+          discovery_url: string | null
+          email_optional: boolean
+          enabled: boolean
+          id: string
+          identifier: string
+          issuer: string | null
+          jwks_uri: string | null
+          name: string
+          pkce_enabled: boolean
+          provider_type: string
+          scopes: string[]
+          skip_nonce_check: boolean
+          token_url: string | null
+          updated_at: string
+          userinfo_url: string | null
+        }
+        Insert: {
+          acceptable_client_ids?: string[]
+          attribute_mapping?: Json
+          authorization_params?: Json
+          authorization_url?: string | null
+          cached_discovery?: Json | null
+          client_id: string
+          client_secret: string
+          created_at?: string
+          discovery_cached_at?: string | null
+          discovery_url?: string | null
+          email_optional?: boolean
+          enabled?: boolean
+          id?: string
+          identifier: string
+          issuer?: string | null
+          jwks_uri?: string | null
+          name: string
+          pkce_enabled?: boolean
+          provider_type: string
+          scopes?: string[]
+          skip_nonce_check?: boolean
+          token_url?: string | null
+          updated_at?: string
+          userinfo_url?: string | null
+        }
+        Update: {
+          acceptable_client_ids?: string[]
+          attribute_mapping?: Json
+          authorization_params?: Json
+          authorization_url?: string | null
+          cached_discovery?: Json | null
+          client_id?: string
+          client_secret?: string
+          created_at?: string
+          discovery_cached_at?: string | null
+          discovery_url?: string | null
+          email_optional?: boolean
+          enabled?: boolean
+          id?: string
+          identifier?: string
+          issuer?: string | null
+          jwks_uri?: string | null
+          name?: string
+          pkce_enabled?: boolean
+          provider_type?: string
+          scopes?: string[]
+          skip_nonce_check?: boolean
+          token_url?: string | null
+          updated_at?: string
+          userinfo_url?: string | null
+        }
+        Relationships: []
+      }
       flow_state: {
         Row: {
           auth_code: string | null
@@ -3926,7 +4007,15 @@ export type Database = {
           invited_by_profile_id: string
           invited_profile_id: string
           organization_id: string
+          requested_job_title_id: string | null
+          requested_permission_role:
+            | Database["public"]["Enums"]["org_role"]
+            | null
           responded_at: string | null
+          reviewed_job_title_id: string | null
+          reviewed_permission_role:
+            | Database["public"]["Enums"]["org_role"]
+            | null
           role: string | null
           status: string
         }
@@ -3937,7 +4026,15 @@ export type Database = {
           invited_by_profile_id: string
           invited_profile_id: string
           organization_id: string
+          requested_job_title_id?: string | null
+          requested_permission_role?:
+            | Database["public"]["Enums"]["org_role"]
+            | null
           responded_at?: string | null
+          reviewed_job_title_id?: string | null
+          reviewed_permission_role?:
+            | Database["public"]["Enums"]["org_role"]
+            | null
           role?: string | null
           status: string
         }
@@ -3948,11 +4045,62 @@ export type Database = {
           invited_by_profile_id?: string
           invited_profile_id?: string
           organization_id?: string
+          requested_job_title_id?: string | null
+          requested_permission_role?:
+            | Database["public"]["Enums"]["org_role"]
+            | null
           responded_at?: string | null
+          reviewed_job_title_id?: string | null
+          reviewed_permission_role?:
+            | Database["public"]["Enums"]["org_role"]
+            | null
           role?: string | null
           status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "organization_invites_requested_job_title_id_fkey"
+            columns: ["requested_job_title_id"]
+            isOneToOne: false
+            referencedRelation: "job_titles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_invites_requested_job_title_id_fkey"
+            columns: ["requested_job_title_id"]
+            isOneToOne: false
+            referencedRelation: "job_titles_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_invites_reviewed_job_title_id_fkey"
+            columns: ["reviewed_job_title_id"]
+            isOneToOne: false
+            referencedRelation: "job_titles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_invites_reviewed_job_title_id_fkey"
+            columns: ["reviewed_job_title_id"]
+            isOneToOne: false
+            referencedRelation: "job_titles_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_invites_role_fkey"
+            columns: ["role"]
+            isOneToOne: false
+            referencedRelation: "job_titles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_invites_role_fkey"
+            columns: ["role"]
+            isOneToOne: false
+            referencedRelation: "job_titles_active"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       organization_member_rates: {
         Row: {
@@ -4007,7 +4155,9 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           id: string
+          job_title_id: string | null
           organization_id: string | null
+          permission_role: Database["public"]["Enums"]["org_role"] | null
           profile_id: string | null
           role: string | null
           updated_at: string
@@ -4016,7 +4166,9 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           id?: string
+          job_title_id?: string | null
           organization_id?: string | null
+          permission_role?: Database["public"]["Enums"]["org_role"] | null
           profile_id?: string | null
           role?: string | null
           updated_at?: string
@@ -4025,7 +4177,9 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           id?: string
+          job_title_id?: string | null
           organization_id?: string | null
+          permission_role?: Database["public"]["Enums"]["org_role"] | null
           profile_id?: string | null
           role?: string | null
           updated_at?: string
@@ -4057,6 +4211,34 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_members_job_title_id_fkey"
+            columns: ["job_title_id"]
+            isOneToOne: false
+            referencedRelation: "job_titles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_members_job_title_id_fkey"
+            columns: ["job_title_id"]
+            isOneToOne: false
+            referencedRelation: "job_titles_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_members_role_fkey"
+            columns: ["role"]
+            isOneToOne: false
+            referencedRelation: "job_titles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_members_role_fkey"
+            columns: ["role"]
+            isOneToOne: false
+            referencedRelation: "job_titles_active"
             referencedColumns: ["id"]
           },
         ]
@@ -4513,7 +4695,6 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
-          job_title_id: string | null
           location: string | null
           organization_id: string | null
           phone: string | null
@@ -4528,7 +4709,6 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
-          job_title_id?: string | null
           location?: string | null
           organization_id?: string | null
           phone?: string | null
@@ -4543,7 +4723,6 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
-          job_title_id?: string | null
           location?: string | null
           organization_id?: string | null
           phone?: string | null
@@ -4564,20 +4743,6 @@ export type Database = {
             columns: ["avatar_id"]
             isOneToOne: false
             referencedRelation: "avatars_active"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_profiles_job_titles"
-            columns: ["job_title_id"]
-            isOneToOne: false
-            referencedRelation: "job_titles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_profiles_job_titles"
-            columns: ["job_title_id"]
-            isOneToOne: false
-            referencedRelation: "job_titles_active"
             referencedColumns: ["id"]
           },
           {
@@ -9338,6 +9503,20 @@ export type Database = {
             referencedRelation: "profiles_active"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "organization_members_role_fkey"
+            columns: ["role"]
+            isOneToOne: false
+            referencedRelation: "job_titles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_members_role_fkey"
+            columns: ["role"]
+            isOneToOne: false
+            referencedRelation: "job_titles_active"
+            referencedColumns: ["id"]
+          },
         ]
       }
       organization_projects_active: {
@@ -9744,7 +9923,6 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string | null
-          job_title_id: string | null
           organization_id: string | null
           phone: string | null
           profile_completed_at: string | null
@@ -9758,7 +9936,6 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string | null
-          job_title_id?: string | null
           organization_id?: string | null
           phone?: string | null
           profile_completed_at?: string | null
@@ -9772,7 +9949,6 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string | null
-          job_title_id?: string | null
           organization_id?: string | null
           phone?: string | null
           profile_completed_at?: string | null
@@ -9792,20 +9968,6 @@ export type Database = {
             columns: ["avatar_id"]
             isOneToOne: false
             referencedRelation: "avatars_active"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_profiles_job_titles"
-            columns: ["job_title_id"]
-            isOneToOne: false
-            referencedRelation: "job_titles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_profiles_job_titles"
-            columns: ["job_title_id"]
-            isOneToOne: false
-            referencedRelation: "job_titles_active"
             referencedColumns: ["id"]
           },
           {
@@ -11433,6 +11595,34 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      change_org_member_job_title_with_reason: {
+        Args: {
+          p_job_title_id: string
+          p_org_id: string
+          p_profile_id: string
+          p_reason: string
+        }
+        Returns: {
+          avatar_id: string | null
+          created_at: string | null
+          deleted_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          location: string | null
+          organization_id: string | null
+          phone: string | null
+          profile_completed_at: string | null
+          role: Database["public"]["Enums"]["user_role_type"] | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       check_access: {
         Args: {
           _action: string
@@ -11446,70 +11636,36 @@ export type Database = {
         Args: { _action: string; _org: string; _proj: string; _table: string }
         Returns: boolean
       }
-      complete_my_profile:
-        | {
-            Args: {
-              p_avatar_id?: string
-              p_full_name: string
-              p_job_title_id?: string
-              p_location?: string
-              p_organization_id?: string
-              p_phone?: string
-              p_role?: Database["public"]["Enums"]["user_role_type"]
-            }
-            Returns: {
-              avatar_id: string | null
-              created_at: string | null
-              deleted_at: string | null
-              email: string
-              full_name: string | null
-              id: string
-              job_title_id: string | null
-              location: string | null
-              organization_id: string | null
-              phone: string | null
-              profile_completed_at: string | null
-              role: Database["public"]["Enums"]["user_role_type"] | null
-              updated_at: string
-            }
-            SetofOptions: {
-              from: "*"
-              to: "profiles"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: {
-              p_avatar_id?: string
-              p_full_name: string
-              p_job_title_id?: string
-              p_organization_id?: string
-              p_phone?: string
-              p_role?: Database["public"]["Enums"]["user_role_type"]
-            }
-            Returns: {
-              avatar_id: string | null
-              created_at: string | null
-              deleted_at: string | null
-              email: string
-              full_name: string | null
-              id: string
-              job_title_id: string | null
-              location: string | null
-              organization_id: string | null
-              phone: string | null
-              profile_completed_at: string | null
-              role: Database["public"]["Enums"]["user_role_type"] | null
-              updated_at: string
-            }
-            SetofOptions: {
-              from: "*"
-              to: "profiles"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
+      complete_my_profile: {
+        Args: {
+          p_avatar_id?: string
+          p_full_name: string
+          p_location?: string
+          p_organization_id?: string
+          p_phone?: string
+          p_role?: Database["public"]["Enums"]["user_role_type"]
+        }
+        Returns: {
+          avatar_id: string | null
+          created_at: string | null
+          deleted_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          location: string | null
+          organization_id: string | null
+          phone: string | null
+          profile_completed_at: string | null
+          role: Database["public"]["Enums"]["user_role_type"] | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       count_unread_notifications: { Args: never; Returns: number }
       create_my_organization: {
         Args: {
@@ -13058,7 +13214,15 @@ export type Database = {
           invited_by_profile_id: string
           invited_profile_id: string
           organization_id: string
+          requested_job_title_id: string | null
+          requested_permission_role:
+            | Database["public"]["Enums"]["org_role"]
+            | null
           responded_at: string | null
+          reviewed_job_title_id: string | null
+          reviewed_permission_role:
+            | Database["public"]["Enums"]["org_role"]
+            | null
           role: string | null
           status: string
         }[]
@@ -13108,7 +13272,9 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           id: string
+          job_title_id: string | null
           organization_id: string | null
+          permission_role: Database["public"]["Enums"]["org_role"] | null
           profile_id: string | null
           role: string | null
           updated_at: string
@@ -13341,7 +13507,6 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
-          job_title_id: string | null
           location: string | null
           organization_id: string | null
           phone: string | null
@@ -14261,7 +14426,6 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
-          job_title_id: string | null
           location: string | null
           organization_id: string | null
           phone: string | null
@@ -14296,6 +14460,9 @@ export type Database = {
           invited_by_profile_id: string
           invited_profile_id: string
           organization_id: string
+          requested_job_title_id: string
+          requested_job_title_name: string
+          requested_permission_role: Database["public"]["Enums"]["org_role"]
           requester_avatar_id: string
           requester_avatar_url: string
           requester_email: string
@@ -14303,6 +14470,8 @@ export type Database = {
           requester_location: string
           requester_phone: string
           responded_at: string
+          reviewed_job_title_id: string
+          reviewed_permission_role: Database["public"]["Enums"]["org_role"]
           role: string
           status: string
         }[]
@@ -15368,7 +15537,15 @@ export type Database = {
           invited_by_profile_id: string
           invited_profile_id: string
           organization_id: string
+          requested_job_title_id: string | null
+          requested_permission_role:
+            | Database["public"]["Enums"]["org_role"]
+            | null
           responded_at: string | null
+          reviewed_job_title_id: string | null
+          reviewed_permission_role:
+            | Database["public"]["Enums"]["org_role"]
+            | null
           role: string | null
           status: string
         }[]
@@ -15404,7 +15581,9 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           id: string
+          job_title_id: string | null
           organization_id: string | null
+          permission_role: Database["public"]["Enums"]["org_role"] | null
           profile_id: string | null
           role: string | null
           updated_at: string
@@ -15574,7 +15753,6 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
-          job_title_id: string | null
           location: string | null
           organization_id: string | null
           phone: string | null
@@ -16165,6 +16343,10 @@ export type Database = {
         }[]
       }
       refresh_project_cost_summary: { Args: never; Returns: undefined }
+      remove_org_member_with_reason: {
+        Args: { p_org_id: string; p_profile_id: string; p_reason: string }
+        Returns: undefined
+      }
       remove_profile_from_contract: {
         Args: { p_contract_id: string; p_profile_id: string }
         Returns: undefined
@@ -16175,6 +16357,7 @@ export type Database = {
           p_invite_id: string
           p_responded_at?: string
           p_selected_job_title_id?: string
+          p_selected_permission_role?: Database["public"]["Enums"]["org_role"]
         }
         Returns: {
           comment: string | null
@@ -16183,7 +16366,15 @@ export type Database = {
           invited_by_profile_id: string
           invited_profile_id: string
           organization_id: string
+          requested_job_title_id: string | null
+          requested_permission_role:
+            | Database["public"]["Enums"]["org_role"]
+            | null
           responded_at: string | null
+          reviewed_job_title_id: string | null
+          reviewed_permission_role:
+            | Database["public"]["Enums"]["org_role"]
+            | null
           role: string | null
           status: string
         }[]
@@ -16236,7 +16427,6 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
-          job_title_id: string | null
           location: string | null
           organization_id: string | null
           phone: string | null
@@ -16260,7 +16450,6 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
-          job_title_id: string | null
           location: string | null
           organization_id: string | null
           phone: string | null
@@ -17295,7 +17484,6 @@ export type Database = {
         Args: {
           p_avatar_id?: string
           p_full_name?: string
-          p_job_title_id?: string
           p_phone?: string
           p_role?: Database["public"]["Enums"]["user_role_type"]
         }
@@ -17306,7 +17494,6 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
-          job_title_id: string | null
           location: string | null
           organization_id: string | null
           phone: string | null
@@ -17350,7 +17537,15 @@ export type Database = {
           invited_by_profile_id: string
           invited_profile_id: string
           organization_id: string
+          requested_job_title_id: string | null
+          requested_permission_role:
+            | Database["public"]["Enums"]["org_role"]
+            | null
           responded_at: string | null
+          reviewed_job_title_id: string | null
+          reviewed_permission_role:
+            | Database["public"]["Enums"]["org_role"]
+            | null
           role: string | null
           status: string
         }[]
@@ -17386,7 +17581,9 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           id: string
+          job_title_id: string | null
           organization_id: string | null
+          permission_role: Database["public"]["Enums"]["org_role"] | null
           profile_id: string | null
           role: string | null
           updated_at: string
@@ -17560,7 +17757,6 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
-          job_title_id: string | null
           location: string | null
           organization_id: string | null
           phone: string | null

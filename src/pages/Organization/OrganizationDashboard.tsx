@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import type { Database, Tables } from '@/lib/database.types';
 
 type RoleType = Database['public']['Enums']['user_role_type'];
+type OrgRoleType = Database['public']['Enums']['org_role'];
 type JobTitleRow = Tables<'job_titles'>;
 
 let cachedJobTitles: JobTitleRow[] | null = null;
@@ -48,6 +49,9 @@ interface OrgDashboardPayload {
       email: string;
       global_role: RoleType | null;
       membership_role: string | null;
+      membership_permission_role?: string | null;
+      membership_job_title_id?: string | null;
+      membership_job_title_name?: string | null;
     }>;
   };
   metrics: {
@@ -81,6 +85,68 @@ const emptyPayload: OrgDashboardPayload = {
     projects_yoy: 0,
   },
 };
+
+const ORG_DASHBOARD_TOAST_MESSAGES = {
+  loadJobTitlesFailed: 'Unable to load job titles.',
+  enterJobTitle: 'Please enter a job title',
+  addJobTitleSuccess: 'Job title added',
+  addJobTitleFailed: 'Unable to add job title',
+  membershipApproved: 'Membership approved',
+  membershipDeclined: 'Membership declined',
+  cannotRemoveSelf: 'You cannot remove your own membership.',
+  provideRemovalReason: 'Please provide a removal reason.',
+  removeMemberSuccess: 'Member removed and notified.',
+  removeMemberFailed: 'Unable to remove member.',
+  selectNewJobTitle: 'Please select a new job title.',
+  selectedTitleAlreadyAssigned: 'This member already has that title.',
+  provideTitleChangeReason: 'Please provide a reason for the job-title change.',
+  selectedJobTitleMissing: 'Selected job title could not be found.',
+  changeMemberTitleSuccess: 'Member job title updated and notified.',
+  changeMemberTitleFailed: 'Unable to change member job title.',
+  selectOrCreateJobTitleBeforeApproval: 'Please select or create a job title before approval.',
+  selectPermissionRoleBeforeApproval: 'Please select an org role before approval.',
+  leaveOrganizationConfirm: 'Are you sure you want to leave the organization?',
+  leaveOrganizationSuccess: 'You left the organization.',
+  leaveOrganizationFailed: 'Unable to leave organization.',
+  leaveOrganizationReason: 'Member left organization',
+} as const;
+
+const APPROVAL_ORG_ROLE_OPTIONS: ReadonlyArray<OrgRoleType> = [
+  'admin',
+  'manager',
+  'superintendent',
+  'foreman',
+  'worker',
+  'viewer',
+  'accountant',
+  'hr',
+  'estimator',
+  'guest',
+  'owner',
+];
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ORG_ROLE_VALUES: ReadonlySet<OrgRoleType> = new Set([
+  'admin',
+  'manager',
+  'superintendent',
+  'foreman',
+  'worker',
+  'viewer',
+  'accountant',
+  'hr',
+  'estimator',
+  'guest',
+  'owner',
+]);
+
+const isUuid = (value: string | null): boolean =>
+  typeof value === 'string' && UUID_PATTERN.test(value);
+
+const asOrgRole = (value: unknown): OrgRoleType | null =>
+  typeof value === 'string' && ORG_ROLE_VALUES.has(value as OrgRoleType)
+    ? (value as OrgRoleType)
+    : null;
 
 const normalizePayload = (raw: unknown): OrgDashboardPayload => {
   if (raw == null || typeof raw !== 'object') {
@@ -120,6 +186,9 @@ const normalizePayload = (raw: unknown): OrgDashboardPayload => {
           email: typeof item.email === 'string' ? item.email : '',
           global_role: (typeof item.global_role === 'string' ? item.global_role : null) as RoleType | null,
           membership_role: typeof item.membership_role === 'string' ? item.membership_role : null,
+          membership_permission_role: typeof item.membership_permission_role === 'string' ? item.membership_permission_role : null,
+          membership_job_title_id: typeof item.membership_job_title_id === 'string' ? item.membership_job_title_id : null,
+          membership_job_title_name: typeof item.membership_job_title_name === 'string' ? item.membership_job_title_name : null,
         }))
         .filter((item) => item.profile_id !== '' && item.email !== ''),
     },
@@ -132,40 +201,6 @@ const normalizePayload = (raw: unknown): OrgDashboardPayload => {
   };
 };
 
-function isOrganizationInvitesOrderByError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false;
-  const maybeError = error as { code?: string; message?: string; details?: string | null };
-  const message = (maybeError.message ?? '').toLowerCase();
-  const details = (maybeError.details ?? '').toLowerCase();
-  return maybeError.code === 'P0001'
-    && message.includes('unknown order_by column')
-    && (details.includes('"column": "id"') || details.includes('"column":"id"'));
-}
-
-function isMissingPendingInviteProfilesRpcError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false;
-  const maybeError = error as { code?: string; message?: string | null };
-  const message = (maybeError.message ?? '').toLowerCase();
-  return maybeError.code === 'PGRST202'
-    || message.includes('get_pending_organization_invites_with_profiles');
-}
-
-function isMissingSetMemberJobTitleRpcError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false;
-  const maybeError = error as { code?: string; message?: string | null };
-  const message = (maybeError.message ?? '').toLowerCase();
-  return maybeError.code === 'PGRST202'
-    || message.includes('set_org_member_job_title');
-}
-
-function isMissingReviewOrganizationInviteRpcError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false;
-  const maybeError = error as { code?: string; message?: string | null };
-  const message = (maybeError.message ?? '').toLowerCase();
-  return maybeError.code === 'PGRST202'
-    || message.includes('review_organization_invite');
-}
-
 type PendingInviteItem = Database['public']['Tables']['organization_invites']['Row'] & {
   requester_full_name: string | null;
   requester_email: string | null;
@@ -173,6 +208,7 @@ type PendingInviteItem = Database['public']['Tables']['organization_invites']['R
   requester_location: string | null;
   requester_avatar_url: string | null;
   requester_avatar_id: string | null;
+  requested_job_title_name?: string | null;
 };
 
 function normalizePendingInviteRows(raw: unknown): PendingInviteItem[] {
@@ -190,27 +226,25 @@ function normalizePendingInviteRows(raw: unknown): PendingInviteItem[] {
       comment: typeof item.comment === 'string' ? item.comment : null,
       created_at: typeof item.created_at === 'string' ? item.created_at : new Date(0).toISOString(),
       responded_at: typeof item.responded_at === 'string' ? item.responded_at : null,
+      requested_permission_role: asOrgRole(item.requested_permission_role),
+      requested_job_title_id: typeof item.requested_job_title_id === 'string' ? item.requested_job_title_id : null,
+      reviewed_permission_role: asOrgRole(item.reviewed_permission_role),
+      reviewed_job_title_id: typeof item.reviewed_job_title_id === 'string' ? item.reviewed_job_title_id : null,
       requester_full_name: typeof item.requester_full_name === 'string' ? item.requester_full_name : null,
       requester_email: typeof item.requester_email === 'string' ? item.requester_email : null,
       requester_phone: typeof item.requester_phone === 'string' ? item.requester_phone : null,
       requester_location: typeof item.requester_location === 'string' ? item.requester_location : null,
       requester_avatar_url: typeof item.requester_avatar_url === 'string' ? item.requester_avatar_url : null,
       requester_avatar_id: typeof item.requester_avatar_id === 'string' ? item.requester_avatar_id : null,
+      requested_job_title_name: typeof item.requested_job_title_name === 'string' ? item.requested_job_title_name : null,
     }))
     .filter((item) => item.id !== '' && item.organization_id !== '' && item.invited_profile_id !== '');
-}
-
-async function callRpcByName(name: string, args?: Record<string, unknown>): Promise<{ data: unknown; error: { code?: string; message?: string | null } | null }> {
-  const client = supabase as unknown as {
-    rpc: (fn: string, params?: Record<string, unknown>) => Promise<{ data: unknown; error: { code?: string; message?: string | null } | null }>;
-  };
-  return client.rpc(name, args);
 }
 
 export default function OrganizationDashboard(): JSX.Element {
   useRequireProfile();
 
-  const { profile } = useAuthStore();
+  const { profile, setProfile } = useAuthStore();
   const [payload, setPayload] = useState<OrgDashboardPayload | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | string | null>(null);
@@ -249,6 +283,7 @@ export default function OrganizationDashboard(): JSX.Element {
   const [inviteActionId, setInviteActionId] = useState<string | null>(null);
   const [jobTitles, setJobTitles] = useState<JobTitleRow[]>([]);
   const [approveJobTitleIdByInviteId, setApproveJobTitleIdByInviteId] = useState<Record<string, string>>({});
+  const [approvePermissionRoleByInviteId, setApprovePermissionRoleByInviteId] = useState<Record<string, OrgRoleType>>({});
   const [approveJobTitleQueryByInviteId, setApproveJobTitleQueryByInviteId] = useState<Record<string, string>>({});
   const [jobTitleOpenInviteId, setJobTitleOpenInviteId] = useState<string | null>(null);
   const [addingJobTitleInviteId, setAddingJobTitleInviteId] = useState<string | null>(null);
@@ -259,6 +294,7 @@ export default function OrganizationDashboard(): JSX.Element {
   const [memberToRetitle, setMemberToRetitle] = useState<MemberListItem | null>(null);
   const [changeTitleReason, setChangeTitleReason] = useState('');
   const [changeTitleJobTitleId, setChangeTitleJobTitleId] = useState('');
+  const [leaveOrganizationDialogOpen, setLeaveOrganizationDialogOpen] = useState(false);
   const [memberActionBusyKey, setMemberActionBusyKey] = useState<string | null>(null);
   const safePayload = payload ?? emptyPayload;
   const canManageMembers = profile?.role === 'system_admin' || profile?.role === 'org_admin';
@@ -266,6 +302,10 @@ export default function OrganizationDashboard(): JSX.Element {
   const serviceAreas = useMemo(() => {
     return [...safePayload.service_areas].sort((a, b) => a.service_area_text.localeCompare(b.service_area_text));
   }, [safePayload.service_areas]);
+
+  const jobTitleNameById = useMemo(() => {
+    return new Map(jobTitles.map((title) => [title.id, title.name]));
+  }, [jobTitles]);
 
   const organization = safePayload.organization;
   const headquarters = organization.headquarters?.trim() || 'Headquarters not set.';
@@ -278,16 +318,99 @@ export default function OrganizationDashboard(): JSX.Element {
   const logoPreviewSrc = pendingLogoPreviewUrl ?? logoImageSrc ?? formState.logo_url;
 
   const totalMembers = safePayload.members.total_count;
+  const sortedMembers = useMemo(() => {
+    const rows = [...safePayload.members.items];
+    if (!profile?.id) {
+      return rows;
+    }
+
+    rows.sort((left, right) => {
+      const leftIsSelf = left.profile_id === profile.id ? 1 : 0;
+      const rightIsSelf = right.profile_id === profile.id ? 1 : 0;
+      if (leftIsSelf !== rightIsSelf) {
+        return rightIsSelf - leftIsSelf;
+      }
+
+      const leftName = (left.full_name ?? left.email).toLowerCase();
+      const rightName = (right.full_name ?? right.email).toLowerCase();
+      return leftName.localeCompare(rightName);
+    });
+
+    return rows;
+  }, [profile?.id, safePayload.members.items]);
   const totalPages = Math.max(1, Math.ceil(totalMembers / pageSize));
   const canPrev = page > 1;
   const canNext = page < totalPages;
 
-  const formatRole = (role: string | null): string => {
+  const formatGlobalRole = (role: string | null): string => {
     if (!role || role === 'unassigned') return 'Unassigned';
     return role
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
+  };
+
+  const formatMembershipRole = (role: string | null): string => {
+    if (!role || role === 'unassigned') return 'Unassigned';
+
+    if (isUuid(role)) {
+      return jobTitleNameById.get(role) ?? role;
+    }
+
+    return role
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  const resolveMemberPermissionRole = (member: MemberListItem): string => {
+    const role = member.membership_permission_role
+      ?? (member.membership_role && !isUuid(member.membership_role) ? member.membership_role : null);
+    return formatGlobalRole(role);
+  };
+
+  const resolveMemberJobTitle = (member: MemberListItem): string => {
+    if (member.membership_job_title_name) {
+      return member.membership_job_title_name;
+    }
+
+    if (member.membership_job_title_id) {
+      return formatMembershipRole(member.membership_job_title_id);
+    }
+
+    if (isUuid(member.membership_role)) {
+      return formatMembershipRole(member.membership_role);
+    }
+
+    return 'Unassigned';
+  };
+
+  const resolveInviteRequestedRole = (invite: PendingInviteItem): string => {
+    if (invite.requested_permission_role) {
+      return formatGlobalRole(invite.requested_permission_role);
+    }
+
+    if (invite.role && !isUuid(invite.role)) {
+      return formatGlobalRole(invite.role);
+    }
+
+    return 'Not specified';
+  };
+
+  const resolveInviteRequestedTitle = (invite: PendingInviteItem): string => {
+    if (invite.requested_job_title_name) {
+      return invite.requested_job_title_name;
+    }
+
+    if (invite.requested_job_title_id) {
+      return formatMembershipRole(invite.requested_job_title_id);
+    }
+
+    if (invite.role && isUuid(invite.role)) {
+      return formatMembershipRole(invite.role);
+    }
+
+    return 'Not specified';
   };
 
   const getProjectStatusCounts = () => {
@@ -383,7 +506,7 @@ export default function OrganizationDashboard(): JSX.Element {
         setJobTitles(resolvedRows);
       } catch (err) {
         console.error('[OrganizationDashboard] load job titles', err);
-        toast.error('Unable to load job titles.');
+        toast.error(ORG_DASHBOARD_TOAST_MESSAGES.loadJobTitlesFailed);
       }
     };
 
@@ -399,41 +522,92 @@ export default function OrganizationDashboard(): JSX.Element {
 
     setPendingInvitesLoading(true);
     try {
-      const { data: richData, error: richError } = await callRpcByName('get_pending_organization_invites_with_profiles', {
+      const richData = await rpcClient.get_pending_organization_invites_with_profiles({
         p_organization_id: profile.organization_id,
       });
 
-      if (richError) {
-        if (!isMissingPendingInviteProfilesRpcError(richError)) {
-          throw richError;
-        }
-
-        const invitesResponse = await rpcClient.filter_organization_invites({ _filters: { organization_id: profile.organization_id, status: 'pending' }, _order_by: 'created_at', _direction: 'asc' });
-        const invites = Array.isArray(invitesResponse)
-          ? invitesResponse as Database['public']['Tables']['organization_invites']['Row'][]
-          : [];
-
-        setPendingInvites(invites.map((inv) => ({
-          ...inv,
-          requester_full_name: null,
-          requester_email: null,
-          requester_phone: null,
-          requester_location: null,
-          requester_avatar_url: null,
-          requester_avatar_id: null,
-        })));
-      } else {
-        setPendingInvites(normalizePendingInviteRows(richData));
-      }
+      setPendingInvites(normalizePendingInviteRows(richData));
     } catch (err) {
-      if (!isOrganizationInvitesOrderByError(err)) {
-        console.error('[OrganizationDashboard] load pending invites', err);
-      }
+      console.error('[OrganizationDashboard] load pending invites', err);
       setPendingInvites([]);
     } finally {
       setPendingInvitesLoading(false);
     }
   }, [profile?.organization_id, profile?.role]);
+
+  useEffect(() => {
+    if (pendingInvites.length === 0) {
+      return;
+    }
+
+    setApprovePermissionRoleByInviteId((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      for (const invite of pendingInvites) {
+        if (next[invite.id]) {
+          continue;
+        }
+
+        const defaultRole = invite.requested_permission_role ?? 'worker';
+        next[invite.id] = defaultRole;
+        changed = true;
+      }
+
+      return changed ? next : prev;
+    });
+  }, [pendingInvites]);
+
+  useEffect(() => {
+    if (pendingInvites.length === 0) {
+      return;
+    }
+
+    setApproveJobTitleIdByInviteId((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      for (const invite of pendingInvites) {
+        if (next[invite.id]) {
+          continue;
+        }
+
+        if (invite.requested_job_title_id) {
+          next[invite.id] = invite.requested_job_title_id;
+          changed = true;
+        }
+      }
+
+      return changed ? next : prev;
+    });
+
+    setApproveJobTitleQueryByInviteId((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      for (const invite of pendingInvites) {
+        if (next[invite.id]) {
+          continue;
+        }
+
+        if (invite.requested_job_title_name) {
+          next[invite.id] = invite.requested_job_title_name;
+          changed = true;
+          continue;
+        }
+
+        if (invite.requested_job_title_id) {
+          const derivedName = jobTitleNameById.get(invite.requested_job_title_id);
+          if (derivedName) {
+            next[invite.id] = derivedName;
+            changed = true;
+          }
+        }
+      }
+
+      return changed ? next : prev;
+    });
+  }, [jobTitleNameById, pendingInvites]);
 
   // load pending membership requests for org admins
   useEffect(() => {
@@ -443,7 +617,7 @@ export default function OrganizationDashboard(): JSX.Element {
   const handleAddCustomJobTitle = async (inviteId: string): Promise<void> => {
     const currentQuery = (approveJobTitleQueryByInviteId[inviteId] ?? '').trim();
     if (!currentQuery) {
-      toast.error('Please enter a job title');
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.enterJobTitle);
       return;
     }
 
@@ -459,60 +633,36 @@ export default function OrganizationDashboard(): JSX.Element {
       setApproveJobTitleIdByInviteId((prev) => ({ ...prev, [inviteId]: newJobTitle.id }));
       setApproveJobTitleQueryByInviteId((prev) => ({ ...prev, [inviteId]: newJobTitle.name }));
       setJobTitleOpenInviteId((current) => (current === inviteId ? null : current));
-      toast.success('Job title added');
+      toast.success(ORG_DASHBOARD_TOAST_MESSAGES.addJobTitleSuccess);
     } catch (err) {
       console.error(err);
-      toast.error('Unable to add job title');
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.addJobTitleFailed);
     } finally {
       setAddingJobTitleInviteId((current) => (current === inviteId ? null : current));
     }
   };
 
-  const handleReviewInvite = async (invite: PendingInviteItem, decision: 'accepted' | 'declined', selectedJobTitleId?: string | null) => {
+  const handleReviewInvite = async (
+    invite: PendingInviteItem,
+    decision: 'accepted' | 'declined',
+    selectedJobTitleId?: string | null,
+    selectedPermissionRole?: OrgRoleType | null,
+  ) => {
     if (inviteActionId != null) return;
     setInviteActionId(invite.id);
     try {
       const respondedAtIso = new Date().toISOString();
-      try {
-        const { error: reviewError } = await callRpcByName('review_organization_invite', {
-          p_invite_id: invite.id,
-          p_decision: decision,
-          p_responded_at: respondedAtIso,
-          p_selected_job_title_id: selectedJobTitleId ?? null,
-        });
+      await rpcClient.review_organization_invite({
+        p_invite_id: invite.id,
+        p_decision: decision,
+        p_responded_at: respondedAtIso,
+        p_selected_job_title_id: selectedJobTitleId ?? undefined,
+        p_selected_permission_role: selectedPermissionRole ?? undefined,
+      });
 
-        if (reviewError) {
-          throw reviewError;
-        }
-      } catch (reviewError) {
-        if (!isMissingReviewOrganizationInviteRpcError(reviewError)) {
-          throw reviewError;
-        }
-
-        await rpcClient.update_organization_invites({ _id: invite.id, _input: { status: decision, responded_at: respondedAtIso } });
-
-        if (decision === 'accepted' && selectedJobTitleId) {
-          try {
-            const { error: setJobTitleError } = await callRpcByName('set_org_member_job_title', {
-              p_org_id: invite.organization_id,
-              p_profile_id: invite.invited_profile_id,
-              p_job_title_id: selectedJobTitleId,
-            });
-            if (setJobTitleError) {
-              throw setJobTitleError;
-            }
-          } catch (jobTitleError) {
-            if (isMissingSetMemberJobTitleRpcError(jobTitleError)) {
-              toast.error('Membership approved, but org job-title assignment RPC is not available yet.');
-            } else {
-              console.error('[OrganizationDashboard] set approved member job title', jobTitleError);
-              toast.error('Membership approved, but unable to set job title.');
-            }
-          }
-        }
-      }
-
-      toast.success(decision === 'accepted' ? 'Membership approved' : 'Membership declined');
+      toast.success(decision === 'accepted'
+        ? ORG_DASHBOARD_TOAST_MESSAGES.membershipApproved
+        : ORG_DASHBOARD_TOAST_MESSAGES.membershipDeclined);
       await Promise.all([
         loadDashboard(),
         loadPendingInvites(),
@@ -545,69 +695,32 @@ export default function OrganizationDashboard(): JSX.Element {
     }
 
     if (memberToRemove.profile_id === profile.id) {
-      toast.error('You cannot remove your own membership.');
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.cannotRemoveSelf);
       return;
     }
 
     const reason = removeMemberReason.trim();
     if (!reason) {
-      toast.error('Please provide a removal reason.');
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.provideRemovalReason);
       return;
     }
 
     setMemberActionBusyKey(`remove:${memberToRemove.profile_id}`);
     try {
-      const memberRows = await rpcClient.filter_organization_members({
-        _filters: {
-          organization_id: profile.organization_id,
-          profile_id: memberToRemove.profile_id,
-        },
-        _order_by: 'created_at',
-        _direction: 'desc',
-        _limit: 10,
+      await rpcClient.remove_org_member_with_reason({
+        p_org_id: profile.organization_id,
+        p_profile_id: memberToRemove.profile_id,
+        p_reason: reason,
       });
 
-      const membership = Array.isArray(memberRows)
-        ? memberRows.find((row) => row.deleted_at == null)
-        : null;
-
-      if (!membership) {
-        throw new Error('membership not found');
-      }
-
-      await rpcClient.delete_organization_members({ _id: membership.id });
-
-      const actorName = profile.full_name ?? profile.email ?? 'An organization admin';
-      const orgName = safePayload.organization.name;
-      await rpcClient.insert_notifications({
-        _input: {
-          user_id: memberToRemove.profile_id,
-          organization_id: profile.organization_id,
-          category: 'workflow_update',
-          message: `You have been removed from ${orgName}. Reason: ${reason}`,
-          payload: {
-            event: 'member_removed',
-            organization_id: profile.organization_id,
-            organization_name: orgName,
-            affected_profile_id: memberToRemove.profile_id,
-            affected_profile_email: memberToRemove.email,
-            affected_profile_name: memberToRemove.full_name,
-            removed_by_profile_id: profile.id,
-            removed_by_name: actorName,
-            reason,
-            removed_at: new Date().toISOString(),
-          },
-        },
-      });
-
-      toast.success('Member removed and notified.');
+      toast.success(ORG_DASHBOARD_TOAST_MESSAGES.removeMemberSuccess);
       setRemoveMemberDialogOpen(false);
       setMemberToRemove(null);
       setRemoveMemberReason('');
       await loadDashboard();
     } catch (err) {
       console.error('[OrganizationDashboard] remove member', err);
-      toast.error('Unable to remove member.');
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.removeMemberFailed);
     } finally {
       setMemberActionBusyKey(null);
     }
@@ -620,57 +733,42 @@ export default function OrganizationDashboard(): JSX.Element {
 
     const reason = changeTitleReason.trim();
     if (!changeTitleJobTitleId) {
-      toast.error('Please select a new job title.');
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.selectNewJobTitle);
       return;
     }
     if (!reason) {
-      toast.error('Please provide a reason for the job-title change.');
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.provideTitleChangeReason);
       return;
     }
 
     const selectedTitle = jobTitles.find((title) => title.id === changeTitleJobTitleId);
     if (!selectedTitle) {
-      toast.error('Selected job title could not be found.');
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.selectedJobTitleMissing);
+      return;
+    }
+
+    const currentMembershipRole = memberToRetitle.membership_job_title_id
+      ?? (isUuid(memberToRetitle.membership_role) ? memberToRetitle.membership_role : null)
+      ?? memberToRetitle.membership_job_title_name;
+    const isAlreadyAssigned =
+      currentMembershipRole === selectedTitle.id ||
+      (typeof currentMembershipRole === 'string' && currentMembershipRole.toLowerCase() === selectedTitle.name.toLowerCase());
+
+    if (isAlreadyAssigned) {
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.selectedTitleAlreadyAssigned);
       return;
     }
 
     setMemberActionBusyKey(`title:${memberToRetitle.profile_id}`);
     try {
-      const { error: setTitleError } = await callRpcByName('set_org_member_job_title', {
+      await rpcClient.change_org_member_job_title_with_reason({
         p_org_id: profile.organization_id,
         p_profile_id: memberToRetitle.profile_id,
-        p_job_title_id: changeTitleJobTitleId,
-      });
-      if (setTitleError) {
-        throw setTitleError;
-      }
-
-      const actorName = profile.full_name ?? profile.email ?? 'An organization admin';
-      const orgName = safePayload.organization.name;
-      await rpcClient.insert_notifications({
-        _input: {
-          user_id: memberToRetitle.profile_id,
-          organization_id: profile.organization_id,
-          category: 'workflow_update',
-          message: `Your position in ${orgName} has been changed to ${selectedTitle.name}. Reason: ${reason}`,
-          payload: {
-            event: 'member_job_title_changed',
-            organization_id: profile.organization_id,
-            organization_name: orgName,
-            affected_profile_id: memberToRetitle.profile_id,
-            affected_profile_email: memberToRetitle.email,
-            affected_profile_name: memberToRetitle.full_name,
-            selected_job_title_id: selectedTitle.id,
-            selected_job_title_name: selectedTitle.name,
-            changed_by_profile_id: profile.id,
-            changed_by_name: actorName,
-            reason,
-            changed_at: new Date().toISOString(),
-          },
-        },
+        p_job_title_id: selectedTitle.id,
+        p_reason: reason,
       });
 
-      toast.success('Member job title updated and notified.');
+      toast.success(ORG_DASHBOARD_TOAST_MESSAGES.changeMemberTitleSuccess);
       setChangeTitleDialogOpen(false);
       setMemberToRetitle(null);
       setChangeTitleReason('');
@@ -678,7 +776,36 @@ export default function OrganizationDashboard(): JSX.Element {
       await loadDashboard();
     } catch (err) {
       console.error('[OrganizationDashboard] update member job title', err);
-      toast.error('Unable to change member job title.');
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.changeMemberTitleFailed);
+    } finally {
+      setMemberActionBusyKey(null);
+    }
+  };
+
+  const handleLeaveOrganization = async (): Promise<void> => {
+    if (!profile?.id || !profile.organization_id) {
+      return;
+    }
+
+    setMemberActionBusyKey(`leave:${profile.id}`);
+    try {
+      await rpcClient.remove_org_member_with_reason({
+        p_org_id: profile.organization_id,
+        p_profile_id: profile.id,
+        p_reason: ORG_DASHBOARD_TOAST_MESSAGES.leaveOrganizationReason,
+      });
+
+      setProfile({
+        ...profile,
+        organization_id: null,
+      });
+
+      setLeaveOrganizationDialogOpen(false);
+      toast.success(ORG_DASHBOARD_TOAST_MESSAGES.leaveOrganizationSuccess);
+      navigate('/organizations');
+    } catch (err) {
+      console.error('[OrganizationDashboard] leave organization', err);
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.leaveOrganizationFailed);
     } finally {
       setMemberActionBusyKey(null);
     }
@@ -1095,14 +1222,14 @@ export default function OrganizationDashboard(): JSX.Element {
                 <Users className="h-5 w-5 text-gray-500" />
               </div>
 
-              {safePayload.members.items.length === 0 ? (
+              {sortedMembers.length === 0 ? (
                 <EmptyState
                   message="No members"
                   description="Invite teammates to start collaborating."
                 />
               ) : (
                 <div className="space-y-3">
-                  {safePayload.members.items.map((member) => (
+                  {sortedMembers.map((member) => (
                     <div
                       key={member.profile_id}
                       className="rounded-lg border border-background-lighter p-3"
@@ -1115,8 +1242,9 @@ export default function OrganizationDashboard(): JSX.Element {
                           <p className="text-xs text-gray-400">{member.email}</p>
                         </div>
                         <div className="text-xs text-gray-400">
-                          <span className="block">Global role: {formatRole(member.global_role)}</span>
-                          <span className="block">Membership role: {formatRole(member.membership_role)}</span>
+                          <span className="block">Global role: {formatGlobalRole(member.global_role)}</span>
+                          <span className="block">Org role: {resolveMemberPermissionRole(member)}</span>
+                          <span className="block">Job title: {resolveMemberJobTitle(member)}</span>
                         </div>
                       </div>
 
@@ -1130,14 +1258,25 @@ export default function OrganizationDashboard(): JSX.Element {
                           >
                             Change Title
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openRemoveMemberDialog(member)}
-                            disabled={memberActionBusyKey != null || member.profile_id === profile?.id}
-                          >
-                            Remove Member
-                          </Button>
+                          {member.profile_id === profile?.id ? (
+                            <button
+                              type="button"
+                              onClick={() => setLeaveOrganizationDialogOpen(true)}
+                              disabled={memberActionBusyKey != null}
+                              className="px-3 py-1 rounded border border-red-500 text-red-400 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                            >
+                              Leave Organization
+                            </button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openRemoveMemberDialog(member)}
+                              disabled={memberActionBusyKey != null}
+                            >
+                              Remove Member
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1172,7 +1311,8 @@ export default function OrganizationDashboard(): JSX.Element {
                                 {inv.requester_email && <p className="text-xs text-gray-400">{inv.requester_email}</p>}
                                 {inv.requester_phone && <p className="text-xs text-gray-400">{formatPhoneUS(inv.requester_phone)}</p>}
                                 {inv.requester_location && <p className="text-xs text-gray-400">{inv.requester_location}</p>}
-                                <p className="text-xs text-gray-400">Requested role: {inv.role ?? 'org_user'}</p>
+                                <p className="text-xs text-gray-400">Requested org role: {resolveInviteRequestedRole(inv)}</p>
+                                <p className="text-xs text-gray-400">Requested job title: {resolveInviteRequestedTitle(inv)}</p>
                                 <p className="text-xs text-gray-500 mt-1">Requested at: {new Date(inv.created_at).toLocaleString()}</p>
                               </div>
                             </div>
@@ -1243,18 +1383,52 @@ export default function OrganizationDashboard(): JSX.Element {
                                 )}
                               </div>
 
+                              <label htmlFor={`approve-org-role-${inv.id}`} className="text-xs text-gray-400">
+                                Org role for approval
+                              </label>
+                              <select
+                                id={`approve-org-role-${inv.id}`}
+                                value={approvePermissionRoleByInviteId[inv.id] ?? ''}
+                                onChange={(event) => {
+                                  const selected = asOrgRole(event.target.value);
+                                  if (!selected) return;
+                                  setApprovePermissionRoleByInviteId((prev) => ({
+                                    ...prev,
+                                    [inv.id]: selected,
+                                  }));
+                                }}
+                                className="w-full bg-background border border-background-lighter text-gray-100 px-3 py-2 rounded-md focus:ring-2 focus:ring-primary text-sm"
+                                disabled={inviteActionId != null}
+                              >
+                                <option value="" disabled>Select org role</option>
+                                {APPROVAL_ORG_ROLE_OPTIONS.map((roleOption) => (
+                                  <option key={roleOption} value={roleOption}>
+                                    {formatGlobalRole(roleOption)}
+                                  </option>
+                                ))}
+                              </select>
+
                               <div className="flex justify-end gap-2">
                                 <button
                                   className="px-3 py-1 rounded bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                                   onClick={() => {
                                     const selectedTitleId = approveJobTitleIdByInviteId[inv.id] ?? null;
+                                    const selectedPermissionRole = approvePermissionRoleByInviteId[inv.id] ?? null;
                                     if (!selectedTitleId) {
-                                      toast.error('Please select or create a job title before approval.');
+                                      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.selectOrCreateJobTitleBeforeApproval);
                                       return;
                                     }
-                                    void handleReviewInvite(inv, 'accepted', selectedTitleId);
+                                    if (!selectedPermissionRole) {
+                                      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.selectPermissionRoleBeforeApproval);
+                                      return;
+                                    }
+                                    void handleReviewInvite(inv, 'accepted', selectedTitleId, selectedPermissionRole);
                                   }}
-                                  disabled={inviteActionId != null || !approveJobTitleIdByInviteId[inv.id]}
+                                  disabled={
+                                    inviteActionId != null
+                                    || !approveJobTitleIdByInviteId[inv.id]
+                                    || !approvePermissionRoleByInviteId[inv.id]
+                                  }
                                 >
                                   {inviteActionId === inv.id ? 'Updating…' : 'Approve'}
                                 </button>
@@ -1483,6 +1657,36 @@ export default function OrganizationDashboard(): JSX.Element {
               disabled={memberActionBusyKey != null || !changeTitleJobTitleId || changeTitleReason.trim().length === 0}
             >
               {memberActionBusyKey?.startsWith('title:') ? 'Updating…' : 'Update Title'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={leaveOrganizationDialogOpen} onOpenChange={setLeaveOrganizationDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Leave organization</DialogTitle>
+            <DialogDescription>
+              {ORG_DASHBOARD_TOAST_MESSAGES.leaveOrganizationConfirm}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLeaveOrganizationDialogOpen(false)}
+              disabled={memberActionBusyKey != null}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { void handleLeaveOrganization(); }}
+              disabled={memberActionBusyKey != null}
+            >
+              Yes, I am sure
             </Button>
           </DialogFooter>
         </DialogContent>

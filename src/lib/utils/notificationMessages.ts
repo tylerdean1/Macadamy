@@ -90,6 +90,34 @@ function resolveMemberJobTitleChangedMessage(payloadObj: Record<string, unknown>
     return `Your position in ${organizationName} has been changed.${effectiveSuffix}`;
 }
 
+function resolveMemberLeftOrganizationMessage(payloadObj: Record<string, unknown>): string | null {
+    const organizationName = asNonEmptyString(payloadObj.organization_name);
+    const memberName = asNonEmptyString(payloadObj.affected_profile_name);
+    const actorName = asNonEmptyString(payloadObj.actor_name);
+
+    if (!organizationName || !memberName) {
+        return null;
+    }
+
+    if (actorName && actorName !== memberName) {
+        return `${memberName} left ${organizationName}. Reported by ${actorName}.`;
+    }
+
+    return `${memberName} left ${organizationName}.`;
+}
+
+function resolveMemberJobTitleChangedBroadcastMessage(payloadObj: Record<string, unknown>): string | null {
+    const memberName = asNonEmptyString(payloadObj.affected_profile_name);
+    const previousTitle = asNonEmptyString(payloadObj.previous_job_title_name) ?? 'Unassigned';
+    const currentTitle = asNonEmptyString(payloadObj.selected_job_title_name) ?? asNonEmptyString(payloadObj.current_job_title_name) ?? 'Unassigned';
+
+    if (!memberName) {
+        return null;
+    }
+
+    return `${memberName}'s title was just changed from ${previousTitle} to ${currentTitle}!`;
+}
+
 export function getNotificationDisplayMessage(notification: NotificationDisplayInput): string {
     const payloadObj = asObject(notification.payload);
     if (!payloadObj) {
@@ -97,7 +125,7 @@ export function getNotificationDisplayMessage(notification: NotificationDisplayI
     }
 
     const eventName = asNonEmptyString(payloadObj.event);
-    if (eventName !== 'membership_request_reviewed' && eventName !== 'member_removed' && eventName !== 'member_job_title_changed' && notification.category !== 'workflow_update') {
+    if (eventName !== 'membership_request_reviewed' && eventName !== 'member_removed' && eventName !== 'member_job_title_changed' && eventName !== 'member_left_organization' && eventName !== 'member_job_title_changed_broadcast' && notification.category !== 'workflow_update') {
         return notification.message;
     }
 
@@ -107,6 +135,14 @@ export function getNotificationDisplayMessage(notification: NotificationDisplayI
 
     if (eventName === 'member_job_title_changed') {
         return resolveMemberJobTitleChangedMessage(payloadObj) ?? notification.message;
+    }
+
+    if (eventName === 'member_left_organization') {
+        return resolveMemberLeftOrganizationMessage(payloadObj) ?? notification.message;
+    }
+
+    if (eventName === 'member_job_title_changed_broadcast') {
+        return resolveMemberJobTitleChangedBroadcastMessage(payloadObj) ?? notification.message;
     }
 
     const organizationName = asNonEmptyString(payloadObj.organization_name);

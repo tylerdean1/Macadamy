@@ -4,8 +4,8 @@ This project uses Supabase with RPC-first design for secure, typed, and scalable
 
 The name **Macadamy** comes from the verb **"macadamize"**, which means _to pave a road with compacted layers of stone bound with asphalt_. Just as a macadamized surface provides a solid foundation for travel, Macadamy strives to lay the groundwork for streamlined construction management.
 
-
 ## ✅ Key Design Principles
+
 - Row Level Security (RLS) is enabled on every table with no policies, so direct table access is denied by default.
 - Each RPC begins with a `check_access` call that scopes what the current user can do before any action is taken.
 - All table reads use `get_*` and `filter_*` RPCs (plus payload RPCs) with optional `ST_AsText(...)` for WKT geometry
@@ -14,10 +14,12 @@ The name **Macadamy** comes from the verb **"macadamize"**, which means _to pave
 - All geometry is stored as WKT in PostGIS geometry columns and parsed on the frontend
 
 ## 📦 Geometry Utilities
+
 - `parseWktToGeoJson(wkt)` — parses WKT → GeoJSON
 - `convertToGooglePath(geo)` — converts GeoJSON → Google Maps path format
 
 ## 🔍 Read RPCs (`get_*`)
+
 - `get_organization_by_id`
 - `get_all_line_item_templates`
 - `get_all_profiles`
@@ -55,6 +57,7 @@ The name **Macadamy** comes from the verb **"macadamize"**, which means _to pave
 - `rpc_issues_payload`
 
 ## ✏️ Write RPCs
+
 - Each editable table includes:
   - `insert_<table>`
   - `update_<table>`
@@ -67,11 +70,12 @@ The name **Macadamy** comes from the verb **"macadamize"**, which means _to pave
   - `delete_labor_records(_id)`
 
 ## 🗄 Database Tables
+
 The backend schema was recently overhauled. It now spans dozens of tables to
 support accounting, HR, field operations, document management, and more. Below
 is the full list of tables after the revamp:
 
-```
+```text
 accounts_payable          accounts_receivable       activity_logs
 asphalt_types             audit_logs                avatars
 bid_packages              bid_vendors               bids
@@ -103,110 +107,236 @@ vendor_documents          vendor_qualifications     vendors
 wbs                       workflows
 ```
 
-
 ## ⚙️ Developer Tips
+
 - Add new columns? Just update RPCs — frontend stays untouched
+
+- Supabase map edge functions under `supabase/functions/maps_*` are now self-contained per-function with only `index.ts` and `cors.ts` (no shared helper imports)
+
+- `fulldb` now also generates `src/lib/edge.functions.ts` (from `src/lib/mapsServer.ts`) as an edge-function reference map and type helper file
+
+- Map edge functions require these Supabase project secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `GOOGLE_MAPS_SERVER_KEY`
+
 - Need WKT parsing? Always handle in frontend using `parseWktToGeoJson`
+
 - Use composite keys carefully (e.g. `user_contracts` needs `user_id + contract_id` for delete)
+
 - Outdated profile contract RPCs were removed from `rpc.client.ts`
+
 - New `ProjectsSection` and `OrganizationDashboard` components support project and organization views
+
 - Project-related pages now live in `src/pages/Projects` (previously `Contract`)
+
 - Shared layout components (`Page`, `PageContainer`, `SectionContainer`) live in `src/components/Layout.tsx`
+
 - `FeatureListPage` simplifies our feature pages. Find it in `src/components/FeatureListPage.tsx`
+
 - `useOrganizationsData` hook provides searchable data for organization views
+
 - Organization membership lists are loaded from `get_my_member_organizations()` (backed by `organization_members` + `organizations`) so navbar/profile org selectors show all active org memberships for the signed-in user
+
 - `get_my_member_organizations()` also falls back to the profile’s primary `organization_id` when legacy data is missing a membership row, preventing empty org dropdowns for existing users
+
 - `useMyOrganizations` deduplicates in-flight requests and uses a short TTL cache so repeated org selectors across the same view do not trigger duplicate RPC calls
+
 - Call `invalidateMyOrganizationsCache(profileId?)` after org membership-changing actions (for example org creation) to force immediate refetch instead of waiting for cache TTL
+
 - `EnrichedProfile` now includes `location` and onboarding persists it through `complete_my_profile(...)`, keeping frontend profile state aligned with regenerated backend types
+
+- Profile onboarding and edit-profile flows no longer edit a profile-level job title; dashboard role/title context is now derived from organization memberships
+
+- Profile onboarding location input now uses Google Places city autocomplete and normalizes saved values to `City, State`
+
 - Organization invite request/review actions now surface specific toast feedback for common failure modes (duplicate pending requests, already-processed invites, permission, and network errors)
+
+- Organization approval UX now requires approvers to select both an org permission role and a job title before approving a pending membership request, with defaults seeded from requested role when present
+
 - Invite error messaging is centralized in `src/lib/utils/inviteErrorMessages.ts` so request/review flows stay consistent over time
+
 - Run `npm run test:unit` to execute targeted unit tests, including invite error classification (`src/lib/utils/inviteErrorMessages.test.ts`), shared profile error message constants (`src/lib/utils/profileErrorMessages.test.ts`), and primary-org switch lock behavior (`src/hooks/usePrimaryOrganizationSwitch.test.ts`)
+
 - Organization selectors in navbar/profile now persist primary org context through `set_my_primary_organization`, then refresh auth profile state and dashboard org filter (`selectedOrganizationId`) to keep UI and backend in sync
+
+- Dashboard org filtering now uses the navbar’s org dropdown directly: selecting one org loads org-scoped dashboard metrics/projects, while `All organizations` aggregates metrics/projects across all active memberships
+
+- Dashboard no-membership fallback now gracefully degrades to empty metrics/projects when legacy backend `rpc_profile_dashboard_payload` deployments return `42703` missing `v_profile.job_title_id`, avoiding repeated request failures in the UI
+
+- Dashboard profile header now renders membership role context from org membership data (single org: selected membership role; all-org mode: one line per membership in the format `<role> - <organization>`)
+
 - Navbar/profile org switchers now lock while the primary-org RPC is in flight to prevent duplicate submissions from rapid re-clicks
+
 - Shared org-switch RPC behavior now lives in `src/hooks/usePrimaryOrganizationSwitch.ts` so navbar/profile stay consistent without duplicated logic
+
 - Org switching now treats known `set_my_primary_organization` membership errors (`42501 not a member`) as a user-facing toast without extra console noise
+
 - Org switching now pre-validates membership via `get_my_member_organizations` before attempting `set_my_primary_organization`, avoiding avoidable 403 switch calls when stale org options are present
+
 - Org switching now no-ops when the selected organization is already the active `profile.organization_id`, avoiding redundant RPC calls and noisy 403s from stale fallback entries
+
 - Organization dashboard pending-invite loading now gracefully degrades to empty state when `filter_organization_invites` returns known invoker/order-by mismatch (`P0001 unknown order_by column id`)
+
 - Pending-invite loading no longer depends on optional `filter_profiles` enrichment, preventing repeated `42804` backend shape-mismatch requests while still showing invite rows
-- Pending membership cards now support rich requester profile details (name, email, phone, location, avatar) via optional RPC `get_pending_organization_invites_with_profiles`, with automatic fallback to base invite rows when unavailable
+
+- Pending membership cards now support rich requester profile details (name, email, phone, location, avatar) via `get_pending_organization_invites_with_profiles`
+
 - Pending membership approval now requires selecting a job title inline in each pending request card (search existing titles or add custom via `insert_job_title_public`) and applies that title to the approved member profile
+
 - Pending membership approval now applies selected titles through org-scoped RPC `set_org_member_job_title` (instead of generic `update_profiles`) to avoid row-scope mismatch errors during approval
-- Pending membership review now prefers atomic RPC `review_organization_invite(...)` so requester notifications are emitted with richer context (`invite_id`, `organization_id`, organization name, decision status, reviewer profile, role, selected job-title id/name, optional reason, and review timestamp); dashboard falls back to legacy review RPC flow when unavailable
-- Membership-review notifications are rendered through shared formatter `src/lib/utils/notificationMessages.ts` so navbar dropdown and `/notifications` display/search use consistent wording like “Your request to join <org> has been <approved/denied> for the position of <job title>.”
+
+- Pending membership review uses atomic RPC `review_organization_invite(...)` so requester notifications are emitted with richer context (`invite_id`, `organization_id`, organization name, decision status, reviewer profile, role, selected job-title id/name, optional reason, and review timestamp)
+
+- Membership-review notifications are rendered through shared formatter `src/lib/utils/notificationMessages.ts` so navbar dropdown and `/notifications` display/search use consistent wording like "Your request to join `<org>` has been `<approved/denied>` for the position of `<job title>`."
+
 - Org admins can now manage existing members directly in the member roster: remove member (required reason) and change member job title (required reason); each action sends a `workflow_update` notification to the affected user with reason + actor metadata in payload
+
+- Member removal/title-change actions now use server-side atomic RPCs (`remove_org_member_with_reason`, `change_org_member_job_title_with_reason`) so notification delivery is guaranteed under RLS (no client-side direct `insert_notifications` calls)
+
+- Organization dashboard member/invite toast copy is centralized in `OrganizationDashboard.tsx` (`ORG_DASHBOARD_TOAST_MESSAGES`) to keep messaging consistent across approval, removal, and title-change workflows
+
+- Organization dashboard member roster now pins the signed-in user card first; on that card, admins see a red `Leave Organization` action (instead of disabled remove) that calls backend member-removal RPC to remove their own org membership
+
+- Leave Organization now shows an explicit confirmation modal in the org dashboard (“Are you sure you want to leave the organization?” with `Yes, I am sure` / `Cancel`) before calling the backend removal RPC
+
+- When a member leaves, `remove_org_member_with_reason` emits `workflow_update` notifications to org admins (`event: member_left_organization`), and notification rendering now formats this event in navbar + `/notifications`
+
+- Member title updates now support org-wide broadcast notifications (`event: member_job_title_changed_broadcast`) rendered as `<name>'s title was just changed from <previous> to <current>!`
+
 - `ProtectedRoute` redirect logs are now gated behind `localStorage.DEBUG_AUTH=1`, so expected sign-out redirects no longer spam warning stacks in normal dev usage
+
+- Frontend auth now includes a dedicated `AuthProvider` context (`src/context/AuthContext.tsx`) that tracks Supabase `session` + `user` via `getSession` and `onAuthStateChange`, plus shared `signInWithGoogle`/`logout` helpers used by `GoogleSignInButton`, `ProtectedRoute`, and navbar logout
+
+- Google OAuth browser flow now starts from `GoogleSignInButton` using `supabase.auth.signInWithOAuth` with redirect target `window.location.origin + '/auth/callback'`, and route `/auth/callback` finalizes session handoff before redirecting to `/dashboard` (or `/login` with toast on failure)
+
 - Dependency hardening updated the lint toolchain to `eslint@10` + `typescript-eslint@8.56` and removed unused React ESLint plugins (`eslint-plugin-react`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`)
+
 - Dependency hardening also pins `minimatch` via `package.json` `overrides` (`10.2.1`) so transitive ReDoS advisories are remediated while preserving current lint behavior
 
 ### Security Dependency Delta (2026-02-21)
+
 - Added: `vitest` for targeted unit tests (`npm run test:unit`)
+
 - Upgraded: `eslint` to `^10.0.1`
+
 - Upgraded: `@eslint/js` to `^10.0.1`
+
 - Upgraded: `typescript-eslint` to `^8.56.0`
+
 - Removed (unused in current ESLint config): `eslint-plugin-react`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`
+
 - Added transitive override: `overrides.minimatch = 10.2.1`
+
 - Result: `npm audit` reports 0 vulnerabilities in the current lockfile state
 
+- Environment naming is consolidated around Vite conventions: use `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_TOKEN`, and `VITE_GOOGLE_MAPS_BROWSER_KEY` for browser-safe values
+
+- Avoid `VITE_` for secrets; keep server-only values non-public (`SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `DATABASE_URL`, and other admin credentials)
+
+- Runtime configuration now enforces canonical env names only; remove legacy `NEXT_PUBLIC_*` and older `VITE_*_KEY` variables from local/hosted environments
+
+- Google Maps Platform integration setup (browser key vs server key, API enablement, restrictions, and Vercel env mapping) is documented in `docs/maps-setup.md`
+
 - Navbar includes a notifications bell with unread red dot; clicking opens a compact dropdown list of recent notifications, and selecting one marks it read (if unread) and routes to the related page (project dashboard when `payload.project_id` exists, organization dashboard when org/approval context exists)
+
 - Notification lists are displayed with unread items first, then newest by timestamp
+
 - Notification dropdown includes a `View all notifications` footer action that routes to `/notifications`
+
 - `/notifications` includes `All` and `Unread` tabs plus a text search to quickly filter notification entries
+
 - `/notifications` syncs filter/search in the URL query string (`?filter=unread&q=...`) for shareable/bookmarkable views
+
 - Notifications now use Supabase Realtime subscriptions scoped by `user_id` to refresh navbar unread counts and `/notifications` without polling
+
 - Realtime notification updates are coalesced client-side with a short debounce to avoid bursty refetches when multiple rows change quickly
+
 - Migration `supabase/migrations/refine_notifications_indexes.sql` ensures targeted notification indexes (active-list + unread partial indexes) and retires the legacy broad `notifications(user_id)` index
+
 - Notification loading uses `useNotificationsData` helpers with order fallback (`created_at` → `updated_at` → `id`) so UI remains stable across schema drift, and notification clicks mark `is_read=true` only when first opened
+
 - Notification loading now passes direct `user_id` filters again; `filter_notifications` now handles JSON scalar string filters server-side (including UUID-like values) without double-quoting
+
 - `filter_notifications` is now ordered server-side as `is_read ASC` first (unread first), then by the requested order column/date fallback
+
 - `filter_notifications` is hardened against null dynamic SQL (`query string argument of EXECUTE is null`) by defaulting select-list to `*`; frontend notification fetches also request `_select_cols: ['*']` defensively
+
 - Clicking `Dashboard` in the navbar routes directly to `/dashboard`; the org-filter dropdown remains available via a chevron trigger next to it
+
 - Feature pages `QualitySafety` and `SubcontractorManagement` provide compliance and vendor management views
+
 - Added `Payments` page to list project payments
+
 - `ProfileOnboarding` at `/onboarding/profile` completes user profiles with job title search/custom creation and avatar picker/upload
+
 - `npm run avatars:purge` cleans up orphaned avatar rows and unreferenced files in the `avatars-personal` bucket (requires `SUPABASE_SERVICE_ROLE_KEY`)
+
 - Shared profile/onboarding error toast strings are centralized in `src/lib/utils/profileErrorMessages.ts` and reused by both `ProfileOnboarding` and `EditProfileModal` to keep user-facing messaging consistent
 
 ---
 This structure gives you a true API-less, secure backend with full control and complete type safety.
+
 ## 🏗 Core Feature Types
+
 Typed interfaces for project management, estimating, cost codes, and scheduling live in `src/lib/features`.
 
 ## 🚀 Built-in Feature Pages
+
 Macadamy includes pages for these core construction features:
+
 - `/projects` &mdash; manage projects
+
 - `/estimates` &mdash; track estimates and contracts
+
 - `/cost-codes` &mdash; maintain cost codes
+
 - `/schedule-tasks` &mdash; review schedules
+
 - `/organizations` &mdash; manage organizations
+
 - `/preconstruction` &mdash; estimating and bid management
+
 - `/document-management` &mdash; drawings, RFIs and submittals
+
 - `/financial-management` &mdash; budgets and billing
+
 - `/field-operations` &mdash; timecards and equipment logs
+
 - `/equipment-management` &mdash; inventory, maintenance, and service history
+
 - `/design-reviews` &mdash; track model coordination reviews
+
 - `/equipment-maintenance` &mdash; schedule service and log repairs
+
 - `/accounting-payroll` &mdash; AP/AR and payroll tracking
+
 - `/accounts-payable` &mdash; view accounts payable
+
 - `/accounts-receivable` &mdash; view accounts receivable
+
 - `/payments` &mdash; record payments against commitments
+
 - `/resource-planning` &mdash; schedules and resource allocation
+
 - `/reporting` &mdash; dashboards and analytics
+
 - `/notifications` &mdash; view recent account notifications
+
 - `/quality-safety` &mdash; compliance and safety tracking
+
 - `/subcontractors` &mdash; vendor onboarding and agreements
 
 ## 🚧 Comprehensive Feature Vision (Roadmap)
+
 This section is intentionally forward-looking and serves as the product roadmap so contributors can continue building toward the target platform capabilities over time.
 
 Status scale used below:
+
 - **Completed:** feature area is broadly shipped for current scope
 - **In Progress (advanced):** substantial functional implementation exists, still expanding
 - **In Progress (early):** partial implementation exists (often list/detail views), broader workflows pending
 - **Todo:** planned, not implemented as a full feature area yet
 
 ### Preconstruction & Bidding
+
 - **Status:** In Progress (early)
 - Detailed estimating with resource-based pricing
 - Bid package creation and vendor tracking
@@ -218,6 +348,7 @@ Status scale used below:
   - `src/lib/features/estimate.types.ts`
 
 ### Project & Document Management
+
 - **Status:** In Progress (advanced)
 - Drawing version control and centralized file storage
 - Model coordination and design review
@@ -231,6 +362,7 @@ Status scale used below:
   - `src/pages/Projects/Issues.tsx`
 
 ### Financial Management
+
 - **Status:** In Progress (early)
 - Budgets, commitments, and contract tracking
 - Progress billing and payment applications
@@ -243,6 +375,7 @@ Status scale used below:
   - `src/pages/Features/Payments.tsx`
 
 ### Field Operations
+
 - **Status:** In Progress (advanced)
 - Timecards and production quantity tracking
 - Equipment assignments and usage logs
@@ -256,6 +389,7 @@ Status scale used below:
   - `src/pages/Projects/Inspections.tsx`
 
 ### Accounting & Payroll
+
 - **Status:** In Progress (early)
 - Accounts payable/receivable and general ledger
 - Payroll processing with certified payroll support
@@ -267,6 +401,7 @@ Status scale used below:
   - `src/pages/Features/AccountsReceivable.tsx`
 
 ### Scheduling & Resource Planning
+
 - **Status:** In Progress (early)
 - Gantt-style schedules with dependencies
 - Resource allocation across projects
@@ -278,6 +413,7 @@ Status scale used below:
   - `src/lib/features/schedule-task.types.ts`
 
 ### Reporting & Collaboration
+
 - **Status:** In Progress (early)
 - Custom dashboards and analytics
 - Mobile access to tasks and documents
@@ -288,6 +424,7 @@ Status scale used below:
   - `src/pages/Organization/OrganizationDashboard.tsx`
 
 ### Future Enhancements
+
 - **Status:** Todo
 - BIM coordination and model federation
 - Drone & sensor data integration
@@ -299,6 +436,7 @@ Status scale used below:
   - `src/pages/Features/SubcontractorManagement.tsx`
 
 ## 📌 Current Scope
+
 The sections above describe currently implemented backend patterns, routes, hooks, and feature pages in this repository.
 
 ## 🧩 Custom Hooks
@@ -310,18 +448,25 @@ The sections above describe currently implemented backend patterns, routes, hook
 Call `initGlobalErrorLogger()` during startup to capture uncaught errors and promise rejections. Logs include the error message and stack trace for easier debugging, and a toast notification alerts users that something went wrong.
 
 ## 🐛 Troubleshooting Authentication
+
 If you see an error like `error running hook URI: pg-functions://postgres/public/custom-access-token_hook` during sign-in, the database function for custom access tokens may be missing.
 Apply the migrations in `supabase/migrations/` to the target environment, then regenerate generated backend artifacts:
+
+Supabase CLI is installed and used via Scoop in this environment, so run it directly as `supabase ...`.
+
 ```bash
-npx supabase db reset
+supabase db reset
 npm run fulldb
 ```
+
 For hosted environments, use your normal migration deploy flow instead of `db reset`.
 
 ## 🧪 Work In Progress
 
 - **Last worked on:** Profile dashboard org-membership load failure caused by RPC `filter_organization_members` row-shape mismatch (`42804`).
+
 - **Goal:** Restore stable profile dashboard organization loading by keeping SQL return shape aligned with `SETOF public.organization_members`, and reduce noisy non-retriable client retries.
+
 - **Stage:** **In Progress — still needs DB apply + verification**
   - **Completed:** Migration created to fix result shape (`supabase/migrations/20260220_fix_filter_organization_members_result_shape.sql`) and local/client-side handling improved for non-retriable structural RPC errors.
   - **Still needs:** Apply migration to target Supabase DB environment, run end-to-end dashboard verification, and confirm no recurring `42804` responses.

@@ -70,4 +70,49 @@ describe('notificationMessages', () => {
 
         expect(message).toBe('Your position in Northwind has been changed to Estimator. Reason: Role restructuring Effective immediately.');
     });
+
+    it('formats member-left notifications for org admins', () => {
+        const message = getNotificationDisplayMessage({
+            message: 'fallback',
+            category: 'workflow_update',
+            payload: {
+                event: 'member_left_organization',
+                organization_name: 'Acme Builders',
+                affected_profile_name: 'Tyler Jones',
+                actor_name: 'Tyler Jones',
+            },
+        });
+
+        expect(message).toBe('Tyler Jones left Acme Builders.');
+    });
+
+    it('formats member-left notifications with distinct actor context when present', () => {
+        const message = getNotificationDisplayMessage({
+            message: 'fallback',
+            category: 'workflow_update',
+            payload: {
+                event: 'member_left_organization',
+                organization_name: 'Acme Builders',
+                affected_profile_name: 'Tyler Jones',
+                actor_name: 'System Bot',
+            },
+        });
+
+        expect(message).toBe('Tyler Jones left Acme Builders. Reported by System Bot.');
+    });
+
+    it('formats org-wide member title change broadcast with previous and current title', () => {
+        const message = getNotificationDisplayMessage({
+            message: 'fallback',
+            category: 'workflow_update',
+            payload: {
+                event: 'member_job_title_changed_broadcast',
+                affected_profile_name: 'Tyler Jones',
+                previous_job_title_name: 'Estimator',
+                selected_job_title_name: 'Project Manager',
+            },
+        });
+
+        expect(message).toBe("Tyler Jones's title was just changed from Estimator to Project Manager!");
+    });
 });

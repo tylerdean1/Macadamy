@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { rpcClient } from '@/lib/rpc.client';
 import { useAuthStore } from '@/lib/store';
-import { USER_ROLE_TYPE_OPTIONS } from '@/lib/types';
 import { resolveInviteRequestErrorMessage } from '@/lib/utils/inviteErrorMessages';
 import { invalidateMyOrganizationsCache } from '@/hooks/useMyOrganizations';
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -29,7 +28,6 @@ export default function OrganizationOnboarding(): JSX.Element {
     const [isSearching, setIsSearching] = useState(false);
     const [joinModalOpen, setJoinModalOpen] = useState(false);
     const [orgToJoin, setOrgToJoin] = useState<{ id: string; name: string } | null>(null);
-    const [selectedMembershipRole, setSelectedMembershipRole] = useState<string>('org_user');
 
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
@@ -80,7 +78,6 @@ export default function OrganizationOnboarding(): JSX.Element {
                     organization_id: orgToJoin.id,
                     invited_profile_id: profile.id,
                     invited_by_profile_id: profile.id,
-                    role: selectedMembershipRole,
                     status: 'pending'
                 }
             });
@@ -167,7 +164,6 @@ export default function OrganizationOnboarding(): JSX.Element {
                                         className="w-full text-left px-3 py-2 hover:bg-background-light text-sm"
                                         onClick={() => {
                                             setOrgToJoin(r);
-                                            setSelectedMembershipRole('org_user');
                                             setJoinModalOpen(true);
                                         }}
                                     >
@@ -318,21 +314,6 @@ export default function OrganizationOnboarding(): JSX.Element {
                         <DialogTitle className="text-white">Request membership</DialogTitle>
                         <DialogDescription className="text-sm text-gray-400">Request to join "{orgToJoin?.name ?? ''}"</DialogDescription>
                     </DialogHeader>
-                    <div className="mt-4 space-y-3">
-                        <label htmlFor="join-role-select" className="text-sm text-gray-300">Membership role</label>
-                        <select
-                            id="join-role-select"
-                            title="Select membership role"
-                            value={selectedMembershipRole}
-                            onChange={(e) => setSelectedMembershipRole(e.target.value)}
-                            disabled={isBusy}
-                            className="w-full bg-background border border-background-lighter text-gray-100 px-3 py-2.5 rounded-md focus:ring-2 focus:ring-primary"
-                        >
-                            {USER_ROLE_TYPE_OPTIONS.filter(r => r !== 'system_admin').map((r) => (
-                                <option key={r} value={r}>{r}</option>
-                            ))}
-                        </select>
-                    </div>
                     <DialogFooter>
                         <div className="flex justify-end gap-2 mt-4">
                             <Button variant="outline" onClick={() => setJoinModalOpen(false)} disabled={isBusy}>Cancel</Button>

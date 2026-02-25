@@ -182,7 +182,7 @@ export function useAuth(): UseAuthReturn {
 
       try {
         const redirectUrl = getOptionalEnvAny(
-          ['NEXT_PUBLIC_SUPABASE_EMAIL_REDIRECT_URL', 'VITE_SUPABASE_EMAIL_REDIRECT_URL'],
+          ['VITE_SUPABASE_EMAIL_REDIRECT_URL'],
           ''
         ) || undefined;
 

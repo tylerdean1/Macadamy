@@ -14,6 +14,7 @@ import { ScrollToTop } from '@/pages/StandardPages/StandardPageComponents/Scroll
 
 /* ── lazy-loaded pages ─────────────────────────────────────────── */
 const LandingPage = lazy(() => import('@/pages/StandardPages/LandingPage'));
+const AuthCallback = lazy(() => import('@/pages/StandardPages/AuthCallback'));
 const ResetPassword = lazy(() => import('@/pages/StandardPages/ResetPassword'));
 const UpdatePassword = lazy(() => import('@/pages/StandardPages/UpdatePassword'));
 const UserOnboarding = lazy(() => import('@/pages/StandardPages/UserOnboarding'));
@@ -101,7 +102,7 @@ export default function App(): JSX.Element {
   }, []);
 
   /* hide navbar on auth-style routes */
-  const hideNavbarRoutes: string[] = ['/', '/reset-password', '/onboarding', '/onboarding/profile'];
+  const hideNavbarRoutes: string[] = ['/', '/login', '/auth/callback', '/reset-password', '/onboarding', '/onboarding/profile'];
   const shouldShowNavbar: boolean = !hideNavbarRoutes.includes(location.pathname);
 
   /* ── initial bootstrap spinner ──────────────────────────────── */
@@ -143,6 +144,8 @@ export default function App(): JSX.Element {
         <Routes>
           {/* ── public ─────────────────────────────────────────── */}
           <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LandingPage />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/update-password" element={<UpdatePassword />} />
           <Route path="/onboarding" element={<UserOnboarding />} />

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom'; // Hooks for routing
 import { LogOut, Home, Building2, Bell, ChevronDown } from 'lucide-react'; // Icons for logout and home
 import { useAuthStore } from '@/lib/store'; // Auth store for user management
-import { supabase } from '@/lib/supabase'; // Supabase client for authentication
+import { useAuthContext } from '@/context/AuthContext';
 import { useMyOrganizations } from '@/hooks/useMyOrganizations';
 import { usePrimaryOrganizationSwitch } from '@/hooks/usePrimaryOrganizationSwitch';
 import { rpcClient } from '@/lib/rpc.client';
@@ -16,7 +16,8 @@ type NotificationRow = Database['public']['Functions']['filter_notifications']['
 // Navigation bar component
 export function Navbar() {
   const navigate = useNavigate(); // Use hook for navigation
-  const { user, setUser, profile, selectedOrganizationId, setSelectedOrganizationId } = useAuthStore(); // Grab user/profile and setUser function from the auth store
+  const { user, profile, selectedOrganizationId, setSelectedOrganizationId } = useAuthStore();
+  const { logout } = useAuthContext();
   const { orgs: myOrgs, loading: myOrgsLoading } = useMyOrganizations(profile?.id);
   const { isSwitching: isOrgSwitching, switchPrimaryOrganization } = usePrimaryOrganizationSwitch();
 
@@ -73,9 +74,8 @@ export function Navbar() {
   // Handle user logout
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut(); // Sign out from Supabase
-      setUser(null); // Clear user state in the store
-      navigate('/'); // Redirect to home after logout
+      await logout();
+      navigate('/login');
     } catch (error) {
       console.error('Error signing out:', error); // Log any errors
     }
@@ -222,7 +222,7 @@ export function Navbar() {
                         className={`w-full text-left px-4 py-2 text-sm ${selectedOrganizationId === o.id ? 'text-white bg-background' : 'text-gray-300 hover:bg-background'}`}
                         onClick={() => { setSelectedOrganizationId(o.id); setIsDashboardOpen(false); }}
                       >
-                        {o.name}{o.role ? ` — ${o.role}` : ''}
+                        {o.name}{o.roleLabel ? ` — ${o.roleLabel}` : ''}
                       </button>
                     ))}
                   </div>
@@ -277,7 +277,7 @@ export function Navbar() {
                             void handleSelectOrganization(o.id);
                           }}
                         >
-                          {o.name}{o.role ? ` — ${o.role}` : ''}
+                          {o.name}{o.roleLabel ? ` — ${o.roleLabel}` : ''}
                         </Link>
                       ))
                     )}

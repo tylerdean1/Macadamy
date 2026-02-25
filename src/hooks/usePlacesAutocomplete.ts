@@ -3,6 +3,8 @@ import { googleMapsLoader } from '@/lib/utils/googleMapsLoader';
 
 export interface PlacesSuggestion {
     description: string;
+    placeId: string;
+    cityState: string;
 }
 
 interface Options {
@@ -62,7 +64,28 @@ export function usePlacesLocationAutocomplete(query: string, opts?: Options): Pl
                         return;
                     }
                     const list: PlacesSuggestion[] = preds
-                        .map((p) => ({ description: p.description }))
+                        .map((p) => {
+                            const terms = Array.isArray(p.terms) ? p.terms : [];
+                            const city = terms[0]?.value?.trim() ?? '';
+                            const state = terms[1]?.value?.trim() ?? '';
+
+                            let cityState = '';
+                            if (city && state) {
+                                cityState = `${city}, ${state}`;
+                            } else {
+                                const parts = p.description
+                                    .split(',')
+                                    .map((part) => part.trim())
+                                    .filter(Boolean);
+                                cityState = parts.length >= 2 ? `${parts[0]}, ${parts[1]}` : p.description;
+                            }
+
+                            return {
+                                description: p.description,
+                                placeId: p.place_id,
+                                cityState,
+                            };
+                        })
                         .filter((s): s is PlacesSuggestion => Boolean(s.description));
                     setSuggestions(list);
                 });

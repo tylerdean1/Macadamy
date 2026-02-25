@@ -14,9 +14,10 @@ export interface ProfileSectionProps {
   // optional overrides so Dashboard can display a different org/job-title context
   overrideOrgName?: string | null;
   overrideOrgRole?: string | null;
+  overrideOrgRoleLines?: string[];
 }
 
-export function ProfileSection({ profile, onEdit, overrideOrgName = null, overrideOrgRole = null }: ProfileSectionProps) {
+export function ProfileSection({ profile, onEdit, overrideOrgName = null, overrideOrgRole = null, overrideOrgRoleLines = [] }: ProfileSectionProps) {
   // Load organizations for the current profile to support org-switcher UI
   const { orgs, loading: orgsLoading } = useMyOrganizations(profile.id);
   const authStore = useAuthStore();
@@ -28,7 +29,7 @@ export function ProfileSection({ profile, onEdit, overrideOrgName = null, overri
   };
 
   const displayOrgName = overrideOrgName ?? profile.organization_name;
-  const displayJobTitle = overrideOrgRole ?? profile.job_title;
+  const displayMembershipRole = overrideOrgRole;
 
   // No internal state or data fetching needed here beyond hooks above
   return (
@@ -99,7 +100,7 @@ export function ProfileSection({ profile, onEdit, overrideOrgName = null, overri
                       }}
                     >
                       {orgs.map((o) => (
-                        <option key={o.id} value={o.id}>{o.name}{o.role ? ` — ${o.role}` : ''}</option>
+                        <option key={o.id} value={o.id}>{o.name}{o.roleLabel ? ` — ${o.roleLabel}` : ''}</option>
                       ))}
                     </select>
                   </div>
@@ -115,18 +116,28 @@ export function ProfileSection({ profile, onEdit, overrideOrgName = null, overri
                   >
                     <Building2 className="w-4 h-4 mr-2" />
                     {displayOrgName}
-                    {(overrideOrgRole ?? membership?.role) && (
-                      <span className="ml-3 text-xs text-gray-400">{(overrideOrgRole ?? membership?.role ?? '').replace(/_/g, ' ')}</span>
+                    {(overrideOrgRole ?? membership?.roleLabel) && (
+                      <span className="ml-3 text-xs text-gray-400">{(overrideOrgRole ?? membership?.roleLabel ?? '').replace(/_/g, ' ')}</span>
                     )}
                   </Link>
                 );
               })()
             ) : null}
-            {(typeof displayJobTitle === 'string' && displayJobTitle?.trim() !== '') && (
+            {(typeof displayMembershipRole === 'string' && displayMembershipRole.trim() !== '') && (
               <p className="flex items-center">
                 <Briefcase className="w-4 h-4 mr-2" />
-                {displayJobTitle}
+                {displayMembershipRole}
               </p>
+            )}
+            {overrideOrgRoleLines.length > 0 && (
+              <div className="space-y-1">
+                {overrideOrgRoleLines.map((line) => (
+                  <p key={line} className="flex items-center">
+                    <Briefcase className="w-4 h-4 mr-2" />
+                    {line}
+                  </p>
+                ))}
+              </div>
             )}
             {(typeof profile.role === 'string' && profile.role.trim() !== '') && (
               <p className="flex items-center">

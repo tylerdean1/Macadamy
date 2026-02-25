@@ -20,7 +20,12 @@ export default function Dashboard() {
   // derive override display values for ProfileSection when a dashboard org filter is active
   const selectedMembership = selectedOrganizationId ? myOrgs.find(o => o.id === selectedOrganizationId) ?? null : null;
   const overrideOrgName = selectedOrganizationId ? (selectedMembership?.name ?? null) : null;
-  const overrideOrgRole = selectedOrganizationId ? (selectedMembership?.role ?? null) : null;
+  const overrideOrgRole = selectedOrganizationId ? (selectedMembership?.roleLabel ?? null) : null;
+  const overrideOrgRoleLines = selectedOrganizationId
+    ? []
+    : myOrgs
+      .filter((org) => typeof org.roleLabel === 'string' && org.roleLabel.trim() !== '')
+      .map((org) => `${org.roleLabel} - ${org.name}`);
   const errorList = [dashboardError].filter((e): e is string => typeof e === 'string' && e != null && e.trim() !== '');
   const combinedError = errorList.length > 0 ? errorList[0] : null;
 
@@ -45,6 +50,7 @@ export default function Dashboard() {
             onEdit={() => setIsModalOpen(true)}
             overrideOrgName={overrideOrgName}
             overrideOrgRole={overrideOrgRole}
+            overrideOrgRoleLines={overrideOrgRoleLines}
           />
         </div>
 

@@ -3795,7 +3795,15 @@ export type TableRpcMap = {
         invited_by_profile_id: string
         invited_profile_id: string
         organization_id: string
+        requested_job_title_id: string | null
+        requested_permission_role:
+        | Database["public"]["Enums"]["org_role"]
+        | null
         responded_at: string | null
+        reviewed_job_title_id: string | null
+        reviewed_permission_role:
+        | Database["public"]["Enums"]["org_role"]
+        | null
         role: string | null
         status: string
       }[]
@@ -3811,6 +3819,9 @@ export type TableRpcMap = {
         invited_by_profile_id: string
         invited_profile_id: string
         organization_id: string
+        requested_job_title_id: string
+        requested_job_title_name: string
+        requested_permission_role: Database["public"]["Enums"]["org_role"]
         requester_avatar_id: string
         requester_avatar_url: string
         requester_email: string
@@ -3818,6 +3829,8 @@ export type TableRpcMap = {
         requester_location: string
         requester_phone: string
         responded_at: string
+        reviewed_job_title_id: string
+        reviewed_permission_role: Database["public"]["Enums"]["org_role"]
         role: string
         status: string
       }[]
@@ -3833,7 +3846,15 @@ export type TableRpcMap = {
         invited_by_profile_id: string
         invited_profile_id: string
         organization_id: string
+        requested_job_title_id: string | null
+        requested_permission_role:
+        | Database["public"]["Enums"]["org_role"]
+        | null
         responded_at: string | null
+        reviewed_job_title_id: string | null
+        reviewed_permission_role:
+        | Database["public"]["Enums"]["org_role"]
+        | null
         role: string | null
         status: string
       }[]
@@ -3850,7 +3871,15 @@ export type TableRpcMap = {
         invited_by_profile_id: string
         invited_profile_id: string
         organization_id: string
+        requested_job_title_id: string | null
+        requested_permission_role:
+        | Database["public"]["Enums"]["org_role"]
+        | null
         responded_at: string | null
+        reviewed_job_title_id: string | null
+        reviewed_permission_role:
+        | Database["public"]["Enums"]["org_role"]
+        | null
         role: string | null
         status: string
       }[]
@@ -3935,7 +3964,9 @@ export type TableRpcMap = {
         created_at: string | null
         deleted_at: string | null
         id: string
+        job_title_id: string | null
         organization_id: string | null
+        permission_role: Database["public"]["Enums"]["org_role"] | null
         profile_id: string | null
         role: string | null
         updated_at: string
@@ -3949,7 +3980,9 @@ export type TableRpcMap = {
         created_at: string | null
         deleted_at: string | null
         id: string
+        job_title_id: string | null
         organization_id: string | null
+        permission_role: Database["public"]["Enums"]["org_role"] | null
         profile_id: string | null
         role: string | null
         updated_at: string
@@ -3964,7 +3997,9 @@ export type TableRpcMap = {
         created_at: string | null
         deleted_at: string | null
         id: string
+        job_title_id: string | null
         organization_id: string | null
+        permission_role: Database["public"]["Enums"]["org_role"] | null
         profile_id: string | null
         role: string | null
         updated_at: string
@@ -4474,7 +4509,6 @@ export type TableRpcMap = {
         email: string
         full_name: string | null
         id: string
-        job_title_id: string | null
         location: string | null
         organization_id: string | null
         phone: string | null
@@ -4503,6 +4537,9 @@ export type TableRpcMap = {
         invited_by_profile_id: string
         invited_profile_id: string
         organization_id: string
+        requested_job_title_id: string
+        requested_job_title_name: string
+        requested_permission_role: Database["public"]["Enums"]["org_role"]
         requester_avatar_id: string
         requester_avatar_url: string
         requester_email: string
@@ -4510,6 +4547,8 @@ export type TableRpcMap = {
         requester_location: string
         requester_phone: string
         responded_at: string
+        reviewed_job_title_id: string
+        reviewed_permission_role: Database["public"]["Enums"]["org_role"]
         role: string
         status: string
       }[]
@@ -4538,7 +4577,6 @@ export type TableRpcMap = {
         email: string
         full_name: string | null
         id: string
-        job_title_id: string | null
         location: string | null
         organization_id: string | null
         phone: string | null
@@ -4559,7 +4597,6 @@ export type TableRpcMap = {
         email: string
         full_name: string | null
         id: string
-        job_title_id: string | null
         location: string | null
         organization_id: string | null
         phone: string | null

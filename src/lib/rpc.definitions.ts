@@ -4,6 +4,7 @@ import type { Database } from './database.types';
 
 export const RPC_NAMES = [
   'advance_workflow',
+  'change_org_member_job_title_with_reason',
   'check_access',
   'check_access_bool',
   'complete_my_profile',
@@ -317,6 +318,7 @@ export const RPC_NAMES = [
   'purge_orphaned_avatars',
   'rank_equipment_usage',
   'refresh_project_cost_summary',
+  'remove_org_member_with_reason',
   'remove_profile_from_contract',
   'review_organization_invite',
   'rpc_calculator_template_payload',

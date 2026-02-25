@@ -120,13 +120,11 @@ async function main() {
   // Use available Supabase URL env vars
   const supabaseUrl = readEnvAny([
     'VITE_SUPABASE_URL',
-    'NEXT_PUBLIC_SUPABASE_URL',
     'SUPABASE_URL',
   ]);
   // Use available anon key env vars
   const anonKey = readEnvAny([
-    'VITE_SUPABASE_ANON_KEY',
-    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+    'VITE_SUPABASE_PUBLISHABLE_TOKEN',
   ]);
 
   if (!supabaseUrl || !anonKey) {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 
+import { useAuthContext } from '@/context/AuthContext';
 import { useAuthStore } from '@/lib/store';
 import type { Database } from '@/lib/database.types';
 
@@ -44,14 +45,15 @@ export function ProtectedRoute({
   requireProfile = true,
   requireOrganization = false,
   allowedRoles = [],
-  redirectUnauthenticatedTo = '/',
+  redirectUnauthenticatedTo = '/login',
   redirectUnauthorizedTo = '/dashboard',
 }: ProtectedRouteProps): JSX.Element {
-  const { user, profile, loading } = useAuthStore();
+  const { user, loading: authLoading } = useAuthContext();
+  const { profile, loading } = useAuthStore();
   const debugAuth = isAuthDebugEnabled();
 
   /* ── 1 ▪ initial auth bootstrap ─────────────────────────────── */
-  if (loading.initialization) {
+  if (authLoading || loading.initialization) {
     if (debugAuth) {
       console.log('[ProtectedRoute] waiting for auth bootstrap…');
     }

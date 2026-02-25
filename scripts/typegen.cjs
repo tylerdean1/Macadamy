@@ -82,7 +82,7 @@ const env = process.env;
 const schema = cli.schema || env.SUPABASE_TYPEGEN_SCHEMA || 'public,auth';
 
 const supabaseUrl =
-    env.NEXT_PUBLIC_SUPABASE_URL || env.SUPABASE_URL || env.VITE_SUPABASE_URL || '';
+    env.VITE_SUPABASE_URL || env.SUPABASE_URL || '';
 
 let projectRef = env.SUPABASE_PROJECT_REF || env.SUPABASE_PROJECT_ID || '';
 let dbUrl = env.DATABASE_URL || env.SUPABASE_DB_URL || '';
@@ -104,7 +104,7 @@ if (!dbUrl) {
 
 if (!projectRef && !dbUrl) {
     console.error(
-        'Error: Neither SUPABASE project ref nor DATABASE_URL found. Set NEXT_PUBLIC_SUPABASE_URL or SUPABASE_PROJECT_REF, or provide DATABASE_URL/PG* vars.',
+        'Error: Neither SUPABASE project ref nor DATABASE_URL found. Set VITE_SUPABASE_URL or SUPABASE_PROJECT_REF, or provide DATABASE_URL/PG* vars.',
     );
     process.exit(1);
 }

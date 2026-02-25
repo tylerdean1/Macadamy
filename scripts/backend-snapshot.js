@@ -18,7 +18,7 @@ const require = createRequire(import.meta.url);
  *  4) default dotenv lookup
  *
  * Requirements:
- *  - For types: NEXT_PUBLIC_SUPABASE_URL (derive ref) or SUPABASE_PROJECT_REF or DATABASE_URL
+ *  - For types: VITE_SUPABASE_URL (derive ref) or SUPABASE_PROJECT_REF or DATABASE_URL
  *  - For SQL dump: DATABASE_URL (and docker or pg_dump)
  *
  * Never prints secrets (DATABASE_URL) to console.
@@ -199,7 +199,7 @@ const env = process.env;
 
 const schema = cli.schema || env.SUPABASE_TYPEGEN_SCHEMA || 'public,auth';
 
-const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL || env.SUPABASE_URL || '';
+const supabaseUrl = env.VITE_SUPABASE_URL || env.SUPABASE_URL || '';
 const dbUrl = env.DATABASE_URL || env.SUPABASE_DB_URL || '';
 let projectRef = env.SUPABASE_PROJECT_REF || env.SUPABASE_PROJECT_ID || '';
 
@@ -209,7 +209,7 @@ if (!projectRef) {
 
 if (!projectRef && !dbUrl) {
   console.error(
-    'Error: Need either NEXT_PUBLIC_SUPABASE_URL (to derive project ref) / SUPABASE_PROJECT_REF, or DATABASE_URL.',
+    'Error: Need either VITE_SUPABASE_URL to derive project ref, SUPABASE_PROJECT_REF, or DATABASE_URL.',
   );
   process.exit(1);
 }
