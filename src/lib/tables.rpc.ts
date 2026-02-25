@@ -3968,7 +3968,6 @@ export type TableRpcMap = {
         organization_id: string | null
         permission_role: Database["public"]["Enums"]["org_role"] | null
         profile_id: string | null
-        role: string | null
         updated_at: string
       }[]
     },
@@ -3984,7 +3983,6 @@ export type TableRpcMap = {
         organization_id: string | null
         permission_role: Database["public"]["Enums"]["org_role"] | null
         profile_id: string | null
-        role: string | null
         updated_at: string
       }[]
     },
@@ -4001,7 +3999,6 @@ export type TableRpcMap = {
         organization_id: string | null
         permission_role: Database["public"]["Enums"]["org_role"] | null
         profile_id: string | null
-        role: string | null
         updated_at: string
       }[]
     },

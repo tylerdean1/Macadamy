@@ -155,6 +155,12 @@ wbs                       workflows
 
 - Run `npm run test:unit` to execute targeted unit tests, including invite error classification (`src/lib/utils/inviteErrorMessages.test.ts`), shared profile error message constants (`src/lib/utils/profileErrorMessages.test.ts`), and primary-org switch lock behavior (`src/hooks/usePrimaryOrganizationSwitch.test.ts`)
 
+- Supabase audit performance CSV exports now exclude migration/DDL/session-control statements (for example `ALTER`, `CREATE`, `DROP`, `BEGIN/COMMIT`, `SET`, and `supabase_migrations` queries) so hotspot reports focus on application workload
+
+- Supabase audit snippet/performance CSV generation also sanitizes legacy `organization_members.role` noise signatures (`om.role`, `organization_members_role_fkey`, and related drop-constraint text) after export
+
+- Supabase audit CSV sanitization is configurable via env vars: set `AUDIT_SUPABASE_DISABLE_SANITIZE=1` to disable, set `AUDIT_SUPABASE_SANITIZE_PATTERNS="patternA||patternB"` to override defaults, or use `AUDIT_SUPABASE_SANITIZE_APPEND_PATTERNS="patternC||patternD"` to append extra regex filters
+
 - Organization selectors in navbar/profile now persist primary org context through `set_my_primary_organization`, then refresh auth profile state and dashboard org filter (`selectedOrganizationId`) to keep UI and backend in sync
 
 - Dashboard org filtering now uses the navbar’s org dropdown directly: selecting one org loads org-scoped dashboard metrics/projects, while `All organizations` aggregates metrics/projects across all active memberships
@@ -189,9 +195,15 @@ wbs                       workflows
 
 - Org admins can now manage existing members directly in the member roster: remove member (required reason) and change member job title (required reason); each action sends a `workflow_update` notification to the affected user with reason + actor metadata in payload
 
+- Member roster action visibility now keys off the signed-in user’s organization permission role (`admin`, `hr`, or `owner`) for `Change Title` and `Edit Permission Role`; non-privileged members only see self `Leave Organization`
+
+- Editing permission roles now supports owner-protected targets: only users with `owner` permission role can change another `owner`’s role
+
 - Member removal/title-change actions now use server-side atomic RPCs (`remove_org_member_with_reason`, `change_org_member_job_title_with_reason`) so notification delivery is guaranteed under RLS (no client-side direct `insert_notifications` calls)
 
 - Organization dashboard member/invite toast copy is centralized in `OrganizationDashboard.tsx` (`ORG_DASHBOARD_TOAST_MESSAGES`) to keep messaging consistent across approval, removal, and title-change workflows
+
+- Organization dashboard member/invite rendering no longer depends on legacy `organization_members.role`/invite `role` fallbacks; role and title UI now reads from `membership_permission_role` and `membership_job_title_*` fields
 
 - Organization dashboard member roster now pins the signed-in user card first; on that card, admins see a red `Leave Organization` action (instead of disabled remove) that calls backend member-removal RPC to remove their own org membership
 
@@ -200,6 +212,8 @@ wbs                       workflows
 - When a member leaves, `remove_org_member_with_reason` emits `workflow_update` notifications to org admins (`event: member_left_organization`), and notification rendering now formats this event in navbar + `/notifications`
 
 - Member title updates now support org-wide broadcast notifications (`event: member_job_title_changed_broadcast`) rendered as `<name>'s title was just changed from <previous> to <current>!`
+
+- Notification formatter now also supports member-role change payloads (`event: member_permission_role_changed`) so navbar + `/notifications` render explicit before/after role wording
 
 - `ProtectedRoute` redirect logs are now gated behind `localStorage.DEBUG_AUTH=1`, so expected sign-out redirects no longer spam warning stacks in normal dev usage
 

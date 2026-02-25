@@ -5,7 +5,7 @@
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.5
 
--- Started on 2026-02-24 22:38:45
+-- Started on 2026-02-25 01:39:36
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -314,7 +314,7 @@ CREATE FUNCTION public.change_org_member_job_title_with_reason(p_org_id uuid, p_
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
-declare
+DECLARE
   v_actor_id uuid := auth.uid();
   v_actor_name text;
   v_org_name text;
@@ -324,66 +324,62 @@ declare
   v_current_job_title_name text;
   v_updated_profile public.profiles;
   v_member record;
-begin
-  if v_actor_id is null then
-    raise exception 'Not authenticated';
-  end if;
+BEGIN
+  IF v_actor_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
 
-  if p_org_id is null or p_profile_id is null or p_job_title_id is null then
-    raise exception 'Missing required inputs';
-  end if;
+  IF p_org_id IS NULL OR p_profile_id IS NULL OR p_job_title_id IS NULL THEN
+    RAISE EXCEPTION 'Missing required inputs';
+  END IF;
 
-  if coalesce(trim(p_reason), '') = '' then
-    raise exception 'Reason is required';
-  end if;
+  IF COALESCE(TRIM(p_reason), '') = '' THEN
+    RAISE EXCEPTION 'Reason is required';
+  END IF;
 
-  -- capture previous title before update
-  select p.job_title_id, p.full_name
-    into v_previous_job_title_id, v_target_name
-  from public.profiles p
-  where p.id = p_profile_id
-    and p.deleted_at is null;
+  SELECT p.job_title_id, p.full_name
+    INTO v_previous_job_title_id, v_target_name
+  FROM public.profiles p
+  WHERE p.id = p_profile_id
+    AND p.deleted_at IS NULL;
 
-  if not found then
-    raise exception 'Target profile not found' using errcode = 'P0001';
-  end if;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Target profile not found' USING errcode = 'P0001';
+  END IF;
 
-  -- optional no-op guard
-  if v_previous_job_title_id = p_job_title_id then
-    raise exception 'Selected title is already assigned' using errcode = 'P0001';
-  end if;
+  IF v_previous_job_title_id = p_job_title_id THEN
+    RAISE EXCEPTION 'Selected title is already assigned' USING errcode = 'P0001';
+  END IF;
 
-  -- permission + update handled here
   v_updated_profile := public.set_org_member_job_title(p_org_id, p_profile_id, p_job_title_id);
 
-  select p.full_name into v_actor_name
-  from public.profiles p
-  where p.id = v_actor_id;
+  SELECT p.full_name INTO v_actor_name
+  FROM public.profiles p
+  WHERE p.id = v_actor_id;
 
-  select o.name into v_org_name
-  from public.organizations o
-  where o.id = p_org_id;
+  SELECT o.name INTO v_org_name
+  FROM public.organizations o
+  WHERE o.id = p_org_id;
 
-  select jt.name into v_previous_job_title_name
-  from public.job_titles jt
-  where jt.id = v_previous_job_title_id;
+  SELECT jt.name INTO v_previous_job_title_name
+  FROM public.job_titles jt
+  WHERE jt.id = v_previous_job_title_id;
 
-  select jt.name into v_current_job_title_name
-  from public.job_titles jt
-  where jt.id = p_job_title_id;
+  SELECT jt.name INTO v_current_job_title_name
+  FROM public.job_titles jt
+  WHERE jt.id = p_job_title_id;
 
-  -- notify affected user
-  begin
-    perform public.insert_notifications(
+  BEGIN
+    PERFORM public.insert_notifications(
       jsonb_build_object(
         'user_id', p_profile_id,
         'organization_id', p_org_id,
         'category', 'workflow_update',
         'message',
-          'Your position in ' || coalesce(v_org_name, 'this organization')
-          || ' has been changed from ' || coalesce(v_previous_job_title_name, 'Unassigned')
-          || ' to ' || coalesce(v_current_job_title_name, 'Unassigned')
-          || '. Reason: ' || trim(p_reason),
+          'Your position in ' || COALESCE(v_org_name, 'this organization')
+          || ' has been changed from ' || COALESCE(v_previous_job_title_name, 'Unassigned')
+          || ' to ' || COALESCE(v_current_job_title_name, 'Unassigned')
+          || '. Reason: ' || TRIM(p_reason),
         'payload', jsonb_build_object(
           'event', 'member_job_title_changed',
           'organization_id', p_org_id,
@@ -391,39 +387,39 @@ begin
           'affected_profile_id', p_profile_id,
           'affected_profile_name', v_target_name,
           'previous_job_title_id', v_previous_job_title_id,
-          'previous_job_title_name', coalesce(v_previous_job_title_name, 'Unassigned'),
+          'previous_job_title_name', COALESCE(v_previous_job_title_name, 'Unassigned'),
           'selected_job_title_id', p_job_title_id,
-          'selected_job_title_name', coalesce(v_current_job_title_name, 'Unassigned'),
+          'selected_job_title_name', COALESCE(v_current_job_title_name, 'Unassigned'),
           'changed_by_profile_id', v_actor_id,
-          'changed_by_name', coalesce(v_actor_name, 'Organization Admin'),
-          'reason', trim(p_reason),
+          'changed_by_name', COALESCE(v_actor_name, 'Organization Admin'),
+          'reason', TRIM(p_reason),
           'changed_at', now()
         )
       )
     );
-  exception when others then
-    null;
-  end;
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
 
-  -- broadcast to all active org members
-  for v_member in
-    select om.profile_id
-    from public.organization_members om
-    where om.organization_id = p_org_id
-      and om.deleted_at is null
-  loop
-    begin
-      perform public.insert_notifications(
+  FOR v_member IN
+    SELECT om.profile_id
+    FROM public.organization_members om
+    WHERE om.organization_id = p_org_id
+      AND om.deleted_at IS NULL
+      AND om.profile_id <> p_profile_id
+  LOOP
+    BEGIN
+      PERFORM public.insert_notifications(
         jsonb_build_object(
           'user_id', v_member.profile_id,
           'organization_id', p_org_id,
           'category', 'workflow_update',
           'message',
-            coalesce(v_target_name, p_profile_id::text)
+            COALESCE(v_target_name, p_profile_id::text)
             || '''s title was just changed from '
-            || coalesce(v_previous_job_title_name, 'Unassigned')
+            || COALESCE(v_previous_job_title_name, 'Unassigned')
             || ' to '
-            || coalesce(v_current_job_title_name, 'Unassigned')
+            || COALESCE(v_current_job_title_name, 'Unassigned')
             || '!',
           'payload', jsonb_build_object(
             'event', 'member_job_title_changed_broadcast',
@@ -431,23 +427,23 @@ begin
             'organization_name', v_org_name,
             'affected_profile_id', p_profile_id,
             'affected_profile_name', v_target_name,
-            'previous_job_title_name', coalesce(v_previous_job_title_name, 'Unassigned'),
-            'current_job_title_name', coalesce(v_current_job_title_name, 'Unassigned'),
-            'selected_job_title_name', coalesce(v_current_job_title_name, 'Unassigned'),
+            'previous_job_title_name', COALESCE(v_previous_job_title_name, 'Unassigned'),
+            'current_job_title_name', COALESCE(v_current_job_title_name, 'Unassigned'),
+            'selected_job_title_name', COALESCE(v_current_job_title_name, 'Unassigned'),
             'changed_by_profile_id', v_actor_id,
-            'changed_by_name', coalesce(v_actor_name, 'Organization Admin'),
-            'reason', trim(p_reason),
+            'changed_by_name', COALESCE(v_actor_name, 'Organization Admin'),
+            'reason', TRIM(p_reason),
             'changed_at', now()
           )
         )
       );
-    exception when others then
-      null;
-    end;
-  end loop;
+    EXCEPTION WHEN OTHERS THEN
+      NULL;
+    END;
+  END LOOP;
 
-  return v_updated_profile;
-end;
+  RETURN v_updated_profile;
+END;
 $$;
 
 
@@ -738,8 +734,8 @@ begin
   )
   returning id into v_org_id;
 
-  insert into public.organization_members (organization_id, profile_id, role, created_at, updated_at)
-  values (v_org_id, v_user_id, 'org_admin', now(), now());
+  insert into public.organization_members (organization_id, profile_id, permission_role, created_at, updated_at)
+  values (v_org_id, v_user_id, 'owner'::public.org_role, now(), now());
 
   update public.profiles
   set organization_id = v_org_id,
@@ -11005,7 +11001,6 @@ CREATE TABLE public.organization_members (
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     deleted_at timestamp with time zone,
-    role uuid,
     job_title_id uuid,
     permission_role public.org_role
 );
@@ -16731,7 +16726,7 @@ BEGIN
     SELECT
       o.id,
       o.name,
-      COALESCE(om.permission_role::text, om.role::text) AS role
+      COALESCE(om.permission_role::text, 'worker') AS role
     FROM public.organization_members om
     JOIN public.organizations o
       ON o.id = om.organization_id
@@ -20173,9 +20168,11 @@ CREATE FUNCTION public.remove_org_member_with_reason(p_org_id uuid, p_profile_id
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
-declare
+DECLARE
   v_actor_id uuid := auth.uid();
   v_actor_role public.user_role_type;
+  v_actor_permission_role public.org_role;
+  v_target_permission_role public.org_role;
   v_actor_name text;
   v_target_name text;
   v_org_name text;
@@ -20183,142 +20180,172 @@ declare
   v_is_self_leave boolean;
   v_actor_is_member boolean := false;
   v_admin record;
-begin
-  if v_actor_id is null then
-    raise exception 'Not authenticated';
-  end if;
+BEGIN
+  IF v_actor_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
 
-  if p_org_id is null or p_profile_id is null then
-    raise exception 'Missing required inputs';
-  end if;
+  IF p_org_id IS NULL OR p_profile_id IS NULL THEN
+    RAISE EXCEPTION 'Missing required inputs';
+  END IF;
 
-  if coalesce(trim(p_reason), '') = '' then
-    raise exception 'Reason is required';
-  end if;
+  IF COALESCE(TRIM(p_reason), '') = '' THEN
+    RAISE EXCEPTION 'Reason is required';
+  END IF;
 
   v_is_self_leave := p_profile_id = v_actor_id;
 
-  select p.role
-    into v_actor_role
-  from public.profiles p
-  where p.id = v_actor_id
-    and p.deleted_at is null;
+  SELECT p.role
+  INTO v_actor_role
+  FROM public.profiles p
+  WHERE p.id = v_actor_id
+    AND p.deleted_at IS NULL;
 
-  if v_actor_role is null then
-    raise exception 'Access denied' using errcode = '42501';
-  end if;
+  IF v_actor_role IS NULL THEN
+    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+  END IF;
 
-  select exists (
-    select 1
-    from public.organization_members om
-    where om.organization_id = p_org_id
-      and om.profile_id = v_actor_id
-      and om.deleted_at is null
-  ) into v_actor_is_member;
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_org_id
+      AND om.profile_id = v_actor_id
+      AND om.deleted_at IS NULL
+  ) INTO v_actor_is_member;
 
-  if not v_actor_is_member and v_actor_role <> 'system_admin' then
-    raise exception 'Access denied' using errcode = '42501';
-  end if;
+  IF NOT v_actor_is_member AND v_actor_role <> 'system_admin' THEN
+    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+  END IF;
 
-  if not (
+  IF v_actor_is_member THEN
+    SELECT om.permission_role
+    INTO v_actor_permission_role
+    FROM public.organization_members om
+    WHERE om.organization_id = p_org_id
+      AND om.profile_id = v_actor_id
+      AND om.deleted_at IS NULL
+    ORDER BY om.created_at DESC
+    LIMIT 1;
+  END IF;
+
+  IF NOT (
     v_is_self_leave
-    or v_actor_role::text in ('system_admin', 'org_admin')
-  ) then
-    raise exception 'Access denied' using errcode = '42501';
-  end if;
+    OR v_actor_role = 'system_admin'
+    OR COALESCE(v_actor_permission_role::text, '') IN ('admin', 'hr', 'owner')
+  ) THEN
+    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+  END IF;
 
-  select om.id
-    into v_membership_id
-  from public.organization_members om
-  where om.organization_id = p_org_id
-    and om.profile_id = p_profile_id
-    and om.deleted_at is null
-  order by om.created_at desc
-  limit 1;
+  SELECT om.permission_role
+  INTO v_target_permission_role
+  FROM public.organization_members om
+  WHERE om.organization_id = p_org_id
+    AND om.profile_id = p_profile_id
+    AND om.deleted_at IS NULL
+  ORDER BY om.created_at DESC
+  LIMIT 1;
 
-  if v_membership_id is null then
-    raise exception 'Target is not an active member of this organization' using errcode = 'P0001';
-  end if;
+  IF v_target_permission_role IS NULL THEN
+    RAISE EXCEPTION 'Target is not an active member of this organization' USING errcode = 'P0001';
+  END IF;
 
-  perform public.delete_organization_members(v_membership_id);
+  IF NOT v_is_self_leave
+     AND v_target_permission_role = 'owner'
+     AND v_actor_role <> 'system_admin'
+     AND COALESCE(v_actor_permission_role::text, '') <> 'owner' THEN
+    RAISE EXCEPTION 'Access denied: only owners can remove owners' USING errcode = '42501';
+  END IF;
 
-  select p.full_name into v_actor_name
-  from public.profiles p
-  where p.id = v_actor_id;
+  SELECT om.id
+  INTO v_membership_id
+  FROM public.organization_members om
+  WHERE om.organization_id = p_org_id
+    AND om.profile_id = p_profile_id
+    AND om.deleted_at IS NULL
+  ORDER BY om.created_at DESC
+  LIMIT 1;
 
-  select p.full_name into v_target_name
-  from public.profiles p
-  where p.id = p_profile_id;
+  IF v_membership_id IS NULL THEN
+    RAISE EXCEPTION 'Target is not an active member of this organization' USING errcode = 'P0001';
+  END IF;
 
-  select o.name into v_org_name
-  from public.organizations o
-  where o.id = p_org_id;
+  PERFORM public.delete_organization_members(v_membership_id);
 
-  if not v_is_self_leave then
-    begin
-      perform public.insert_notifications(
+  SELECT p.full_name INTO v_actor_name
+  FROM public.profiles p
+  WHERE p.id = v_actor_id;
+
+  SELECT p.full_name INTO v_target_name
+  FROM public.profiles p
+  WHERE p.id = p_profile_id;
+
+  SELECT o.name INTO v_org_name
+  FROM public.organizations o
+  WHERE o.id = p_org_id;
+
+  IF NOT v_is_self_leave THEN
+    BEGIN
+      PERFORM public.insert_notifications(
         jsonb_build_object(
           'user_id', p_profile_id,
           'organization_id', p_org_id,
           'category', 'workflow_update',
-          'message', 'You have been removed from ' || coalesce(v_org_name, 'this organization') || '. Reason: ' || trim(p_reason),
+          'message', 'You have been removed from ' || COALESCE(v_org_name, 'this organization') || '. Reason: ' || TRIM(p_reason),
           'payload', jsonb_build_object(
             'event', 'member_removed',
             'organization_id', p_org_id,
             'organization_name', v_org_name,
             'affected_profile_id', p_profile_id,
             'removed_by_profile_id', v_actor_id,
-            'removed_by_name', coalesce(v_actor_name, 'Organization Admin'),
-            'reason', trim(p_reason),
+            'removed_by_name', COALESCE(v_actor_name, 'Organization Admin'),
+            'reason', TRIM(p_reason),
             'removed_at', now()
           )
         )
       );
-    exception when others then
-      null;
-    end;
-  end if;
+    EXCEPTION WHEN OTHERS THEN
+      NULL;
+    END;
+  END IF;
 
-  for v_admin in
-    select om.profile_id
-    from public.organization_members om
-    join public.profiles p on p.id = om.profile_id
-    where om.organization_id = p_org_id
-      and om.deleted_at is null
-      and p.deleted_at is null
-      and p.role in ('system_admin', 'org_admin')
-  loop
-    begin
-      perform public.insert_notifications(
+  FOR v_admin IN
+    SELECT om.profile_id
+    FROM public.organization_members om
+    WHERE om.organization_id = p_org_id
+      AND om.deleted_at IS NULL
+      AND om.permission_role IN ('admin', 'hr', 'owner')
+  LOOP
+    BEGIN
+      PERFORM public.insert_notifications(
         jsonb_build_object(
           'user_id', v_admin.profile_id,
           'organization_id', p_org_id,
           'category', 'workflow_update',
           'message',
-            case
-              when v_is_self_leave then
-                coalesce(v_target_name, p_profile_id::text) || ' left ' || coalesce(v_org_name, 'the organization') || '.'
-              else
-                coalesce(v_target_name, p_profile_id::text) || ' was removed from ' || coalesce(v_org_name, 'the organization') || '.'
-            end,
+            CASE
+              WHEN v_is_self_leave THEN
+                COALESCE(v_target_name, p_profile_id::text) || ' left ' || COALESCE(v_org_name, 'the organization') || '.'
+              ELSE
+                COALESCE(v_target_name, p_profile_id::text) || ' was removed from ' || COALESCE(v_org_name, 'the organization') || '.'
+            END,
           'payload', jsonb_build_object(
-            'event', case when v_is_self_leave then 'member_left_organization' else 'member_removed' end,
+            'event', CASE WHEN v_is_self_leave THEN 'member_left_organization' ELSE 'member_removed' END,
             'organization_id', p_org_id,
             'organization_name', v_org_name,
             'affected_profile_id', p_profile_id,
             'affected_profile_name', v_target_name,
             'actor_profile_id', v_actor_id,
-            'actor_name', coalesce(v_actor_name, 'Organization Admin'),
-            'reason', trim(p_reason),
+            'actor_name', COALESCE(v_actor_name, 'Organization Admin'),
+            'reason', TRIM(p_reason),
             'occurred_at', now()
           )
         )
       );
-    exception when others then
-      null;
-    end;
-  end loop;
-end;
+    EXCEPTION WHEN OTHERS THEN
+      NULL;
+    END;
+  END LOOP;
+END;
 $$;
 
 
@@ -20364,6 +20391,9 @@ DECLARE
   _reviewer_role public.user_role_type;
   _reviewer_is_member boolean := false;
   _selected_permission_role public.org_role;
+  _organization_name text;
+  _selected_job_title_name text;
+  _decision_word text;
 BEGIN
   IF p_decision NOT IN ('accepted', 'declined') THEN
     RAISE EXCEPTION 'invalid decision' USING detail = jsonb_build_object('decision', p_decision);
@@ -20451,7 +20481,6 @@ BEGIN
         profile_id,
         permission_role,
         job_title_id,
-        role,
         created_at,
         updated_at
       )
@@ -20459,7 +20488,6 @@ BEGIN
         _new_row.organization_id,
         _new_row.invited_profile_id,
         _selected_permission_role,
-        COALESCE(p_selected_job_title_id, _new_row.requested_job_title_id),
         COALESCE(p_selected_job_title_id, _new_row.requested_job_title_id),
         now(),
         now()
@@ -20472,11 +20500,6 @@ BEGIN
             _new_row.requested_job_title_id,
             m.job_title_id
           ),
-          role = COALESCE(
-            p_selected_job_title_id,
-            _new_row.requested_job_title_id,
-            m.role
-          ),
           updated_at = now()
       WHERE m.organization_id = _new_row.organization_id
         AND m.profile_id = _new_row.invited_profile_id
@@ -20488,6 +20511,53 @@ BEGIN
         updated_at = now()
     WHERE id = _new_row.invited_profile_id;
   END IF;
+
+  SELECT o.name INTO _organization_name
+  FROM public.organizations o
+  WHERE o.id = _new_row.organization_id;
+
+  IF COALESCE(p_selected_job_title_id, _new_row.reviewed_job_title_id, _new_row.requested_job_title_id) IS NOT NULL THEN
+    SELECT jt.name INTO _selected_job_title_name
+    FROM public.job_titles jt
+    WHERE jt.id = COALESCE(p_selected_job_title_id, _new_row.reviewed_job_title_id, _new_row.requested_job_title_id);
+  END IF;
+
+  _decision_word := CASE WHEN _new_row.status = 'accepted' THEN 'approved' ELSE 'denied' END;
+
+  BEGIN
+    PERFORM public.insert_notifications(
+      jsonb_build_object(
+        'user_id', _new_row.invited_profile_id,
+        'organization_id', _new_row.organization_id,
+        'category', 'workflow_update',
+        'message',
+          CASE
+            WHEN _selected_job_title_name IS NOT NULL THEN
+              'Your request to join ' || COALESCE(_organization_name, 'this organization')
+              || ' has been ' || _decision_word
+              || ' for the position of ' || _selected_job_title_name || '.'
+            ELSE
+              'Your request to join ' || COALESCE(_organization_name, 'this organization')
+              || ' has been ' || _decision_word || '.'
+          END,
+        'payload', jsonb_build_object(
+          'event', 'membership_request_reviewed',
+          'invite_id', _new_row.id,
+          'organization_id', _new_row.organization_id,
+          'organization_name', _organization_name,
+          'status', _new_row.status,
+          'decision_word', _decision_word,
+          'requested_role', COALESCE(_new_row.reviewed_permission_role, _new_row.requested_permission_role)::text,
+          'position_label', _selected_job_title_name,
+          'selected_job_title_name', _selected_job_title_name,
+          'reviewed_by_profile_id', _reviewer_id,
+          'reviewed_at', _new_row.responded_at
+        )
+      )
+    );
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
 
   RETURN NEXT _new_row;
 END;
@@ -21197,7 +21267,6 @@ BEGIN
       p.full_name,
       p.email,
       p.role AS global_role,
-      om.role::text AS membership_role, -- legacy
       om.permission_role::text AS membership_permission_role,
       om.job_title_id AS membership_job_title_id,
       jt.name AS membership_job_title_name
@@ -21687,7 +21756,7 @@ CREATE FUNCTION public.set_org_member_job_title(p_org_id uuid, p_profile_id uuid
 DECLARE
   v_user_id uuid := auth.uid();
   v_global_role public.user_role_type;
-  v_is_member boolean := false;
+  v_actor_permission_role public.org_role;
   v_membership_id uuid;
   v_profile public.profiles;
 BEGIN
@@ -21710,21 +21779,22 @@ BEGIN
   END IF;
 
   IF v_global_role <> 'system_admin' THEN
-    SELECT EXISTS (
-      SELECT 1
-      FROM public.organization_members om
-      WHERE om.organization_id = p_org_id
-        AND om.profile_id = v_user_id
-        AND om.deleted_at IS NULL
-    ) INTO v_is_member;
+    SELECT om.permission_role
+    INTO v_actor_permission_role
+    FROM public.organization_members om
+    WHERE om.organization_id = p_org_id
+      AND om.profile_id = v_user_id
+      AND om.deleted_at IS NULL
+    ORDER BY om.created_at DESC
+    LIMIT 1;
 
-    IF NOT v_is_member THEN
+    IF v_actor_permission_role IS NULL THEN
       RAISE EXCEPTION 'Access denied' USING errcode = '42501';
     END IF;
-  END IF;
 
-  IF v_global_role::text NOT IN ('system_admin', 'org_admin') THEN
-    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+    IF v_actor_permission_role::text NOT IN ('admin', 'hr', 'owner') THEN
+      RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+    END IF;
   END IF;
 
   IF NOT EXISTS (
@@ -21751,7 +21821,6 @@ BEGIN
 
   UPDATE public.organization_members om
   SET job_title_id = p_job_title_id,
-      role = p_job_title_id, -- legacy uuid mirror
       updated_at = now()
   WHERE om.id = v_membership_id;
 
@@ -21780,33 +21849,68 @@ CREATE FUNCTION public.set_org_member_role(p_org_id uuid, p_profile_id uuid, p_r
     SET search_path TO 'public'
     AS $$
 DECLARE
-  v_user_id uuid;
-  v_is_owner boolean;
+  v_user_id uuid := auth.uid();
+  v_global_role public.user_role_type;
+  v_actor_permission_role public.org_role;
+  v_target_permission_role public.org_role;
+  v_actor_name text;
+  v_org_name text;
 BEGIN
-  v_user_id := auth.uid();
-
   IF v_user_id IS NULL THEN
     RAISE EXCEPTION 'Not authenticated';
   END IF;
 
-  IF p_org_id IS NULL OR p_profile_id IS NULL THEN
-    RAISE EXCEPTION 'Missing organization or profile id';
+  IF p_org_id IS NULL OR p_profile_id IS NULL OR p_role IS NULL THEN
+    RAISE EXCEPTION 'Missing required inputs';
   END IF;
 
-  SELECT EXISTS (
-    SELECT 1
+  SELECT p.role
+  INTO v_global_role
+  FROM public.profiles p
+  WHERE p.id = v_user_id
+    AND p.deleted_at IS NULL;
+
+  IF v_global_role IS NULL THEN
+    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+  END IF;
+
+  IF v_global_role <> 'system_admin' THEN
+    SELECT om.permission_role
+    INTO v_actor_permission_role
     FROM public.organization_members om
     WHERE om.organization_id = p_org_id
       AND om.profile_id = v_user_id
-      AND (
-        om.permission_role = 'owner'
-        OR om.permission_role = 'admin'
-      )
       AND om.deleted_at IS NULL
-  ) INTO v_is_owner;
+    ORDER BY om.created_at DESC
+    LIMIT 1;
 
-  IF NOT v_is_owner THEN
-    RAISE EXCEPTION 'Access denied: not an owner/admin';
+    IF v_actor_permission_role IS NULL
+       OR v_actor_permission_role::text NOT IN ('admin', 'hr', 'owner') THEN
+      RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+    END IF;
+  END IF;
+
+  SELECT om.permission_role
+  INTO v_target_permission_role
+  FROM public.organization_members om
+  WHERE om.organization_id = p_org_id
+    AND om.profile_id = p_profile_id
+    AND om.deleted_at IS NULL
+  ORDER BY om.created_at DESC
+  LIMIT 1;
+
+  IF v_target_permission_role IS NULL THEN
+    RAISE EXCEPTION 'Target is not an active member of this organization' USING errcode = 'P0001';
+  END IF;
+
+  IF v_target_permission_role = 'owner'
+     AND v_global_role <> 'system_admin'
+     AND COALESCE(v_actor_permission_role::text, '') <> 'owner' THEN
+    RAISE EXCEPTION 'Access denied: only owners can change owner roles' USING errcode = '42501';
+  END IF;
+
+  IF v_target_permission_role = p_role THEN
+    RETURN;
   END IF;
 
   UPDATE public.organization_members
@@ -21815,6 +21919,44 @@ BEGIN
   WHERE organization_id = p_org_id
     AND profile_id = p_profile_id
     AND deleted_at IS NULL;
+
+  SELECT p.full_name INTO v_actor_name
+  FROM public.profiles p
+  WHERE p.id = v_user_id;
+
+  SELECT o.name INTO v_org_name
+  FROM public.organizations o
+  WHERE o.id = p_org_id;
+
+  BEGIN
+    PERFORM public.insert_notifications(
+      jsonb_build_object(
+        'user_id', p_profile_id,
+        'organization_id', p_org_id,
+        'category', 'workflow_update',
+        'message',
+          'Your role in ' || COALESCE(v_org_name, 'this organization')
+          || ' has been changed from '
+          || INITCAP(REPLACE(v_target_permission_role::text, '_', ' '))
+          || ' to '
+          || INITCAP(REPLACE(p_role::text, '_', ' '))
+          || '.',
+        'payload', jsonb_build_object(
+          'event', 'member_permission_role_changed',
+          'organization_id', p_org_id,
+          'organization_name', v_org_name,
+          'affected_profile_id', p_profile_id,
+          'previous_permission_role', v_target_permission_role,
+          'updated_permission_role', p_role,
+          'changed_by_profile_id', v_user_id,
+          'changed_by_name', COALESCE(v_actor_name, 'Organization Admin'),
+          'changed_at', now()
+        )
+      )
+    );
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
 END;
 $$;
 
@@ -23800,20 +23942,36 @@ BEGIN
    WHERE id = _id
    RETURNING * INTO _new_row;
 
-  -- if approved, create organization membership and notify requester
   IF _new_row.status = 'accepted' THEN
-    -- create membership if not exists
     IF NOT EXISTS (
-      SELECT 1 FROM public.organization_members WHERE organization_id = _new_row.organization_id AND profile_id = _new_row.invited_profile_id
+      SELECT 1
+      FROM public.organization_members
+      WHERE organization_id = _new_row.organization_id
+        AND profile_id = _new_row.invited_profile_id
+        AND deleted_at IS NULL
     ) THEN
-      INSERT INTO public.organization_members (organization_id, profile_id, role, created_at, updated_at)
-      VALUES (_new_row.organization_id, _new_row.invited_profile_id, COALESCE(_new_row.role, 'org_user'), now(), now());
+      INSERT INTO public.organization_members (
+        organization_id,
+        profile_id,
+        permission_role,
+        job_title_id,
+        created_at,
+        updated_at
+      )
+      VALUES (
+        _new_row.organization_id,
+        _new_row.invited_profile_id,
+        COALESCE(_new_row.reviewed_permission_role, _new_row.requested_permission_role, 'worker'::public.org_role),
+        COALESCE(_new_row.reviewed_job_title_id, _new_row.requested_job_title_id, _new_row.role),
+        now(),
+        now()
+      );
 
-      -- update profile.organization_id
-      UPDATE public.profiles SET organization_id = _new_row.organization_id, updated_at = now() WHERE id = _new_row.invited_profile_id;
+      UPDATE public.profiles
+      SET organization_id = _new_row.organization_id, updated_at = now()
+      WHERE id = _new_row.invited_profile_id;
     END IF;
 
-    -- notify requester
     BEGIN
       PERFORM public.insert_notifications(
         jsonb_build_object(
@@ -23826,7 +23984,6 @@ BEGIN
     EXCEPTION WHEN OTHERS THEN NULL; END;
 
   ELSIF _new_row.status = 'declined' THEN
-    -- notify requester of decline
     BEGIN
       PERFORM public.insert_notifications(
         jsonb_build_object(
@@ -23894,30 +24051,29 @@ CREATE FUNCTION public.update_organization_members(_id uuid, _input jsonb) RETUR
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
     AS $$
-      DECLARE
-        _old_row public.organization_members;
-        _new_row public.organization_members;
-        -- Map only known columns; keys not in the table are ignored safely
-        _row     public.organization_members := (jsonb_populate_record(NULL::public.organization_members, COALESCE(_input, '{}'::jsonb)));
-      BEGIN
-        -- Fetch row (RLS decides visibility)
-        SELECT * INTO _old_row FROM public.organization_members WHERE id = _id;
-        IF _old_row IS NULL THEN
-          RAISE EXCEPTION 'row not found' USING DETAIL = jsonb_build_object('id', _id);
-        END IF;
+  DECLARE
+    _old_row public.organization_members;
+    _new_row public.organization_members;
+    _row     public.organization_members := (jsonb_populate_record(NULL::public.organization_members, COALESCE(_input, '{}'::jsonb)));
+  BEGIN
+    SELECT * INTO _old_row FROM public.organization_members WHERE id = _id;
+    IF _old_row IS NULL THEN
+      RAISE EXCEPTION 'row not found' USING DETAIL = jsonb_build_object('id', _id);
+    END IF;
 
-        -- Authorization gate with existing row scope (prevents privilege escalation)
-        PERFORM check_access('update','organization_members', _old_row.project_id, _old_row.organization_id);
+    PERFORM check_access('update','organization_members', _old_row.project_id, _old_row.organization_id);
 
-        -- Tweak #2: scope columns are excluded from set_list, so they cannot be changed here
-        UPDATE public.organization_members
-           SET profile_id = COALESCE(_row.profile_id, profile_id), role = COALESCE(_row.role, role), updated_at = now()
-         WHERE id = _id
-         RETURNING * INTO _new_row;
+    UPDATE public.organization_members
+       SET profile_id = COALESCE(_row.profile_id, profile_id),
+           permission_role = COALESCE(_row.permission_role, permission_role),
+           job_title_id = COALESCE(_row.job_title_id, job_title_id),
+           updated_at = now()
+     WHERE id = _id
+     RETURNING * INTO _new_row;
 
-        RETURN NEXT _new_row;
-      END;
-      $$;
+    RETURN NEXT _new_row;
+  END;
+$$;
 
 
 --
@@ -26318,7 +26474,7 @@ CREATE VIEW public.notifications_active AS
 
 
 --
--- TOC entry 547 (class 1259 OID 47893)
+-- TOC entry 550 (class 1259 OID 50227)
 -- Name: organization_members_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26326,7 +26482,8 @@ CREATE VIEW public.organization_members_active AS
  SELECT id,
     profile_id,
     organization_id,
-    role,
+    job_title_id,
+    permission_role,
     created_at,
     updated_at,
     deleted_at
@@ -26458,7 +26615,7 @@ CREATE VIEW public.procurement_workflows_active AS
 
 
 --
--- TOC entry 548 (class 1259 OID 47897)
+-- TOC entry 546 (class 1259 OID 47897)
 -- Name: profiles_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -27021,7 +27178,7 @@ ALTER TABLE ONLY public.asphalt_types
 
 
 --
--- TOC entry 5450 (class 2606 OID 22582)
+-- TOC entry 5448 (class 2606 OID 22582)
 -- Name: audit_log audit_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27453,7 +27610,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- TOC entry 5478 (class 2606 OID 45506)
+-- TOC entry 5476 (class 2606 OID 45506)
 -- Name: organization_invites organization_invites_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27462,7 +27619,7 @@ ALTER TABLE ONLY public.organization_invites
 
 
 --
--- TOC entry 5463 (class 2606 OID 26538)
+-- TOC entry 5461 (class 2606 OID 26538)
 -- Name: organization_member_rates organization_member_rates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27471,7 +27628,7 @@ ALTER TABLE ONLY public.organization_member_rates
 
 
 --
--- TOC entry 5315 (class 2606 OID 22680)
+-- TOC entry 5313 (class 2606 OID 22680)
 -- Name: organization_members organization_members_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27480,7 +27637,7 @@ ALTER TABLE ONLY public.organization_members
 
 
 --
--- TOC entry 5321 (class 2606 OID 22682)
+-- TOC entry 5319 (class 2606 OID 22682)
 -- Name: organization_projects organization_projects_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27489,7 +27646,7 @@ ALTER TABLE ONLY public.organization_projects
 
 
 --
--- TOC entry 5454 (class 2606 OID 26494)
+-- TOC entry 5452 (class 2606 OID 26494)
 -- Name: organization_service_areas organization_service_areas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27498,7 +27655,7 @@ ALTER TABLE ONLY public.organization_service_areas
 
 
 --
--- TOC entry 5323 (class 2606 OID 22684)
+-- TOC entry 5321 (class 2606 OID 22684)
 -- Name: organizations organizations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27507,7 +27664,7 @@ ALTER TABLE ONLY public.organizations
 
 
 --
--- TOC entry 5329 (class 2606 OID 22686)
+-- TOC entry 5327 (class 2606 OID 22686)
 -- Name: payments payments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27516,7 +27673,7 @@ ALTER TABLE ONLY public.payments
 
 
 --
--- TOC entry 5332 (class 2606 OID 22688)
+-- TOC entry 5330 (class 2606 OID 22688)
 -- Name: payroll payroll_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27525,7 +27682,7 @@ ALTER TABLE ONLY public.payroll
 
 
 --
--- TOC entry 5336 (class 2606 OID 22690)
+-- TOC entry 5334 (class 2606 OID 22690)
 -- Name: photos photos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27534,7 +27691,7 @@ ALTER TABLE ONLY public.photos
 
 
 --
--- TOC entry 5340 (class 2606 OID 22692)
+-- TOC entry 5338 (class 2606 OID 22692)
 -- Name: prequalifications prequalifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27543,7 +27700,7 @@ ALTER TABLE ONLY public.prequalifications
 
 
 --
--- TOC entry 5343 (class 2606 OID 22694)
+-- TOC entry 5341 (class 2606 OID 22694)
 -- Name: procurement_workflows procurement_workflows_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27552,7 +27709,7 @@ ALTER TABLE ONLY public.procurement_workflows
 
 
 --
--- TOC entry 5347 (class 2606 OID 22696)
+-- TOC entry 5345 (class 2606 OID 22696)
 -- Name: profiles profiles_email_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27561,7 +27718,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5349 (class 2606 OID 22698)
+-- TOC entry 5347 (class 2606 OID 22698)
 -- Name: profiles profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27570,7 +27727,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5352 (class 2606 OID 22700)
+-- TOC entry 5350 (class 2606 OID 22700)
 -- Name: progress_billings progress_billings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27579,7 +27736,7 @@ ALTER TABLE ONLY public.progress_billings
 
 
 --
--- TOC entry 5357 (class 2606 OID 22702)
+-- TOC entry 5355 (class 2606 OID 22702)
 -- Name: project_inspectors project_inspectors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27588,7 +27745,7 @@ ALTER TABLE ONLY public.project_inspectors
 
 
 --
--- TOC entry 5467 (class 2606 OID 26556)
+-- TOC entry 5465 (class 2606 OID 26556)
 -- Name: project_invites project_invites_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27597,7 +27754,7 @@ ALTER TABLE ONLY public.project_invites
 
 
 --
--- TOC entry 5456 (class 2606 OID 26511)
+-- TOC entry 5454 (class 2606 OID 26511)
 -- Name: project_service_areas project_service_areas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27606,7 +27763,7 @@ ALTER TABLE ONLY public.project_service_areas
 
 
 --
--- TOC entry 5360 (class 2606 OID 22704)
+-- TOC entry 5358 (class 2606 OID 22704)
 -- Name: projects projects_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27615,7 +27772,7 @@ ALTER TABLE ONLY public.projects
 
 
 --
--- TOC entry 5366 (class 2606 OID 22706)
+-- TOC entry 5364 (class 2606 OID 22706)
 -- Name: punch_lists punch_lists_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27624,7 +27781,7 @@ ALTER TABLE ONLY public.punch_lists
 
 
 --
--- TOC entry 5370 (class 2606 OID 22708)
+-- TOC entry 5368 (class 2606 OID 22708)
 -- Name: purchase_orders purchase_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27633,7 +27790,7 @@ ALTER TABLE ONLY public.purchase_orders
 
 
 --
--- TOC entry 5374 (class 2606 OID 22710)
+-- TOC entry 5372 (class 2606 OID 22710)
 -- Name: quality_reviews quality_reviews_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27642,7 +27799,7 @@ ALTER TABLE ONLY public.quality_reviews
 
 
 --
--- TOC entry 5377 (class 2606 OID 22712)
+-- TOC entry 5375 (class 2606 OID 22712)
 -- Name: regulatory_documents regulatory_documents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27651,7 +27808,7 @@ ALTER TABLE ONLY public.regulatory_documents
 
 
 --
--- TOC entry 5380 (class 2606 OID 22714)
+-- TOC entry 5378 (class 2606 OID 22714)
 -- Name: reports reports_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27660,7 +27817,7 @@ ALTER TABLE ONLY public.reports
 
 
 --
--- TOC entry 5385 (class 2606 OID 22716)
+-- TOC entry 5383 (class 2606 OID 22716)
 -- Name: rfis rfis_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27669,7 +27826,7 @@ ALTER TABLE ONLY public.rfis
 
 
 --
--- TOC entry 5389 (class 2606 OID 22718)
+-- TOC entry 5387 (class 2606 OID 22718)
 -- Name: safety_incidents safety_incidents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27678,7 +27835,7 @@ ALTER TABLE ONLY public.safety_incidents
 
 
 --
--- TOC entry 5392 (class 2606 OID 22720)
+-- TOC entry 5390 (class 2606 OID 22720)
 -- Name: sensor_data sensor_data_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27687,7 +27844,7 @@ ALTER TABLE ONLY public.sensor_data
 
 
 --
--- TOC entry 5395 (class 2606 OID 22722)
+-- TOC entry 5393 (class 2606 OID 22722)
 -- Name: subcontractor_agreements subcontractor_agreements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27696,7 +27853,7 @@ ALTER TABLE ONLY public.subcontractor_agreements
 
 
 --
--- TOC entry 5399 (class 2606 OID 22724)
+-- TOC entry 5397 (class 2606 OID 22724)
 -- Name: subcontracts subcontracts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27705,7 +27862,7 @@ ALTER TABLE ONLY public.subcontracts
 
 
 --
--- TOC entry 5404 (class 2606 OID 22726)
+-- TOC entry 5402 (class 2606 OID 22726)
 -- Name: submittals submittals_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27714,7 +27871,7 @@ ALTER TABLE ONLY public.submittals
 
 
 --
--- TOC entry 5407 (class 2606 OID 22728)
+-- TOC entry 5405 (class 2606 OID 22728)
 -- Name: tack_rates tack_rates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27723,7 +27880,7 @@ ALTER TABLE ONLY public.tack_rates
 
 
 --
--- TOC entry 5411 (class 2606 OID 22730)
+-- TOC entry 5409 (class 2606 OID 22730)
 -- Name: task_dependencies task_dependencies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27732,7 +27889,7 @@ ALTER TABLE ONLY public.task_dependencies
 
 
 --
--- TOC entry 5415 (class 2606 OID 45509)
+-- TOC entry 5413 (class 2606 OID 45509)
 -- Name: task_status_logs task_status_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27741,7 +27898,7 @@ ALTER TABLE ONLY public.task_status_logs
 
 
 --
--- TOC entry 5418 (class 2606 OID 22732)
+-- TOC entry 5416 (class 2606 OID 22732)
 -- Name: tasks tasks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27750,7 +27907,7 @@ ALTER TABLE ONLY public.tasks
 
 
 --
--- TOC entry 5421 (class 2606 OID 22734)
+-- TOC entry 5419 (class 2606 OID 22734)
 -- Name: training_records training_records_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27768,7 +27925,7 @@ ALTER TABLE ONLY public.cost_codes
 
 
 --
--- TOC entry 5317 (class 2606 OID 22738)
+-- TOC entry 5315 (class 2606 OID 22738)
 -- Name: organization_members uq_organization_members; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27777,7 +27934,7 @@ ALTER TABLE ONLY public.organization_members
 
 
 --
--- TOC entry 5325 (class 2606 OID 22740)
+-- TOC entry 5323 (class 2606 OID 22740)
 -- Name: organizations uq_organizations_name; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27786,7 +27943,7 @@ ALTER TABLE ONLY public.organizations
 
 
 --
--- TOC entry 5362 (class 2606 OID 22744)
+-- TOC entry 5360 (class 2606 OID 22744)
 -- Name: projects uq_projects_name; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27795,7 +27952,7 @@ ALTER TABLE ONLY public.projects
 
 
 --
--- TOC entry 5425 (class 2606 OID 22746)
+-- TOC entry 5423 (class 2606 OID 22746)
 -- Name: user_projects uq_user_projects; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27804,7 +27961,7 @@ ALTER TABLE ONLY public.user_projects
 
 
 --
--- TOC entry 5443 (class 2606 OID 22748)
+-- TOC entry 5441 (class 2606 OID 22748)
 -- Name: vendors uq_vendors_name; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27813,7 +27970,7 @@ ALTER TABLE ONLY public.vendors
 
 
 --
--- TOC entry 5427 (class 2606 OID 22750)
+-- TOC entry 5425 (class 2606 OID 22750)
 -- Name: user_projects user_projects_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27822,7 +27979,7 @@ ALTER TABLE ONLY public.user_projects
 
 
 --
--- TOC entry 5431 (class 2606 OID 22752)
+-- TOC entry 5429 (class 2606 OID 22752)
 -- Name: vendor_bid_packages vendor_bid_packages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27831,7 +27988,7 @@ ALTER TABLE ONLY public.vendor_bid_packages
 
 
 --
--- TOC entry 5434 (class 2606 OID 22754)
+-- TOC entry 5432 (class 2606 OID 22754)
 -- Name: vendor_contacts vendor_contacts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27840,7 +27997,7 @@ ALTER TABLE ONLY public.vendor_contacts
 
 
 --
--- TOC entry 5437 (class 2606 OID 22756)
+-- TOC entry 5435 (class 2606 OID 22756)
 -- Name: vendor_documents vendor_documents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27849,7 +28006,7 @@ ALTER TABLE ONLY public.vendor_documents
 
 
 --
--- TOC entry 5440 (class 2606 OID 22758)
+-- TOC entry 5438 (class 2606 OID 22758)
 -- Name: vendor_qualifications vendor_qualifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27858,7 +28015,7 @@ ALTER TABLE ONLY public.vendor_qualifications
 
 
 --
--- TOC entry 5445 (class 2606 OID 22760)
+-- TOC entry 5443 (class 2606 OID 22760)
 -- Name: vendors vendors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27867,7 +28024,7 @@ ALTER TABLE ONLY public.vendors
 
 
 --
--- TOC entry 5448 (class 2606 OID 22762)
+-- TOC entry 5446 (class 2606 OID 22762)
 -- Name: wbs wbs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27965,7 +28122,7 @@ CREATE INDEX idx_notifications_user_unread_active ON public.notifications USING 
 
 
 --
--- TOC entry 5470 (class 1259 OID 47892)
+-- TOC entry 5468 (class 1259 OID 47892)
 -- Name: idx_organization_invites_role; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -27973,15 +28130,7 @@ CREATE INDEX idx_organization_invites_role ON public.organization_invites USING 
 
 
 --
--- TOC entry 5308 (class 1259 OID 47885)
--- Name: idx_organization_members_role; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_organization_members_role ON public.organization_members USING btree (role);
-
-
---
--- TOC entry 5358 (class 1259 OID 22773)
+-- TOC entry 5356 (class 1259 OID 22773)
 -- Name: idx_projects_organization_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -27989,7 +28138,7 @@ CREATE INDEX idx_projects_organization_id ON public.projects USING btree (organi
 
 
 --
--- TOC entry 5412 (class 1259 OID 45510)
+-- TOC entry 5410 (class 1259 OID 45510)
 -- Name: idx_task_status_logs_task_changed; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -27997,7 +28146,7 @@ CREATE INDEX idx_task_status_logs_task_changed ON public.task_status_logs USING 
 
 
 --
--- TOC entry 5413 (class 1259 OID 45511)
+-- TOC entry 5411 (class 1259 OID 45511)
 -- Name: idx_task_status_logs_task_changed_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28005,7 +28154,7 @@ CREATE INDEX idx_task_status_logs_task_changed_at ON public.task_status_logs USI
 
 
 --
--- TOC entry 5422 (class 1259 OID 22774)
+-- TOC entry 5420 (class 1259 OID 22774)
 -- Name: idx_user_projects_project_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28013,7 +28162,7 @@ CREATE INDEX idx_user_projects_project_id ON public.user_projects USING btree (p
 
 
 --
--- TOC entry 5423 (class 1259 OID 22775)
+-- TOC entry 5421 (class 1259 OID 22775)
 -- Name: idx_user_projects_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28021,7 +28170,7 @@ CREATE INDEX idx_user_projects_user_id ON public.user_projects USING btree (user
 
 
 --
--- TOC entry 5446 (class 1259 OID 22776)
+-- TOC entry 5444 (class 1259 OID 22776)
 -- Name: idx_wbs_project_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28533,7 +28682,7 @@ CREATE INDEX ix_meeting_minutes__fk_fk_meeting_minutes_project ON public.meeting
 
 
 --
--- TOC entry 5471 (class 1259 OID 43259)
+-- TOC entry 5469 (class 1259 OID 43259)
 -- Name: ix_organization_invites__fk_invited_profile_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28541,7 +28690,7 @@ CREATE INDEX ix_organization_invites__fk_invited_profile_id ON public.organizati
 
 
 --
--- TOC entry 5472 (class 1259 OID 43258)
+-- TOC entry 5470 (class 1259 OID 43258)
 -- Name: ix_organization_invites__fk_org_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28549,7 +28698,7 @@ CREATE INDEX ix_organization_invites__fk_org_id ON public.organization_invites U
 
 
 --
--- TOC entry 5473 (class 1259 OID 49040)
+-- TOC entry 5471 (class 1259 OID 49040)
 -- Name: ix_organization_invites__fk_organization_invites_requested_job_; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28557,7 +28706,7 @@ CREATE INDEX ix_organization_invites__fk_organization_invites_requested_job_ ON 
 
 
 --
--- TOC entry 5474 (class 1259 OID 49052)
+-- TOC entry 5472 (class 1259 OID 49052)
 -- Name: ix_organization_invites__fk_organization_invites_reviewed_job_t; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28565,7 +28714,7 @@ CREATE INDEX ix_organization_invites__fk_organization_invites_reviewed_job_t ON 
 
 
 --
--- TOC entry 5475 (class 1259 OID 47891)
+-- TOC entry 5473 (class 1259 OID 47891)
 -- Name: ix_organization_invites__fk_organization_invites_role_fkey; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28573,7 +28722,7 @@ CREATE INDEX ix_organization_invites__fk_organization_invites_role_fkey ON publi
 
 
 --
--- TOC entry 5460 (class 1259 OID 26544)
+-- TOC entry 5458 (class 1259 OID 26544)
 -- Name: ix_organization_member_rates__fk_organization_member_rates_memb; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28581,7 +28730,7 @@ CREATE INDEX ix_organization_member_rates__fk_organization_member_rates_memb ON 
 
 
 --
--- TOC entry 5309 (class 1259 OID 22841)
+-- TOC entry 5308 (class 1259 OID 22841)
 -- Name: ix_organization_members__fk_fk_org_members_org; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28589,7 +28738,7 @@ CREATE INDEX ix_organization_members__fk_fk_org_members_org ON public.organizati
 
 
 --
--- TOC entry 5310 (class 1259 OID 22842)
+-- TOC entry 5309 (class 1259 OID 22842)
 -- Name: ix_organization_members__fk_fk_org_members_profile; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28597,7 +28746,7 @@ CREATE INDEX ix_organization_members__fk_fk_org_members_profile ON public.organi
 
 
 --
--- TOC entry 5311 (class 1259 OID 49034)
+-- TOC entry 5310 (class 1259 OID 49034)
 -- Name: ix_organization_members__fk_organization_members_job_title_id_f; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28605,15 +28754,7 @@ CREATE INDEX ix_organization_members__fk_organization_members_job_title_id_f ON 
 
 
 --
--- TOC entry 5312 (class 1259 OID 47884)
--- Name: ix_organization_members__fk_organization_members_role_fkey; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX ix_organization_members__fk_organization_members_role_fkey ON public.organization_members USING btree (role);
-
-
---
--- TOC entry 5318 (class 1259 OID 22843)
+-- TOC entry 5316 (class 1259 OID 22843)
 -- Name: ix_organization_projects__fk_fk_org_projects_org; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28621,7 +28762,7 @@ CREATE INDEX ix_organization_projects__fk_fk_org_projects_org ON public.organiza
 
 
 --
--- TOC entry 5319 (class 1259 OID 22844)
+-- TOC entry 5317 (class 1259 OID 22844)
 -- Name: ix_organization_projects__fk_fk_org_projects_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28629,7 +28770,7 @@ CREATE INDEX ix_organization_projects__fk_fk_org_projects_project ON public.orga
 
 
 --
--- TOC entry 5326 (class 1259 OID 22845)
+-- TOC entry 5324 (class 1259 OID 22845)
 -- Name: ix_payments__fk_fk_payments_commitment; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28637,7 +28778,7 @@ CREATE INDEX ix_payments__fk_fk_payments_commitment ON public.payments USING btr
 
 
 --
--- TOC entry 5327 (class 1259 OID 22846)
+-- TOC entry 5325 (class 1259 OID 22846)
 -- Name: ix_payments__fk_fk_payments_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28645,7 +28786,7 @@ CREATE INDEX ix_payments__fk_fk_payments_project ON public.payments USING btree 
 
 
 --
--- TOC entry 5330 (class 1259 OID 22847)
+-- TOC entry 5328 (class 1259 OID 22847)
 -- Name: ix_payroll__fk_fk_payroll_employee; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28653,7 +28794,7 @@ CREATE INDEX ix_payroll__fk_fk_payroll_employee ON public.payroll USING btree (e
 
 
 --
--- TOC entry 5333 (class 1259 OID 22848)
+-- TOC entry 5331 (class 1259 OID 22848)
 -- Name: ix_photos__fk_fk_photos_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28661,7 +28802,7 @@ CREATE INDEX ix_photos__fk_fk_photos_project ON public.photos USING btree (proje
 
 
 --
--- TOC entry 5334 (class 1259 OID 22849)
+-- TOC entry 5332 (class 1259 OID 22849)
 -- Name: ix_photos__fk_fk_photos_uploaded_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28669,7 +28810,7 @@ CREATE INDEX ix_photos__fk_fk_photos_uploaded_by ON public.photos USING btree (u
 
 
 --
--- TOC entry 5337 (class 1259 OID 22850)
+-- TOC entry 5335 (class 1259 OID 22850)
 -- Name: ix_prequalifications__fk_fk_prequalifications_reviewed_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28677,7 +28818,7 @@ CREATE INDEX ix_prequalifications__fk_fk_prequalifications_reviewed_by ON public
 
 
 --
--- TOC entry 5338 (class 1259 OID 22851)
+-- TOC entry 5336 (class 1259 OID 22851)
 -- Name: ix_prequalifications__fk_fk_prequalifications_vendor; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28685,7 +28826,7 @@ CREATE INDEX ix_prequalifications__fk_fk_prequalifications_vendor ON public.preq
 
 
 --
--- TOC entry 5341 (class 1259 OID 22852)
+-- TOC entry 5339 (class 1259 OID 22852)
 -- Name: ix_procurement_workflows__fk_fk_procurement_workflows_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28693,7 +28834,7 @@ CREATE INDEX ix_procurement_workflows__fk_fk_procurement_workflows_project ON pu
 
 
 --
--- TOC entry 5344 (class 1259 OID 26436)
+-- TOC entry 5342 (class 1259 OID 26436)
 -- Name: ix_profiles__fk_fk_profiles_avatar_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28701,7 +28842,7 @@ CREATE INDEX ix_profiles__fk_fk_profiles_avatar_id ON public.profiles USING btre
 
 
 --
--- TOC entry 5345 (class 1259 OID 22854)
+-- TOC entry 5343 (class 1259 OID 22854)
 -- Name: ix_profiles__fk_fk_profiles_organizations; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28709,7 +28850,7 @@ CREATE INDEX ix_profiles__fk_fk_profiles_organizations ON public.profiles USING 
 
 
 --
--- TOC entry 5350 (class 1259 OID 22855)
+-- TOC entry 5348 (class 1259 OID 22855)
 -- Name: ix_progress_billings__fk_fk_progress_billings_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28717,7 +28858,7 @@ CREATE INDEX ix_progress_billings__fk_fk_progress_billings_project ON public.pro
 
 
 --
--- TOC entry 5353 (class 1259 OID 22856)
+-- TOC entry 5351 (class 1259 OID 22856)
 -- Name: ix_project_inspectors__fk_project_inspectors_assigned_by_fkey; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28725,7 +28866,7 @@ CREATE INDEX ix_project_inspectors__fk_project_inspectors_assigned_by_fkey ON pu
 
 
 --
--- TOC entry 5354 (class 1259 OID 22857)
+-- TOC entry 5352 (class 1259 OID 22857)
 -- Name: ix_project_inspectors__fk_project_inspectors_profile_id_fkey; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28733,7 +28874,7 @@ CREATE INDEX ix_project_inspectors__fk_project_inspectors_profile_id_fkey ON pub
 
 
 --
--- TOC entry 5355 (class 1259 OID 22858)
+-- TOC entry 5353 (class 1259 OID 22858)
 -- Name: ix_project_inspectors__fk_project_inspectors_project_id_fkey; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28741,7 +28882,7 @@ CREATE INDEX ix_project_inspectors__fk_project_inspectors_project_id_fkey ON pub
 
 
 --
--- TOC entry 5464 (class 1259 OID 26572)
+-- TOC entry 5462 (class 1259 OID 26572)
 -- Name: ix_project_invites__fk_project_invites_invited_by_profile_id_fk; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28749,7 +28890,7 @@ CREATE INDEX ix_project_invites__fk_project_invites_invited_by_profile_id_fk ON 
 
 
 --
--- TOC entry 5363 (class 1259 OID 22859)
+-- TOC entry 5361 (class 1259 OID 22859)
 -- Name: ix_punch_lists__fk_fk_punch_lists_assigned_to; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28757,7 +28898,7 @@ CREATE INDEX ix_punch_lists__fk_fk_punch_lists_assigned_to ON public.punch_lists
 
 
 --
--- TOC entry 5364 (class 1259 OID 22860)
+-- TOC entry 5362 (class 1259 OID 22860)
 -- Name: ix_punch_lists__fk_fk_punch_lists_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28765,7 +28906,7 @@ CREATE INDEX ix_punch_lists__fk_fk_punch_lists_project ON public.punch_lists USI
 
 
 --
--- TOC entry 5367 (class 1259 OID 22861)
+-- TOC entry 5365 (class 1259 OID 22861)
 -- Name: ix_purchase_orders__fk_fk_purchase_orders_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28773,7 +28914,7 @@ CREATE INDEX ix_purchase_orders__fk_fk_purchase_orders_project ON public.purchas
 
 
 --
--- TOC entry 5368 (class 1259 OID 22862)
+-- TOC entry 5366 (class 1259 OID 22862)
 -- Name: ix_purchase_orders__fk_fk_purchase_orders_vendor; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28781,7 +28922,7 @@ CREATE INDEX ix_purchase_orders__fk_fk_purchase_orders_vendor ON public.purchase
 
 
 --
--- TOC entry 5371 (class 1259 OID 22863)
+-- TOC entry 5369 (class 1259 OID 22863)
 -- Name: ix_quality_reviews__fk_fk_quality_reviews_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28789,7 +28930,7 @@ CREATE INDEX ix_quality_reviews__fk_fk_quality_reviews_project ON public.quality
 
 
 --
--- TOC entry 5372 (class 1259 OID 22864)
+-- TOC entry 5370 (class 1259 OID 22864)
 -- Name: ix_quality_reviews__fk_fk_quality_reviews_reviewer; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28797,7 +28938,7 @@ CREATE INDEX ix_quality_reviews__fk_fk_quality_reviews_reviewer ON public.qualit
 
 
 --
--- TOC entry 5375 (class 1259 OID 22865)
+-- TOC entry 5373 (class 1259 OID 22865)
 -- Name: ix_regulatory_documents__fk_fk_regulatory_documents_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28805,7 +28946,7 @@ CREATE INDEX ix_regulatory_documents__fk_fk_regulatory_documents_project ON publ
 
 
 --
--- TOC entry 5378 (class 1259 OID 22866)
+-- TOC entry 5376 (class 1259 OID 22866)
 -- Name: ix_reports__fk_fk_reports_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28813,7 +28954,7 @@ CREATE INDEX ix_reports__fk_fk_reports_project ON public.reports USING btree (pr
 
 
 --
--- TOC entry 5381 (class 1259 OID 22867)
+-- TOC entry 5379 (class 1259 OID 22867)
 -- Name: ix_rfis__fk_fk_rfis_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28821,7 +28962,7 @@ CREATE INDEX ix_rfis__fk_fk_rfis_project ON public.rfis USING btree (project_id)
 
 
 --
--- TOC entry 5382 (class 1259 OID 22868)
+-- TOC entry 5380 (class 1259 OID 22868)
 -- Name: ix_rfis__fk_fk_rfis_reviewed_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28829,7 +28970,7 @@ CREATE INDEX ix_rfis__fk_fk_rfis_reviewed_by ON public.rfis USING btree (reviewe
 
 
 --
--- TOC entry 5383 (class 1259 OID 22869)
+-- TOC entry 5381 (class 1259 OID 22869)
 -- Name: ix_rfis__fk_fk_rfis_submitted_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28837,7 +28978,7 @@ CREATE INDEX ix_rfis__fk_fk_rfis_submitted_by ON public.rfis USING btree (submit
 
 
 --
--- TOC entry 5386 (class 1259 OID 22870)
+-- TOC entry 5384 (class 1259 OID 22870)
 -- Name: ix_safety_incidents__fk_fk_safety_incidents_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28845,7 +28986,7 @@ CREATE INDEX ix_safety_incidents__fk_fk_safety_incidents_project ON public.safet
 
 
 --
--- TOC entry 5387 (class 1259 OID 22871)
+-- TOC entry 5385 (class 1259 OID 22871)
 -- Name: ix_safety_incidents__fk_fk_safety_incidents_reported_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28853,7 +28994,7 @@ CREATE INDEX ix_safety_incidents__fk_fk_safety_incidents_reported_by ON public.s
 
 
 --
--- TOC entry 5390 (class 1259 OID 22872)
+-- TOC entry 5388 (class 1259 OID 22872)
 -- Name: ix_sensor_data__fk_fk_sensor_data_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28861,7 +29002,7 @@ CREATE INDEX ix_sensor_data__fk_fk_sensor_data_project ON public.sensor_data USI
 
 
 --
--- TOC entry 5393 (class 1259 OID 22873)
+-- TOC entry 5391 (class 1259 OID 22873)
 -- Name: ix_subcontractor_agreements__fk_fk_subcontractor_agreements_sub; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28869,7 +29010,7 @@ CREATE INDEX ix_subcontractor_agreements__fk_fk_subcontractor_agreements_sub ON 
 
 
 --
--- TOC entry 5396 (class 1259 OID 22874)
+-- TOC entry 5394 (class 1259 OID 22874)
 -- Name: ix_subcontracts__fk_fk_subcontracts_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28877,7 +29018,7 @@ CREATE INDEX ix_subcontracts__fk_fk_subcontracts_project ON public.subcontracts 
 
 
 --
--- TOC entry 5397 (class 1259 OID 22875)
+-- TOC entry 5395 (class 1259 OID 22875)
 -- Name: ix_subcontracts__fk_fk_subcontracts_vendor; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28885,7 +29026,7 @@ CREATE INDEX ix_subcontracts__fk_fk_subcontracts_vendor ON public.subcontracts U
 
 
 --
--- TOC entry 5400 (class 1259 OID 22876)
+-- TOC entry 5398 (class 1259 OID 22876)
 -- Name: ix_submittals__fk_fk_submittals_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28893,7 +29034,7 @@ CREATE INDEX ix_submittals__fk_fk_submittals_project ON public.submittals USING 
 
 
 --
--- TOC entry 5401 (class 1259 OID 22877)
+-- TOC entry 5399 (class 1259 OID 22877)
 -- Name: ix_submittals__fk_fk_submittals_reviewed_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28901,7 +29042,7 @@ CREATE INDEX ix_submittals__fk_fk_submittals_reviewed_by ON public.submittals US
 
 
 --
--- TOC entry 5402 (class 1259 OID 22878)
+-- TOC entry 5400 (class 1259 OID 22878)
 -- Name: ix_submittals__fk_fk_submittals_submitted_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28909,7 +29050,7 @@ CREATE INDEX ix_submittals__fk_fk_submittals_submitted_by ON public.submittals U
 
 
 --
--- TOC entry 5405 (class 1259 OID 22879)
+-- TOC entry 5403 (class 1259 OID 22879)
 -- Name: ix_tack_rates__fk_fk_tack_rates_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28917,7 +29058,7 @@ CREATE INDEX ix_tack_rates__fk_fk_tack_rates_project ON public.tack_rates USING 
 
 
 --
--- TOC entry 5408 (class 1259 OID 22880)
+-- TOC entry 5406 (class 1259 OID 22880)
 -- Name: ix_task_dependencies__fk_task_dependencies_depends_on_task_id_f; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28925,7 +29066,7 @@ CREATE INDEX ix_task_dependencies__fk_task_dependencies_depends_on_task_id_f ON 
 
 
 --
--- TOC entry 5409 (class 1259 OID 22881)
+-- TOC entry 5407 (class 1259 OID 22881)
 -- Name: ix_task_dependencies__fk_task_dependencies_task_id_fkey; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28933,7 +29074,7 @@ CREATE INDEX ix_task_dependencies__fk_task_dependencies_task_id_fkey ON public.t
 
 
 --
--- TOC entry 5416 (class 1259 OID 22882)
+-- TOC entry 5414 (class 1259 OID 22882)
 -- Name: ix_tasks__fk_tasks_project_id_fkey; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28941,7 +29082,7 @@ CREATE INDEX ix_tasks__fk_tasks_project_id_fkey ON public.tasks USING btree (pro
 
 
 --
--- TOC entry 5419 (class 1259 OID 22883)
+-- TOC entry 5417 (class 1259 OID 22883)
 -- Name: ix_training_records__fk_fk_training_records_employee; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28949,7 +29090,7 @@ CREATE INDEX ix_training_records__fk_fk_training_records_employee ON public.trai
 
 
 --
--- TOC entry 5428 (class 1259 OID 22884)
+-- TOC entry 5426 (class 1259 OID 22884)
 -- Name: ix_vendor_bid_packages__fk_fk_vendor_bid_packages_bid_package; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28957,7 +29098,7 @@ CREATE INDEX ix_vendor_bid_packages__fk_fk_vendor_bid_packages_bid_package ON pu
 
 
 --
--- TOC entry 5429 (class 1259 OID 22885)
+-- TOC entry 5427 (class 1259 OID 22885)
 -- Name: ix_vendor_bid_packages__fk_fk_vendor_bid_packages_vendor; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28965,7 +29106,7 @@ CREATE INDEX ix_vendor_bid_packages__fk_fk_vendor_bid_packages_vendor ON public.
 
 
 --
--- TOC entry 5432 (class 1259 OID 22886)
+-- TOC entry 5430 (class 1259 OID 22886)
 -- Name: ix_vendor_contacts__fk_fk_vendor_contacts_vendor; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28973,7 +29114,7 @@ CREATE INDEX ix_vendor_contacts__fk_fk_vendor_contacts_vendor ON public.vendor_c
 
 
 --
--- TOC entry 5435 (class 1259 OID 22887)
+-- TOC entry 5433 (class 1259 OID 22887)
 -- Name: ix_vendor_documents__fk_fk_vendor_documents_vendor; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28981,7 +29122,7 @@ CREATE INDEX ix_vendor_documents__fk_fk_vendor_documents_vendor ON public.vendor
 
 
 --
--- TOC entry 5438 (class 1259 OID 22888)
+-- TOC entry 5436 (class 1259 OID 22888)
 -- Name: ix_vendor_qualifications__fk_fk_vendor_qualifications_vendor; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28989,7 +29130,7 @@ CREATE INDEX ix_vendor_qualifications__fk_fk_vendor_qualifications_vendor ON pub
 
 
 --
--- TOC entry 5441 (class 1259 OID 22889)
+-- TOC entry 5439 (class 1259 OID 22889)
 -- Name: ix_vendors__fk_fk_vendors_organization; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28997,7 +29138,7 @@ CREATE INDEX ix_vendors__fk_fk_vendors_organization ON public.vendors USING btre
 
 
 --
--- TOC entry 5476 (class 1259 OID 43260)
+-- TOC entry 5474 (class 1259 OID 43260)
 -- Name: organization_invites_org_invited_uq; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29005,7 +29146,7 @@ CREATE UNIQUE INDEX organization_invites_org_invited_uq ON public.organization_i
 
 
 --
--- TOC entry 5461 (class 1259 OID 26545)
+-- TOC entry 5459 (class 1259 OID 26545)
 -- Name: organization_member_rates_membership_effective_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29013,7 +29154,7 @@ CREATE INDEX organization_member_rates_membership_effective_idx ON public.organi
 
 
 --
--- TOC entry 5313 (class 1259 OID 26408)
+-- TOC entry 5311 (class 1259 OID 26408)
 -- Name: organization_members_org_profile_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29021,7 +29162,7 @@ CREATE INDEX organization_members_org_profile_idx ON public.organization_members
 
 
 --
--- TOC entry 5451 (class 1259 OID 26502)
+-- TOC entry 5449 (class 1259 OID 26502)
 -- Name: organization_service_areas_org_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29029,7 +29170,7 @@ CREATE INDEX organization_service_areas_org_id_idx ON public.organization_servic
 
 
 --
--- TOC entry 5452 (class 1259 OID 26501)
+-- TOC entry 5450 (class 1259 OID 26501)
 -- Name: organization_service_areas_org_text_uq; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29037,7 +29178,7 @@ CREATE UNIQUE INDEX organization_service_areas_org_text_uq ON public.organizatio
 
 
 --
--- TOC entry 5465 (class 1259 OID 26577)
+-- TOC entry 5463 (class 1259 OID 26577)
 -- Name: project_invites_invited_profile_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29045,7 +29186,7 @@ CREATE INDEX project_invites_invited_profile_id_idx ON public.project_invites US
 
 
 --
--- TOC entry 5468 (class 1259 OID 26576)
+-- TOC entry 5466 (class 1259 OID 26576)
 -- Name: project_invites_project_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29053,7 +29194,7 @@ CREATE INDEX project_invites_project_id_idx ON public.project_invites USING btre
 
 
 --
--- TOC entry 5469 (class 1259 OID 26575)
+-- TOC entry 5467 (class 1259 OID 26575)
 -- Name: project_invites_project_invited_uq; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29061,7 +29202,7 @@ CREATE UNIQUE INDEX project_invites_project_invited_uq ON public.project_invites
 
 
 --
--- TOC entry 5457 (class 1259 OID 26525)
+-- TOC entry 5455 (class 1259 OID 26525)
 -- Name: project_service_areas_project_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29069,7 +29210,7 @@ CREATE INDEX project_service_areas_project_id_idx ON public.project_service_area
 
 
 --
--- TOC entry 5458 (class 1259 OID 26524)
+-- TOC entry 5456 (class 1259 OID 26524)
 -- Name: project_service_areas_project_service_uq; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29077,7 +29218,7 @@ CREATE UNIQUE INDEX project_service_areas_project_service_uq ON public.project_s
 
 
 --
--- TOC entry 5459 (class 1259 OID 26526)
+-- TOC entry 5457 (class 1259 OID 26526)
 -- Name: project_service_areas_service_area_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29085,7 +29226,7 @@ CREATE INDEX project_service_areas_service_area_id_idx ON public.project_service
 
 
 --
--- TOC entry 5719 (class 2620 OID 45484)
+-- TOC entry 5716 (class 2620 OID 45484)
 -- Name: notifications notifications_broadcast_trigger; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29093,7 +29234,7 @@ CREATE TRIGGER notifications_broadcast_trigger AFTER INSERT ON public.notificati
 
 
 --
--- TOC entry 5634 (class 2620 OID 22891)
+-- TOC entry 5631 (class 2620 OID 22891)
 -- Name: bids trg_notify_new_bid; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29101,7 +29242,7 @@ CREATE TRIGGER trg_notify_new_bid AFTER INSERT ON public.bids FOR EACH ROW EXECU
 
 
 --
--- TOC entry 5618 (class 2620 OID 22892)
+-- TOC entry 5615 (class 2620 OID 22892)
 -- Name: accounts_payable trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29109,7 +29250,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.accounts_payable FOR E
 
 
 --
--- TOC entry 5620 (class 2620 OID 22893)
+-- TOC entry 5617 (class 2620 OID 22893)
 -- Name: accounts_receivable trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29117,7 +29258,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.accounts_receivable FO
 
 
 --
--- TOC entry 5622 (class 2620 OID 22894)
+-- TOC entry 5619 (class 2620 OID 22894)
 -- Name: activity_logs trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29125,7 +29266,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.activity_logs FOR EACH
 
 
 --
--- TOC entry 5624 (class 2620 OID 22895)
+-- TOC entry 5621 (class 2620 OID 22895)
 -- Name: asphalt_types trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29133,7 +29274,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.asphalt_types FOR EACH
 
 
 --
--- TOC entry 5626 (class 2620 OID 22896)
+-- TOC entry 5623 (class 2620 OID 22896)
 -- Name: audit_logs trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29141,7 +29282,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.audit_logs FOR EACH RO
 
 
 --
--- TOC entry 5628 (class 2620 OID 22897)
+-- TOC entry 5625 (class 2620 OID 22897)
 -- Name: avatars trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29149,7 +29290,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.avatars FOR EACH ROW E
 
 
 --
--- TOC entry 5630 (class 2620 OID 22898)
+-- TOC entry 5627 (class 2620 OID 22898)
 -- Name: bid_packages trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29157,7 +29298,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.bid_packages FOR EACH 
 
 
 --
--- TOC entry 5632 (class 2620 OID 22899)
+-- TOC entry 5629 (class 2620 OID 22899)
 -- Name: bid_vendors trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29165,7 +29306,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.bid_vendors FOR EACH R
 
 
 --
--- TOC entry 5635 (class 2620 OID 22900)
+-- TOC entry 5632 (class 2620 OID 22900)
 -- Name: bids trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29173,7 +29314,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.bids FOR EACH ROW EXEC
 
 
 --
--- TOC entry 5637 (class 2620 OID 22901)
+-- TOC entry 5634 (class 2620 OID 22901)
 -- Name: bim_models trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29181,7 +29322,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.bim_models FOR EACH RO
 
 
 --
--- TOC entry 5639 (class 2620 OID 22902)
+-- TOC entry 5636 (class 2620 OID 22902)
 -- Name: certifications trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29189,7 +29330,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.certifications FOR EAC
 
 
 --
--- TOC entry 5641 (class 2620 OID 22903)
+-- TOC entry 5638 (class 2620 OID 22903)
 -- Name: change_orders trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29197,7 +29338,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.change_orders FOR EACH
 
 
 --
--- TOC entry 5643 (class 2620 OID 22904)
+-- TOC entry 5640 (class 2620 OID 22904)
 -- Name: commitments trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29205,7 +29346,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.commitments FOR EACH R
 
 
 --
--- TOC entry 5645 (class 2620 OID 22905)
+-- TOC entry 5642 (class 2620 OID 22905)
 -- Name: compliance_checks trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29213,7 +29354,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.compliance_checks FOR 
 
 
 --
--- TOC entry 5647 (class 2620 OID 22906)
+-- TOC entry 5644 (class 2620 OID 22906)
 -- Name: compliance_tracking trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29221,7 +29362,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.compliance_tracking FO
 
 
 --
--- TOC entry 5649 (class 2620 OID 22907)
+-- TOC entry 5646 (class 2620 OID 22907)
 -- Name: cost_codes trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29229,7 +29370,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.cost_codes FOR EACH RO
 
 
 --
--- TOC entry 5651 (class 2620 OID 22908)
+-- TOC entry 5648 (class 2620 OID 22908)
 -- Name: crew_assignments trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29237,7 +29378,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.crew_assignments FOR E
 
 
 --
--- TOC entry 5653 (class 2620 OID 22909)
+-- TOC entry 5650 (class 2620 OID 22909)
 -- Name: crew_members trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29245,7 +29386,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.crew_members FOR EACH 
 
 
 --
--- TOC entry 5655 (class 2620 OID 22910)
+-- TOC entry 5652 (class 2620 OID 22910)
 -- Name: crews trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29253,7 +29394,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.crews FOR EACH ROW EXE
 
 
 --
--- TOC entry 5657 (class 2620 OID 22911)
+-- TOC entry 5654 (class 2620 OID 22911)
 -- Name: daily_logs trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29261,7 +29402,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.daily_logs FOR EACH RO
 
 
 --
--- TOC entry 5659 (class 2620 OID 22912)
+-- TOC entry 5656 (class 2620 OID 22912)
 -- Name: dashboard_configs trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29269,7 +29410,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.dashboard_configs FOR 
 
 
 --
--- TOC entry 5661 (class 2620 OID 22913)
+-- TOC entry 5658 (class 2620 OID 22913)
 -- Name: document_references trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29277,7 +29418,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.document_references FO
 
 
 --
--- TOC entry 5663 (class 2620 OID 22914)
+-- TOC entry 5660 (class 2620 OID 22914)
 -- Name: documents trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29285,7 +29426,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.documents FOR EACH ROW
 
 
 --
--- TOC entry 5665 (class 2620 OID 22915)
+-- TOC entry 5662 (class 2620 OID 22915)
 -- Name: drawing_versions trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29293,7 +29434,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.drawing_versions FOR E
 
 
 --
--- TOC entry 5667 (class 2620 OID 22916)
+-- TOC entry 5664 (class 2620 OID 22916)
 -- Name: dump_trucks trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29301,7 +29442,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.dump_trucks FOR EACH R
 
 
 --
--- TOC entry 5669 (class 2620 OID 22917)
+-- TOC entry 5666 (class 2620 OID 22917)
 -- Name: employees trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29309,7 +29450,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.employees FOR EACH ROW
 
 
 --
--- TOC entry 5671 (class 2620 OID 22918)
+-- TOC entry 5668 (class 2620 OID 22918)
 -- Name: equipment trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29317,7 +29458,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.equipment FOR EACH ROW
 
 
 --
--- TOC entry 5673 (class 2620 OID 22919)
+-- TOC entry 5670 (class 2620 OID 22919)
 -- Name: equipment_assignments trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29325,7 +29466,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.equipment_assignments 
 
 
 --
--- TOC entry 5675 (class 2620 OID 22920)
+-- TOC entry 5672 (class 2620 OID 22920)
 -- Name: equipment_maintenance trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29333,7 +29474,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.equipment_maintenance 
 
 
 --
--- TOC entry 5677 (class 2620 OID 22921)
+-- TOC entry 5674 (class 2620 OID 22921)
 -- Name: equipment_usage trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29341,7 +29482,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.equipment_usage FOR EA
 
 
 --
--- TOC entry 5679 (class 2620 OID 22922)
+-- TOC entry 5676 (class 2620 OID 22922)
 -- Name: estimate_line_items trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29349,7 +29490,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.estimate_line_items FO
 
 
 --
--- TOC entry 5681 (class 2620 OID 22923)
+-- TOC entry 5678 (class 2620 OID 22923)
 -- Name: estimates trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29357,7 +29498,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.estimates FOR EACH ROW
 
 
 --
--- TOC entry 5683 (class 2620 OID 22924)
+-- TOC entry 5680 (class 2620 OID 22924)
 -- Name: financial_documents trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29365,7 +29506,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.financial_documents FO
 
 
 --
--- TOC entry 5685 (class 2620 OID 22925)
+-- TOC entry 5682 (class 2620 OID 22925)
 -- Name: general_ledger trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29373,7 +29514,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.general_ledger FOR EAC
 
 
 --
--- TOC entry 5687 (class 2620 OID 22926)
+-- TOC entry 5684 (class 2620 OID 22926)
 -- Name: hr_documents trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29381,7 +29522,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.hr_documents FOR EACH 
 
 
 --
--- TOC entry 5689 (class 2620 OID 22927)
+-- TOC entry 5686 (class 2620 OID 22927)
 -- Name: inspections trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29389,7 +29530,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.inspections FOR EACH R
 
 
 --
--- TOC entry 5691 (class 2620 OID 22928)
+-- TOC entry 5688 (class 2620 OID 22928)
 -- Name: integration_tokens trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29397,7 +29538,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.integration_tokens FOR
 
 
 --
--- TOC entry 5693 (class 2620 OID 22929)
+-- TOC entry 5690 (class 2620 OID 22929)
 -- Name: inventory_transactions trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29405,7 +29546,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.inventory_transactions
 
 
 --
--- TOC entry 5695 (class 2620 OID 22930)
+-- TOC entry 5692 (class 2620 OID 22930)
 -- Name: issues trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29413,7 +29554,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.issues FOR EACH ROW EX
 
 
 --
--- TOC entry 5697 (class 2620 OID 22931)
+-- TOC entry 5694 (class 2620 OID 22931)
 -- Name: job_titles trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29421,7 +29562,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.job_titles FOR EACH RO
 
 
 --
--- TOC entry 5699 (class 2620 OID 22932)
+-- TOC entry 5696 (class 2620 OID 22932)
 -- Name: labor_records trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29429,7 +29570,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.labor_records FOR EACH
 
 
 --
--- TOC entry 5701 (class 2620 OID 22933)
+-- TOC entry 5698 (class 2620 OID 22933)
 -- Name: line_item_entries trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29437,7 +29578,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.line_item_entries FOR 
 
 
 --
--- TOC entry 5703 (class 2620 OID 22934)
+-- TOC entry 5700 (class 2620 OID 22934)
 -- Name: line_item_templates trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29445,7 +29586,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.line_item_templates FO
 
 
 --
--- TOC entry 5705 (class 2620 OID 22935)
+-- TOC entry 5702 (class 2620 OID 22935)
 -- Name: line_items trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29453,7 +29594,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.line_items FOR EACH RO
 
 
 --
--- TOC entry 5707 (class 2620 OID 22936)
+-- TOC entry 5704 (class 2620 OID 22936)
 -- Name: maps trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29461,7 +29602,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.maps FOR EACH ROW EXEC
 
 
 --
--- TOC entry 5709 (class 2620 OID 22937)
+-- TOC entry 5706 (class 2620 OID 22937)
 -- Name: material_inventory trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29469,7 +29610,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.material_inventory FOR
 
 
 --
--- TOC entry 5711 (class 2620 OID 22938)
+-- TOC entry 5708 (class 2620 OID 22938)
 -- Name: material_orders trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29477,7 +29618,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.material_orders FOR EA
 
 
 --
--- TOC entry 5713 (class 2620 OID 22939)
+-- TOC entry 5710 (class 2620 OID 22939)
 -- Name: material_receipts trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29485,7 +29626,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.material_receipts FOR 
 
 
 --
--- TOC entry 5715 (class 2620 OID 22940)
+-- TOC entry 5712 (class 2620 OID 22940)
 -- Name: materials trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29493,7 +29634,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.materials FOR EACH ROW
 
 
 --
--- TOC entry 5717 (class 2620 OID 22941)
+-- TOC entry 5714 (class 2620 OID 22941)
 -- Name: meeting_minutes trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29501,7 +29642,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.meeting_minutes FOR EA
 
 
 --
--- TOC entry 5720 (class 2620 OID 22942)
+-- TOC entry 5717 (class 2620 OID 22942)
 -- Name: notifications trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29509,7 +29650,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.notifications FOR EACH
 
 
 --
--- TOC entry 5722 (class 2620 OID 22943)
+-- TOC entry 5719 (class 2620 OID 22943)
 -- Name: organization_members trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29517,7 +29658,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.organization_members F
 
 
 --
--- TOC entry 5724 (class 2620 OID 22944)
+-- TOC entry 5721 (class 2620 OID 22944)
 -- Name: organization_projects trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29525,7 +29666,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.organization_projects 
 
 
 --
--- TOC entry 5726 (class 2620 OID 22945)
+-- TOC entry 5723 (class 2620 OID 22945)
 -- Name: organizations trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29533,7 +29674,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.organizations FOR EACH
 
 
 --
--- TOC entry 5728 (class 2620 OID 22946)
+-- TOC entry 5725 (class 2620 OID 22946)
 -- Name: payments trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29541,7 +29682,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.payments FOR EACH ROW 
 
 
 --
--- TOC entry 5730 (class 2620 OID 22947)
+-- TOC entry 5727 (class 2620 OID 22947)
 -- Name: payroll trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29549,7 +29690,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.payroll FOR EACH ROW E
 
 
 --
--- TOC entry 5732 (class 2620 OID 22948)
+-- TOC entry 5729 (class 2620 OID 22948)
 -- Name: photos trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29557,7 +29698,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.photos FOR EACH ROW EX
 
 
 --
--- TOC entry 5734 (class 2620 OID 22949)
+-- TOC entry 5731 (class 2620 OID 22949)
 -- Name: prequalifications trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29565,7 +29706,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.prequalifications FOR 
 
 
 --
--- TOC entry 5736 (class 2620 OID 22950)
+-- TOC entry 5733 (class 2620 OID 22950)
 -- Name: procurement_workflows trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29573,7 +29714,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.procurement_workflows 
 
 
 --
--- TOC entry 5738 (class 2620 OID 22951)
+-- TOC entry 5735 (class 2620 OID 22951)
 -- Name: profiles trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29581,7 +29722,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW 
 
 
 --
--- TOC entry 5740 (class 2620 OID 22952)
+-- TOC entry 5737 (class 2620 OID 22952)
 -- Name: progress_billings trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29589,7 +29730,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.progress_billings FOR 
 
 
 --
--- TOC entry 5742 (class 2620 OID 22953)
+-- TOC entry 5739 (class 2620 OID 22953)
 -- Name: projects trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29597,7 +29738,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.projects FOR EACH ROW 
 
 
 --
--- TOC entry 5744 (class 2620 OID 22954)
+-- TOC entry 5741 (class 2620 OID 22954)
 -- Name: punch_lists trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29605,7 +29746,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.punch_lists FOR EACH R
 
 
 --
--- TOC entry 5746 (class 2620 OID 22955)
+-- TOC entry 5743 (class 2620 OID 22955)
 -- Name: purchase_orders trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29613,7 +29754,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.purchase_orders FOR EA
 
 
 --
--- TOC entry 5748 (class 2620 OID 22956)
+-- TOC entry 5745 (class 2620 OID 22956)
 -- Name: quality_reviews trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29621,7 +29762,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.quality_reviews FOR EA
 
 
 --
--- TOC entry 5750 (class 2620 OID 22957)
+-- TOC entry 5747 (class 2620 OID 22957)
 -- Name: regulatory_documents trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29629,7 +29770,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.regulatory_documents F
 
 
 --
--- TOC entry 5752 (class 2620 OID 22958)
+-- TOC entry 5749 (class 2620 OID 22958)
 -- Name: reports trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29637,7 +29778,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.reports FOR EACH ROW E
 
 
 --
--- TOC entry 5754 (class 2620 OID 22959)
+-- TOC entry 5751 (class 2620 OID 22959)
 -- Name: rfis trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29645,7 +29786,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.rfis FOR EACH ROW EXEC
 
 
 --
--- TOC entry 5756 (class 2620 OID 22960)
+-- TOC entry 5753 (class 2620 OID 22960)
 -- Name: safety_incidents trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29653,7 +29794,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.safety_incidents FOR E
 
 
 --
--- TOC entry 5758 (class 2620 OID 22961)
+-- TOC entry 5755 (class 2620 OID 22961)
 -- Name: sensor_data trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29661,7 +29802,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.sensor_data FOR EACH R
 
 
 --
--- TOC entry 5760 (class 2620 OID 22962)
+-- TOC entry 5757 (class 2620 OID 22962)
 -- Name: subcontractor_agreements trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29669,7 +29810,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.subcontractor_agreemen
 
 
 --
--- TOC entry 5762 (class 2620 OID 22963)
+-- TOC entry 5759 (class 2620 OID 22963)
 -- Name: subcontracts trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29677,7 +29818,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.subcontracts FOR EACH 
 
 
 --
--- TOC entry 5764 (class 2620 OID 22964)
+-- TOC entry 5761 (class 2620 OID 22964)
 -- Name: submittals trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29685,7 +29826,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.submittals FOR EACH RO
 
 
 --
--- TOC entry 5766 (class 2620 OID 22965)
+-- TOC entry 5763 (class 2620 OID 22965)
 -- Name: tack_rates trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29693,7 +29834,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.tack_rates FOR EACH RO
 
 
 --
--- TOC entry 5769 (class 2620 OID 22966)
+-- TOC entry 5766 (class 2620 OID 22966)
 -- Name: tasks trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29701,7 +29842,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.tasks FOR EACH ROW EXE
 
 
 --
--- TOC entry 5771 (class 2620 OID 22967)
+-- TOC entry 5768 (class 2620 OID 22967)
 -- Name: training_records trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29709,7 +29850,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.training_records FOR E
 
 
 --
--- TOC entry 5773 (class 2620 OID 22968)
+-- TOC entry 5770 (class 2620 OID 22968)
 -- Name: user_projects trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29717,7 +29858,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.user_projects FOR EACH
 
 
 --
--- TOC entry 5775 (class 2620 OID 22969)
+-- TOC entry 5772 (class 2620 OID 22969)
 -- Name: vendor_bid_packages trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29725,7 +29866,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.vendor_bid_packages FO
 
 
 --
--- TOC entry 5777 (class 2620 OID 22970)
+-- TOC entry 5774 (class 2620 OID 22970)
 -- Name: vendor_contacts trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29733,7 +29874,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.vendor_contacts FOR EA
 
 
 --
--- TOC entry 5779 (class 2620 OID 22971)
+-- TOC entry 5776 (class 2620 OID 22971)
 -- Name: vendor_documents trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29741,7 +29882,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.vendor_documents FOR E
 
 
 --
--- TOC entry 5781 (class 2620 OID 22972)
+-- TOC entry 5778 (class 2620 OID 22972)
 -- Name: vendor_qualifications trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29749,7 +29890,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.vendor_qualifications 
 
 
 --
--- TOC entry 5783 (class 2620 OID 22973)
+-- TOC entry 5780 (class 2620 OID 22973)
 -- Name: vendors trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29757,7 +29898,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.vendors FOR EACH ROW E
 
 
 --
--- TOC entry 5785 (class 2620 OID 22974)
+-- TOC entry 5782 (class 2620 OID 22974)
 -- Name: wbs trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29765,7 +29906,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.wbs FOR EACH ROW EXECU
 
 
 --
--- TOC entry 5616 (class 2620 OID 22975)
+-- TOC entry 5613 (class 2620 OID 22975)
 -- Name: workflows trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29773,7 +29914,7 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.workflows FOR EACH ROW
 
 
 --
--- TOC entry 5619 (class 2620 OID 22976)
+-- TOC entry 5616 (class 2620 OID 22976)
 -- Name: accounts_payable trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29781,7 +29922,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.accounts_payable FOR
 
 
 --
--- TOC entry 5621 (class 2620 OID 22977)
+-- TOC entry 5618 (class 2620 OID 22977)
 -- Name: accounts_receivable trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29789,7 +29930,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.accounts_receivable 
 
 
 --
--- TOC entry 5623 (class 2620 OID 22978)
+-- TOC entry 5620 (class 2620 OID 22978)
 -- Name: activity_logs trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29797,7 +29938,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.activity_logs FOR EA
 
 
 --
--- TOC entry 5625 (class 2620 OID 22979)
+-- TOC entry 5622 (class 2620 OID 22979)
 -- Name: asphalt_types trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29805,7 +29946,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.asphalt_types FOR EA
 
 
 --
--- TOC entry 5627 (class 2620 OID 22980)
+-- TOC entry 5624 (class 2620 OID 22980)
 -- Name: audit_logs trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29813,7 +29954,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.audit_logs FOR EACH 
 
 
 --
--- TOC entry 5629 (class 2620 OID 22981)
+-- TOC entry 5626 (class 2620 OID 22981)
 -- Name: avatars trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29821,7 +29962,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.avatars FOR EACH ROW
 
 
 --
--- TOC entry 5631 (class 2620 OID 22982)
+-- TOC entry 5628 (class 2620 OID 22982)
 -- Name: bid_packages trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29829,7 +29970,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.bid_packages FOR EAC
 
 
 --
--- TOC entry 5633 (class 2620 OID 22983)
+-- TOC entry 5630 (class 2620 OID 22983)
 -- Name: bid_vendors trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29837,7 +29978,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.bid_vendors FOR EACH
 
 
 --
--- TOC entry 5636 (class 2620 OID 22984)
+-- TOC entry 5633 (class 2620 OID 22984)
 -- Name: bids trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29845,7 +29986,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.bids FOR EACH ROW EX
 
 
 --
--- TOC entry 5638 (class 2620 OID 22985)
+-- TOC entry 5635 (class 2620 OID 22985)
 -- Name: bim_models trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29853,7 +29994,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.bim_models FOR EACH 
 
 
 --
--- TOC entry 5640 (class 2620 OID 22986)
+-- TOC entry 5637 (class 2620 OID 22986)
 -- Name: certifications trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29861,7 +30002,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.certifications FOR E
 
 
 --
--- TOC entry 5642 (class 2620 OID 22987)
+-- TOC entry 5639 (class 2620 OID 22987)
 -- Name: change_orders trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29869,7 +30010,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.change_orders FOR EA
 
 
 --
--- TOC entry 5644 (class 2620 OID 22988)
+-- TOC entry 5641 (class 2620 OID 22988)
 -- Name: commitments trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29877,7 +30018,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.commitments FOR EACH
 
 
 --
--- TOC entry 5646 (class 2620 OID 22989)
+-- TOC entry 5643 (class 2620 OID 22989)
 -- Name: compliance_checks trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29885,7 +30026,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.compliance_checks FO
 
 
 --
--- TOC entry 5648 (class 2620 OID 22990)
+-- TOC entry 5645 (class 2620 OID 22990)
 -- Name: compliance_tracking trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29893,7 +30034,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.compliance_tracking 
 
 
 --
--- TOC entry 5650 (class 2620 OID 22991)
+-- TOC entry 5647 (class 2620 OID 22991)
 -- Name: cost_codes trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29901,7 +30042,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.cost_codes FOR EACH 
 
 
 --
--- TOC entry 5652 (class 2620 OID 22992)
+-- TOC entry 5649 (class 2620 OID 22992)
 -- Name: crew_assignments trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29909,7 +30050,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.crew_assignments FOR
 
 
 --
--- TOC entry 5654 (class 2620 OID 22993)
+-- TOC entry 5651 (class 2620 OID 22993)
 -- Name: crew_members trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29917,7 +30058,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.crew_members FOR EAC
 
 
 --
--- TOC entry 5656 (class 2620 OID 22994)
+-- TOC entry 5653 (class 2620 OID 22994)
 -- Name: crews trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29925,7 +30066,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.crews FOR EACH ROW E
 
 
 --
--- TOC entry 5658 (class 2620 OID 22995)
+-- TOC entry 5655 (class 2620 OID 22995)
 -- Name: daily_logs trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29933,7 +30074,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.daily_logs FOR EACH 
 
 
 --
--- TOC entry 5660 (class 2620 OID 22996)
+-- TOC entry 5657 (class 2620 OID 22996)
 -- Name: dashboard_configs trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29941,7 +30082,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.dashboard_configs FO
 
 
 --
--- TOC entry 5662 (class 2620 OID 22997)
+-- TOC entry 5659 (class 2620 OID 22997)
 -- Name: document_references trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29949,7 +30090,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.document_references 
 
 
 --
--- TOC entry 5664 (class 2620 OID 22998)
+-- TOC entry 5661 (class 2620 OID 22998)
 -- Name: documents trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29957,7 +30098,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.documents FOR EACH R
 
 
 --
--- TOC entry 5666 (class 2620 OID 22999)
+-- TOC entry 5663 (class 2620 OID 22999)
 -- Name: drawing_versions trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29965,7 +30106,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.drawing_versions FOR
 
 
 --
--- TOC entry 5668 (class 2620 OID 23000)
+-- TOC entry 5665 (class 2620 OID 23000)
 -- Name: dump_trucks trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29973,7 +30114,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.dump_trucks FOR EACH
 
 
 --
--- TOC entry 5670 (class 2620 OID 23001)
+-- TOC entry 5667 (class 2620 OID 23001)
 -- Name: employees trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29981,7 +30122,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.employees FOR EACH R
 
 
 --
--- TOC entry 5672 (class 2620 OID 23002)
+-- TOC entry 5669 (class 2620 OID 23002)
 -- Name: equipment trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29989,7 +30130,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.equipment FOR EACH R
 
 
 --
--- TOC entry 5674 (class 2620 OID 23003)
+-- TOC entry 5671 (class 2620 OID 23003)
 -- Name: equipment_assignments trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29997,7 +30138,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.equipment_assignment
 
 
 --
--- TOC entry 5676 (class 2620 OID 23004)
+-- TOC entry 5673 (class 2620 OID 23004)
 -- Name: equipment_maintenance trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30005,7 +30146,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.equipment_maintenanc
 
 
 --
--- TOC entry 5678 (class 2620 OID 23005)
+-- TOC entry 5675 (class 2620 OID 23005)
 -- Name: equipment_usage trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30013,7 +30154,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.equipment_usage FOR 
 
 
 --
--- TOC entry 5680 (class 2620 OID 23006)
+-- TOC entry 5677 (class 2620 OID 23006)
 -- Name: estimate_line_items trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30021,7 +30162,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.estimate_line_items 
 
 
 --
--- TOC entry 5682 (class 2620 OID 23007)
+-- TOC entry 5679 (class 2620 OID 23007)
 -- Name: estimates trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30029,7 +30170,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.estimates FOR EACH R
 
 
 --
--- TOC entry 5684 (class 2620 OID 23008)
+-- TOC entry 5681 (class 2620 OID 23008)
 -- Name: financial_documents trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30037,7 +30178,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.financial_documents 
 
 
 --
--- TOC entry 5686 (class 2620 OID 23009)
+-- TOC entry 5683 (class 2620 OID 23009)
 -- Name: general_ledger trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30045,7 +30186,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.general_ledger FOR E
 
 
 --
--- TOC entry 5688 (class 2620 OID 23010)
+-- TOC entry 5685 (class 2620 OID 23010)
 -- Name: hr_documents trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30053,7 +30194,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.hr_documents FOR EAC
 
 
 --
--- TOC entry 5690 (class 2620 OID 23011)
+-- TOC entry 5687 (class 2620 OID 23011)
 -- Name: inspections trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30061,7 +30202,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.inspections FOR EACH
 
 
 --
--- TOC entry 5692 (class 2620 OID 23012)
+-- TOC entry 5689 (class 2620 OID 23012)
 -- Name: integration_tokens trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30069,7 +30210,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.integration_tokens F
 
 
 --
--- TOC entry 5694 (class 2620 OID 23013)
+-- TOC entry 5691 (class 2620 OID 23013)
 -- Name: inventory_transactions trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30077,7 +30218,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.inventory_transactio
 
 
 --
--- TOC entry 5696 (class 2620 OID 23014)
+-- TOC entry 5693 (class 2620 OID 23014)
 -- Name: issues trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30085,7 +30226,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.issues FOR EACH ROW 
 
 
 --
--- TOC entry 5698 (class 2620 OID 23015)
+-- TOC entry 5695 (class 2620 OID 23015)
 -- Name: job_titles trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30093,7 +30234,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.job_titles FOR EACH 
 
 
 --
--- TOC entry 5700 (class 2620 OID 23016)
+-- TOC entry 5697 (class 2620 OID 23016)
 -- Name: labor_records trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30101,7 +30242,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.labor_records FOR EA
 
 
 --
--- TOC entry 5702 (class 2620 OID 23017)
+-- TOC entry 5699 (class 2620 OID 23017)
 -- Name: line_item_entries trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30109,7 +30250,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.line_item_entries FO
 
 
 --
--- TOC entry 5704 (class 2620 OID 23018)
+-- TOC entry 5701 (class 2620 OID 23018)
 -- Name: line_item_templates trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30117,7 +30258,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.line_item_templates 
 
 
 --
--- TOC entry 5706 (class 2620 OID 23019)
+-- TOC entry 5703 (class 2620 OID 23019)
 -- Name: line_items trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30125,7 +30266,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.line_items FOR EACH 
 
 
 --
--- TOC entry 5708 (class 2620 OID 23020)
+-- TOC entry 5705 (class 2620 OID 23020)
 -- Name: maps trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30133,7 +30274,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.maps FOR EACH ROW EX
 
 
 --
--- TOC entry 5710 (class 2620 OID 23021)
+-- TOC entry 5707 (class 2620 OID 23021)
 -- Name: material_inventory trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30141,7 +30282,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.material_inventory F
 
 
 --
--- TOC entry 5712 (class 2620 OID 23022)
+-- TOC entry 5709 (class 2620 OID 23022)
 -- Name: material_orders trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30149,7 +30290,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.material_orders FOR 
 
 
 --
--- TOC entry 5714 (class 2620 OID 23023)
+-- TOC entry 5711 (class 2620 OID 23023)
 -- Name: material_receipts trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30157,7 +30298,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.material_receipts FO
 
 
 --
--- TOC entry 5716 (class 2620 OID 23024)
+-- TOC entry 5713 (class 2620 OID 23024)
 -- Name: materials trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30165,7 +30306,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.materials FOR EACH R
 
 
 --
--- TOC entry 5718 (class 2620 OID 23025)
+-- TOC entry 5715 (class 2620 OID 23025)
 -- Name: meeting_minutes trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30173,7 +30314,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.meeting_minutes FOR 
 
 
 --
--- TOC entry 5721 (class 2620 OID 23026)
+-- TOC entry 5718 (class 2620 OID 23026)
 -- Name: notifications trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30181,7 +30322,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.notifications FOR EA
 
 
 --
--- TOC entry 5723 (class 2620 OID 23027)
+-- TOC entry 5720 (class 2620 OID 23027)
 -- Name: organization_members trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30189,7 +30330,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.organization_members
 
 
 --
--- TOC entry 5725 (class 2620 OID 23028)
+-- TOC entry 5722 (class 2620 OID 23028)
 -- Name: organization_projects trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30197,7 +30338,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.organization_project
 
 
 --
--- TOC entry 5727 (class 2620 OID 23029)
+-- TOC entry 5724 (class 2620 OID 23029)
 -- Name: organizations trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30205,7 +30346,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.organizations FOR EA
 
 
 --
--- TOC entry 5729 (class 2620 OID 23030)
+-- TOC entry 5726 (class 2620 OID 23030)
 -- Name: payments trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30213,7 +30354,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.payments FOR EACH RO
 
 
 --
--- TOC entry 5731 (class 2620 OID 23031)
+-- TOC entry 5728 (class 2620 OID 23031)
 -- Name: payroll trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30221,7 +30362,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.payroll FOR EACH ROW
 
 
 --
--- TOC entry 5733 (class 2620 OID 23032)
+-- TOC entry 5730 (class 2620 OID 23032)
 -- Name: photos trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30229,7 +30370,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.photos FOR EACH ROW 
 
 
 --
--- TOC entry 5735 (class 2620 OID 23033)
+-- TOC entry 5732 (class 2620 OID 23033)
 -- Name: prequalifications trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30237,7 +30378,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.prequalifications FO
 
 
 --
--- TOC entry 5737 (class 2620 OID 23034)
+-- TOC entry 5734 (class 2620 OID 23034)
 -- Name: procurement_workflows trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30245,7 +30386,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.procurement_workflow
 
 
 --
--- TOC entry 5739 (class 2620 OID 23035)
+-- TOC entry 5736 (class 2620 OID 23035)
 -- Name: profiles trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30253,7 +30394,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.profiles FOR EACH RO
 
 
 --
--- TOC entry 5741 (class 2620 OID 23036)
+-- TOC entry 5738 (class 2620 OID 23036)
 -- Name: progress_billings trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30261,7 +30402,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.progress_billings FO
 
 
 --
--- TOC entry 5743 (class 2620 OID 23037)
+-- TOC entry 5740 (class 2620 OID 23037)
 -- Name: projects trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30269,7 +30410,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.projects FOR EACH RO
 
 
 --
--- TOC entry 5745 (class 2620 OID 23038)
+-- TOC entry 5742 (class 2620 OID 23038)
 -- Name: punch_lists trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30277,7 +30418,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.punch_lists FOR EACH
 
 
 --
--- TOC entry 5747 (class 2620 OID 23039)
+-- TOC entry 5744 (class 2620 OID 23039)
 -- Name: purchase_orders trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30285,7 +30426,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.purchase_orders FOR 
 
 
 --
--- TOC entry 5749 (class 2620 OID 23040)
+-- TOC entry 5746 (class 2620 OID 23040)
 -- Name: quality_reviews trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30293,7 +30434,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.quality_reviews FOR 
 
 
 --
--- TOC entry 5751 (class 2620 OID 23041)
+-- TOC entry 5748 (class 2620 OID 23041)
 -- Name: regulatory_documents trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30301,7 +30442,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.regulatory_documents
 
 
 --
--- TOC entry 5753 (class 2620 OID 23042)
+-- TOC entry 5750 (class 2620 OID 23042)
 -- Name: reports trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30309,7 +30450,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.reports FOR EACH ROW
 
 
 --
--- TOC entry 5755 (class 2620 OID 23043)
+-- TOC entry 5752 (class 2620 OID 23043)
 -- Name: rfis trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30317,7 +30458,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.rfis FOR EACH ROW EX
 
 
 --
--- TOC entry 5757 (class 2620 OID 23044)
+-- TOC entry 5754 (class 2620 OID 23044)
 -- Name: safety_incidents trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30325,7 +30466,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.safety_incidents FOR
 
 
 --
--- TOC entry 5759 (class 2620 OID 23045)
+-- TOC entry 5756 (class 2620 OID 23045)
 -- Name: sensor_data trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30333,7 +30474,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.sensor_data FOR EACH
 
 
 --
--- TOC entry 5761 (class 2620 OID 23046)
+-- TOC entry 5758 (class 2620 OID 23046)
 -- Name: subcontractor_agreements trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30341,7 +30482,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.subcontractor_agreem
 
 
 --
--- TOC entry 5763 (class 2620 OID 23047)
+-- TOC entry 5760 (class 2620 OID 23047)
 -- Name: subcontracts trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30349,7 +30490,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.subcontracts FOR EAC
 
 
 --
--- TOC entry 5765 (class 2620 OID 23048)
+-- TOC entry 5762 (class 2620 OID 23048)
 -- Name: submittals trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30357,7 +30498,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.submittals FOR EACH 
 
 
 --
--- TOC entry 5767 (class 2620 OID 23049)
+-- TOC entry 5764 (class 2620 OID 23049)
 -- Name: tack_rates trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30365,7 +30506,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.tack_rates FOR EACH 
 
 
 --
--- TOC entry 5768 (class 2620 OID 23050)
+-- TOC entry 5765 (class 2620 OID 23050)
 -- Name: task_dependencies trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30373,7 +30514,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.task_dependencies FO
 
 
 --
--- TOC entry 5770 (class 2620 OID 23051)
+-- TOC entry 5767 (class 2620 OID 23051)
 -- Name: tasks trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30381,7 +30522,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.tasks FOR EACH ROW E
 
 
 --
--- TOC entry 5772 (class 2620 OID 23052)
+-- TOC entry 5769 (class 2620 OID 23052)
 -- Name: training_records trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30389,7 +30530,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.training_records FOR
 
 
 --
--- TOC entry 5774 (class 2620 OID 23053)
+-- TOC entry 5771 (class 2620 OID 23053)
 -- Name: user_projects trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30397,7 +30538,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.user_projects FOR EA
 
 
 --
--- TOC entry 5776 (class 2620 OID 23054)
+-- TOC entry 5773 (class 2620 OID 23054)
 -- Name: vendor_bid_packages trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30405,7 +30546,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.vendor_bid_packages 
 
 
 --
--- TOC entry 5778 (class 2620 OID 23055)
+-- TOC entry 5775 (class 2620 OID 23055)
 -- Name: vendor_contacts trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30413,7 +30554,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.vendor_contacts FOR 
 
 
 --
--- TOC entry 5780 (class 2620 OID 23056)
+-- TOC entry 5777 (class 2620 OID 23056)
 -- Name: vendor_documents trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30421,7 +30562,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.vendor_documents FOR
 
 
 --
--- TOC entry 5782 (class 2620 OID 23057)
+-- TOC entry 5779 (class 2620 OID 23057)
 -- Name: vendor_qualifications trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30429,7 +30570,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.vendor_qualification
 
 
 --
--- TOC entry 5784 (class 2620 OID 23058)
+-- TOC entry 5781 (class 2620 OID 23058)
 -- Name: vendors trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30437,7 +30578,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.vendors FOR EACH ROW
 
 
 --
--- TOC entry 5786 (class 2620 OID 23059)
+-- TOC entry 5783 (class 2620 OID 23059)
 -- Name: wbs trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30445,7 +30586,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.wbs FOR EACH ROW EXE
 
 
 --
--- TOC entry 5617 (class 2620 OID 23060)
+-- TOC entry 5614 (class 2620 OID 23060)
 -- Name: workflows trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30453,7 +30594,7 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.workflows FOR EACH R
 
 
 --
--- TOC entry 5481 (class 2606 OID 23061)
+-- TOC entry 5479 (class 2606 OID 23061)
 -- Name: activity_logs fk_activity_logs_profile; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30462,7 +30603,7 @@ ALTER TABLE ONLY public.activity_logs
 
 
 --
--- TOC entry 5479 (class 2606 OID 23066)
+-- TOC entry 5477 (class 2606 OID 23066)
 -- Name: accounts_payable fk_ap_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30471,7 +30612,7 @@ ALTER TABLE ONLY public.accounts_payable
 
 
 --
--- TOC entry 5480 (class 2606 OID 23071)
+-- TOC entry 5478 (class 2606 OID 23071)
 -- Name: accounts_receivable fk_ar_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30480,7 +30621,7 @@ ALTER TABLE ONLY public.accounts_receivable
 
 
 --
--- TOC entry 5482 (class 2606 OID 23076)
+-- TOC entry 5480 (class 2606 OID 23076)
 -- Name: audit_logs fk_audit_logs_performed_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30489,7 +30630,7 @@ ALTER TABLE ONLY public.audit_logs
 
 
 --
--- TOC entry 5483 (class 2606 OID 23081)
+-- TOC entry 5481 (class 2606 OID 23081)
 -- Name: audit_logs fk_audit_logs_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30498,7 +30639,7 @@ ALTER TABLE ONLY public.audit_logs
 
 
 --
--- TOC entry 5484 (class 2606 OID 23086)
+-- TOC entry 5482 (class 2606 OID 23086)
 -- Name: bid_packages fk_bid_packages_created_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30507,7 +30648,7 @@ ALTER TABLE ONLY public.bid_packages
 
 
 --
--- TOC entry 5485 (class 2606 OID 23091)
+-- TOC entry 5483 (class 2606 OID 23091)
 -- Name: bid_packages fk_bid_packages_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30516,7 +30657,7 @@ ALTER TABLE ONLY public.bid_packages
 
 
 --
--- TOC entry 5486 (class 2606 OID 23096)
+-- TOC entry 5484 (class 2606 OID 23096)
 -- Name: bid_vendors fk_bid_vendors_bid_package; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30525,7 +30666,7 @@ ALTER TABLE ONLY public.bid_vendors
 
 
 --
--- TOC entry 5487 (class 2606 OID 23101)
+-- TOC entry 5485 (class 2606 OID 23101)
 -- Name: bid_vendors fk_bid_vendors_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30534,7 +30675,7 @@ ALTER TABLE ONLY public.bid_vendors
 
 
 --
--- TOC entry 5488 (class 2606 OID 23106)
+-- TOC entry 5486 (class 2606 OID 23106)
 -- Name: bids fk_bids_bid_package; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30543,7 +30684,7 @@ ALTER TABLE ONLY public.bids
 
 
 --
--- TOC entry 5489 (class 2606 OID 23111)
+-- TOC entry 5487 (class 2606 OID 23111)
 -- Name: bids fk_bids_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30552,7 +30693,7 @@ ALTER TABLE ONLY public.bids
 
 
 --
--- TOC entry 5490 (class 2606 OID 23116)
+-- TOC entry 5488 (class 2606 OID 23116)
 -- Name: bim_models fk_bim_models_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30561,7 +30702,7 @@ ALTER TABLE ONLY public.bim_models
 
 
 --
--- TOC entry 5491 (class 2606 OID 23121)
+-- TOC entry 5489 (class 2606 OID 23121)
 -- Name: certifications fk_certifications_employee; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30570,7 +30711,7 @@ ALTER TABLE ONLY public.certifications
 
 
 --
--- TOC entry 5492 (class 2606 OID 23126)
+-- TOC entry 5490 (class 2606 OID 23126)
 -- Name: change_orders fk_change_orders_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30579,7 +30720,7 @@ ALTER TABLE ONLY public.change_orders
 
 
 --
--- TOC entry 5493 (class 2606 OID 23131)
+-- TOC entry 5491 (class 2606 OID 23131)
 -- Name: commitments fk_commitments_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30588,7 +30729,7 @@ ALTER TABLE ONLY public.commitments
 
 
 --
--- TOC entry 5494 (class 2606 OID 23136)
+-- TOC entry 5492 (class 2606 OID 23136)
 -- Name: commitments fk_commitments_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30597,7 +30738,7 @@ ALTER TABLE ONLY public.commitments
 
 
 --
--- TOC entry 5495 (class 2606 OID 23141)
+-- TOC entry 5493 (class 2606 OID 23141)
 -- Name: compliance_checks fk_compliance_checks_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30606,7 +30747,7 @@ ALTER TABLE ONLY public.compliance_checks
 
 
 --
--- TOC entry 5496 (class 2606 OID 23146)
+-- TOC entry 5494 (class 2606 OID 23146)
 -- Name: compliance_tracking fk_compliance_tracking_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30615,7 +30756,7 @@ ALTER TABLE ONLY public.compliance_tracking
 
 
 --
--- TOC entry 5497 (class 2606 OID 23151)
+-- TOC entry 5495 (class 2606 OID 23151)
 -- Name: crew_assignments fk_crew_assignments_crew; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30624,7 +30765,7 @@ ALTER TABLE ONLY public.crew_assignments
 
 
 --
--- TOC entry 5498 (class 2606 OID 23156)
+-- TOC entry 5496 (class 2606 OID 23156)
 -- Name: crew_assignments fk_crew_assignments_profile; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30633,7 +30774,7 @@ ALTER TABLE ONLY public.crew_assignments
 
 
 --
--- TOC entry 5499 (class 2606 OID 23161)
+-- TOC entry 5497 (class 2606 OID 23161)
 -- Name: crew_members fk_crew_members_crew; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30642,7 +30783,7 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5500 (class 2606 OID 23166)
+-- TOC entry 5498 (class 2606 OID 23166)
 -- Name: crew_members fk_crew_members_profile; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30651,7 +30792,7 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5501 (class 2606 OID 23171)
+-- TOC entry 5499 (class 2606 OID 23171)
 -- Name: crews fk_crews_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30660,7 +30801,7 @@ ALTER TABLE ONLY public.crews
 
 
 --
--- TOC entry 5502 (class 2606 OID 23176)
+-- TOC entry 5500 (class 2606 OID 23176)
 -- Name: daily_logs fk_daily_logs_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30669,7 +30810,7 @@ ALTER TABLE ONLY public.daily_logs
 
 
 --
--- TOC entry 5503 (class 2606 OID 23181)
+-- TOC entry 5501 (class 2606 OID 23181)
 -- Name: dashboard_configs fk_dashboard_configs_profile; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30678,7 +30819,7 @@ ALTER TABLE ONLY public.dashboard_configs
 
 
 --
--- TOC entry 5504 (class 2606 OID 23186)
+-- TOC entry 5502 (class 2606 OID 23186)
 -- Name: document_references fk_document_references_document; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30687,7 +30828,7 @@ ALTER TABLE ONLY public.document_references
 
 
 --
--- TOC entry 5505 (class 2606 OID 23191)
+-- TOC entry 5503 (class 2606 OID 23191)
 -- Name: documents fk_documents_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30696,7 +30837,7 @@ ALTER TABLE ONLY public.documents
 
 
 --
--- TOC entry 5506 (class 2606 OID 23196)
+-- TOC entry 5504 (class 2606 OID 23196)
 -- Name: documents fk_documents_uploaded_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30705,7 +30846,7 @@ ALTER TABLE ONLY public.documents
 
 
 --
--- TOC entry 5507 (class 2606 OID 23201)
+-- TOC entry 5505 (class 2606 OID 23201)
 -- Name: drawing_versions fk_drawing_versions_document; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30714,7 +30855,7 @@ ALTER TABLE ONLY public.drawing_versions
 
 
 --
--- TOC entry 5508 (class 2606 OID 23206)
+-- TOC entry 5506 (class 2606 OID 23206)
 -- Name: drawing_versions fk_drawing_versions_uploaded_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30723,7 +30864,7 @@ ALTER TABLE ONLY public.drawing_versions
 
 
 --
--- TOC entry 5509 (class 2606 OID 23211)
+-- TOC entry 5507 (class 2606 OID 23211)
 -- Name: dump_trucks fk_dump_trucks_organization; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30732,7 +30873,7 @@ ALTER TABLE ONLY public.dump_trucks
 
 
 --
--- TOC entry 5510 (class 2606 OID 23216)
+-- TOC entry 5508 (class 2606 OID 23216)
 -- Name: employees fk_employees_organization; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30741,7 +30882,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- TOC entry 5511 (class 2606 OID 23221)
+-- TOC entry 5509 (class 2606 OID 23221)
 -- Name: employees fk_employees_profile; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30750,7 +30891,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- TOC entry 5513 (class 2606 OID 23226)
+-- TOC entry 5511 (class 2606 OID 23226)
 -- Name: equipment_assignments fk_equipment_assignments_assigned_to; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30759,7 +30900,7 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5514 (class 2606 OID 23231)
+-- TOC entry 5512 (class 2606 OID 23231)
 -- Name: equipment_assignments fk_equipment_assignments_equipment; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30768,7 +30909,7 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5515 (class 2606 OID 23236)
+-- TOC entry 5513 (class 2606 OID 23236)
 -- Name: equipment_assignments fk_equipment_assignments_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30777,7 +30918,7 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5516 (class 2606 OID 23241)
+-- TOC entry 5514 (class 2606 OID 23241)
 -- Name: equipment_maintenance fk_equipment_maintenance_equipment; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30786,7 +30927,7 @@ ALTER TABLE ONLY public.equipment_maintenance
 
 
 --
--- TOC entry 5517 (class 2606 OID 23246)
+-- TOC entry 5515 (class 2606 OID 23246)
 -- Name: equipment_maintenance fk_equipment_maintenance_performed_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30795,7 +30936,7 @@ ALTER TABLE ONLY public.equipment_maintenance
 
 
 --
--- TOC entry 5512 (class 2606 OID 23251)
+-- TOC entry 5510 (class 2606 OID 23251)
 -- Name: equipment fk_equipment_organization; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30804,7 +30945,7 @@ ALTER TABLE ONLY public.equipment
 
 
 --
--- TOC entry 5518 (class 2606 OID 23256)
+-- TOC entry 5516 (class 2606 OID 23256)
 -- Name: equipment_usage fk_equipment_usage_equipment; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30813,7 +30954,7 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5519 (class 2606 OID 23261)
+-- TOC entry 5517 (class 2606 OID 23261)
 -- Name: estimate_line_items fk_estimate_line_items_cost_code; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30822,7 +30963,7 @@ ALTER TABLE ONLY public.estimate_line_items
 
 
 --
--- TOC entry 5520 (class 2606 OID 23266)
+-- TOC entry 5518 (class 2606 OID 23266)
 -- Name: estimate_line_items fk_estimate_line_items_estimate; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30831,7 +30972,7 @@ ALTER TABLE ONLY public.estimate_line_items
 
 
 --
--- TOC entry 5521 (class 2606 OID 23271)
+-- TOC entry 5519 (class 2606 OID 23271)
 -- Name: estimates fk_estimates_created_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30840,7 +30981,7 @@ ALTER TABLE ONLY public.estimates
 
 
 --
--- TOC entry 5522 (class 2606 OID 23276)
+-- TOC entry 5520 (class 2606 OID 23276)
 -- Name: estimates fk_estimates_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30849,7 +30990,7 @@ ALTER TABLE ONLY public.estimates
 
 
 --
--- TOC entry 5523 (class 2606 OID 23281)
+-- TOC entry 5521 (class 2606 OID 23281)
 -- Name: financial_documents fk_financial_documents_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30858,7 +30999,7 @@ ALTER TABLE ONLY public.financial_documents
 
 
 --
--- TOC entry 5524 (class 2606 OID 23286)
+-- TOC entry 5522 (class 2606 OID 23286)
 -- Name: general_ledger fk_gl_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30867,7 +31008,7 @@ ALTER TABLE ONLY public.general_ledger
 
 
 --
--- TOC entry 5525 (class 2606 OID 23291)
+-- TOC entry 5523 (class 2606 OID 23291)
 -- Name: hr_documents fk_hr_documents_employee; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30876,7 +31017,7 @@ ALTER TABLE ONLY public.hr_documents
 
 
 --
--- TOC entry 5526 (class 2606 OID 23296)
+-- TOC entry 5524 (class 2606 OID 23296)
 -- Name: inspections fk_inspections_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30885,7 +31026,7 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 5527 (class 2606 OID 23301)
+-- TOC entry 5525 (class 2606 OID 23301)
 -- Name: integration_tokens fk_integration_tokens_profile; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30894,7 +31035,7 @@ ALTER TABLE ONLY public.integration_tokens
 
 
 --
--- TOC entry 5528 (class 2606 OID 23306)
+-- TOC entry 5526 (class 2606 OID 23306)
 -- Name: inventory_transactions fk_inventory_transactions_material; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30903,7 +31044,7 @@ ALTER TABLE ONLY public.inventory_transactions
 
 
 --
--- TOC entry 5529 (class 2606 OID 23311)
+-- TOC entry 5527 (class 2606 OID 23311)
 -- Name: issues fk_issues_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30912,7 +31053,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5530 (class 2606 OID 23316)
+-- TOC entry 5528 (class 2606 OID 23316)
 -- Name: issues fk_issues_reported_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30921,7 +31062,7 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5531 (class 2606 OID 23321)
+-- TOC entry 5529 (class 2606 OID 23321)
 -- Name: labor_records fk_labor_records_line_item; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30930,7 +31071,7 @@ ALTER TABLE ONLY public.labor_records
 
 
 --
--- TOC entry 5532 (class 2606 OID 23326)
+-- TOC entry 5530 (class 2606 OID 23326)
 -- Name: line_item_entries fk_line_item_entries_line_item; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30939,7 +31080,7 @@ ALTER TABLE ONLY public.line_item_entries
 
 
 --
--- TOC entry 5533 (class 2606 OID 23331)
+-- TOC entry 5531 (class 2606 OID 23331)
 -- Name: line_item_templates fk_line_item_templates_created_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30948,7 +31089,7 @@ ALTER TABLE ONLY public.line_item_templates
 
 
 --
--- TOC entry 5534 (class 2606 OID 23336)
+-- TOC entry 5532 (class 2606 OID 23336)
 -- Name: line_items fk_line_items_cost_code; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30957,7 +31098,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5535 (class 2606 OID 23341)
+-- TOC entry 5533 (class 2606 OID 23341)
 -- Name: line_items fk_line_items_map; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30966,7 +31107,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5536 (class 2606 OID 23346)
+-- TOC entry 5534 (class 2606 OID 23346)
 -- Name: line_items fk_line_items_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30975,7 +31116,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5537 (class 2606 OID 23351)
+-- TOC entry 5535 (class 2606 OID 23351)
 -- Name: line_items fk_line_items_template; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30984,7 +31125,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5538 (class 2606 OID 23356)
+-- TOC entry 5536 (class 2606 OID 23356)
 -- Name: line_items fk_line_items_wbs; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30993,7 +31134,7 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5539 (class 2606 OID 23361)
+-- TOC entry 5537 (class 2606 OID 23361)
 -- Name: maps fk_maps_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31002,7 +31143,7 @@ ALTER TABLE ONLY public.maps
 
 
 --
--- TOC entry 5540 (class 2606 OID 23366)
+-- TOC entry 5538 (class 2606 OID 23366)
 -- Name: maps fk_maps_wbs; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31011,7 +31152,7 @@ ALTER TABLE ONLY public.maps
 
 
 --
--- TOC entry 5541 (class 2606 OID 23371)
+-- TOC entry 5539 (class 2606 OID 23371)
 -- Name: material_inventory fk_material_inventory_material; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31020,7 +31161,7 @@ ALTER TABLE ONLY public.material_inventory
 
 
 --
--- TOC entry 5542 (class 2606 OID 23376)
+-- TOC entry 5540 (class 2606 OID 23376)
 -- Name: material_inventory fk_material_inventory_organization; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31029,7 +31170,7 @@ ALTER TABLE ONLY public.material_inventory
 
 
 --
--- TOC entry 5543 (class 2606 OID 23381)
+-- TOC entry 5541 (class 2606 OID 23381)
 -- Name: material_orders fk_material_orders_material; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31038,7 +31179,7 @@ ALTER TABLE ONLY public.material_orders
 
 
 --
--- TOC entry 5544 (class 2606 OID 23386)
+-- TOC entry 5542 (class 2606 OID 23386)
 -- Name: material_orders fk_material_orders_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31047,7 +31188,7 @@ ALTER TABLE ONLY public.material_orders
 
 
 --
--- TOC entry 5545 (class 2606 OID 23391)
+-- TOC entry 5543 (class 2606 OID 23391)
 -- Name: material_receipts fk_material_receipts_material_order; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31056,7 +31197,7 @@ ALTER TABLE ONLY public.material_receipts
 
 
 --
--- TOC entry 5546 (class 2606 OID 23396)
+-- TOC entry 5544 (class 2606 OID 23396)
 -- Name: material_receipts fk_material_receipts_received_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31065,7 +31206,7 @@ ALTER TABLE ONLY public.material_receipts
 
 
 --
--- TOC entry 5547 (class 2606 OID 23401)
+-- TOC entry 5545 (class 2606 OID 23401)
 -- Name: materials fk_materials_organization; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31074,7 +31215,7 @@ ALTER TABLE ONLY public.materials
 
 
 --
--- TOC entry 5548 (class 2606 OID 23406)
+-- TOC entry 5546 (class 2606 OID 23406)
 -- Name: meeting_minutes fk_meeting_minutes_created_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31083,7 +31224,7 @@ ALTER TABLE ONLY public.meeting_minutes
 
 
 --
--- TOC entry 5549 (class 2606 OID 23411)
+-- TOC entry 5547 (class 2606 OID 23411)
 -- Name: meeting_minutes fk_meeting_minutes_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31092,7 +31233,7 @@ ALTER TABLE ONLY public.meeting_minutes
 
 
 --
--- TOC entry 5551 (class 2606 OID 23416)
+-- TOC entry 5549 (class 2606 OID 23416)
 -- Name: organization_members fk_org_members_org; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31101,7 +31242,7 @@ ALTER TABLE ONLY public.organization_members
 
 
 --
--- TOC entry 5552 (class 2606 OID 23421)
+-- TOC entry 5550 (class 2606 OID 23421)
 -- Name: organization_members fk_org_members_profile; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31110,7 +31251,7 @@ ALTER TABLE ONLY public.organization_members
 
 
 --
--- TOC entry 5555 (class 2606 OID 23426)
+-- TOC entry 5552 (class 2606 OID 23426)
 -- Name: organization_projects fk_org_projects_org; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31119,7 +31260,7 @@ ALTER TABLE ONLY public.organization_projects
 
 
 --
--- TOC entry 5556 (class 2606 OID 23431)
+-- TOC entry 5553 (class 2606 OID 23431)
 -- Name: organization_projects fk_org_projects_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31128,7 +31269,7 @@ ALTER TABLE ONLY public.organization_projects
 
 
 --
--- TOC entry 5557 (class 2606 OID 23436)
+-- TOC entry 5554 (class 2606 OID 23436)
 -- Name: payments fk_payments_commitment; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31137,7 +31278,7 @@ ALTER TABLE ONLY public.payments
 
 
 --
--- TOC entry 5558 (class 2606 OID 23441)
+-- TOC entry 5555 (class 2606 OID 23441)
 -- Name: payments fk_payments_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31146,7 +31287,7 @@ ALTER TABLE ONLY public.payments
 
 
 --
--- TOC entry 5559 (class 2606 OID 23446)
+-- TOC entry 5556 (class 2606 OID 23446)
 -- Name: payroll fk_payroll_employee; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31155,7 +31296,7 @@ ALTER TABLE ONLY public.payroll
 
 
 --
--- TOC entry 5560 (class 2606 OID 23451)
+-- TOC entry 5557 (class 2606 OID 23451)
 -- Name: photos fk_photos_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31164,7 +31305,7 @@ ALTER TABLE ONLY public.photos
 
 
 --
--- TOC entry 5561 (class 2606 OID 23456)
+-- TOC entry 5558 (class 2606 OID 23456)
 -- Name: photos fk_photos_uploaded_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31173,7 +31314,7 @@ ALTER TABLE ONLY public.photos
 
 
 --
--- TOC entry 5562 (class 2606 OID 23461)
+-- TOC entry 5559 (class 2606 OID 23461)
 -- Name: prequalifications fk_prequalifications_reviewed_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31182,7 +31323,7 @@ ALTER TABLE ONLY public.prequalifications
 
 
 --
--- TOC entry 5563 (class 2606 OID 23466)
+-- TOC entry 5560 (class 2606 OID 23466)
 -- Name: prequalifications fk_prequalifications_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31191,7 +31332,7 @@ ALTER TABLE ONLY public.prequalifications
 
 
 --
--- TOC entry 5564 (class 2606 OID 23471)
+-- TOC entry 5561 (class 2606 OID 23471)
 -- Name: procurement_workflows fk_procurement_workflows_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31200,7 +31341,7 @@ ALTER TABLE ONLY public.procurement_workflows
 
 
 --
--- TOC entry 5565 (class 2606 OID 26431)
+-- TOC entry 5562 (class 2606 OID 26431)
 -- Name: profiles fk_profiles_avatar_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31209,7 +31350,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5566 (class 2606 OID 23481)
+-- TOC entry 5563 (class 2606 OID 23481)
 -- Name: profiles fk_profiles_organizations; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31218,7 +31359,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5567 (class 2606 OID 23486)
+-- TOC entry 5564 (class 2606 OID 23486)
 -- Name: progress_billings fk_progress_billings_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31227,7 +31368,7 @@ ALTER TABLE ONLY public.progress_billings
 
 
 --
--- TOC entry 5571 (class 2606 OID 23491)
+-- TOC entry 5568 (class 2606 OID 23491)
 -- Name: projects fk_projects_organizations; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31236,7 +31377,7 @@ ALTER TABLE ONLY public.projects
 
 
 --
--- TOC entry 5572 (class 2606 OID 23496)
+-- TOC entry 5569 (class 2606 OID 23496)
 -- Name: punch_lists fk_punch_lists_assigned_to; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31245,7 +31386,7 @@ ALTER TABLE ONLY public.punch_lists
 
 
 --
--- TOC entry 5573 (class 2606 OID 23501)
+-- TOC entry 5570 (class 2606 OID 23501)
 -- Name: punch_lists fk_punch_lists_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31254,7 +31395,7 @@ ALTER TABLE ONLY public.punch_lists
 
 
 --
--- TOC entry 5574 (class 2606 OID 23506)
+-- TOC entry 5571 (class 2606 OID 23506)
 -- Name: purchase_orders fk_purchase_orders_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31263,7 +31404,7 @@ ALTER TABLE ONLY public.purchase_orders
 
 
 --
--- TOC entry 5575 (class 2606 OID 23511)
+-- TOC entry 5572 (class 2606 OID 23511)
 -- Name: purchase_orders fk_purchase_orders_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31272,7 +31413,7 @@ ALTER TABLE ONLY public.purchase_orders
 
 
 --
--- TOC entry 5576 (class 2606 OID 23516)
+-- TOC entry 5573 (class 2606 OID 23516)
 -- Name: quality_reviews fk_quality_reviews_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31281,7 +31422,7 @@ ALTER TABLE ONLY public.quality_reviews
 
 
 --
--- TOC entry 5577 (class 2606 OID 23521)
+-- TOC entry 5574 (class 2606 OID 23521)
 -- Name: quality_reviews fk_quality_reviews_reviewer; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31290,7 +31431,7 @@ ALTER TABLE ONLY public.quality_reviews
 
 
 --
--- TOC entry 5578 (class 2606 OID 23526)
+-- TOC entry 5575 (class 2606 OID 23526)
 -- Name: regulatory_documents fk_regulatory_documents_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31299,7 +31440,7 @@ ALTER TABLE ONLY public.regulatory_documents
 
 
 --
--- TOC entry 5579 (class 2606 OID 23531)
+-- TOC entry 5576 (class 2606 OID 23531)
 -- Name: reports fk_reports_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31308,7 +31449,7 @@ ALTER TABLE ONLY public.reports
 
 
 --
--- TOC entry 5580 (class 2606 OID 23536)
+-- TOC entry 5577 (class 2606 OID 23536)
 -- Name: rfis fk_rfis_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31317,7 +31458,7 @@ ALTER TABLE ONLY public.rfis
 
 
 --
--- TOC entry 5581 (class 2606 OID 23541)
+-- TOC entry 5578 (class 2606 OID 23541)
 -- Name: rfis fk_rfis_reviewed_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31326,7 +31467,7 @@ ALTER TABLE ONLY public.rfis
 
 
 --
--- TOC entry 5582 (class 2606 OID 23546)
+-- TOC entry 5579 (class 2606 OID 23546)
 -- Name: rfis fk_rfis_submitted_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31335,7 +31476,7 @@ ALTER TABLE ONLY public.rfis
 
 
 --
--- TOC entry 5583 (class 2606 OID 23551)
+-- TOC entry 5580 (class 2606 OID 23551)
 -- Name: safety_incidents fk_safety_incidents_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31344,7 +31485,7 @@ ALTER TABLE ONLY public.safety_incidents
 
 
 --
--- TOC entry 5584 (class 2606 OID 23556)
+-- TOC entry 5581 (class 2606 OID 23556)
 -- Name: safety_incidents fk_safety_incidents_reported_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31353,7 +31494,7 @@ ALTER TABLE ONLY public.safety_incidents
 
 
 --
--- TOC entry 5585 (class 2606 OID 23561)
+-- TOC entry 5582 (class 2606 OID 23561)
 -- Name: sensor_data fk_sensor_data_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31362,7 +31503,7 @@ ALTER TABLE ONLY public.sensor_data
 
 
 --
--- TOC entry 5586 (class 2606 OID 23566)
+-- TOC entry 5583 (class 2606 OID 23566)
 -- Name: subcontractor_agreements fk_subcontractor_agreements_subcontract; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31371,7 +31512,7 @@ ALTER TABLE ONLY public.subcontractor_agreements
 
 
 --
--- TOC entry 5587 (class 2606 OID 23571)
+-- TOC entry 5584 (class 2606 OID 23571)
 -- Name: subcontracts fk_subcontracts_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31380,7 +31521,7 @@ ALTER TABLE ONLY public.subcontracts
 
 
 --
--- TOC entry 5588 (class 2606 OID 23576)
+-- TOC entry 5585 (class 2606 OID 23576)
 -- Name: subcontracts fk_subcontracts_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31389,7 +31530,7 @@ ALTER TABLE ONLY public.subcontracts
 
 
 --
--- TOC entry 5589 (class 2606 OID 23581)
+-- TOC entry 5586 (class 2606 OID 23581)
 -- Name: submittals fk_submittals_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31398,7 +31539,7 @@ ALTER TABLE ONLY public.submittals
 
 
 --
--- TOC entry 5590 (class 2606 OID 23586)
+-- TOC entry 5587 (class 2606 OID 23586)
 -- Name: submittals fk_submittals_reviewed_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31407,7 +31548,7 @@ ALTER TABLE ONLY public.submittals
 
 
 --
--- TOC entry 5591 (class 2606 OID 23591)
+-- TOC entry 5588 (class 2606 OID 23591)
 -- Name: submittals fk_submittals_submitted_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31416,7 +31557,7 @@ ALTER TABLE ONLY public.submittals
 
 
 --
--- TOC entry 5592 (class 2606 OID 23596)
+-- TOC entry 5589 (class 2606 OID 23596)
 -- Name: tack_rates fk_tack_rates_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31425,7 +31566,7 @@ ALTER TABLE ONLY public.tack_rates
 
 
 --
--- TOC entry 5596 (class 2606 OID 23601)
+-- TOC entry 5593 (class 2606 OID 23601)
 -- Name: training_records fk_training_records_employee; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31434,7 +31575,7 @@ ALTER TABLE ONLY public.training_records
 
 
 --
--- TOC entry 5597 (class 2606 OID 23606)
+-- TOC entry 5594 (class 2606 OID 23606)
 -- Name: user_projects fk_user_projects_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31443,7 +31584,7 @@ ALTER TABLE ONLY public.user_projects
 
 
 --
--- TOC entry 5598 (class 2606 OID 23611)
+-- TOC entry 5595 (class 2606 OID 23611)
 -- Name: user_projects fk_user_projects_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31452,7 +31593,7 @@ ALTER TABLE ONLY public.user_projects
 
 
 --
--- TOC entry 5599 (class 2606 OID 23616)
+-- TOC entry 5596 (class 2606 OID 23616)
 -- Name: vendor_bid_packages fk_vendor_bid_packages_bid_package; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31461,7 +31602,7 @@ ALTER TABLE ONLY public.vendor_bid_packages
 
 
 --
--- TOC entry 5600 (class 2606 OID 23621)
+-- TOC entry 5597 (class 2606 OID 23621)
 -- Name: vendor_bid_packages fk_vendor_bid_packages_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31470,7 +31611,7 @@ ALTER TABLE ONLY public.vendor_bid_packages
 
 
 --
--- TOC entry 5601 (class 2606 OID 23626)
+-- TOC entry 5598 (class 2606 OID 23626)
 -- Name: vendor_contacts fk_vendor_contacts_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31479,7 +31620,7 @@ ALTER TABLE ONLY public.vendor_contacts
 
 
 --
--- TOC entry 5602 (class 2606 OID 23631)
+-- TOC entry 5599 (class 2606 OID 23631)
 -- Name: vendor_documents fk_vendor_documents_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31488,7 +31629,7 @@ ALTER TABLE ONLY public.vendor_documents
 
 
 --
--- TOC entry 5603 (class 2606 OID 23636)
+-- TOC entry 5600 (class 2606 OID 23636)
 -- Name: vendor_qualifications fk_vendor_qualifications_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31497,7 +31638,7 @@ ALTER TABLE ONLY public.vendor_qualifications
 
 
 --
--- TOC entry 5604 (class 2606 OID 23641)
+-- TOC entry 5601 (class 2606 OID 23641)
 -- Name: vendors fk_vendors_organization; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31506,7 +31647,7 @@ ALTER TABLE ONLY public.vendors
 
 
 --
--- TOC entry 5605 (class 2606 OID 23646)
+-- TOC entry 5602 (class 2606 OID 23646)
 -- Name: wbs fk_wbs_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31515,7 +31656,7 @@ ALTER TABLE ONLY public.wbs
 
 
 --
--- TOC entry 5550 (class 2606 OID 23651)
+-- TOC entry 5548 (class 2606 OID 23651)
 -- Name: notifications notifications_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31524,7 +31665,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- TOC entry 5613 (class 2606 OID 49035)
+-- TOC entry 5610 (class 2606 OID 49035)
 -- Name: organization_invites organization_invites_requested_job_title_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31533,7 +31674,7 @@ ALTER TABLE ONLY public.organization_invites
 
 
 --
--- TOC entry 5614 (class 2606 OID 49047)
+-- TOC entry 5611 (class 2606 OID 49047)
 -- Name: organization_invites organization_invites_reviewed_job_title_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31542,7 +31683,7 @@ ALTER TABLE ONLY public.organization_invites
 
 
 --
--- TOC entry 5615 (class 2606 OID 47886)
+-- TOC entry 5612 (class 2606 OID 47886)
 -- Name: organization_invites organization_invites_role_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31551,7 +31692,7 @@ ALTER TABLE ONLY public.organization_invites
 
 
 --
--- TOC entry 5609 (class 2606 OID 26539)
+-- TOC entry 5606 (class 2606 OID 26539)
 -- Name: organization_member_rates organization_member_rates_membership_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31560,7 +31701,7 @@ ALTER TABLE ONLY public.organization_member_rates
 
 
 --
--- TOC entry 5553 (class 2606 OID 49029)
+-- TOC entry 5551 (class 2606 OID 49029)
 -- Name: organization_members organization_members_job_title_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31569,16 +31710,7 @@ ALTER TABLE ONLY public.organization_members
 
 
 --
--- TOC entry 5554 (class 2606 OID 47879)
--- Name: organization_members organization_members_role_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.organization_members
-    ADD CONSTRAINT organization_members_role_fkey FOREIGN KEY (role) REFERENCES public.job_titles(id) ON UPDATE CASCADE ON DELETE SET NULL;
-
-
---
--- TOC entry 5606 (class 2606 OID 26495)
+-- TOC entry 5603 (class 2606 OID 26495)
 -- Name: organization_service_areas organization_service_areas_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31587,7 +31719,7 @@ ALTER TABLE ONLY public.organization_service_areas
 
 
 --
--- TOC entry 5568 (class 2606 OID 23656)
+-- TOC entry 5565 (class 2606 OID 23656)
 -- Name: project_inspectors project_inspectors_assigned_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31596,7 +31728,7 @@ ALTER TABLE ONLY public.project_inspectors
 
 
 --
--- TOC entry 5569 (class 2606 OID 23661)
+-- TOC entry 5566 (class 2606 OID 23661)
 -- Name: project_inspectors project_inspectors_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31605,7 +31737,7 @@ ALTER TABLE ONLY public.project_inspectors
 
 
 --
--- TOC entry 5570 (class 2606 OID 23666)
+-- TOC entry 5567 (class 2606 OID 23666)
 -- Name: project_inspectors project_inspectors_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31614,7 +31746,7 @@ ALTER TABLE ONLY public.project_inspectors
 
 
 --
--- TOC entry 5610 (class 2606 OID 26567)
+-- TOC entry 5607 (class 2606 OID 26567)
 -- Name: project_invites project_invites_invited_by_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31623,7 +31755,7 @@ ALTER TABLE ONLY public.project_invites
 
 
 --
--- TOC entry 5611 (class 2606 OID 26562)
+-- TOC entry 5608 (class 2606 OID 26562)
 -- Name: project_invites project_invites_invited_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31632,7 +31764,7 @@ ALTER TABLE ONLY public.project_invites
 
 
 --
--- TOC entry 5612 (class 2606 OID 26557)
+-- TOC entry 5609 (class 2606 OID 26557)
 -- Name: project_invites project_invites_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31641,7 +31773,7 @@ ALTER TABLE ONLY public.project_invites
 
 
 --
--- TOC entry 5607 (class 2606 OID 26512)
+-- TOC entry 5604 (class 2606 OID 26512)
 -- Name: project_service_areas project_service_areas_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31650,7 +31782,7 @@ ALTER TABLE ONLY public.project_service_areas
 
 
 --
--- TOC entry 5608 (class 2606 OID 26517)
+-- TOC entry 5605 (class 2606 OID 26517)
 -- Name: project_service_areas project_service_areas_service_area_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31659,7 +31791,7 @@ ALTER TABLE ONLY public.project_service_areas
 
 
 --
--- TOC entry 5593 (class 2606 OID 23671)
+-- TOC entry 5590 (class 2606 OID 23671)
 -- Name: task_dependencies task_dependencies_depends_on_task_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31668,7 +31800,7 @@ ALTER TABLE ONLY public.task_dependencies
 
 
 --
--- TOC entry 5594 (class 2606 OID 23676)
+-- TOC entry 5591 (class 2606 OID 23676)
 -- Name: task_dependencies task_dependencies_task_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31677,7 +31809,7 @@ ALTER TABLE ONLY public.task_dependencies
 
 
 --
--- TOC entry 5595 (class 2606 OID 23681)
+-- TOC entry 5592 (class 2606 OID 23681)
 -- Name: tasks tasks_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31686,7 +31818,7 @@ ALTER TABLE ONLY public.tasks
 
 
 --
--- TOC entry 6027 (class 0 OID 21143)
+-- TOC entry 6024 (class 0 OID 21143)
 -- Dependencies: 360
 -- Name: accounts_payable; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31694,7 +31826,7 @@ ALTER TABLE ONLY public.tasks
 ALTER TABLE public.accounts_payable ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6028 (class 0 OID 21153)
+-- TOC entry 6025 (class 0 OID 21153)
 -- Dependencies: 361
 -- Name: accounts_receivable; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31702,7 +31834,7 @@ ALTER TABLE public.accounts_payable ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accounts_receivable ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6029 (class 0 OID 21163)
+-- TOC entry 6026 (class 0 OID 21163)
 -- Dependencies: 362
 -- Name: activity_logs; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31710,7 +31842,7 @@ ALTER TABLE public.accounts_receivable ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6030 (class 0 OID 21174)
+-- TOC entry 6027 (class 0 OID 21174)
 -- Dependencies: 363
 -- Name: asphalt_types; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31718,7 +31850,7 @@ ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.asphalt_types ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6113 (class 0 OID 22221)
+-- TOC entry 6110 (class 0 OID 22221)
 -- Dependencies: 450
 -- Name: audit_log; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31726,7 +31858,7 @@ ALTER TABLE public.asphalt_types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_log ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6031 (class 0 OID 21184)
+-- TOC entry 6028 (class 0 OID 21184)
 -- Dependencies: 364
 -- Name: audit_logs; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31734,7 +31866,7 @@ ALTER TABLE public.audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6032 (class 0 OID 21195)
+-- TOC entry 6029 (class 0 OID 21195)
 -- Dependencies: 365
 -- Name: avatars; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31742,7 +31874,7 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.avatars ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6033 (class 0 OID 21205)
+-- TOC entry 6030 (class 0 OID 21205)
 -- Dependencies: 366
 -- Name: bid_packages; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31750,7 +31882,7 @@ ALTER TABLE public.avatars ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bid_packages ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6034 (class 0 OID 21215)
+-- TOC entry 6031 (class 0 OID 21215)
 -- Dependencies: 367
 -- Name: bid_vendors; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31758,7 +31890,7 @@ ALTER TABLE public.bid_packages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bid_vendors ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6035 (class 0 OID 21224)
+-- TOC entry 6032 (class 0 OID 21224)
 -- Dependencies: 368
 -- Name: bids; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31766,7 +31898,7 @@ ALTER TABLE public.bid_vendors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bids ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6036 (class 0 OID 21235)
+-- TOC entry 6033 (class 0 OID 21235)
 -- Dependencies: 369
 -- Name: bim_models; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31774,7 +31906,7 @@ ALTER TABLE public.bids ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bim_models ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6037 (class 0 OID 21246)
+-- TOC entry 6034 (class 0 OID 21246)
 -- Dependencies: 370
 -- Name: certifications; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31782,7 +31914,7 @@ ALTER TABLE public.bim_models ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.certifications ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6038 (class 0 OID 21256)
+-- TOC entry 6035 (class 0 OID 21256)
 -- Dependencies: 371
 -- Name: change_orders; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31790,7 +31922,7 @@ ALTER TABLE public.certifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.change_orders ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6039 (class 0 OID 21266)
+-- TOC entry 6036 (class 0 OID 21266)
 -- Dependencies: 372
 -- Name: commitments; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31798,7 +31930,7 @@ ALTER TABLE public.change_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.commitments ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6040 (class 0 OID 21276)
+-- TOC entry 6037 (class 0 OID 21276)
 -- Dependencies: 373
 -- Name: compliance_checks; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31806,7 +31938,7 @@ ALTER TABLE public.commitments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.compliance_checks ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6041 (class 0 OID 21286)
+-- TOC entry 6038 (class 0 OID 21286)
 -- Dependencies: 374
 -- Name: compliance_tracking; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31814,7 +31946,7 @@ ALTER TABLE public.compliance_checks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.compliance_tracking ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6042 (class 0 OID 21296)
+-- TOC entry 6039 (class 0 OID 21296)
 -- Dependencies: 375
 -- Name: cost_codes; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31822,7 +31954,7 @@ ALTER TABLE public.compliance_tracking ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cost_codes ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6043 (class 0 OID 21306)
+-- TOC entry 6040 (class 0 OID 21306)
 -- Dependencies: 376
 -- Name: crew_assignments; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31830,7 +31962,7 @@ ALTER TABLE public.cost_codes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crew_assignments ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6044 (class 0 OID 21314)
+-- TOC entry 6041 (class 0 OID 21314)
 -- Dependencies: 377
 -- Name: crew_members; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31838,7 +31970,7 @@ ALTER TABLE public.crew_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crew_members ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6045 (class 0 OID 21329)
+-- TOC entry 6042 (class 0 OID 21329)
 -- Dependencies: 378
 -- Name: crews; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31846,7 +31978,7 @@ ALTER TABLE public.crew_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crews ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6046 (class 0 OID 21339)
+-- TOC entry 6043 (class 0 OID 21339)
 -- Dependencies: 379
 -- Name: daily_logs; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31854,7 +31986,7 @@ ALTER TABLE public.crews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.daily_logs ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6047 (class 0 OID 21349)
+-- TOC entry 6044 (class 0 OID 21349)
 -- Dependencies: 380
 -- Name: dashboard_configs; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31862,7 +31994,7 @@ ALTER TABLE public.daily_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dashboard_configs ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6048 (class 0 OID 21359)
+-- TOC entry 6045 (class 0 OID 21359)
 -- Dependencies: 381
 -- Name: document_references; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31870,7 +32002,7 @@ ALTER TABLE public.dashboard_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.document_references ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6049 (class 0 OID 21369)
+-- TOC entry 6046 (class 0 OID 21369)
 -- Dependencies: 382
 -- Name: documents; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31878,7 +32010,7 @@ ALTER TABLE public.document_references ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6050 (class 0 OID 21380)
+-- TOC entry 6047 (class 0 OID 21380)
 -- Dependencies: 383
 -- Name: drawing_versions; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31886,7 +32018,7 @@ ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.drawing_versions ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6051 (class 0 OID 21391)
+-- TOC entry 6048 (class 0 OID 21391)
 -- Dependencies: 384
 -- Name: dump_trucks; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31894,7 +32026,7 @@ ALTER TABLE public.drawing_versions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dump_trucks ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6052 (class 0 OID 21401)
+-- TOC entry 6049 (class 0 OID 21401)
 -- Dependencies: 385
 -- Name: employees; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31902,7 +32034,7 @@ ALTER TABLE public.dump_trucks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6053 (class 0 OID 21411)
+-- TOC entry 6050 (class 0 OID 21411)
 -- Dependencies: 386
 -- Name: equipment; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31910,7 +32042,7 @@ ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.equipment ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6054 (class 0 OID 21421)
+-- TOC entry 6051 (class 0 OID 21421)
 -- Dependencies: 387
 -- Name: equipment_assignments; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31918,7 +32050,7 @@ ALTER TABLE public.equipment ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.equipment_assignments ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6055 (class 0 OID 21431)
+-- TOC entry 6052 (class 0 OID 21431)
 -- Dependencies: 388
 -- Name: equipment_maintenance; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31926,7 +32058,7 @@ ALTER TABLE public.equipment_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.equipment_maintenance ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6056 (class 0 OID 21441)
+-- TOC entry 6053 (class 0 OID 21441)
 -- Dependencies: 389
 -- Name: equipment_usage; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31934,7 +32066,7 @@ ALTER TABLE public.equipment_maintenance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.equipment_usage ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6057 (class 0 OID 21451)
+-- TOC entry 6054 (class 0 OID 21451)
 -- Dependencies: 390
 -- Name: estimate_line_items; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31942,7 +32074,7 @@ ALTER TABLE public.equipment_usage ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.estimate_line_items ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6058 (class 0 OID 21461)
+-- TOC entry 6055 (class 0 OID 21461)
 -- Dependencies: 391
 -- Name: estimates; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31950,7 +32082,7 @@ ALTER TABLE public.estimate_line_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.estimates ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6059 (class 0 OID 21471)
+-- TOC entry 6056 (class 0 OID 21471)
 -- Dependencies: 392
 -- Name: financial_documents; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31958,7 +32090,7 @@ ALTER TABLE public.estimates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.financial_documents ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6060 (class 0 OID 21482)
+-- TOC entry 6057 (class 0 OID 21482)
 -- Dependencies: 393
 -- Name: general_ledger; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31966,7 +32098,7 @@ ALTER TABLE public.financial_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.general_ledger ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6061 (class 0 OID 21492)
+-- TOC entry 6058 (class 0 OID 21492)
 -- Dependencies: 394
 -- Name: hr_documents; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31974,7 +32106,7 @@ ALTER TABLE public.general_ledger ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.hr_documents ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6062 (class 0 OID 21503)
+-- TOC entry 6059 (class 0 OID 21503)
 -- Dependencies: 395
 -- Name: inspections; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31982,7 +32114,7 @@ ALTER TABLE public.hr_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inspections ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6063 (class 0 OID 21513)
+-- TOC entry 6060 (class 0 OID 21513)
 -- Dependencies: 396
 -- Name: integration_tokens; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31990,7 +32122,7 @@ ALTER TABLE public.inspections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.integration_tokens ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6064 (class 0 OID 21523)
+-- TOC entry 6061 (class 0 OID 21523)
 -- Dependencies: 397
 -- Name: inventory_transactions; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -31998,7 +32130,7 @@ ALTER TABLE public.integration_tokens ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inventory_transactions ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6065 (class 0 OID 21533)
+-- TOC entry 6062 (class 0 OID 21533)
 -- Dependencies: 398
 -- Name: issues; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32006,7 +32138,7 @@ ALTER TABLE public.inventory_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.issues ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6066 (class 0 OID 21544)
+-- TOC entry 6063 (class 0 OID 21544)
 -- Dependencies: 399
 -- Name: job_titles; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32014,7 +32146,7 @@ ALTER TABLE public.issues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.job_titles ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6067 (class 0 OID 21554)
+-- TOC entry 6064 (class 0 OID 21554)
 -- Dependencies: 400
 -- Name: labor_records; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32022,7 +32154,7 @@ ALTER TABLE public.job_titles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.labor_records ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6068 (class 0 OID 21564)
+-- TOC entry 6065 (class 0 OID 21564)
 -- Dependencies: 401
 -- Name: line_item_entries; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32030,7 +32162,7 @@ ALTER TABLE public.labor_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.line_item_entries ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6069 (class 0 OID 21574)
+-- TOC entry 6066 (class 0 OID 21574)
 -- Dependencies: 402
 -- Name: line_item_templates; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32038,7 +32170,7 @@ ALTER TABLE public.line_item_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.line_item_templates ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6070 (class 0 OID 21584)
+-- TOC entry 6067 (class 0 OID 21584)
 -- Dependencies: 403
 -- Name: line_items; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32046,7 +32178,7 @@ ALTER TABLE public.line_item_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.line_items ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6071 (class 0 OID 21594)
+-- TOC entry 6068 (class 0 OID 21594)
 -- Dependencies: 404
 -- Name: maps; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32054,7 +32186,7 @@ ALTER TABLE public.line_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.maps ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6072 (class 0 OID 21603)
+-- TOC entry 6069 (class 0 OID 21603)
 -- Dependencies: 405
 -- Name: material_inventory; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32062,7 +32194,7 @@ ALTER TABLE public.maps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.material_inventory ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6073 (class 0 OID 21614)
+-- TOC entry 6070 (class 0 OID 21614)
 -- Dependencies: 406
 -- Name: material_orders; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32070,7 +32202,7 @@ ALTER TABLE public.material_inventory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.material_orders ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6074 (class 0 OID 21624)
+-- TOC entry 6071 (class 0 OID 21624)
 -- Dependencies: 407
 -- Name: material_receipts; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32078,7 +32210,7 @@ ALTER TABLE public.material_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.material_receipts ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6075 (class 0 OID 21634)
+-- TOC entry 6072 (class 0 OID 21634)
 -- Dependencies: 408
 -- Name: materials; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32086,7 +32218,7 @@ ALTER TABLE public.material_receipts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6076 (class 0 OID 21644)
+-- TOC entry 6073 (class 0 OID 21644)
 -- Dependencies: 409
 -- Name: meeting_minutes; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32094,7 +32226,7 @@ ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.meeting_minutes ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6077 (class 0 OID 21654)
+-- TOC entry 6074 (class 0 OID 21654)
 -- Dependencies: 410
 -- Name: notifications; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32102,7 +32234,7 @@ ALTER TABLE public.meeting_minutes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6118 (class 0 OID 43246)
+-- TOC entry 6115 (class 0 OID 43246)
 -- Dependencies: 538
 -- Name: organization_invites; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32110,7 +32242,7 @@ ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organization_invites ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6116 (class 0 OID 26528)
+-- TOC entry 6113 (class 0 OID 26528)
 -- Dependencies: 536
 -- Name: organization_member_rates; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32118,7 +32250,7 @@ ALTER TABLE public.organization_invites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organization_member_rates ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6078 (class 0 OID 21667)
+-- TOC entry 6075 (class 0 OID 21667)
 -- Dependencies: 411
 -- Name: organization_members; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32126,7 +32258,7 @@ ALTER TABLE public.organization_member_rates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6079 (class 0 OID 21677)
+-- TOC entry 6076 (class 0 OID 21677)
 -- Dependencies: 412
 -- Name: organization_projects; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32134,7 +32266,7 @@ ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organization_projects ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6114 (class 0 OID 26485)
+-- TOC entry 6111 (class 0 OID 26485)
 -- Dependencies: 534
 -- Name: organization_service_areas; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32142,7 +32274,7 @@ ALTER TABLE public.organization_projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organization_service_areas ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6080 (class 0 OID 21685)
+-- TOC entry 6077 (class 0 OID 21685)
 -- Dependencies: 413
 -- Name: organizations; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -32150,7 +32282,7 @@ ALTER TABLE public.organization_service_areas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6119 (class 3256 OID 23774)
+-- TOC entry 6116 (class 3256 OID 23774)
 -- Name: accounts_payable p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32158,7 +32290,7 @@ CREATE POLICY p_check_access_delete ON public.accounts_payable FOR DELETE USING 
 
 
 --
--- TOC entry 6120 (class 3256 OID 23775)
+-- TOC entry 6117 (class 3256 OID 23775)
 -- Name: accounts_receivable p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32166,7 +32298,7 @@ CREATE POLICY p_check_access_delete ON public.accounts_receivable FOR DELETE USI
 
 
 --
--- TOC entry 6121 (class 3256 OID 23776)
+-- TOC entry 6118 (class 3256 OID 23776)
 -- Name: activity_logs p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32174,7 +32306,7 @@ CREATE POLICY p_check_access_delete ON public.activity_logs FOR DELETE USING (pu
 
 
 --
--- TOC entry 6122 (class 3256 OID 23777)
+-- TOC entry 6119 (class 3256 OID 23777)
 -- Name: asphalt_types p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32182,7 +32314,7 @@ CREATE POLICY p_check_access_delete ON public.asphalt_types FOR DELETE USING (pu
 
 
 --
--- TOC entry 6123 (class 3256 OID 23778)
+-- TOC entry 6120 (class 3256 OID 23778)
 -- Name: audit_log p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32190,7 +32322,7 @@ CREATE POLICY p_check_access_delete ON public.audit_log FOR DELETE USING (public
 
 
 --
--- TOC entry 6124 (class 3256 OID 23779)
+-- TOC entry 6121 (class 3256 OID 23779)
 -- Name: audit_logs p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32198,7 +32330,7 @@ CREATE POLICY p_check_access_delete ON public.audit_logs FOR DELETE USING (publi
 
 
 --
--- TOC entry 6125 (class 3256 OID 23780)
+-- TOC entry 6122 (class 3256 OID 23780)
 -- Name: avatars p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32206,7 +32338,7 @@ CREATE POLICY p_check_access_delete ON public.avatars FOR DELETE USING (public.c
 
 
 --
--- TOC entry 6126 (class 3256 OID 23781)
+-- TOC entry 6123 (class 3256 OID 23781)
 -- Name: bid_packages p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32214,7 +32346,7 @@ CREATE POLICY p_check_access_delete ON public.bid_packages FOR DELETE USING (pub
 
 
 --
--- TOC entry 6127 (class 3256 OID 23782)
+-- TOC entry 6124 (class 3256 OID 23782)
 -- Name: bid_vendors p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32222,7 +32354,7 @@ CREATE POLICY p_check_access_delete ON public.bid_vendors FOR DELETE USING (publ
 
 
 --
--- TOC entry 6128 (class 3256 OID 23783)
+-- TOC entry 6125 (class 3256 OID 23783)
 -- Name: bids p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32230,7 +32362,7 @@ CREATE POLICY p_check_access_delete ON public.bids FOR DELETE USING (public.chec
 
 
 --
--- TOC entry 6129 (class 3256 OID 23784)
+-- TOC entry 6126 (class 3256 OID 23784)
 -- Name: bim_models p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32238,7 +32370,7 @@ CREATE POLICY p_check_access_delete ON public.bim_models FOR DELETE USING (publi
 
 
 --
--- TOC entry 6130 (class 3256 OID 23785)
+-- TOC entry 6127 (class 3256 OID 23785)
 -- Name: certifications p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32246,7 +32378,7 @@ CREATE POLICY p_check_access_delete ON public.certifications FOR DELETE USING (p
 
 
 --
--- TOC entry 6131 (class 3256 OID 23786)
+-- TOC entry 6128 (class 3256 OID 23786)
 -- Name: change_orders p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32254,7 +32386,7 @@ CREATE POLICY p_check_access_delete ON public.change_orders FOR DELETE USING (pu
 
 
 --
--- TOC entry 6132 (class 3256 OID 23787)
+-- TOC entry 6129 (class 3256 OID 23787)
 -- Name: commitments p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32262,7 +32394,7 @@ CREATE POLICY p_check_access_delete ON public.commitments FOR DELETE USING (publ
 
 
 --
--- TOC entry 6133 (class 3256 OID 23788)
+-- TOC entry 6130 (class 3256 OID 23788)
 -- Name: compliance_checks p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32270,7 +32402,7 @@ CREATE POLICY p_check_access_delete ON public.compliance_checks FOR DELETE USING
 
 
 --
--- TOC entry 6134 (class 3256 OID 23789)
+-- TOC entry 6131 (class 3256 OID 23789)
 -- Name: compliance_tracking p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32278,7 +32410,7 @@ CREATE POLICY p_check_access_delete ON public.compliance_tracking FOR DELETE USI
 
 
 --
--- TOC entry 6135 (class 3256 OID 23790)
+-- TOC entry 6132 (class 3256 OID 23790)
 -- Name: cost_codes p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32286,7 +32418,7 @@ CREATE POLICY p_check_access_delete ON public.cost_codes FOR DELETE USING (publi
 
 
 --
--- TOC entry 6136 (class 3256 OID 23791)
+-- TOC entry 6133 (class 3256 OID 23791)
 -- Name: crew_assignments p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32294,7 +32426,7 @@ CREATE POLICY p_check_access_delete ON public.crew_assignments FOR DELETE USING 
 
 
 --
--- TOC entry 6137 (class 3256 OID 23792)
+-- TOC entry 6134 (class 3256 OID 23792)
 -- Name: crew_members p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32302,7 +32434,7 @@ CREATE POLICY p_check_access_delete ON public.crew_members FOR DELETE USING (pub
 
 
 --
--- TOC entry 6138 (class 3256 OID 23793)
+-- TOC entry 6135 (class 3256 OID 23793)
 -- Name: crews p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32310,7 +32442,7 @@ CREATE POLICY p_check_access_delete ON public.crews FOR DELETE USING (public.che
 
 
 --
--- TOC entry 6139 (class 3256 OID 23794)
+-- TOC entry 6136 (class 3256 OID 23794)
 -- Name: daily_logs p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32318,7 +32450,7 @@ CREATE POLICY p_check_access_delete ON public.daily_logs FOR DELETE USING (publi
 
 
 --
--- TOC entry 6140 (class 3256 OID 23795)
+-- TOC entry 6137 (class 3256 OID 23795)
 -- Name: dashboard_configs p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32326,7 +32458,7 @@ CREATE POLICY p_check_access_delete ON public.dashboard_configs FOR DELETE USING
 
 
 --
--- TOC entry 6141 (class 3256 OID 23796)
+-- TOC entry 6138 (class 3256 OID 23796)
 -- Name: document_references p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32334,7 +32466,7 @@ CREATE POLICY p_check_access_delete ON public.document_references FOR DELETE USI
 
 
 --
--- TOC entry 6142 (class 3256 OID 23797)
+-- TOC entry 6139 (class 3256 OID 23797)
 -- Name: documents p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32342,7 +32474,7 @@ CREATE POLICY p_check_access_delete ON public.documents FOR DELETE USING (public
 
 
 --
--- TOC entry 6143 (class 3256 OID 23798)
+-- TOC entry 6140 (class 3256 OID 23798)
 -- Name: drawing_versions p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32350,7 +32482,7 @@ CREATE POLICY p_check_access_delete ON public.drawing_versions FOR DELETE USING 
 
 
 --
--- TOC entry 6144 (class 3256 OID 23799)
+-- TOC entry 6141 (class 3256 OID 23799)
 -- Name: dump_trucks p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32358,7 +32490,7 @@ CREATE POLICY p_check_access_delete ON public.dump_trucks FOR DELETE USING (publ
 
 
 --
--- TOC entry 6145 (class 3256 OID 23800)
+-- TOC entry 6142 (class 3256 OID 23800)
 -- Name: employees p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32366,7 +32498,7 @@ CREATE POLICY p_check_access_delete ON public.employees FOR DELETE USING (public
 
 
 --
--- TOC entry 6146 (class 3256 OID 23801)
+-- TOC entry 6143 (class 3256 OID 23801)
 -- Name: equipment p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32374,7 +32506,7 @@ CREATE POLICY p_check_access_delete ON public.equipment FOR DELETE USING (public
 
 
 --
--- TOC entry 6147 (class 3256 OID 23802)
+-- TOC entry 6144 (class 3256 OID 23802)
 -- Name: equipment_assignments p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32382,7 +32514,7 @@ CREATE POLICY p_check_access_delete ON public.equipment_assignments FOR DELETE U
 
 
 --
--- TOC entry 6148 (class 3256 OID 23803)
+-- TOC entry 6145 (class 3256 OID 23803)
 -- Name: equipment_maintenance p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32390,7 +32522,7 @@ CREATE POLICY p_check_access_delete ON public.equipment_maintenance FOR DELETE U
 
 
 --
--- TOC entry 6149 (class 3256 OID 23804)
+-- TOC entry 6146 (class 3256 OID 23804)
 -- Name: equipment_usage p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32398,7 +32530,7 @@ CREATE POLICY p_check_access_delete ON public.equipment_usage FOR DELETE USING (
 
 
 --
--- TOC entry 6150 (class 3256 OID 23805)
+-- TOC entry 6147 (class 3256 OID 23805)
 -- Name: estimate_line_items p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32406,7 +32538,7 @@ CREATE POLICY p_check_access_delete ON public.estimate_line_items FOR DELETE USI
 
 
 --
--- TOC entry 6151 (class 3256 OID 23806)
+-- TOC entry 6148 (class 3256 OID 23806)
 -- Name: estimates p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32414,7 +32546,7 @@ CREATE POLICY p_check_access_delete ON public.estimates FOR DELETE USING (public
 
 
 --
--- TOC entry 6152 (class 3256 OID 23807)
+-- TOC entry 6149 (class 3256 OID 23807)
 -- Name: financial_documents p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32422,7 +32554,7 @@ CREATE POLICY p_check_access_delete ON public.financial_documents FOR DELETE USI
 
 
 --
--- TOC entry 6153 (class 3256 OID 23808)
+-- TOC entry 6150 (class 3256 OID 23808)
 -- Name: general_ledger p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32430,7 +32562,7 @@ CREATE POLICY p_check_access_delete ON public.general_ledger FOR DELETE USING (p
 
 
 --
--- TOC entry 6154 (class 3256 OID 23809)
+-- TOC entry 6151 (class 3256 OID 23809)
 -- Name: hr_documents p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32438,7 +32570,7 @@ CREATE POLICY p_check_access_delete ON public.hr_documents FOR DELETE USING (pub
 
 
 --
--- TOC entry 6155 (class 3256 OID 23810)
+-- TOC entry 6152 (class 3256 OID 23810)
 -- Name: inspections p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32446,7 +32578,7 @@ CREATE POLICY p_check_access_delete ON public.inspections FOR DELETE USING (publ
 
 
 --
--- TOC entry 6156 (class 3256 OID 23811)
+-- TOC entry 6153 (class 3256 OID 23811)
 -- Name: integration_tokens p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32454,7 +32586,7 @@ CREATE POLICY p_check_access_delete ON public.integration_tokens FOR DELETE USIN
 
 
 --
--- TOC entry 6157 (class 3256 OID 23812)
+-- TOC entry 6154 (class 3256 OID 23812)
 -- Name: inventory_transactions p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32462,7 +32594,7 @@ CREATE POLICY p_check_access_delete ON public.inventory_transactions FOR DELETE 
 
 
 --
--- TOC entry 6158 (class 3256 OID 23813)
+-- TOC entry 6155 (class 3256 OID 23813)
 -- Name: issues p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32470,7 +32602,7 @@ CREATE POLICY p_check_access_delete ON public.issues FOR DELETE USING (public.ch
 
 
 --
--- TOC entry 6159 (class 3256 OID 23814)
+-- TOC entry 6156 (class 3256 OID 23814)
 -- Name: job_titles p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32478,7 +32610,7 @@ CREATE POLICY p_check_access_delete ON public.job_titles FOR DELETE USING (publi
 
 
 --
--- TOC entry 6160 (class 3256 OID 23815)
+-- TOC entry 6157 (class 3256 OID 23815)
 -- Name: labor_records p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32486,7 +32618,7 @@ CREATE POLICY p_check_access_delete ON public.labor_records FOR DELETE USING (pu
 
 
 --
--- TOC entry 6161 (class 3256 OID 23816)
+-- TOC entry 6158 (class 3256 OID 23816)
 -- Name: line_item_entries p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32494,7 +32626,7 @@ CREATE POLICY p_check_access_delete ON public.line_item_entries FOR DELETE USING
 
 
 --
--- TOC entry 6162 (class 3256 OID 23817)
+-- TOC entry 6159 (class 3256 OID 23817)
 -- Name: line_item_templates p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32502,7 +32634,7 @@ CREATE POLICY p_check_access_delete ON public.line_item_templates FOR DELETE USI
 
 
 --
--- TOC entry 6163 (class 3256 OID 23818)
+-- TOC entry 6160 (class 3256 OID 23818)
 -- Name: line_items p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32510,7 +32642,7 @@ CREATE POLICY p_check_access_delete ON public.line_items FOR DELETE USING (publi
 
 
 --
--- TOC entry 6164 (class 3256 OID 23819)
+-- TOC entry 6161 (class 3256 OID 23819)
 -- Name: maps p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32518,7 +32650,7 @@ CREATE POLICY p_check_access_delete ON public.maps FOR DELETE USING (public.chec
 
 
 --
--- TOC entry 6165 (class 3256 OID 23820)
+-- TOC entry 6162 (class 3256 OID 23820)
 -- Name: material_inventory p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32526,7 +32658,7 @@ CREATE POLICY p_check_access_delete ON public.material_inventory FOR DELETE USIN
 
 
 --
--- TOC entry 6166 (class 3256 OID 23821)
+-- TOC entry 6163 (class 3256 OID 23821)
 -- Name: material_orders p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32534,7 +32666,7 @@ CREATE POLICY p_check_access_delete ON public.material_orders FOR DELETE USING (
 
 
 --
--- TOC entry 6167 (class 3256 OID 23822)
+-- TOC entry 6164 (class 3256 OID 23822)
 -- Name: material_receipts p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32542,7 +32674,7 @@ CREATE POLICY p_check_access_delete ON public.material_receipts FOR DELETE USING
 
 
 --
--- TOC entry 6168 (class 3256 OID 23823)
+-- TOC entry 6165 (class 3256 OID 23823)
 -- Name: materials p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32550,7 +32682,7 @@ CREATE POLICY p_check_access_delete ON public.materials FOR DELETE USING (public
 
 
 --
--- TOC entry 6169 (class 3256 OID 23824)
+-- TOC entry 6166 (class 3256 OID 23824)
 -- Name: meeting_minutes p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32558,7 +32690,7 @@ CREATE POLICY p_check_access_delete ON public.meeting_minutes FOR DELETE USING (
 
 
 --
--- TOC entry 6170 (class 3256 OID 23825)
+-- TOC entry 6167 (class 3256 OID 23825)
 -- Name: notifications p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32566,7 +32698,7 @@ CREATE POLICY p_check_access_delete ON public.notifications FOR DELETE USING (pu
 
 
 --
--- TOC entry 6472 (class 3256 OID 43265)
+-- TOC entry 6469 (class 3256 OID 43265)
 -- Name: organization_invites p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32574,7 +32706,7 @@ CREATE POLICY p_check_access_delete ON public.organization_invites FOR DELETE US
 
 
 --
--- TOC entry 6171 (class 3256 OID 23826)
+-- TOC entry 6168 (class 3256 OID 23826)
 -- Name: organization_members p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32582,7 +32714,7 @@ CREATE POLICY p_check_access_delete ON public.organization_members FOR DELETE US
 
 
 --
--- TOC entry 6172 (class 3256 OID 23827)
+-- TOC entry 6169 (class 3256 OID 23827)
 -- Name: organization_projects p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32590,7 +32722,7 @@ CREATE POLICY p_check_access_delete ON public.organization_projects FOR DELETE U
 
 
 --
--- TOC entry 6465 (class 3256 OID 28854)
+-- TOC entry 6462 (class 3256 OID 28854)
 -- Name: organizations p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32598,7 +32730,7 @@ CREATE POLICY p_check_access_delete ON public.organizations FOR DELETE USING (pu
 
 
 --
--- TOC entry 6173 (class 3256 OID 23829)
+-- TOC entry 6170 (class 3256 OID 23829)
 -- Name: payments p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32606,7 +32738,7 @@ CREATE POLICY p_check_access_delete ON public.payments FOR DELETE USING (public.
 
 
 --
--- TOC entry 6174 (class 3256 OID 23830)
+-- TOC entry 6171 (class 3256 OID 23830)
 -- Name: payroll p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32614,7 +32746,7 @@ CREATE POLICY p_check_access_delete ON public.payroll FOR DELETE USING (public.c
 
 
 --
--- TOC entry 6175 (class 3256 OID 23831)
+-- TOC entry 6172 (class 3256 OID 23831)
 -- Name: photos p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32622,7 +32754,7 @@ CREATE POLICY p_check_access_delete ON public.photos FOR DELETE USING (public.ch
 
 
 --
--- TOC entry 6176 (class 3256 OID 23832)
+-- TOC entry 6173 (class 3256 OID 23832)
 -- Name: prequalifications p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32630,7 +32762,7 @@ CREATE POLICY p_check_access_delete ON public.prequalifications FOR DELETE USING
 
 
 --
--- TOC entry 6177 (class 3256 OID 23833)
+-- TOC entry 6174 (class 3256 OID 23833)
 -- Name: procurement_workflows p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32638,7 +32770,7 @@ CREATE POLICY p_check_access_delete ON public.procurement_workflows FOR DELETE U
 
 
 --
--- TOC entry 6476 (class 3256 OID 45500)
+-- TOC entry 6473 (class 3256 OID 45500)
 -- Name: profiles p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32646,7 +32778,7 @@ CREATE POLICY p_check_access_delete ON public.profiles AS RESTRICTIVE FOR DELETE
 
 
 --
--- TOC entry 6178 (class 3256 OID 23835)
+-- TOC entry 6175 (class 3256 OID 23835)
 -- Name: progress_billings p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32654,7 +32786,7 @@ CREATE POLICY p_check_access_delete ON public.progress_billings FOR DELETE USING
 
 
 --
--- TOC entry 6179 (class 3256 OID 23836)
+-- TOC entry 6176 (class 3256 OID 23836)
 -- Name: project_inspectors p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32662,7 +32794,7 @@ CREATE POLICY p_check_access_delete ON public.project_inspectors FOR DELETE USIN
 
 
 --
--- TOC entry 6180 (class 3256 OID 23837)
+-- TOC entry 6177 (class 3256 OID 23837)
 -- Name: projects p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32670,7 +32802,7 @@ CREATE POLICY p_check_access_delete ON public.projects FOR DELETE USING (public.
 
 
 --
--- TOC entry 6181 (class 3256 OID 23838)
+-- TOC entry 6178 (class 3256 OID 23838)
 -- Name: punch_lists p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32678,7 +32810,7 @@ CREATE POLICY p_check_access_delete ON public.punch_lists FOR DELETE USING (publ
 
 
 --
--- TOC entry 6182 (class 3256 OID 23839)
+-- TOC entry 6179 (class 3256 OID 23839)
 -- Name: purchase_orders p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32686,7 +32818,7 @@ CREATE POLICY p_check_access_delete ON public.purchase_orders FOR DELETE USING (
 
 
 --
--- TOC entry 6183 (class 3256 OID 23840)
+-- TOC entry 6180 (class 3256 OID 23840)
 -- Name: quality_reviews p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32694,7 +32826,7 @@ CREATE POLICY p_check_access_delete ON public.quality_reviews FOR DELETE USING (
 
 
 --
--- TOC entry 6184 (class 3256 OID 23841)
+-- TOC entry 6181 (class 3256 OID 23841)
 -- Name: regulatory_documents p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32702,7 +32834,7 @@ CREATE POLICY p_check_access_delete ON public.regulatory_documents FOR DELETE US
 
 
 --
--- TOC entry 6185 (class 3256 OID 23842)
+-- TOC entry 6182 (class 3256 OID 23842)
 -- Name: reports p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32710,7 +32842,7 @@ CREATE POLICY p_check_access_delete ON public.reports FOR DELETE USING (public.c
 
 
 --
--- TOC entry 6186 (class 3256 OID 23843)
+-- TOC entry 6183 (class 3256 OID 23843)
 -- Name: rfis p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32718,7 +32850,7 @@ CREATE POLICY p_check_access_delete ON public.rfis FOR DELETE USING (public.chec
 
 
 --
--- TOC entry 6187 (class 3256 OID 23844)
+-- TOC entry 6184 (class 3256 OID 23844)
 -- Name: safety_incidents p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32726,7 +32858,7 @@ CREATE POLICY p_check_access_delete ON public.safety_incidents FOR DELETE USING 
 
 
 --
--- TOC entry 6188 (class 3256 OID 23845)
+-- TOC entry 6185 (class 3256 OID 23845)
 -- Name: sensor_data p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32734,7 +32866,7 @@ CREATE POLICY p_check_access_delete ON public.sensor_data FOR DELETE USING (publ
 
 
 --
--- TOC entry 6189 (class 3256 OID 23846)
+-- TOC entry 6186 (class 3256 OID 23846)
 -- Name: subcontractor_agreements p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32742,7 +32874,7 @@ CREATE POLICY p_check_access_delete ON public.subcontractor_agreements FOR DELET
 
 
 --
--- TOC entry 6190 (class 3256 OID 23847)
+-- TOC entry 6187 (class 3256 OID 23847)
 -- Name: subcontracts p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32750,7 +32882,7 @@ CREATE POLICY p_check_access_delete ON public.subcontracts FOR DELETE USING (pub
 
 
 --
--- TOC entry 6191 (class 3256 OID 23848)
+-- TOC entry 6188 (class 3256 OID 23848)
 -- Name: submittals p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32758,7 +32890,7 @@ CREATE POLICY p_check_access_delete ON public.submittals FOR DELETE USING (publi
 
 
 --
--- TOC entry 6192 (class 3256 OID 23849)
+-- TOC entry 6189 (class 3256 OID 23849)
 -- Name: tack_rates p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32766,7 +32898,7 @@ CREATE POLICY p_check_access_delete ON public.tack_rates FOR DELETE USING (publi
 
 
 --
--- TOC entry 6193 (class 3256 OID 23850)
+-- TOC entry 6190 (class 3256 OID 23850)
 -- Name: task_dependencies p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32774,7 +32906,7 @@ CREATE POLICY p_check_access_delete ON public.task_dependencies FOR DELETE USING
 
 
 --
--- TOC entry 6194 (class 3256 OID 23851)
+-- TOC entry 6191 (class 3256 OID 23851)
 -- Name: task_status_logs p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32782,7 +32914,7 @@ CREATE POLICY p_check_access_delete ON public.task_status_logs FOR DELETE USING 
 
 
 --
--- TOC entry 6195 (class 3256 OID 23852)
+-- TOC entry 6192 (class 3256 OID 23852)
 -- Name: tasks p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32790,7 +32922,7 @@ CREATE POLICY p_check_access_delete ON public.tasks FOR DELETE USING (public.che
 
 
 --
--- TOC entry 6196 (class 3256 OID 23853)
+-- TOC entry 6193 (class 3256 OID 23853)
 -- Name: training_records p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32798,7 +32930,7 @@ CREATE POLICY p_check_access_delete ON public.training_records FOR DELETE USING 
 
 
 --
--- TOC entry 6197 (class 3256 OID 23854)
+-- TOC entry 6194 (class 3256 OID 23854)
 -- Name: user_projects p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32806,7 +32938,7 @@ CREATE POLICY p_check_access_delete ON public.user_projects FOR DELETE USING (pu
 
 
 --
--- TOC entry 6198 (class 3256 OID 23855)
+-- TOC entry 6195 (class 3256 OID 23855)
 -- Name: vendor_bid_packages p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32814,7 +32946,7 @@ CREATE POLICY p_check_access_delete ON public.vendor_bid_packages FOR DELETE USI
 
 
 --
--- TOC entry 6199 (class 3256 OID 23856)
+-- TOC entry 6196 (class 3256 OID 23856)
 -- Name: vendor_contacts p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32822,7 +32954,7 @@ CREATE POLICY p_check_access_delete ON public.vendor_contacts FOR DELETE USING (
 
 
 --
--- TOC entry 6200 (class 3256 OID 23857)
+-- TOC entry 6197 (class 3256 OID 23857)
 -- Name: vendor_documents p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32830,7 +32962,7 @@ CREATE POLICY p_check_access_delete ON public.vendor_documents FOR DELETE USING 
 
 
 --
--- TOC entry 6201 (class 3256 OID 23858)
+-- TOC entry 6198 (class 3256 OID 23858)
 -- Name: vendor_qualifications p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32838,7 +32970,7 @@ CREATE POLICY p_check_access_delete ON public.vendor_qualifications FOR DELETE U
 
 
 --
--- TOC entry 6202 (class 3256 OID 23859)
+-- TOC entry 6199 (class 3256 OID 23859)
 -- Name: vendors p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32846,7 +32978,7 @@ CREATE POLICY p_check_access_delete ON public.vendors FOR DELETE USING (public.c
 
 
 --
--- TOC entry 6203 (class 3256 OID 23860)
+-- TOC entry 6200 (class 3256 OID 23860)
 -- Name: wbs p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32854,7 +32986,7 @@ CREATE POLICY p_check_access_delete ON public.wbs FOR DELETE USING (public.check
 
 
 --
--- TOC entry 6204 (class 3256 OID 23861)
+-- TOC entry 6201 (class 3256 OID 23861)
 -- Name: workflows p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32862,7 +32994,7 @@ CREATE POLICY p_check_access_delete ON public.workflows FOR DELETE USING (public
 
 
 --
--- TOC entry 6205 (class 3256 OID 23862)
+-- TOC entry 6202 (class 3256 OID 23862)
 -- Name: accounts_payable p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32870,7 +33002,7 @@ CREATE POLICY p_check_access_insert ON public.accounts_payable FOR INSERT WITH C
 
 
 --
--- TOC entry 6206 (class 3256 OID 23863)
+-- TOC entry 6203 (class 3256 OID 23863)
 -- Name: accounts_receivable p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32878,7 +33010,7 @@ CREATE POLICY p_check_access_insert ON public.accounts_receivable FOR INSERT WIT
 
 
 --
--- TOC entry 6207 (class 3256 OID 23864)
+-- TOC entry 6204 (class 3256 OID 23864)
 -- Name: activity_logs p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32886,7 +33018,7 @@ CREATE POLICY p_check_access_insert ON public.activity_logs FOR INSERT WITH CHEC
 
 
 --
--- TOC entry 6208 (class 3256 OID 23865)
+-- TOC entry 6205 (class 3256 OID 23865)
 -- Name: asphalt_types p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32894,7 +33026,7 @@ CREATE POLICY p_check_access_insert ON public.asphalt_types FOR INSERT WITH CHEC
 
 
 --
--- TOC entry 6209 (class 3256 OID 23866)
+-- TOC entry 6206 (class 3256 OID 23866)
 -- Name: audit_log p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32902,7 +33034,7 @@ CREATE POLICY p_check_access_insert ON public.audit_log FOR INSERT WITH CHECK (p
 
 
 --
--- TOC entry 6210 (class 3256 OID 23867)
+-- TOC entry 6207 (class 3256 OID 23867)
 -- Name: audit_logs p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32910,7 +33042,7 @@ CREATE POLICY p_check_access_insert ON public.audit_logs FOR INSERT WITH CHECK (
 
 
 --
--- TOC entry 6211 (class 3256 OID 23868)
+-- TOC entry 6208 (class 3256 OID 23868)
 -- Name: avatars p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32918,7 +33050,7 @@ CREATE POLICY p_check_access_insert ON public.avatars FOR INSERT WITH CHECK (pub
 
 
 --
--- TOC entry 6212 (class 3256 OID 23869)
+-- TOC entry 6209 (class 3256 OID 23869)
 -- Name: bid_packages p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32926,7 +33058,7 @@ CREATE POLICY p_check_access_insert ON public.bid_packages FOR INSERT WITH CHECK
 
 
 --
--- TOC entry 6213 (class 3256 OID 23870)
+-- TOC entry 6210 (class 3256 OID 23870)
 -- Name: bid_vendors p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32934,7 +33066,7 @@ CREATE POLICY p_check_access_insert ON public.bid_vendors FOR INSERT WITH CHECK 
 
 
 --
--- TOC entry 6214 (class 3256 OID 23871)
+-- TOC entry 6211 (class 3256 OID 23871)
 -- Name: bids p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32942,7 +33074,7 @@ CREATE POLICY p_check_access_insert ON public.bids FOR INSERT WITH CHECK (public
 
 
 --
--- TOC entry 6215 (class 3256 OID 23872)
+-- TOC entry 6212 (class 3256 OID 23872)
 -- Name: bim_models p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32950,7 +33082,7 @@ CREATE POLICY p_check_access_insert ON public.bim_models FOR INSERT WITH CHECK (
 
 
 --
--- TOC entry 6216 (class 3256 OID 23873)
+-- TOC entry 6213 (class 3256 OID 23873)
 -- Name: certifications p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32958,7 +33090,7 @@ CREATE POLICY p_check_access_insert ON public.certifications FOR INSERT WITH CHE
 
 
 --
--- TOC entry 6217 (class 3256 OID 23874)
+-- TOC entry 6214 (class 3256 OID 23874)
 -- Name: change_orders p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32966,7 +33098,7 @@ CREATE POLICY p_check_access_insert ON public.change_orders FOR INSERT WITH CHEC
 
 
 --
--- TOC entry 6218 (class 3256 OID 23875)
+-- TOC entry 6215 (class 3256 OID 23875)
 -- Name: commitments p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32974,7 +33106,7 @@ CREATE POLICY p_check_access_insert ON public.commitments FOR INSERT WITH CHECK 
 
 
 --
--- TOC entry 6219 (class 3256 OID 23876)
+-- TOC entry 6216 (class 3256 OID 23876)
 -- Name: compliance_checks p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32982,7 +33114,7 @@ CREATE POLICY p_check_access_insert ON public.compliance_checks FOR INSERT WITH 
 
 
 --
--- TOC entry 6220 (class 3256 OID 23877)
+-- TOC entry 6217 (class 3256 OID 23877)
 -- Name: compliance_tracking p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32990,7 +33122,7 @@ CREATE POLICY p_check_access_insert ON public.compliance_tracking FOR INSERT WIT
 
 
 --
--- TOC entry 6221 (class 3256 OID 23878)
+-- TOC entry 6218 (class 3256 OID 23878)
 -- Name: cost_codes p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32998,7 +33130,7 @@ CREATE POLICY p_check_access_insert ON public.cost_codes FOR INSERT WITH CHECK (
 
 
 --
--- TOC entry 6222 (class 3256 OID 23879)
+-- TOC entry 6219 (class 3256 OID 23879)
 -- Name: crew_assignments p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33006,7 +33138,7 @@ CREATE POLICY p_check_access_insert ON public.crew_assignments FOR INSERT WITH C
 
 
 --
--- TOC entry 6223 (class 3256 OID 23880)
+-- TOC entry 6220 (class 3256 OID 23880)
 -- Name: crew_members p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33014,7 +33146,7 @@ CREATE POLICY p_check_access_insert ON public.crew_members FOR INSERT WITH CHECK
 
 
 --
--- TOC entry 6224 (class 3256 OID 23881)
+-- TOC entry 6221 (class 3256 OID 23881)
 -- Name: crews p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33022,7 +33154,7 @@ CREATE POLICY p_check_access_insert ON public.crews FOR INSERT WITH CHECK (publi
 
 
 --
--- TOC entry 6225 (class 3256 OID 23882)
+-- TOC entry 6222 (class 3256 OID 23882)
 -- Name: daily_logs p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33030,7 +33162,7 @@ CREATE POLICY p_check_access_insert ON public.daily_logs FOR INSERT WITH CHECK (
 
 
 --
--- TOC entry 6226 (class 3256 OID 23883)
+-- TOC entry 6223 (class 3256 OID 23883)
 -- Name: dashboard_configs p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33038,7 +33170,7 @@ CREATE POLICY p_check_access_insert ON public.dashboard_configs FOR INSERT WITH 
 
 
 --
--- TOC entry 6227 (class 3256 OID 23884)
+-- TOC entry 6224 (class 3256 OID 23884)
 -- Name: document_references p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33046,7 +33178,7 @@ CREATE POLICY p_check_access_insert ON public.document_references FOR INSERT WIT
 
 
 --
--- TOC entry 6228 (class 3256 OID 23885)
+-- TOC entry 6225 (class 3256 OID 23885)
 -- Name: documents p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33054,7 +33186,7 @@ CREATE POLICY p_check_access_insert ON public.documents FOR INSERT WITH CHECK (p
 
 
 --
--- TOC entry 6229 (class 3256 OID 23886)
+-- TOC entry 6226 (class 3256 OID 23886)
 -- Name: drawing_versions p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33062,7 +33194,7 @@ CREATE POLICY p_check_access_insert ON public.drawing_versions FOR INSERT WITH C
 
 
 --
--- TOC entry 6230 (class 3256 OID 23887)
+-- TOC entry 6227 (class 3256 OID 23887)
 -- Name: dump_trucks p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33070,7 +33202,7 @@ CREATE POLICY p_check_access_insert ON public.dump_trucks FOR INSERT WITH CHECK 
 
 
 --
--- TOC entry 6231 (class 3256 OID 23888)
+-- TOC entry 6228 (class 3256 OID 23888)
 -- Name: employees p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33078,7 +33210,7 @@ CREATE POLICY p_check_access_insert ON public.employees FOR INSERT WITH CHECK (p
 
 
 --
--- TOC entry 6232 (class 3256 OID 23889)
+-- TOC entry 6229 (class 3256 OID 23889)
 -- Name: equipment p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33086,7 +33218,7 @@ CREATE POLICY p_check_access_insert ON public.equipment FOR INSERT WITH CHECK (p
 
 
 --
--- TOC entry 6233 (class 3256 OID 23890)
+-- TOC entry 6230 (class 3256 OID 23890)
 -- Name: equipment_assignments p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33094,7 +33226,7 @@ CREATE POLICY p_check_access_insert ON public.equipment_assignments FOR INSERT W
 
 
 --
--- TOC entry 6234 (class 3256 OID 23891)
+-- TOC entry 6231 (class 3256 OID 23891)
 -- Name: equipment_maintenance p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33102,7 +33234,7 @@ CREATE POLICY p_check_access_insert ON public.equipment_maintenance FOR INSERT W
 
 
 --
--- TOC entry 6235 (class 3256 OID 23892)
+-- TOC entry 6232 (class 3256 OID 23892)
 -- Name: equipment_usage p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33110,7 +33242,7 @@ CREATE POLICY p_check_access_insert ON public.equipment_usage FOR INSERT WITH CH
 
 
 --
--- TOC entry 6236 (class 3256 OID 23893)
+-- TOC entry 6233 (class 3256 OID 23893)
 -- Name: estimate_line_items p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33118,7 +33250,7 @@ CREATE POLICY p_check_access_insert ON public.estimate_line_items FOR INSERT WIT
 
 
 --
--- TOC entry 6237 (class 3256 OID 23894)
+-- TOC entry 6234 (class 3256 OID 23894)
 -- Name: estimates p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33126,7 +33258,7 @@ CREATE POLICY p_check_access_insert ON public.estimates FOR INSERT WITH CHECK (p
 
 
 --
--- TOC entry 6238 (class 3256 OID 23895)
+-- TOC entry 6235 (class 3256 OID 23895)
 -- Name: financial_documents p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33134,7 +33266,7 @@ CREATE POLICY p_check_access_insert ON public.financial_documents FOR INSERT WIT
 
 
 --
--- TOC entry 6239 (class 3256 OID 23896)
+-- TOC entry 6236 (class 3256 OID 23896)
 -- Name: general_ledger p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33142,7 +33274,7 @@ CREATE POLICY p_check_access_insert ON public.general_ledger FOR INSERT WITH CHE
 
 
 --
--- TOC entry 6240 (class 3256 OID 23897)
+-- TOC entry 6237 (class 3256 OID 23897)
 -- Name: hr_documents p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33150,7 +33282,7 @@ CREATE POLICY p_check_access_insert ON public.hr_documents FOR INSERT WITH CHECK
 
 
 --
--- TOC entry 6241 (class 3256 OID 23898)
+-- TOC entry 6238 (class 3256 OID 23898)
 -- Name: inspections p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33158,7 +33290,7 @@ CREATE POLICY p_check_access_insert ON public.inspections FOR INSERT WITH CHECK 
 
 
 --
--- TOC entry 6242 (class 3256 OID 23899)
+-- TOC entry 6239 (class 3256 OID 23899)
 -- Name: integration_tokens p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33166,7 +33298,7 @@ CREATE POLICY p_check_access_insert ON public.integration_tokens FOR INSERT WITH
 
 
 --
--- TOC entry 6243 (class 3256 OID 23900)
+-- TOC entry 6240 (class 3256 OID 23900)
 -- Name: inventory_transactions p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33174,7 +33306,7 @@ CREATE POLICY p_check_access_insert ON public.inventory_transactions FOR INSERT 
 
 
 --
--- TOC entry 6244 (class 3256 OID 23901)
+-- TOC entry 6241 (class 3256 OID 23901)
 -- Name: issues p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33182,7 +33314,7 @@ CREATE POLICY p_check_access_insert ON public.issues FOR INSERT WITH CHECK (publ
 
 
 --
--- TOC entry 6245 (class 3256 OID 23902)
+-- TOC entry 6242 (class 3256 OID 23902)
 -- Name: job_titles p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33190,7 +33322,7 @@ CREATE POLICY p_check_access_insert ON public.job_titles FOR INSERT WITH CHECK (
 
 
 --
--- TOC entry 6246 (class 3256 OID 23903)
+-- TOC entry 6243 (class 3256 OID 23903)
 -- Name: labor_records p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33198,7 +33330,7 @@ CREATE POLICY p_check_access_insert ON public.labor_records FOR INSERT WITH CHEC
 
 
 --
--- TOC entry 6247 (class 3256 OID 23904)
+-- TOC entry 6244 (class 3256 OID 23904)
 -- Name: line_item_entries p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33206,7 +33338,7 @@ CREATE POLICY p_check_access_insert ON public.line_item_entries FOR INSERT WITH 
 
 
 --
--- TOC entry 6248 (class 3256 OID 23905)
+-- TOC entry 6245 (class 3256 OID 23905)
 -- Name: line_item_templates p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33214,7 +33346,7 @@ CREATE POLICY p_check_access_insert ON public.line_item_templates FOR INSERT WIT
 
 
 --
--- TOC entry 6249 (class 3256 OID 23906)
+-- TOC entry 6246 (class 3256 OID 23906)
 -- Name: line_items p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33222,7 +33354,7 @@ CREATE POLICY p_check_access_insert ON public.line_items FOR INSERT WITH CHECK (
 
 
 --
--- TOC entry 6250 (class 3256 OID 23907)
+-- TOC entry 6247 (class 3256 OID 23907)
 -- Name: maps p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33230,7 +33362,7 @@ CREATE POLICY p_check_access_insert ON public.maps FOR INSERT WITH CHECK (public
 
 
 --
--- TOC entry 6251 (class 3256 OID 23908)
+-- TOC entry 6248 (class 3256 OID 23908)
 -- Name: material_inventory p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33238,7 +33370,7 @@ CREATE POLICY p_check_access_insert ON public.material_inventory FOR INSERT WITH
 
 
 --
--- TOC entry 6252 (class 3256 OID 23909)
+-- TOC entry 6249 (class 3256 OID 23909)
 -- Name: material_orders p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33246,7 +33378,7 @@ CREATE POLICY p_check_access_insert ON public.material_orders FOR INSERT WITH CH
 
 
 --
--- TOC entry 6253 (class 3256 OID 23910)
+-- TOC entry 6250 (class 3256 OID 23910)
 -- Name: material_receipts p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33254,7 +33386,7 @@ CREATE POLICY p_check_access_insert ON public.material_receipts FOR INSERT WITH 
 
 
 --
--- TOC entry 6254 (class 3256 OID 23911)
+-- TOC entry 6251 (class 3256 OID 23911)
 -- Name: materials p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33262,7 +33394,7 @@ CREATE POLICY p_check_access_insert ON public.materials FOR INSERT WITH CHECK (p
 
 
 --
--- TOC entry 6255 (class 3256 OID 23912)
+-- TOC entry 6252 (class 3256 OID 23912)
 -- Name: meeting_minutes p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33270,7 +33402,7 @@ CREATE POLICY p_check_access_insert ON public.meeting_minutes FOR INSERT WITH CH
 
 
 --
--- TOC entry 6256 (class 3256 OID 23913)
+-- TOC entry 6253 (class 3256 OID 23913)
 -- Name: notifications p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33278,7 +33410,7 @@ CREATE POLICY p_check_access_insert ON public.notifications FOR INSERT WITH CHEC
 
 
 --
--- TOC entry 6469 (class 3256 OID 43262)
+-- TOC entry 6466 (class 3256 OID 43262)
 -- Name: organization_invites p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33286,7 +33418,7 @@ CREATE POLICY p_check_access_insert ON public.organization_invites FOR INSERT WI
 
 
 --
--- TOC entry 6257 (class 3256 OID 23914)
+-- TOC entry 6254 (class 3256 OID 23914)
 -- Name: organization_members p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33294,7 +33426,7 @@ CREATE POLICY p_check_access_insert ON public.organization_members FOR INSERT WI
 
 
 --
--- TOC entry 6258 (class 3256 OID 23915)
+-- TOC entry 6255 (class 3256 OID 23915)
 -- Name: organization_projects p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33302,7 +33434,7 @@ CREATE POLICY p_check_access_insert ON public.organization_projects FOR INSERT W
 
 
 --
--- TOC entry 6466 (class 3256 OID 28855)
+-- TOC entry 6463 (class 3256 OID 28855)
 -- Name: organizations p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33310,7 +33442,7 @@ CREATE POLICY p_check_access_insert ON public.organizations FOR INSERT WITH CHEC
 
 
 --
--- TOC entry 6259 (class 3256 OID 23917)
+-- TOC entry 6256 (class 3256 OID 23917)
 -- Name: payments p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33318,7 +33450,7 @@ CREATE POLICY p_check_access_insert ON public.payments FOR INSERT WITH CHECK (pu
 
 
 --
--- TOC entry 6260 (class 3256 OID 23918)
+-- TOC entry 6257 (class 3256 OID 23918)
 -- Name: payroll p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33326,7 +33458,7 @@ CREATE POLICY p_check_access_insert ON public.payroll FOR INSERT WITH CHECK (pub
 
 
 --
--- TOC entry 6261 (class 3256 OID 23919)
+-- TOC entry 6258 (class 3256 OID 23919)
 -- Name: photos p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33334,7 +33466,7 @@ CREATE POLICY p_check_access_insert ON public.photos FOR INSERT WITH CHECK (publ
 
 
 --
--- TOC entry 6262 (class 3256 OID 23920)
+-- TOC entry 6259 (class 3256 OID 23920)
 -- Name: prequalifications p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33342,7 +33474,7 @@ CREATE POLICY p_check_access_insert ON public.prequalifications FOR INSERT WITH 
 
 
 --
--- TOC entry 6263 (class 3256 OID 23921)
+-- TOC entry 6260 (class 3256 OID 23921)
 -- Name: procurement_workflows p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33350,7 +33482,7 @@ CREATE POLICY p_check_access_insert ON public.procurement_workflows FOR INSERT W
 
 
 --
--- TOC entry 6475 (class 3256 OID 45497)
+-- TOC entry 6472 (class 3256 OID 45497)
 -- Name: profiles p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33358,7 +33490,7 @@ CREATE POLICY p_check_access_insert ON public.profiles AS RESTRICTIVE FOR INSERT
 
 
 --
--- TOC entry 6264 (class 3256 OID 23923)
+-- TOC entry 6261 (class 3256 OID 23923)
 -- Name: progress_billings p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33366,7 +33498,7 @@ CREATE POLICY p_check_access_insert ON public.progress_billings FOR INSERT WITH 
 
 
 --
--- TOC entry 6265 (class 3256 OID 23924)
+-- TOC entry 6262 (class 3256 OID 23924)
 -- Name: project_inspectors p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33374,7 +33506,7 @@ CREATE POLICY p_check_access_insert ON public.project_inspectors FOR INSERT WITH
 
 
 --
--- TOC entry 6266 (class 3256 OID 23925)
+-- TOC entry 6263 (class 3256 OID 23925)
 -- Name: projects p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33382,7 +33514,7 @@ CREATE POLICY p_check_access_insert ON public.projects FOR INSERT WITH CHECK (pu
 
 
 --
--- TOC entry 6267 (class 3256 OID 23926)
+-- TOC entry 6264 (class 3256 OID 23926)
 -- Name: punch_lists p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33390,7 +33522,7 @@ CREATE POLICY p_check_access_insert ON public.punch_lists FOR INSERT WITH CHECK 
 
 
 --
--- TOC entry 6268 (class 3256 OID 23927)
+-- TOC entry 6265 (class 3256 OID 23927)
 -- Name: purchase_orders p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33398,7 +33530,7 @@ CREATE POLICY p_check_access_insert ON public.purchase_orders FOR INSERT WITH CH
 
 
 --
--- TOC entry 6269 (class 3256 OID 23928)
+-- TOC entry 6266 (class 3256 OID 23928)
 -- Name: quality_reviews p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33406,7 +33538,7 @@ CREATE POLICY p_check_access_insert ON public.quality_reviews FOR INSERT WITH CH
 
 
 --
--- TOC entry 6270 (class 3256 OID 23929)
+-- TOC entry 6267 (class 3256 OID 23929)
 -- Name: regulatory_documents p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33414,7 +33546,7 @@ CREATE POLICY p_check_access_insert ON public.regulatory_documents FOR INSERT WI
 
 
 --
--- TOC entry 6271 (class 3256 OID 23930)
+-- TOC entry 6268 (class 3256 OID 23930)
 -- Name: reports p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33422,7 +33554,7 @@ CREATE POLICY p_check_access_insert ON public.reports FOR INSERT WITH CHECK (pub
 
 
 --
--- TOC entry 6272 (class 3256 OID 23931)
+-- TOC entry 6269 (class 3256 OID 23931)
 -- Name: rfis p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33430,7 +33562,7 @@ CREATE POLICY p_check_access_insert ON public.rfis FOR INSERT WITH CHECK (public
 
 
 --
--- TOC entry 6273 (class 3256 OID 23932)
+-- TOC entry 6270 (class 3256 OID 23932)
 -- Name: safety_incidents p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33438,7 +33570,7 @@ CREATE POLICY p_check_access_insert ON public.safety_incidents FOR INSERT WITH C
 
 
 --
--- TOC entry 6274 (class 3256 OID 23933)
+-- TOC entry 6271 (class 3256 OID 23933)
 -- Name: sensor_data p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33446,7 +33578,7 @@ CREATE POLICY p_check_access_insert ON public.sensor_data FOR INSERT WITH CHECK 
 
 
 --
--- TOC entry 6275 (class 3256 OID 23934)
+-- TOC entry 6272 (class 3256 OID 23934)
 -- Name: subcontractor_agreements p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33454,7 +33586,7 @@ CREATE POLICY p_check_access_insert ON public.subcontractor_agreements FOR INSER
 
 
 --
--- TOC entry 6276 (class 3256 OID 23935)
+-- TOC entry 6273 (class 3256 OID 23935)
 -- Name: subcontracts p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33462,7 +33594,7 @@ CREATE POLICY p_check_access_insert ON public.subcontracts FOR INSERT WITH CHECK
 
 
 --
--- TOC entry 6277 (class 3256 OID 23936)
+-- TOC entry 6274 (class 3256 OID 23936)
 -- Name: submittals p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33470,7 +33602,7 @@ CREATE POLICY p_check_access_insert ON public.submittals FOR INSERT WITH CHECK (
 
 
 --
--- TOC entry 6278 (class 3256 OID 23937)
+-- TOC entry 6275 (class 3256 OID 23937)
 -- Name: tack_rates p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33478,7 +33610,7 @@ CREATE POLICY p_check_access_insert ON public.tack_rates FOR INSERT WITH CHECK (
 
 
 --
--- TOC entry 6279 (class 3256 OID 23938)
+-- TOC entry 6276 (class 3256 OID 23938)
 -- Name: task_dependencies p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33486,7 +33618,7 @@ CREATE POLICY p_check_access_insert ON public.task_dependencies FOR INSERT WITH 
 
 
 --
--- TOC entry 6280 (class 3256 OID 23939)
+-- TOC entry 6277 (class 3256 OID 23939)
 -- Name: task_status_logs p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33494,7 +33626,7 @@ CREATE POLICY p_check_access_insert ON public.task_status_logs FOR INSERT WITH C
 
 
 --
--- TOC entry 6281 (class 3256 OID 23940)
+-- TOC entry 6278 (class 3256 OID 23940)
 -- Name: tasks p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33502,7 +33634,7 @@ CREATE POLICY p_check_access_insert ON public.tasks FOR INSERT WITH CHECK (publi
 
 
 --
--- TOC entry 6282 (class 3256 OID 23941)
+-- TOC entry 6279 (class 3256 OID 23941)
 -- Name: training_records p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33510,7 +33642,7 @@ CREATE POLICY p_check_access_insert ON public.training_records FOR INSERT WITH C
 
 
 --
--- TOC entry 6283 (class 3256 OID 23942)
+-- TOC entry 6280 (class 3256 OID 23942)
 -- Name: user_projects p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33518,7 +33650,7 @@ CREATE POLICY p_check_access_insert ON public.user_projects FOR INSERT WITH CHEC
 
 
 --
--- TOC entry 6284 (class 3256 OID 23943)
+-- TOC entry 6281 (class 3256 OID 23943)
 -- Name: vendor_bid_packages p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33526,7 +33658,7 @@ CREATE POLICY p_check_access_insert ON public.vendor_bid_packages FOR INSERT WIT
 
 
 --
--- TOC entry 6285 (class 3256 OID 23944)
+-- TOC entry 6282 (class 3256 OID 23944)
 -- Name: vendor_contacts p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33534,7 +33666,7 @@ CREATE POLICY p_check_access_insert ON public.vendor_contacts FOR INSERT WITH CH
 
 
 --
--- TOC entry 6286 (class 3256 OID 23945)
+-- TOC entry 6283 (class 3256 OID 23945)
 -- Name: vendor_documents p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33542,7 +33674,7 @@ CREATE POLICY p_check_access_insert ON public.vendor_documents FOR INSERT WITH C
 
 
 --
--- TOC entry 6287 (class 3256 OID 23946)
+-- TOC entry 6284 (class 3256 OID 23946)
 -- Name: vendor_qualifications p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33550,7 +33682,7 @@ CREATE POLICY p_check_access_insert ON public.vendor_qualifications FOR INSERT W
 
 
 --
--- TOC entry 6288 (class 3256 OID 23947)
+-- TOC entry 6285 (class 3256 OID 23947)
 -- Name: vendors p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33558,7 +33690,7 @@ CREATE POLICY p_check_access_insert ON public.vendors FOR INSERT WITH CHECK (pub
 
 
 --
--- TOC entry 6289 (class 3256 OID 23948)
+-- TOC entry 6286 (class 3256 OID 23948)
 -- Name: wbs p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33566,7 +33698,7 @@ CREATE POLICY p_check_access_insert ON public.wbs FOR INSERT WITH CHECK (public.
 
 
 --
--- TOC entry 6290 (class 3256 OID 23949)
+-- TOC entry 6287 (class 3256 OID 23949)
 -- Name: workflows p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33574,7 +33706,7 @@ CREATE POLICY p_check_access_insert ON public.workflows FOR INSERT WITH CHECK (p
 
 
 --
--- TOC entry 6291 (class 3256 OID 23950)
+-- TOC entry 6288 (class 3256 OID 23950)
 -- Name: accounts_payable p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33582,7 +33714,7 @@ CREATE POLICY p_check_access_select ON public.accounts_payable FOR SELECT USING 
 
 
 --
--- TOC entry 6292 (class 3256 OID 23951)
+-- TOC entry 6289 (class 3256 OID 23951)
 -- Name: accounts_receivable p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33590,7 +33722,7 @@ CREATE POLICY p_check_access_select ON public.accounts_receivable FOR SELECT USI
 
 
 --
--- TOC entry 6293 (class 3256 OID 23952)
+-- TOC entry 6290 (class 3256 OID 23952)
 -- Name: activity_logs p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33598,7 +33730,7 @@ CREATE POLICY p_check_access_select ON public.activity_logs FOR SELECT USING (pu
 
 
 --
--- TOC entry 6294 (class 3256 OID 23953)
+-- TOC entry 6291 (class 3256 OID 23953)
 -- Name: asphalt_types p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33606,7 +33738,7 @@ CREATE POLICY p_check_access_select ON public.asphalt_types FOR SELECT USING (pu
 
 
 --
--- TOC entry 6295 (class 3256 OID 23954)
+-- TOC entry 6292 (class 3256 OID 23954)
 -- Name: audit_log p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33614,7 +33746,7 @@ CREATE POLICY p_check_access_select ON public.audit_log FOR SELECT USING (public
 
 
 --
--- TOC entry 6296 (class 3256 OID 23955)
+-- TOC entry 6293 (class 3256 OID 23955)
 -- Name: audit_logs p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33622,7 +33754,7 @@ CREATE POLICY p_check_access_select ON public.audit_logs FOR SELECT USING (publi
 
 
 --
--- TOC entry 6297 (class 3256 OID 23956)
+-- TOC entry 6294 (class 3256 OID 23956)
 -- Name: avatars p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33630,7 +33762,7 @@ CREATE POLICY p_check_access_select ON public.avatars FOR SELECT USING (public.c
 
 
 --
--- TOC entry 6298 (class 3256 OID 23957)
+-- TOC entry 6295 (class 3256 OID 23957)
 -- Name: bid_packages p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33638,7 +33770,7 @@ CREATE POLICY p_check_access_select ON public.bid_packages FOR SELECT USING (pub
 
 
 --
--- TOC entry 6299 (class 3256 OID 23958)
+-- TOC entry 6296 (class 3256 OID 23958)
 -- Name: bid_vendors p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33646,7 +33778,7 @@ CREATE POLICY p_check_access_select ON public.bid_vendors FOR SELECT USING (publ
 
 
 --
--- TOC entry 6300 (class 3256 OID 23959)
+-- TOC entry 6297 (class 3256 OID 23959)
 -- Name: bids p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33654,7 +33786,7 @@ CREATE POLICY p_check_access_select ON public.bids FOR SELECT USING (public.chec
 
 
 --
--- TOC entry 6301 (class 3256 OID 23960)
+-- TOC entry 6298 (class 3256 OID 23960)
 -- Name: bim_models p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33662,7 +33794,7 @@ CREATE POLICY p_check_access_select ON public.bim_models FOR SELECT USING (publi
 
 
 --
--- TOC entry 6302 (class 3256 OID 23961)
+-- TOC entry 6299 (class 3256 OID 23961)
 -- Name: certifications p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33670,7 +33802,7 @@ CREATE POLICY p_check_access_select ON public.certifications FOR SELECT USING (p
 
 
 --
--- TOC entry 6303 (class 3256 OID 23962)
+-- TOC entry 6300 (class 3256 OID 23962)
 -- Name: change_orders p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33678,7 +33810,7 @@ CREATE POLICY p_check_access_select ON public.change_orders FOR SELECT USING (pu
 
 
 --
--- TOC entry 6304 (class 3256 OID 23963)
+-- TOC entry 6301 (class 3256 OID 23963)
 -- Name: commitments p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33686,7 +33818,7 @@ CREATE POLICY p_check_access_select ON public.commitments FOR SELECT USING (publ
 
 
 --
--- TOC entry 6305 (class 3256 OID 23964)
+-- TOC entry 6302 (class 3256 OID 23964)
 -- Name: compliance_checks p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33694,7 +33826,7 @@ CREATE POLICY p_check_access_select ON public.compliance_checks FOR SELECT USING
 
 
 --
--- TOC entry 6306 (class 3256 OID 23965)
+-- TOC entry 6303 (class 3256 OID 23965)
 -- Name: compliance_tracking p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33702,7 +33834,7 @@ CREATE POLICY p_check_access_select ON public.compliance_tracking FOR SELECT USI
 
 
 --
--- TOC entry 6307 (class 3256 OID 23966)
+-- TOC entry 6304 (class 3256 OID 23966)
 -- Name: cost_codes p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33710,7 +33842,7 @@ CREATE POLICY p_check_access_select ON public.cost_codes FOR SELECT USING (publi
 
 
 --
--- TOC entry 6308 (class 3256 OID 23967)
+-- TOC entry 6305 (class 3256 OID 23967)
 -- Name: crew_assignments p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33718,7 +33850,7 @@ CREATE POLICY p_check_access_select ON public.crew_assignments FOR SELECT USING 
 
 
 --
--- TOC entry 6309 (class 3256 OID 23968)
+-- TOC entry 6306 (class 3256 OID 23968)
 -- Name: crew_members p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33726,7 +33858,7 @@ CREATE POLICY p_check_access_select ON public.crew_members FOR SELECT USING (pub
 
 
 --
--- TOC entry 6310 (class 3256 OID 23969)
+-- TOC entry 6307 (class 3256 OID 23969)
 -- Name: crews p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33734,7 +33866,7 @@ CREATE POLICY p_check_access_select ON public.crews FOR SELECT USING (public.che
 
 
 --
--- TOC entry 6311 (class 3256 OID 23970)
+-- TOC entry 6308 (class 3256 OID 23970)
 -- Name: daily_logs p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33742,7 +33874,7 @@ CREATE POLICY p_check_access_select ON public.daily_logs FOR SELECT USING (publi
 
 
 --
--- TOC entry 6312 (class 3256 OID 23971)
+-- TOC entry 6309 (class 3256 OID 23971)
 -- Name: dashboard_configs p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33750,7 +33882,7 @@ CREATE POLICY p_check_access_select ON public.dashboard_configs FOR SELECT USING
 
 
 --
--- TOC entry 6313 (class 3256 OID 23972)
+-- TOC entry 6310 (class 3256 OID 23972)
 -- Name: document_references p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33758,7 +33890,7 @@ CREATE POLICY p_check_access_select ON public.document_references FOR SELECT USI
 
 
 --
--- TOC entry 6314 (class 3256 OID 23973)
+-- TOC entry 6311 (class 3256 OID 23973)
 -- Name: documents p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33766,7 +33898,7 @@ CREATE POLICY p_check_access_select ON public.documents FOR SELECT USING (public
 
 
 --
--- TOC entry 6315 (class 3256 OID 23974)
+-- TOC entry 6312 (class 3256 OID 23974)
 -- Name: drawing_versions p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33774,7 +33906,7 @@ CREATE POLICY p_check_access_select ON public.drawing_versions FOR SELECT USING 
 
 
 --
--- TOC entry 6316 (class 3256 OID 23975)
+-- TOC entry 6313 (class 3256 OID 23975)
 -- Name: dump_trucks p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33782,7 +33914,7 @@ CREATE POLICY p_check_access_select ON public.dump_trucks FOR SELECT USING (publ
 
 
 --
--- TOC entry 6317 (class 3256 OID 23976)
+-- TOC entry 6314 (class 3256 OID 23976)
 -- Name: employees p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33790,7 +33922,7 @@ CREATE POLICY p_check_access_select ON public.employees FOR SELECT USING (public
 
 
 --
--- TOC entry 6318 (class 3256 OID 23977)
+-- TOC entry 6315 (class 3256 OID 23977)
 -- Name: equipment p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33798,7 +33930,7 @@ CREATE POLICY p_check_access_select ON public.equipment FOR SELECT USING (public
 
 
 --
--- TOC entry 6319 (class 3256 OID 23978)
+-- TOC entry 6316 (class 3256 OID 23978)
 -- Name: equipment_assignments p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33806,7 +33938,7 @@ CREATE POLICY p_check_access_select ON public.equipment_assignments FOR SELECT U
 
 
 --
--- TOC entry 6320 (class 3256 OID 23979)
+-- TOC entry 6317 (class 3256 OID 23979)
 -- Name: equipment_maintenance p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33814,7 +33946,7 @@ CREATE POLICY p_check_access_select ON public.equipment_maintenance FOR SELECT U
 
 
 --
--- TOC entry 6321 (class 3256 OID 23980)
+-- TOC entry 6318 (class 3256 OID 23980)
 -- Name: equipment_usage p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33822,7 +33954,7 @@ CREATE POLICY p_check_access_select ON public.equipment_usage FOR SELECT USING (
 
 
 --
--- TOC entry 6322 (class 3256 OID 23981)
+-- TOC entry 6319 (class 3256 OID 23981)
 -- Name: estimate_line_items p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33830,7 +33962,7 @@ CREATE POLICY p_check_access_select ON public.estimate_line_items FOR SELECT USI
 
 
 --
--- TOC entry 6323 (class 3256 OID 23982)
+-- TOC entry 6320 (class 3256 OID 23982)
 -- Name: estimates p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33838,7 +33970,7 @@ CREATE POLICY p_check_access_select ON public.estimates FOR SELECT USING (public
 
 
 --
--- TOC entry 6324 (class 3256 OID 23983)
+-- TOC entry 6321 (class 3256 OID 23983)
 -- Name: financial_documents p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33846,7 +33978,7 @@ CREATE POLICY p_check_access_select ON public.financial_documents FOR SELECT USI
 
 
 --
--- TOC entry 6325 (class 3256 OID 23984)
+-- TOC entry 6322 (class 3256 OID 23984)
 -- Name: general_ledger p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33854,7 +33986,7 @@ CREATE POLICY p_check_access_select ON public.general_ledger FOR SELECT USING (p
 
 
 --
--- TOC entry 6326 (class 3256 OID 23985)
+-- TOC entry 6323 (class 3256 OID 23985)
 -- Name: hr_documents p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33862,7 +33994,7 @@ CREATE POLICY p_check_access_select ON public.hr_documents FOR SELECT USING (pub
 
 
 --
--- TOC entry 6327 (class 3256 OID 23986)
+-- TOC entry 6324 (class 3256 OID 23986)
 -- Name: inspections p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33870,7 +34002,7 @@ CREATE POLICY p_check_access_select ON public.inspections FOR SELECT USING (publ
 
 
 --
--- TOC entry 6328 (class 3256 OID 23987)
+-- TOC entry 6325 (class 3256 OID 23987)
 -- Name: integration_tokens p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33878,7 +34010,7 @@ CREATE POLICY p_check_access_select ON public.integration_tokens FOR SELECT USIN
 
 
 --
--- TOC entry 6329 (class 3256 OID 23988)
+-- TOC entry 6326 (class 3256 OID 23988)
 -- Name: inventory_transactions p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33886,7 +34018,7 @@ CREATE POLICY p_check_access_select ON public.inventory_transactions FOR SELECT 
 
 
 --
--- TOC entry 6330 (class 3256 OID 23989)
+-- TOC entry 6327 (class 3256 OID 23989)
 -- Name: issues p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33894,7 +34026,7 @@ CREATE POLICY p_check_access_select ON public.issues FOR SELECT USING (public.ch
 
 
 --
--- TOC entry 6331 (class 3256 OID 23990)
+-- TOC entry 6328 (class 3256 OID 23990)
 -- Name: job_titles p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33902,7 +34034,7 @@ CREATE POLICY p_check_access_select ON public.job_titles FOR SELECT USING (publi
 
 
 --
--- TOC entry 6332 (class 3256 OID 23991)
+-- TOC entry 6329 (class 3256 OID 23991)
 -- Name: labor_records p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33910,7 +34042,7 @@ CREATE POLICY p_check_access_select ON public.labor_records FOR SELECT USING (pu
 
 
 --
--- TOC entry 6333 (class 3256 OID 23992)
+-- TOC entry 6330 (class 3256 OID 23992)
 -- Name: line_item_entries p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33918,7 +34050,7 @@ CREATE POLICY p_check_access_select ON public.line_item_entries FOR SELECT USING
 
 
 --
--- TOC entry 6334 (class 3256 OID 23993)
+-- TOC entry 6331 (class 3256 OID 23993)
 -- Name: line_item_templates p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33926,7 +34058,7 @@ CREATE POLICY p_check_access_select ON public.line_item_templates FOR SELECT USI
 
 
 --
--- TOC entry 6335 (class 3256 OID 23994)
+-- TOC entry 6332 (class 3256 OID 23994)
 -- Name: line_items p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33934,7 +34066,7 @@ CREATE POLICY p_check_access_select ON public.line_items FOR SELECT USING (publi
 
 
 --
--- TOC entry 6336 (class 3256 OID 23995)
+-- TOC entry 6333 (class 3256 OID 23995)
 -- Name: maps p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33942,7 +34074,7 @@ CREATE POLICY p_check_access_select ON public.maps FOR SELECT USING (public.chec
 
 
 --
--- TOC entry 6337 (class 3256 OID 23996)
+-- TOC entry 6334 (class 3256 OID 23996)
 -- Name: material_inventory p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33950,7 +34082,7 @@ CREATE POLICY p_check_access_select ON public.material_inventory FOR SELECT USIN
 
 
 --
--- TOC entry 6338 (class 3256 OID 23997)
+-- TOC entry 6335 (class 3256 OID 23997)
 -- Name: material_orders p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33958,7 +34090,7 @@ CREATE POLICY p_check_access_select ON public.material_orders FOR SELECT USING (
 
 
 --
--- TOC entry 6339 (class 3256 OID 23998)
+-- TOC entry 6336 (class 3256 OID 23998)
 -- Name: material_receipts p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33966,7 +34098,7 @@ CREATE POLICY p_check_access_select ON public.material_receipts FOR SELECT USING
 
 
 --
--- TOC entry 6340 (class 3256 OID 23999)
+-- TOC entry 6337 (class 3256 OID 23999)
 -- Name: materials p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33974,7 +34106,7 @@ CREATE POLICY p_check_access_select ON public.materials FOR SELECT USING (public
 
 
 --
--- TOC entry 6341 (class 3256 OID 24000)
+-- TOC entry 6338 (class 3256 OID 24000)
 -- Name: meeting_minutes p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33982,7 +34114,7 @@ CREATE POLICY p_check_access_select ON public.meeting_minutes FOR SELECT USING (
 
 
 --
--- TOC entry 6342 (class 3256 OID 24001)
+-- TOC entry 6339 (class 3256 OID 24001)
 -- Name: notifications p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33990,7 +34122,7 @@ CREATE POLICY p_check_access_select ON public.notifications FOR SELECT USING (pu
 
 
 --
--- TOC entry 6470 (class 3256 OID 43263)
+-- TOC entry 6467 (class 3256 OID 43263)
 -- Name: organization_invites p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33998,7 +34130,7 @@ CREATE POLICY p_check_access_select ON public.organization_invites FOR SELECT US
 
 
 --
--- TOC entry 6343 (class 3256 OID 24002)
+-- TOC entry 6340 (class 3256 OID 24002)
 -- Name: organization_members p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34006,7 +34138,7 @@ CREATE POLICY p_check_access_select ON public.organization_members FOR SELECT US
 
 
 --
--- TOC entry 6344 (class 3256 OID 24003)
+-- TOC entry 6341 (class 3256 OID 24003)
 -- Name: organization_projects p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34014,7 +34146,7 @@ CREATE POLICY p_check_access_select ON public.organization_projects FOR SELECT U
 
 
 --
--- TOC entry 6467 (class 3256 OID 28856)
+-- TOC entry 6464 (class 3256 OID 28856)
 -- Name: organizations p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34022,7 +34154,7 @@ CREATE POLICY p_check_access_select ON public.organizations FOR SELECT USING (pu
 
 
 --
--- TOC entry 6345 (class 3256 OID 24005)
+-- TOC entry 6342 (class 3256 OID 24005)
 -- Name: payments p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34030,7 +34162,7 @@ CREATE POLICY p_check_access_select ON public.payments FOR SELECT USING (public.
 
 
 --
--- TOC entry 6346 (class 3256 OID 24006)
+-- TOC entry 6343 (class 3256 OID 24006)
 -- Name: payroll p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34038,7 +34170,7 @@ CREATE POLICY p_check_access_select ON public.payroll FOR SELECT USING (public.c
 
 
 --
--- TOC entry 6347 (class 3256 OID 24007)
+-- TOC entry 6344 (class 3256 OID 24007)
 -- Name: photos p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34046,7 +34178,7 @@ CREATE POLICY p_check_access_select ON public.photos FOR SELECT USING (public.ch
 
 
 --
--- TOC entry 6348 (class 3256 OID 24008)
+-- TOC entry 6345 (class 3256 OID 24008)
 -- Name: prequalifications p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34054,7 +34186,7 @@ CREATE POLICY p_check_access_select ON public.prequalifications FOR SELECT USING
 
 
 --
--- TOC entry 6349 (class 3256 OID 24009)
+-- TOC entry 6346 (class 3256 OID 24009)
 -- Name: procurement_workflows p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34062,7 +34194,7 @@ CREATE POLICY p_check_access_select ON public.procurement_workflows FOR SELECT U
 
 
 --
--- TOC entry 6473 (class 3256 OID 45495)
+-- TOC entry 6470 (class 3256 OID 45495)
 -- Name: profiles p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34070,7 +34202,7 @@ CREATE POLICY p_check_access_select ON public.profiles AS RESTRICTIVE FOR SELECT
 
 
 --
--- TOC entry 6350 (class 3256 OID 24011)
+-- TOC entry 6347 (class 3256 OID 24011)
 -- Name: progress_billings p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34078,7 +34210,7 @@ CREATE POLICY p_check_access_select ON public.progress_billings FOR SELECT USING
 
 
 --
--- TOC entry 6351 (class 3256 OID 24012)
+-- TOC entry 6348 (class 3256 OID 24012)
 -- Name: project_inspectors p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34086,7 +34218,7 @@ CREATE POLICY p_check_access_select ON public.project_inspectors FOR SELECT USIN
 
 
 --
--- TOC entry 6352 (class 3256 OID 24013)
+-- TOC entry 6349 (class 3256 OID 24013)
 -- Name: projects p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34094,7 +34226,7 @@ CREATE POLICY p_check_access_select ON public.projects FOR SELECT USING (public.
 
 
 --
--- TOC entry 6353 (class 3256 OID 24014)
+-- TOC entry 6350 (class 3256 OID 24014)
 -- Name: punch_lists p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34102,7 +34234,7 @@ CREATE POLICY p_check_access_select ON public.punch_lists FOR SELECT USING (publ
 
 
 --
--- TOC entry 6354 (class 3256 OID 24015)
+-- TOC entry 6351 (class 3256 OID 24015)
 -- Name: purchase_orders p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34110,7 +34242,7 @@ CREATE POLICY p_check_access_select ON public.purchase_orders FOR SELECT USING (
 
 
 --
--- TOC entry 6355 (class 3256 OID 24016)
+-- TOC entry 6352 (class 3256 OID 24016)
 -- Name: quality_reviews p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34118,7 +34250,7 @@ CREATE POLICY p_check_access_select ON public.quality_reviews FOR SELECT USING (
 
 
 --
--- TOC entry 6356 (class 3256 OID 24017)
+-- TOC entry 6353 (class 3256 OID 24017)
 -- Name: regulatory_documents p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34126,7 +34258,7 @@ CREATE POLICY p_check_access_select ON public.regulatory_documents FOR SELECT US
 
 
 --
--- TOC entry 6357 (class 3256 OID 24018)
+-- TOC entry 6354 (class 3256 OID 24018)
 -- Name: reports p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34134,7 +34266,7 @@ CREATE POLICY p_check_access_select ON public.reports FOR SELECT USING (public.c
 
 
 --
--- TOC entry 6358 (class 3256 OID 24019)
+-- TOC entry 6355 (class 3256 OID 24019)
 -- Name: rfis p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34142,7 +34274,7 @@ CREATE POLICY p_check_access_select ON public.rfis FOR SELECT USING (public.chec
 
 
 --
--- TOC entry 6359 (class 3256 OID 24020)
+-- TOC entry 6356 (class 3256 OID 24020)
 -- Name: safety_incidents p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34150,7 +34282,7 @@ CREATE POLICY p_check_access_select ON public.safety_incidents FOR SELECT USING 
 
 
 --
--- TOC entry 6360 (class 3256 OID 24021)
+-- TOC entry 6357 (class 3256 OID 24021)
 -- Name: sensor_data p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34158,7 +34290,7 @@ CREATE POLICY p_check_access_select ON public.sensor_data FOR SELECT USING (publ
 
 
 --
--- TOC entry 6361 (class 3256 OID 24022)
+-- TOC entry 6358 (class 3256 OID 24022)
 -- Name: subcontractor_agreements p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34166,7 +34298,7 @@ CREATE POLICY p_check_access_select ON public.subcontractor_agreements FOR SELEC
 
 
 --
--- TOC entry 6362 (class 3256 OID 24023)
+-- TOC entry 6359 (class 3256 OID 24023)
 -- Name: subcontracts p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34174,7 +34306,7 @@ CREATE POLICY p_check_access_select ON public.subcontracts FOR SELECT USING (pub
 
 
 --
--- TOC entry 6363 (class 3256 OID 24024)
+-- TOC entry 6360 (class 3256 OID 24024)
 -- Name: submittals p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34182,7 +34314,7 @@ CREATE POLICY p_check_access_select ON public.submittals FOR SELECT USING (publi
 
 
 --
--- TOC entry 6364 (class 3256 OID 24025)
+-- TOC entry 6361 (class 3256 OID 24025)
 -- Name: tack_rates p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34190,7 +34322,7 @@ CREATE POLICY p_check_access_select ON public.tack_rates FOR SELECT USING (publi
 
 
 --
--- TOC entry 6365 (class 3256 OID 24026)
+-- TOC entry 6362 (class 3256 OID 24026)
 -- Name: task_dependencies p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34198,7 +34330,7 @@ CREATE POLICY p_check_access_select ON public.task_dependencies FOR SELECT USING
 
 
 --
--- TOC entry 6366 (class 3256 OID 24027)
+-- TOC entry 6363 (class 3256 OID 24027)
 -- Name: task_status_logs p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34206,7 +34338,7 @@ CREATE POLICY p_check_access_select ON public.task_status_logs FOR SELECT USING 
 
 
 --
--- TOC entry 6367 (class 3256 OID 24028)
+-- TOC entry 6364 (class 3256 OID 24028)
 -- Name: tasks p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34214,7 +34346,7 @@ CREATE POLICY p_check_access_select ON public.tasks FOR SELECT USING (public.che
 
 
 --
--- TOC entry 6368 (class 3256 OID 24029)
+-- TOC entry 6365 (class 3256 OID 24029)
 -- Name: training_records p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34222,7 +34354,7 @@ CREATE POLICY p_check_access_select ON public.training_records FOR SELECT USING 
 
 
 --
--- TOC entry 6369 (class 3256 OID 24030)
+-- TOC entry 6366 (class 3256 OID 24030)
 -- Name: user_projects p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34230,7 +34362,7 @@ CREATE POLICY p_check_access_select ON public.user_projects FOR SELECT USING (pu
 
 
 --
--- TOC entry 6370 (class 3256 OID 24031)
+-- TOC entry 6367 (class 3256 OID 24031)
 -- Name: vendor_bid_packages p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34238,7 +34370,7 @@ CREATE POLICY p_check_access_select ON public.vendor_bid_packages FOR SELECT USI
 
 
 --
--- TOC entry 6371 (class 3256 OID 24032)
+-- TOC entry 6368 (class 3256 OID 24032)
 -- Name: vendor_contacts p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34246,7 +34378,7 @@ CREATE POLICY p_check_access_select ON public.vendor_contacts FOR SELECT USING (
 
 
 --
--- TOC entry 6372 (class 3256 OID 24035)
+-- TOC entry 6369 (class 3256 OID 24035)
 -- Name: vendor_documents p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34254,7 +34386,7 @@ CREATE POLICY p_check_access_select ON public.vendor_documents FOR SELECT USING 
 
 
 --
--- TOC entry 6373 (class 3256 OID 24036)
+-- TOC entry 6370 (class 3256 OID 24036)
 -- Name: vendor_qualifications p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34262,7 +34394,7 @@ CREATE POLICY p_check_access_select ON public.vendor_qualifications FOR SELECT U
 
 
 --
--- TOC entry 6374 (class 3256 OID 24037)
+-- TOC entry 6371 (class 3256 OID 24037)
 -- Name: vendors p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34270,7 +34402,7 @@ CREATE POLICY p_check_access_select ON public.vendors FOR SELECT USING (public.c
 
 
 --
--- TOC entry 6375 (class 3256 OID 24038)
+-- TOC entry 6372 (class 3256 OID 24038)
 -- Name: wbs p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34278,7 +34410,7 @@ CREATE POLICY p_check_access_select ON public.wbs FOR SELECT USING (public.check
 
 
 --
--- TOC entry 6376 (class 3256 OID 24039)
+-- TOC entry 6373 (class 3256 OID 24039)
 -- Name: workflows p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34286,7 +34418,7 @@ CREATE POLICY p_check_access_select ON public.workflows FOR SELECT USING (public
 
 
 --
--- TOC entry 6377 (class 3256 OID 24040)
+-- TOC entry 6374 (class 3256 OID 24040)
 -- Name: accounts_payable p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34294,7 +34426,7 @@ CREATE POLICY p_check_access_update ON public.accounts_payable FOR UPDATE USING 
 
 
 --
--- TOC entry 6378 (class 3256 OID 24041)
+-- TOC entry 6375 (class 3256 OID 24041)
 -- Name: accounts_receivable p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34302,7 +34434,7 @@ CREATE POLICY p_check_access_update ON public.accounts_receivable FOR UPDATE USI
 
 
 --
--- TOC entry 6379 (class 3256 OID 24042)
+-- TOC entry 6376 (class 3256 OID 24042)
 -- Name: activity_logs p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34310,7 +34442,7 @@ CREATE POLICY p_check_access_update ON public.activity_logs FOR UPDATE USING (pu
 
 
 --
--- TOC entry 6380 (class 3256 OID 24043)
+-- TOC entry 6377 (class 3256 OID 24043)
 -- Name: asphalt_types p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34318,7 +34450,7 @@ CREATE POLICY p_check_access_update ON public.asphalt_types FOR UPDATE USING (pu
 
 
 --
--- TOC entry 6381 (class 3256 OID 24044)
+-- TOC entry 6378 (class 3256 OID 24044)
 -- Name: audit_log p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34326,7 +34458,7 @@ CREATE POLICY p_check_access_update ON public.audit_log FOR UPDATE USING (public
 
 
 --
--- TOC entry 6382 (class 3256 OID 24045)
+-- TOC entry 6379 (class 3256 OID 24045)
 -- Name: audit_logs p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34334,7 +34466,7 @@ CREATE POLICY p_check_access_update ON public.audit_logs FOR UPDATE USING (publi
 
 
 --
--- TOC entry 6383 (class 3256 OID 24046)
+-- TOC entry 6380 (class 3256 OID 24046)
 -- Name: avatars p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34342,7 +34474,7 @@ CREATE POLICY p_check_access_update ON public.avatars FOR UPDATE USING (public.c
 
 
 --
--- TOC entry 6384 (class 3256 OID 24047)
+-- TOC entry 6381 (class 3256 OID 24047)
 -- Name: bid_packages p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34350,7 +34482,7 @@ CREATE POLICY p_check_access_update ON public.bid_packages FOR UPDATE USING (pub
 
 
 --
--- TOC entry 6385 (class 3256 OID 24048)
+-- TOC entry 6382 (class 3256 OID 24048)
 -- Name: bid_vendors p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34358,7 +34490,7 @@ CREATE POLICY p_check_access_update ON public.bid_vendors FOR UPDATE USING (publ
 
 
 --
--- TOC entry 6386 (class 3256 OID 24049)
+-- TOC entry 6383 (class 3256 OID 24049)
 -- Name: bids p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34366,7 +34498,7 @@ CREATE POLICY p_check_access_update ON public.bids FOR UPDATE USING (public.chec
 
 
 --
--- TOC entry 6387 (class 3256 OID 24050)
+-- TOC entry 6384 (class 3256 OID 24050)
 -- Name: bim_models p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34374,7 +34506,7 @@ CREATE POLICY p_check_access_update ON public.bim_models FOR UPDATE USING (publi
 
 
 --
--- TOC entry 6388 (class 3256 OID 24051)
+-- TOC entry 6385 (class 3256 OID 24051)
 -- Name: certifications p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34382,7 +34514,7 @@ CREATE POLICY p_check_access_update ON public.certifications FOR UPDATE USING (p
 
 
 --
--- TOC entry 6389 (class 3256 OID 24052)
+-- TOC entry 6386 (class 3256 OID 24052)
 -- Name: change_orders p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34390,7 +34522,7 @@ CREATE POLICY p_check_access_update ON public.change_orders FOR UPDATE USING (pu
 
 
 --
--- TOC entry 6390 (class 3256 OID 24053)
+-- TOC entry 6387 (class 3256 OID 24053)
 -- Name: commitments p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34398,7 +34530,7 @@ CREATE POLICY p_check_access_update ON public.commitments FOR UPDATE USING (publ
 
 
 --
--- TOC entry 6391 (class 3256 OID 24054)
+-- TOC entry 6388 (class 3256 OID 24054)
 -- Name: compliance_checks p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34406,7 +34538,7 @@ CREATE POLICY p_check_access_update ON public.compliance_checks FOR UPDATE USING
 
 
 --
--- TOC entry 6392 (class 3256 OID 24055)
+-- TOC entry 6389 (class 3256 OID 24055)
 -- Name: compliance_tracking p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34414,7 +34546,7 @@ CREATE POLICY p_check_access_update ON public.compliance_tracking FOR UPDATE USI
 
 
 --
--- TOC entry 6393 (class 3256 OID 24056)
+-- TOC entry 6390 (class 3256 OID 24056)
 -- Name: cost_codes p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34422,7 +34554,7 @@ CREATE POLICY p_check_access_update ON public.cost_codes FOR UPDATE USING (publi
 
 
 --
--- TOC entry 6394 (class 3256 OID 24057)
+-- TOC entry 6391 (class 3256 OID 24057)
 -- Name: crew_assignments p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34430,7 +34562,7 @@ CREATE POLICY p_check_access_update ON public.crew_assignments FOR UPDATE USING 
 
 
 --
--- TOC entry 6395 (class 3256 OID 24058)
+-- TOC entry 6392 (class 3256 OID 24058)
 -- Name: crew_members p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34438,7 +34570,7 @@ CREATE POLICY p_check_access_update ON public.crew_members FOR UPDATE USING (pub
 
 
 --
--- TOC entry 6396 (class 3256 OID 24059)
+-- TOC entry 6393 (class 3256 OID 24059)
 -- Name: crews p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34446,7 +34578,7 @@ CREATE POLICY p_check_access_update ON public.crews FOR UPDATE USING (public.che
 
 
 --
--- TOC entry 6397 (class 3256 OID 24060)
+-- TOC entry 6394 (class 3256 OID 24060)
 -- Name: daily_logs p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34454,7 +34586,7 @@ CREATE POLICY p_check_access_update ON public.daily_logs FOR UPDATE USING (publi
 
 
 --
--- TOC entry 6398 (class 3256 OID 24061)
+-- TOC entry 6395 (class 3256 OID 24061)
 -- Name: dashboard_configs p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34462,7 +34594,7 @@ CREATE POLICY p_check_access_update ON public.dashboard_configs FOR UPDATE USING
 
 
 --
--- TOC entry 6399 (class 3256 OID 24062)
+-- TOC entry 6396 (class 3256 OID 24062)
 -- Name: document_references p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34470,7 +34602,7 @@ CREATE POLICY p_check_access_update ON public.document_references FOR UPDATE USI
 
 
 --
--- TOC entry 6400 (class 3256 OID 24063)
+-- TOC entry 6397 (class 3256 OID 24063)
 -- Name: documents p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34478,7 +34610,7 @@ CREATE POLICY p_check_access_update ON public.documents FOR UPDATE USING (public
 
 
 --
--- TOC entry 6401 (class 3256 OID 24064)
+-- TOC entry 6398 (class 3256 OID 24064)
 -- Name: drawing_versions p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34486,7 +34618,7 @@ CREATE POLICY p_check_access_update ON public.drawing_versions FOR UPDATE USING 
 
 
 --
--- TOC entry 6402 (class 3256 OID 24065)
+-- TOC entry 6399 (class 3256 OID 24065)
 -- Name: dump_trucks p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34494,7 +34626,7 @@ CREATE POLICY p_check_access_update ON public.dump_trucks FOR UPDATE USING (publ
 
 
 --
--- TOC entry 6403 (class 3256 OID 24066)
+-- TOC entry 6400 (class 3256 OID 24066)
 -- Name: employees p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34502,7 +34634,7 @@ CREATE POLICY p_check_access_update ON public.employees FOR UPDATE USING (public
 
 
 --
--- TOC entry 6404 (class 3256 OID 24067)
+-- TOC entry 6401 (class 3256 OID 24067)
 -- Name: equipment p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34510,7 +34642,7 @@ CREATE POLICY p_check_access_update ON public.equipment FOR UPDATE USING (public
 
 
 --
--- TOC entry 6405 (class 3256 OID 24068)
+-- TOC entry 6402 (class 3256 OID 24068)
 -- Name: equipment_assignments p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34518,7 +34650,7 @@ CREATE POLICY p_check_access_update ON public.equipment_assignments FOR UPDATE U
 
 
 --
--- TOC entry 6406 (class 3256 OID 24069)
+-- TOC entry 6403 (class 3256 OID 24069)
 -- Name: equipment_maintenance p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34526,7 +34658,7 @@ CREATE POLICY p_check_access_update ON public.equipment_maintenance FOR UPDATE U
 
 
 --
--- TOC entry 6407 (class 3256 OID 24070)
+-- TOC entry 6404 (class 3256 OID 24070)
 -- Name: equipment_usage p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34534,7 +34666,7 @@ CREATE POLICY p_check_access_update ON public.equipment_usage FOR UPDATE USING (
 
 
 --
--- TOC entry 6408 (class 3256 OID 24071)
+-- TOC entry 6405 (class 3256 OID 24071)
 -- Name: estimate_line_items p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34542,7 +34674,7 @@ CREATE POLICY p_check_access_update ON public.estimate_line_items FOR UPDATE USI
 
 
 --
--- TOC entry 6409 (class 3256 OID 24072)
+-- TOC entry 6406 (class 3256 OID 24072)
 -- Name: estimates p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34550,7 +34682,7 @@ CREATE POLICY p_check_access_update ON public.estimates FOR UPDATE USING (public
 
 
 --
--- TOC entry 6410 (class 3256 OID 24073)
+-- TOC entry 6407 (class 3256 OID 24073)
 -- Name: financial_documents p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34558,7 +34690,7 @@ CREATE POLICY p_check_access_update ON public.financial_documents FOR UPDATE USI
 
 
 --
--- TOC entry 6411 (class 3256 OID 24074)
+-- TOC entry 6408 (class 3256 OID 24074)
 -- Name: general_ledger p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34566,7 +34698,7 @@ CREATE POLICY p_check_access_update ON public.general_ledger FOR UPDATE USING (p
 
 
 --
--- TOC entry 6412 (class 3256 OID 24075)
+-- TOC entry 6409 (class 3256 OID 24075)
 -- Name: hr_documents p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34574,7 +34706,7 @@ CREATE POLICY p_check_access_update ON public.hr_documents FOR UPDATE USING (pub
 
 
 --
--- TOC entry 6413 (class 3256 OID 24076)
+-- TOC entry 6410 (class 3256 OID 24076)
 -- Name: inspections p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34582,7 +34714,7 @@ CREATE POLICY p_check_access_update ON public.inspections FOR UPDATE USING (publ
 
 
 --
--- TOC entry 6414 (class 3256 OID 24077)
+-- TOC entry 6411 (class 3256 OID 24077)
 -- Name: integration_tokens p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34590,7 +34722,7 @@ CREATE POLICY p_check_access_update ON public.integration_tokens FOR UPDATE USIN
 
 
 --
--- TOC entry 6415 (class 3256 OID 24078)
+-- TOC entry 6412 (class 3256 OID 24078)
 -- Name: inventory_transactions p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34598,7 +34730,7 @@ CREATE POLICY p_check_access_update ON public.inventory_transactions FOR UPDATE 
 
 
 --
--- TOC entry 6416 (class 3256 OID 24079)
+-- TOC entry 6413 (class 3256 OID 24079)
 -- Name: issues p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34606,7 +34738,7 @@ CREATE POLICY p_check_access_update ON public.issues FOR UPDATE USING (public.ch
 
 
 --
--- TOC entry 6417 (class 3256 OID 24080)
+-- TOC entry 6414 (class 3256 OID 24080)
 -- Name: job_titles p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34614,7 +34746,7 @@ CREATE POLICY p_check_access_update ON public.job_titles FOR UPDATE USING (publi
 
 
 --
--- TOC entry 6418 (class 3256 OID 24081)
+-- TOC entry 6415 (class 3256 OID 24081)
 -- Name: labor_records p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34622,7 +34754,7 @@ CREATE POLICY p_check_access_update ON public.labor_records FOR UPDATE USING (pu
 
 
 --
--- TOC entry 6419 (class 3256 OID 24082)
+-- TOC entry 6416 (class 3256 OID 24082)
 -- Name: line_item_entries p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34630,7 +34762,7 @@ CREATE POLICY p_check_access_update ON public.line_item_entries FOR UPDATE USING
 
 
 --
--- TOC entry 6420 (class 3256 OID 24083)
+-- TOC entry 6417 (class 3256 OID 24083)
 -- Name: line_item_templates p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34638,7 +34770,7 @@ CREATE POLICY p_check_access_update ON public.line_item_templates FOR UPDATE USI
 
 
 --
--- TOC entry 6421 (class 3256 OID 24084)
+-- TOC entry 6418 (class 3256 OID 24084)
 -- Name: line_items p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34646,7 +34778,7 @@ CREATE POLICY p_check_access_update ON public.line_items FOR UPDATE USING (publi
 
 
 --
--- TOC entry 6422 (class 3256 OID 24085)
+-- TOC entry 6419 (class 3256 OID 24085)
 -- Name: maps p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34654,7 +34786,7 @@ CREATE POLICY p_check_access_update ON public.maps FOR UPDATE USING (public.chec
 
 
 --
--- TOC entry 6423 (class 3256 OID 24086)
+-- TOC entry 6420 (class 3256 OID 24086)
 -- Name: material_inventory p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34662,7 +34794,7 @@ CREATE POLICY p_check_access_update ON public.material_inventory FOR UPDATE USIN
 
 
 --
--- TOC entry 6424 (class 3256 OID 24087)
+-- TOC entry 6421 (class 3256 OID 24087)
 -- Name: material_orders p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34670,7 +34802,7 @@ CREATE POLICY p_check_access_update ON public.material_orders FOR UPDATE USING (
 
 
 --
--- TOC entry 6425 (class 3256 OID 24088)
+-- TOC entry 6422 (class 3256 OID 24088)
 -- Name: material_receipts p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34678,7 +34810,7 @@ CREATE POLICY p_check_access_update ON public.material_receipts FOR UPDATE USING
 
 
 --
--- TOC entry 6426 (class 3256 OID 24089)
+-- TOC entry 6423 (class 3256 OID 24089)
 -- Name: materials p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34686,7 +34818,7 @@ CREATE POLICY p_check_access_update ON public.materials FOR UPDATE USING (public
 
 
 --
--- TOC entry 6427 (class 3256 OID 24090)
+-- TOC entry 6424 (class 3256 OID 24090)
 -- Name: meeting_minutes p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34694,7 +34826,7 @@ CREATE POLICY p_check_access_update ON public.meeting_minutes FOR UPDATE USING (
 
 
 --
--- TOC entry 6428 (class 3256 OID 24091)
+-- TOC entry 6425 (class 3256 OID 24091)
 -- Name: notifications p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34702,7 +34834,7 @@ CREATE POLICY p_check_access_update ON public.notifications FOR UPDATE USING (pu
 
 
 --
--- TOC entry 6471 (class 3256 OID 43264)
+-- TOC entry 6468 (class 3256 OID 43264)
 -- Name: organization_invites p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34710,7 +34842,7 @@ CREATE POLICY p_check_access_update ON public.organization_invites FOR UPDATE US
 
 
 --
--- TOC entry 6429 (class 3256 OID 24092)
+-- TOC entry 6426 (class 3256 OID 24092)
 -- Name: organization_members p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34718,7 +34850,7 @@ CREATE POLICY p_check_access_update ON public.organization_members FOR UPDATE US
 
 
 --
--- TOC entry 6430 (class 3256 OID 24093)
+-- TOC entry 6427 (class 3256 OID 24093)
 -- Name: organization_projects p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34726,7 +34858,7 @@ CREATE POLICY p_check_access_update ON public.organization_projects FOR UPDATE U
 
 
 --
--- TOC entry 6468 (class 3256 OID 28857)
+-- TOC entry 6465 (class 3256 OID 28857)
 -- Name: organizations p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34734,7 +34866,7 @@ CREATE POLICY p_check_access_update ON public.organizations FOR UPDATE USING (pu
 
 
 --
--- TOC entry 6431 (class 3256 OID 24095)
+-- TOC entry 6428 (class 3256 OID 24095)
 -- Name: payments p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34742,7 +34874,7 @@ CREATE POLICY p_check_access_update ON public.payments FOR UPDATE USING (public.
 
 
 --
--- TOC entry 6432 (class 3256 OID 24096)
+-- TOC entry 6429 (class 3256 OID 24096)
 -- Name: payroll p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34750,7 +34882,7 @@ CREATE POLICY p_check_access_update ON public.payroll FOR UPDATE USING (public.c
 
 
 --
--- TOC entry 6433 (class 3256 OID 24097)
+-- TOC entry 6430 (class 3256 OID 24097)
 -- Name: photos p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34758,7 +34890,7 @@ CREATE POLICY p_check_access_update ON public.photos FOR UPDATE USING (public.ch
 
 
 --
--- TOC entry 6434 (class 3256 OID 24098)
+-- TOC entry 6431 (class 3256 OID 24098)
 -- Name: prequalifications p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34766,7 +34898,7 @@ CREATE POLICY p_check_access_update ON public.prequalifications FOR UPDATE USING
 
 
 --
--- TOC entry 6435 (class 3256 OID 24099)
+-- TOC entry 6432 (class 3256 OID 24099)
 -- Name: procurement_workflows p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34774,7 +34906,7 @@ CREATE POLICY p_check_access_update ON public.procurement_workflows FOR UPDATE U
 
 
 --
--- TOC entry 6474 (class 3256 OID 45496)
+-- TOC entry 6471 (class 3256 OID 45496)
 -- Name: profiles p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34782,7 +34914,7 @@ CREATE POLICY p_check_access_update ON public.profiles AS RESTRICTIVE FOR UPDATE
 
 
 --
--- TOC entry 6436 (class 3256 OID 24101)
+-- TOC entry 6433 (class 3256 OID 24101)
 -- Name: progress_billings p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34790,7 +34922,7 @@ CREATE POLICY p_check_access_update ON public.progress_billings FOR UPDATE USING
 
 
 --
--- TOC entry 6437 (class 3256 OID 24102)
+-- TOC entry 6434 (class 3256 OID 24102)
 -- Name: project_inspectors p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34798,7 +34930,7 @@ CREATE POLICY p_check_access_update ON public.project_inspectors FOR UPDATE USIN
 
 
 --
--- TOC entry 6438 (class 3256 OID 24103)
+-- TOC entry 6435 (class 3256 OID 24103)
 -- Name: projects p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34806,7 +34938,7 @@ CREATE POLICY p_check_access_update ON public.projects FOR UPDATE USING (public.
 
 
 --
--- TOC entry 6439 (class 3256 OID 24104)
+-- TOC entry 6436 (class 3256 OID 24104)
 -- Name: punch_lists p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34814,7 +34946,7 @@ CREATE POLICY p_check_access_update ON public.punch_lists FOR UPDATE USING (publ
 
 
 --
--- TOC entry 6440 (class 3256 OID 24105)
+-- TOC entry 6437 (class 3256 OID 24105)
 -- Name: purchase_orders p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34822,7 +34954,7 @@ CREATE POLICY p_check_access_update ON public.purchase_orders FOR UPDATE USING (
 
 
 --
--- TOC entry 6441 (class 3256 OID 24106)
+-- TOC entry 6438 (class 3256 OID 24106)
 -- Name: quality_reviews p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34830,7 +34962,7 @@ CREATE POLICY p_check_access_update ON public.quality_reviews FOR UPDATE USING (
 
 
 --
--- TOC entry 6442 (class 3256 OID 24107)
+-- TOC entry 6439 (class 3256 OID 24107)
 -- Name: regulatory_documents p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34838,7 +34970,7 @@ CREATE POLICY p_check_access_update ON public.regulatory_documents FOR UPDATE US
 
 
 --
--- TOC entry 6443 (class 3256 OID 24108)
+-- TOC entry 6440 (class 3256 OID 24108)
 -- Name: reports p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34846,7 +34978,7 @@ CREATE POLICY p_check_access_update ON public.reports FOR UPDATE USING (public.c
 
 
 --
--- TOC entry 6444 (class 3256 OID 24109)
+-- TOC entry 6441 (class 3256 OID 24109)
 -- Name: rfis p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34854,7 +34986,7 @@ CREATE POLICY p_check_access_update ON public.rfis FOR UPDATE USING (public.chec
 
 
 --
--- TOC entry 6445 (class 3256 OID 24110)
+-- TOC entry 6442 (class 3256 OID 24110)
 -- Name: safety_incidents p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34862,7 +34994,7 @@ CREATE POLICY p_check_access_update ON public.safety_incidents FOR UPDATE USING 
 
 
 --
--- TOC entry 6446 (class 3256 OID 24111)
+-- TOC entry 6443 (class 3256 OID 24111)
 -- Name: sensor_data p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34870,7 +35002,7 @@ CREATE POLICY p_check_access_update ON public.sensor_data FOR UPDATE USING (publ
 
 
 --
--- TOC entry 6447 (class 3256 OID 24112)
+-- TOC entry 6444 (class 3256 OID 24112)
 -- Name: subcontractor_agreements p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34878,7 +35010,7 @@ CREATE POLICY p_check_access_update ON public.subcontractor_agreements FOR UPDAT
 
 
 --
--- TOC entry 6448 (class 3256 OID 24113)
+-- TOC entry 6445 (class 3256 OID 24113)
 -- Name: subcontracts p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34886,7 +35018,7 @@ CREATE POLICY p_check_access_update ON public.subcontracts FOR UPDATE USING (pub
 
 
 --
--- TOC entry 6449 (class 3256 OID 24114)
+-- TOC entry 6446 (class 3256 OID 24114)
 -- Name: submittals p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34894,7 +35026,7 @@ CREATE POLICY p_check_access_update ON public.submittals FOR UPDATE USING (publi
 
 
 --
--- TOC entry 6450 (class 3256 OID 24115)
+-- TOC entry 6447 (class 3256 OID 24115)
 -- Name: tack_rates p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34902,7 +35034,7 @@ CREATE POLICY p_check_access_update ON public.tack_rates FOR UPDATE USING (publi
 
 
 --
--- TOC entry 6451 (class 3256 OID 24116)
+-- TOC entry 6448 (class 3256 OID 24116)
 -- Name: task_dependencies p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34910,7 +35042,7 @@ CREATE POLICY p_check_access_update ON public.task_dependencies FOR UPDATE USING
 
 
 --
--- TOC entry 6452 (class 3256 OID 24117)
+-- TOC entry 6449 (class 3256 OID 24117)
 -- Name: task_status_logs p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34918,7 +35050,7 @@ CREATE POLICY p_check_access_update ON public.task_status_logs FOR UPDATE USING 
 
 
 --
--- TOC entry 6453 (class 3256 OID 24118)
+-- TOC entry 6450 (class 3256 OID 24118)
 -- Name: tasks p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34926,7 +35058,7 @@ CREATE POLICY p_check_access_update ON public.tasks FOR UPDATE USING (public.che
 
 
 --
--- TOC entry 6454 (class 3256 OID 24119)
+-- TOC entry 6451 (class 3256 OID 24119)
 -- Name: training_records p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34934,7 +35066,7 @@ CREATE POLICY p_check_access_update ON public.training_records FOR UPDATE USING 
 
 
 --
--- TOC entry 6455 (class 3256 OID 24120)
+-- TOC entry 6452 (class 3256 OID 24120)
 -- Name: user_projects p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34942,7 +35074,7 @@ CREATE POLICY p_check_access_update ON public.user_projects FOR UPDATE USING (pu
 
 
 --
--- TOC entry 6456 (class 3256 OID 24121)
+-- TOC entry 6453 (class 3256 OID 24121)
 -- Name: vendor_bid_packages p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34950,7 +35082,7 @@ CREATE POLICY p_check_access_update ON public.vendor_bid_packages FOR UPDATE USI
 
 
 --
--- TOC entry 6457 (class 3256 OID 24122)
+-- TOC entry 6454 (class 3256 OID 24122)
 -- Name: vendor_contacts p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34958,7 +35090,7 @@ CREATE POLICY p_check_access_update ON public.vendor_contacts FOR UPDATE USING (
 
 
 --
--- TOC entry 6458 (class 3256 OID 24123)
+-- TOC entry 6455 (class 3256 OID 24123)
 -- Name: vendor_documents p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34966,7 +35098,7 @@ CREATE POLICY p_check_access_update ON public.vendor_documents FOR UPDATE USING 
 
 
 --
--- TOC entry 6459 (class 3256 OID 24124)
+-- TOC entry 6456 (class 3256 OID 24124)
 -- Name: vendor_qualifications p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34974,7 +35106,7 @@ CREATE POLICY p_check_access_update ON public.vendor_qualifications FOR UPDATE U
 
 
 --
--- TOC entry 6460 (class 3256 OID 24125)
+-- TOC entry 6457 (class 3256 OID 24125)
 -- Name: vendors p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34982,7 +35114,7 @@ CREATE POLICY p_check_access_update ON public.vendors FOR UPDATE USING (public.c
 
 
 --
--- TOC entry 6461 (class 3256 OID 24126)
+-- TOC entry 6458 (class 3256 OID 24126)
 -- Name: wbs p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34990,7 +35122,7 @@ CREATE POLICY p_check_access_update ON public.wbs FOR UPDATE USING (public.check
 
 
 --
--- TOC entry 6462 (class 3256 OID 24127)
+-- TOC entry 6459 (class 3256 OID 24127)
 -- Name: workflows p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34998,7 +35130,7 @@ CREATE POLICY p_check_access_update ON public.workflows FOR UPDATE USING (public
 
 
 --
--- TOC entry 6081 (class 0 OID 21694)
+-- TOC entry 6078 (class 0 OID 21694)
 -- Dependencies: 414
 -- Name: payments; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35006,7 +35138,7 @@ CREATE POLICY p_check_access_update ON public.workflows FOR UPDATE USING (public
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6082 (class 0 OID 21704)
+-- TOC entry 6079 (class 0 OID 21704)
 -- Dependencies: 415
 -- Name: payroll; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35014,7 +35146,7 @@ ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payroll ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6083 (class 0 OID 21714)
+-- TOC entry 6080 (class 0 OID 21714)
 -- Dependencies: 416
 -- Name: photos; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35022,7 +35154,7 @@ ALTER TABLE public.payroll ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.photos ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6084 (class 0 OID 21725)
+-- TOC entry 6081 (class 0 OID 21725)
 -- Dependencies: 417
 -- Name: prequalifications; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35030,7 +35162,7 @@ ALTER TABLE public.photos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.prequalifications ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6085 (class 0 OID 21735)
+-- TOC entry 6082 (class 0 OID 21735)
 -- Dependencies: 418
 -- Name: procurement_workflows; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35038,7 +35170,7 @@ ALTER TABLE public.prequalifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.procurement_workflows ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6086 (class 0 OID 21745)
+-- TOC entry 6083 (class 0 OID 21745)
 -- Dependencies: 419
 -- Name: profiles; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35046,7 +35178,7 @@ ALTER TABLE public.procurement_workflows ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6477 (class 3256 OID 45502)
+-- TOC entry 6474 (class 3256 OID 45502)
 -- Name: profiles profiles_insert_authenticated; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35056,7 +35188,7 @@ CREATE POLICY profiles_insert_authenticated ON public.profiles FOR INSERT TO aut
 
 
 --
--- TOC entry 6463 (class 3256 OID 25268)
+-- TOC entry 6460 (class 3256 OID 25268)
 -- Name: profiles profiles_select_own; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35064,7 +35196,7 @@ CREATE POLICY profiles_select_own ON public.profiles FOR SELECT TO authenticated
 
 
 --
--- TOC entry 6464 (class 3256 OID 25270)
+-- TOC entry 6461 (class 3256 OID 25270)
 -- Name: profiles profiles_update_own; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35072,7 +35204,7 @@ CREATE POLICY profiles_update_own ON public.profiles FOR UPDATE TO authenticated
 
 
 --
--- TOC entry 6087 (class 0 OID 21755)
+-- TOC entry 6084 (class 0 OID 21755)
 -- Dependencies: 420
 -- Name: progress_billings; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35080,7 +35212,7 @@ CREATE POLICY profiles_update_own ON public.profiles FOR UPDATE TO authenticated
 ALTER TABLE public.progress_billings ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6088 (class 0 OID 21765)
+-- TOC entry 6085 (class 0 OID 21765)
 -- Dependencies: 421
 -- Name: project_inspectors; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35088,7 +35220,7 @@ ALTER TABLE public.progress_billings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.project_inspectors ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6117 (class 0 OID 26547)
+-- TOC entry 6114 (class 0 OID 26547)
 -- Dependencies: 537
 -- Name: project_invites; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35096,7 +35228,7 @@ ALTER TABLE public.project_inspectors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.project_invites ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6115 (class 0 OID 26504)
+-- TOC entry 6112 (class 0 OID 26504)
 -- Dependencies: 535
 -- Name: project_service_areas; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35104,7 +35236,7 @@ ALTER TABLE public.project_invites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.project_service_areas ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6089 (class 0 OID 21771)
+-- TOC entry 6086 (class 0 OID 21771)
 -- Dependencies: 422
 -- Name: projects; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35112,7 +35244,7 @@ ALTER TABLE public.project_service_areas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6090 (class 0 OID 21783)
+-- TOC entry 6087 (class 0 OID 21783)
 -- Dependencies: 423
 -- Name: punch_lists; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35120,7 +35252,7 @@ ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.punch_lists ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6091 (class 0 OID 21793)
+-- TOC entry 6088 (class 0 OID 21793)
 -- Dependencies: 424
 -- Name: purchase_orders; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35128,7 +35260,7 @@ ALTER TABLE public.punch_lists ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.purchase_orders ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6092 (class 0 OID 21803)
+-- TOC entry 6089 (class 0 OID 21803)
 -- Dependencies: 425
 -- Name: quality_reviews; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35136,7 +35268,7 @@ ALTER TABLE public.purchase_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quality_reviews ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6093 (class 0 OID 21813)
+-- TOC entry 6090 (class 0 OID 21813)
 -- Dependencies: 426
 -- Name: regulatory_documents; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35144,7 +35276,7 @@ ALTER TABLE public.quality_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.regulatory_documents ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6094 (class 0 OID 21824)
+-- TOC entry 6091 (class 0 OID 21824)
 -- Dependencies: 427
 -- Name: reports; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35152,7 +35284,7 @@ ALTER TABLE public.regulatory_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6095 (class 0 OID 21835)
+-- TOC entry 6092 (class 0 OID 21835)
 -- Dependencies: 428
 -- Name: rfis; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35160,7 +35292,7 @@ ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rfis ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6096 (class 0 OID 21845)
+-- TOC entry 6093 (class 0 OID 21845)
 -- Dependencies: 429
 -- Name: safety_incidents; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35168,7 +35300,7 @@ ALTER TABLE public.rfis ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.safety_incidents ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6097 (class 0 OID 21856)
+-- TOC entry 6094 (class 0 OID 21856)
 -- Dependencies: 430
 -- Name: sensor_data; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35176,7 +35308,7 @@ ALTER TABLE public.safety_incidents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sensor_data ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6098 (class 0 OID 21867)
+-- TOC entry 6095 (class 0 OID 21867)
 -- Dependencies: 431
 -- Name: subcontractor_agreements; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35184,7 +35316,7 @@ ALTER TABLE public.sensor_data ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subcontractor_agreements ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6099 (class 0 OID 21877)
+-- TOC entry 6096 (class 0 OID 21877)
 -- Dependencies: 432
 -- Name: subcontracts; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35192,7 +35324,7 @@ ALTER TABLE public.subcontractor_agreements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subcontracts ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6100 (class 0 OID 21887)
+-- TOC entry 6097 (class 0 OID 21887)
 -- Dependencies: 433
 -- Name: submittals; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35200,7 +35332,7 @@ ALTER TABLE public.subcontracts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.submittals ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6101 (class 0 OID 21898)
+-- TOC entry 6098 (class 0 OID 21898)
 -- Dependencies: 434
 -- Name: tack_rates; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35208,7 +35340,7 @@ ALTER TABLE public.submittals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tack_rates ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6102 (class 0 OID 21908)
+-- TOC entry 6099 (class 0 OID 21908)
 -- Dependencies: 435
 -- Name: task_dependencies; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35216,7 +35348,7 @@ ALTER TABLE public.tack_rates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.task_dependencies ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6103 (class 0 OID 21915)
+-- TOC entry 6100 (class 0 OID 21915)
 -- Dependencies: 436
 -- Name: task_status_logs; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35224,7 +35356,7 @@ ALTER TABLE public.task_dependencies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.task_status_logs ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6104 (class 0 OID 21921)
+-- TOC entry 6101 (class 0 OID 21921)
 -- Dependencies: 437
 -- Name: tasks; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35232,7 +35364,7 @@ ALTER TABLE public.task_status_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6105 (class 0 OID 21932)
+-- TOC entry 6102 (class 0 OID 21932)
 -- Dependencies: 438
 -- Name: training_records; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35240,7 +35372,7 @@ ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.training_records ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6106 (class 0 OID 21942)
+-- TOC entry 6103 (class 0 OID 21942)
 -- Dependencies: 439
 -- Name: user_projects; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35248,7 +35380,7 @@ ALTER TABLE public.training_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_projects ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6107 (class 0 OID 21952)
+-- TOC entry 6104 (class 0 OID 21952)
 -- Dependencies: 440
 -- Name: vendor_bid_packages; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35256,7 +35388,7 @@ ALTER TABLE public.user_projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vendor_bid_packages ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6108 (class 0 OID 21960)
+-- TOC entry 6105 (class 0 OID 21960)
 -- Dependencies: 441
 -- Name: vendor_contacts; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35264,7 +35396,7 @@ ALTER TABLE public.vendor_bid_packages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vendor_contacts ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6109 (class 0 OID 21970)
+-- TOC entry 6106 (class 0 OID 21970)
 -- Dependencies: 442
 -- Name: vendor_documents; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35272,7 +35404,7 @@ ALTER TABLE public.vendor_contacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vendor_documents ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6110 (class 0 OID 21981)
+-- TOC entry 6107 (class 0 OID 21981)
 -- Dependencies: 443
 -- Name: vendor_qualifications; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35280,7 +35412,7 @@ ALTER TABLE public.vendor_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vendor_qualifications ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6111 (class 0 OID 21991)
+-- TOC entry 6108 (class 0 OID 21991)
 -- Dependencies: 444
 -- Name: vendors; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35288,7 +35420,7 @@ ALTER TABLE public.vendor_qualifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vendors ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6112 (class 0 OID 22001)
+-- TOC entry 6109 (class 0 OID 22001)
 -- Dependencies: 445
 -- Name: wbs; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -35296,14 +35428,14 @@ ALTER TABLE public.vendors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wbs ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6026 (class 0 OID 21041)
+-- TOC entry 6023 (class 0 OID 21041)
 -- Dependencies: 359
 -- Name: workflows; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.workflows ENABLE ROW LEVEL SECURITY;
 
--- Completed on 2026-02-24 22:39:49
+-- Completed on 2026-02-25 01:40:39
 
 --
 -- PostgreSQL database dump complete

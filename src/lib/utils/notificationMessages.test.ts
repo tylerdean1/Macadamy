@@ -115,4 +115,19 @@ describe('notificationMessages', () => {
 
         expect(message).toBe("Tyler Jones's title was just changed from Estimator to Project Manager!");
     });
+
+    it('formats member permission role change notifications with previous and current role', () => {
+        const message = getNotificationDisplayMessage({
+            message: 'fallback',
+            category: 'workflow_update',
+            payload: {
+                event: 'member_permission_role_changed',
+                organization_name: 'Northwind',
+                previous_permission_role: 'worker',
+                updated_permission_role: 'hr',
+            },
+        });
+
+        expect(message).toBe('Your role in Northwind has been changed from Worker to Hr.');
+    });
 });

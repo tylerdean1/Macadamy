@@ -4159,7 +4159,6 @@ export type Database = {
           organization_id: string | null
           permission_role: Database["public"]["Enums"]["org_role"] | null
           profile_id: string | null
-          role: string | null
           updated_at: string
         }
         Insert: {
@@ -4170,7 +4169,6 @@ export type Database = {
           organization_id?: string | null
           permission_role?: Database["public"]["Enums"]["org_role"] | null
           profile_id?: string | null
-          role?: string | null
           updated_at?: string
         }
         Update: {
@@ -4181,7 +4179,6 @@ export type Database = {
           organization_id?: string | null
           permission_role?: Database["public"]["Enums"]["org_role"] | null
           profile_id?: string | null
-          role?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -4223,20 +4220,6 @@ export type Database = {
           {
             foreignKeyName: "organization_members_job_title_id_fkey"
             columns: ["job_title_id"]
-            isOneToOne: false
-            referencedRelation: "job_titles_active"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "organization_members_role_fkey"
-            columns: ["role"]
-            isOneToOne: false
-            referencedRelation: "job_titles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "organization_members_role_fkey"
-            columns: ["role"]
             isOneToOne: false
             referencedRelation: "job_titles_active"
             referencedColumns: ["id"]
@@ -9451,27 +9434,30 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           id: string | null
+          job_title_id: string | null
           organization_id: string | null
+          permission_role: Database["public"]["Enums"]["org_role"] | null
           profile_id: string | null
-          role: string | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           deleted_at?: string | null
           id?: string | null
+          job_title_id?: string | null
           organization_id?: string | null
+          permission_role?: Database["public"]["Enums"]["org_role"] | null
           profile_id?: string | null
-          role?: string | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           deleted_at?: string | null
           id?: string | null
+          job_title_id?: string | null
           organization_id?: string | null
+          permission_role?: Database["public"]["Enums"]["org_role"] | null
           profile_id?: string | null
-          role?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -9504,15 +9490,15 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "organization_members_role_fkey"
-            columns: ["role"]
+            foreignKeyName: "organization_members_job_title_id_fkey"
+            columns: ["job_title_id"]
             isOneToOne: false
             referencedRelation: "job_titles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "organization_members_role_fkey"
-            columns: ["role"]
+            foreignKeyName: "organization_members_job_title_id_fkey"
+            columns: ["job_title_id"]
             isOneToOne: false
             referencedRelation: "job_titles_active"
             referencedColumns: ["id"]
@@ -13276,7 +13262,6 @@ export type Database = {
           organization_id: string | null
           permission_role: Database["public"]["Enums"]["org_role"] | null
           profile_id: string | null
-          role: string | null
           updated_at: string
         }[]
         SetofOptions: {
@@ -15585,7 +15570,6 @@ export type Database = {
           organization_id: string | null
           permission_role: Database["public"]["Enums"]["org_role"] | null
           profile_id: string | null
-          role: string | null
           updated_at: string
         }[]
         SetofOptions: {
@@ -17585,7 +17569,6 @@ export type Database = {
           organization_id: string | null
           permission_role: Database["public"]["Enums"]["org_role"] | null
           profile_id: string | null
-          role: string | null
           updated_at: string
         }[]
         SetofOptions: {

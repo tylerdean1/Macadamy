@@ -118,6 +118,29 @@ function resolveMemberJobTitleChangedBroadcastMessage(payloadObj: Record<string,
     return `${memberName}'s title was just changed from ${previousTitle} to ${currentTitle}!`;
 }
 
+    function resolveMemberRoleChangedMessage(payloadObj: Record<string, unknown>): string | null {
+        const organizationName = asNonEmptyString(payloadObj.organization_name);
+        if (!organizationName) return null;
+
+        const updatedRole = asNonEmptyString(payloadObj.updated_permission_role)
+            ?? asNonEmptyString(payloadObj.selected_permission_role)
+            ?? asNonEmptyString(payloadObj.permission_role);
+        const previousRole = asNonEmptyString(payloadObj.previous_permission_role);
+
+        const updatedRoleLabel = updatedRole ? roleToLabel(updatedRole) : null;
+        const previousRoleLabel = previousRole ? roleToLabel(previousRole) : null;
+
+        if (updatedRoleLabel && previousRoleLabel) {
+            return `Your role in ${organizationName} has been changed from ${previousRoleLabel} to ${updatedRoleLabel}.`;
+        }
+
+        if (updatedRoleLabel) {
+            return `Your role in ${organizationName} has been changed to ${updatedRoleLabel}.`;
+        }
+
+        return `Your role in ${organizationName} has been changed.`;
+    }
+
 export function getNotificationDisplayMessage(notification: NotificationDisplayInput): string {
     const payloadObj = asObject(notification.payload);
     if (!payloadObj) {
@@ -125,7 +148,7 @@ export function getNotificationDisplayMessage(notification: NotificationDisplayI
     }
 
     const eventName = asNonEmptyString(payloadObj.event);
-    if (eventName !== 'membership_request_reviewed' && eventName !== 'member_removed' && eventName !== 'member_job_title_changed' && eventName !== 'member_left_organization' && eventName !== 'member_job_title_changed_broadcast' && notification.category !== 'workflow_update') {
+    if (eventName !== 'membership_request_reviewed' && eventName !== 'member_removed' && eventName !== 'member_job_title_changed' && eventName !== 'member_left_organization' && eventName !== 'member_job_title_changed_broadcast' && eventName !== 'member_permission_role_changed' && notification.category !== 'workflow_update') {
         return notification.message;
     }
 
@@ -143,6 +166,10 @@ export function getNotificationDisplayMessage(notification: NotificationDisplayI
 
     if (eventName === 'member_job_title_changed_broadcast') {
         return resolveMemberJobTitleChangedBroadcastMessage(payloadObj) ?? notification.message;
+    }
+
+    if (eventName === 'member_permission_role_changed') {
+        return resolveMemberRoleChangedMessage(payloadObj) ?? notification.message;
     }
 
     const organizationName = asNonEmptyString(payloadObj.organization_name);

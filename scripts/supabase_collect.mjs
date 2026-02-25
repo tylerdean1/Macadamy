@@ -47,6 +47,72 @@ async function ensureDir(p) {
     await fs.mkdir(p, { recursive: true });
 }
 
+const DEFAULT_LEGACY_NOISE_PATTERN_SOURCES = [
+    "organization_members_role_fkey",
+    "alter\\s+table\\s+public\\.organization_members\\s+drop\\s+constraint\\s+if\\s+exists\\s+organization_members_role_fkey",
+    "\\bom\\.role\\b",
+    "organization_members\\.role",
+];
+
+const LEGACY_NOISE_SQL_REGEX = String.raw`alter\s+table\s+public\.organization_members\s+drop\s+constraint\s+if\s+exists\s+organization_members_role_fkey|organization_members_role_fkey|om\.role|organization_members\.role|supabase_migrations`;
+
+function isTruthyEnv(value) {
+    return /^(1|true|yes|on)$/i.test(String(value ?? "").trim());
+}
+
+function parsePatternSourceList(raw) {
+    if (!raw) return [];
+    return String(raw)
+        .split("||")
+        .map((part) => part.trim())
+        .filter(Boolean);
+}
+
+function compilePatterns(sources) {
+    return sources
+        .map((source) => {
+            try {
+                return new RegExp(source, "i");
+            } catch {
+                console.warn(`⚠️ Skipping invalid sanitize regex pattern: ${source}`);
+                return null;
+            }
+        })
+        .filter(Boolean);
+}
+
+function getSanitizeConfig() {
+    const disabled = isTruthyEnv(process.env.AUDIT_SUPABASE_DISABLE_SANITIZE);
+    if (disabled) {
+        return { enabled: false, patterns: [] };
+    }
+
+    const overrideSources = parsePatternSourceList(process.env.AUDIT_SUPABASE_SANITIZE_PATTERNS);
+    const appendSources = parsePatternSourceList(process.env.AUDIT_SUPABASE_SANITIZE_APPEND_PATTERNS);
+
+    const baseSources = overrideSources.length > 0 ? overrideSources : DEFAULT_LEGACY_NOISE_PATTERN_SOURCES;
+    const patterns = compilePatterns([...baseSources, ...appendSources]);
+    return { enabled: true, patterns };
+}
+
+async function sanitizeCsvFile(filePath, patterns = []) {
+    const raw = await fs.readFile(filePath, "utf8").catch(() => "");
+    if (!raw) return { removedRows: 0, totalRows: 0 };
+
+    const lines = raw.split(/\r?\n/);
+    if (lines.length <= 1 || patterns.length === 0) {
+        return { removedRows: 0, totalRows: Math.max(lines.length - 1, 0) };
+    }
+
+    const [header, ...rows] = lines;
+    const filteredRows = rows.filter((row) => row === "" || !patterns.some((pattern) => pattern.test(row)));
+    const removedRows = rows.length - filteredRows.length;
+    if (removedRows > 0) {
+        await fs.writeFile(filePath, [header, ...filteredRows].join("\n"), "utf8");
+    }
+    return { removedRows, totalRows: rows.length };
+}
+
 async function cleanOldOutputs(dir) {
     const generatedNames = new Set([
         "db_lint.txt",
@@ -196,6 +262,13 @@ async function main() {
         process.exit(1);
     }
 
+    const sanitizeConfig = getSanitizeConfig();
+    if (!sanitizeConfig.enabled) {
+        console.log("==> CSV sanitization disabled by AUDIT_SUPABASE_DISABLE_SANITIZE\n");
+    } else {
+        console.log(`==> CSV sanitization enabled (${sanitizeConfig.patterns.length} regex pattern(s))\n`);
+    }
+
     const exports = [
         {
             name: "snippet_policies.csv",
@@ -223,24 +296,37 @@ async function main() {
         },
         {
             name: "query_performance_slowest.csv",
-            sql: `select query, calls, mean_exec_time as mean_time_ms, max_exec_time as max_time_ms, total_exec_time as total_time_ms, rows from pg_stat_statements order by mean_exec_time desc limit 100`,
+            sql: `select query, calls, mean_exec_time as mean_time_ms, max_exec_time as max_time_ms, total_exec_time as total_time_ms, rows from pg_stat_statements where query !~* '^\\s*(alter|create|drop|grant|revoke|comment|begin|commit|rollback|savepoint|release|set|reset|show|vacuum|analyze|checkpoint|copy|truncate)\\b' and query !~* '${LEGACY_NOISE_SQL_REGEX}' order by mean_exec_time desc limit 100`,
         },
         {
             name: "query_performance_most_frequent.csv",
-            sql: `select query, calls, total_exec_time as total_time_ms, rows from pg_stat_statements order by calls desc limit 100`,
+            sql: `select query, calls, total_exec_time as total_time_ms, rows from pg_stat_statements where query !~* '^\\s*(alter|create|drop|grant|revoke|comment|begin|commit|rollback|savepoint|release|set|reset|show|vacuum|analyze|checkpoint|copy|truncate)\\b' and query !~* '${LEGACY_NOISE_SQL_REGEX}' order by calls desc limit 100`,
         },
         {
             name: "query_performance_most_time_consuming.csv",
-            sql: `select query, calls, total_exec_time as total_time_ms, mean_exec_time as mean_time_ms, rows from pg_stat_statements order by total_exec_time desc limit 100`,
+            sql: `select query, calls, total_exec_time as total_time_ms, mean_exec_time as mean_time_ms, rows from pg_stat_statements where query !~* '^\\s*(alter|create|drop|grant|revoke|comment|begin|commit|rollback|savepoint|release|set|reset|show|vacuum|analyze|checkpoint|copy|truncate)\\b' and query !~* '${LEGACY_NOISE_SQL_REGEX}' order by total_exec_time desc limit 100`,
         },
     ];
+
+    const sanitizeExports = new Set([
+        "snippet_rpcs.csv",
+        "query_performance_slowest.csv",
+        "query_performance_most_frequent.csv",
+        "query_performance_most_time_consuming.csv",
+    ]);
 
     console.log(`\n==> Exporting CSVs into ${path.relative(ROOT, OUT_DIR).replaceAll("\\", "/")}\n`);
     for (const ex of exports) {
         const outFile = path.join(OUT_DIR, ex.name);
         try {
             await psqlCopy(dbUrl, ex.sql, outFile);
-            console.log(`✅ Wrote ${path.relative(ROOT, outFile).replaceAll("\\", "/")}`);
+            if (sanitizeConfig.enabled && sanitizeExports.has(ex.name)) {
+                const { removedRows } = await sanitizeCsvFile(outFile, sanitizeConfig.patterns);
+                const sanitizedNote = removedRows > 0 ? ` (sanitized ${removedRows} row(s))` : "";
+                console.log(`✅ Wrote ${path.relative(ROOT, outFile).replaceAll("\\", "/")}${sanitizedNote}`);
+            } else {
+                console.log(`✅ Wrote ${path.relative(ROOT, outFile).replaceAll("\\", "/")}`);
+            }
         } catch (err) {
             console.error(`⚠️ Failed to export ${ex.name}: ${err.message}`);
         }

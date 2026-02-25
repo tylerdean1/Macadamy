@@ -17,6 +17,7 @@ import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import ImageCropper from '@/pages/StandardPages/StandardPageComponents/ImageCropper';
 import { useRequireProfile } from '@/hooks/useRequireProfile';
+import { useMyOrganizations } from '@/hooks/useMyOrganizations';
 import { rpcClient } from '@/lib/rpc.client';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
@@ -48,7 +49,6 @@ interface OrgDashboardPayload {
       full_name: string | null;
       email: string;
       global_role: RoleType | null;
-      membership_role: string | null;
       membership_permission_role?: string | null;
       membership_job_title_id?: string | null;
       membership_job_title_name?: string | null;
@@ -103,6 +103,11 @@ const ORG_DASHBOARD_TOAST_MESSAGES = {
   selectedJobTitleMissing: 'Selected job title could not be found.',
   changeMemberTitleSuccess: 'Member job title updated and notified.',
   changeMemberTitleFailed: 'Unable to change member job title.',
+  selectPermissionRole: 'Please select an org role.',
+  selectedPermissionRoleAlreadyAssigned: 'This member already has that org role.',
+  changePermissionRoleOwnerOnly: 'Only owners can change another owner\'s org role.',
+  changeMemberPermissionRoleSuccess: 'Member org role updated.',
+  changeMemberPermissionRoleFailed: 'Unable to change member org role.',
   selectOrCreateJobTitleBeforeApproval: 'Please select or create a job title before approval.',
   selectPermissionRoleBeforeApproval: 'Please select an org role before approval.',
   leaveOrganizationConfirm: 'Are you sure you want to leave the organization?',
@@ -185,7 +190,6 @@ const normalizePayload = (raw: unknown): OrgDashboardPayload => {
           full_name: typeof item.full_name === 'string' ? item.full_name : null,
           email: typeof item.email === 'string' ? item.email : '',
           global_role: (typeof item.global_role === 'string' ? item.global_role : null) as RoleType | null,
-          membership_role: typeof item.membership_role === 'string' ? item.membership_role : null,
           membership_permission_role: typeof item.membership_permission_role === 'string' ? item.membership_permission_role : null,
           membership_job_title_id: typeof item.membership_job_title_id === 'string' ? item.membership_job_title_id : null,
           membership_job_title_name: typeof item.membership_job_title_name === 'string' ? item.membership_job_title_name : null,
@@ -294,10 +298,35 @@ export default function OrganizationDashboard(): JSX.Element {
   const [memberToRetitle, setMemberToRetitle] = useState<MemberListItem | null>(null);
   const [changeTitleReason, setChangeTitleReason] = useState('');
   const [changeTitleJobTitleId, setChangeTitleJobTitleId] = useState('');
+  const [changeRoleDialogOpen, setChangeRoleDialogOpen] = useState(false);
+  const [memberToReRole, setMemberToReRole] = useState<MemberListItem | null>(null);
+  const [changeRolePermissionRole, setChangeRolePermissionRole] = useState<OrgRoleType | ''>('');
   const [leaveOrganizationDialogOpen, setLeaveOrganizationDialogOpen] = useState(false);
   const [memberActionBusyKey, setMemberActionBusyKey] = useState<string | null>(null);
+  const { orgs: myOrganizations } = useMyOrganizations(profile?.id);
   const safePayload = payload ?? emptyPayload;
-  const canManageMembers = profile?.role === 'system_admin' || profile?.role === 'org_admin';
+  const canManagePendingInvites = profile?.role === 'system_admin' || profile?.role === 'org_admin';
+
+  const actorOrgRole = useMemo<OrgRoleType | null>(() => {
+    if (!profile?.organization_id) {
+      return null;
+    }
+
+    const orgMembership = myOrganizations.find((org) => org.id === profile.organization_id);
+    const fromOrgMembership = asOrgRole(orgMembership?.permissionRole ?? orgMembership?.role ?? null);
+    if (fromOrgMembership) {
+      return fromOrgMembership;
+    }
+
+    if (!profile.id) {
+      return null;
+    }
+
+    const selfMember = safePayload.members.items.find((member) => member.profile_id === profile.id);
+    return asOrgRole(selfMember?.membership_permission_role ?? null);
+  }, [myOrganizations, profile?.id, profile?.organization_id, safePayload.members.items]);
+
+  const canManageMemberActions = actorOrgRole === 'admin' || actorOrgRole === 'hr' || actorOrgRole === 'owner';
 
   const serviceAreas = useMemo(() => {
     return [...safePayload.service_areas].sort((a, b) => a.service_area_text.localeCompare(b.service_area_text));
@@ -364,9 +393,7 @@ export default function OrganizationDashboard(): JSX.Element {
   };
 
   const resolveMemberPermissionRole = (member: MemberListItem): string => {
-    const role = member.membership_permission_role
-      ?? (member.membership_role && !isUuid(member.membership_role) ? member.membership_role : null);
-    return formatGlobalRole(role);
+    return formatGlobalRole(member.membership_permission_role ?? null);
   };
 
   const resolveMemberJobTitle = (member: MemberListItem): string => {
@@ -378,20 +405,12 @@ export default function OrganizationDashboard(): JSX.Element {
       return formatMembershipRole(member.membership_job_title_id);
     }
 
-    if (isUuid(member.membership_role)) {
-      return formatMembershipRole(member.membership_role);
-    }
-
     return 'Unassigned';
   };
 
   const resolveInviteRequestedRole = (invite: PendingInviteItem): string => {
     if (invite.requested_permission_role) {
       return formatGlobalRole(invite.requested_permission_role);
-    }
-
-    if (invite.role && !isUuid(invite.role)) {
-      return formatGlobalRole(invite.role);
     }
 
     return 'Not specified';
@@ -404,10 +423,6 @@ export default function OrganizationDashboard(): JSX.Element {
 
     if (invite.requested_job_title_id) {
       return formatMembershipRole(invite.requested_job_title_id);
-    }
-
-    if (invite.role && isUuid(invite.role)) {
-      return formatMembershipRole(invite.role);
     }
 
     return 'Not specified';
@@ -489,7 +504,7 @@ export default function OrganizationDashboard(): JSX.Element {
   }, [isEditOpen, safePayload.organization]);
 
   useEffect(() => {
-    if (!(profile?.role === 'system_admin' || profile?.role === 'org_admin')) {
+    if (!(canManagePendingInvites || canManageMemberActions)) {
       return;
     }
 
@@ -511,10 +526,10 @@ export default function OrganizationDashboard(): JSX.Element {
     };
 
     void loadJobTitles();
-  }, [profile?.role]);
+  }, [canManageMemberActions, canManagePendingInvites]);
 
   const loadPendingInvites = useCallback(async () => {
-    if (!profile?.organization_id || !(profile.role === 'system_admin' || profile.role === 'org_admin')) {
+    if (!profile?.organization_id || !canManagePendingInvites) {
       setPendingInvites([]);
       setPendingInvitesLoading(false);
       return;
@@ -533,7 +548,7 @@ export default function OrganizationDashboard(): JSX.Element {
     } finally {
       setPendingInvitesLoading(false);
     }
-  }, [profile?.organization_id, profile?.role]);
+  }, [canManagePendingInvites, profile?.organization_id]);
 
   useEffect(() => {
     if (pendingInvites.length === 0) {
@@ -689,6 +704,12 @@ export default function OrganizationDashboard(): JSX.Element {
     setChangeTitleDialogOpen(true);
   };
 
+  const openChangeRoleDialog = (member: MemberListItem): void => {
+    setMemberToReRole(member);
+    setChangeRolePermissionRole(asOrgRole(member.membership_permission_role) ?? '');
+    setChangeRoleDialogOpen(true);
+  };
+
   const handleRemoveMember = async (): Promise<void> => {
     if (!profile?.organization_id || !memberToRemove) {
       return;
@@ -748,7 +769,6 @@ export default function OrganizationDashboard(): JSX.Element {
     }
 
     const currentMembershipRole = memberToRetitle.membership_job_title_id
-      ?? (isUuid(memberToRetitle.membership_role) ? memberToRetitle.membership_role : null)
       ?? memberToRetitle.membership_job_title_name;
     const isAlreadyAssigned =
       currentMembershipRole === selectedTitle.id ||
@@ -806,6 +826,49 @@ export default function OrganizationDashboard(): JSX.Element {
     } catch (err) {
       console.error('[OrganizationDashboard] leave organization', err);
       toast.error(ORG_DASHBOARD_TOAST_MESSAGES.leaveOrganizationFailed);
+    } finally {
+      setMemberActionBusyKey(null);
+    }
+  };
+
+  const handleChangeMemberPermissionRole = async (): Promise<void> => {
+    if (!profile?.organization_id || !memberToReRole) {
+      return;
+    }
+
+    const selectedRole = asOrgRole(changeRolePermissionRole);
+    if (!selectedRole) {
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.selectPermissionRole);
+      return;
+    }
+
+    const currentRole = asOrgRole(memberToReRole.membership_permission_role);
+    if (currentRole === selectedRole) {
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.selectedPermissionRoleAlreadyAssigned);
+      return;
+    }
+
+    if (currentRole === 'owner' && actorOrgRole !== 'owner') {
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.changePermissionRoleOwnerOnly);
+      return;
+    }
+
+    setMemberActionBusyKey(`role:${memberToReRole.profile_id}`);
+    try {
+      await rpcClient.set_org_member_role({
+        p_org_id: profile.organization_id,
+        p_profile_id: memberToReRole.profile_id,
+        p_role: selectedRole,
+      });
+
+      toast.success(ORG_DASHBOARD_TOAST_MESSAGES.changeMemberPermissionRoleSuccess);
+      setChangeRoleDialogOpen(false);
+      setMemberToReRole(null);
+      setChangeRolePermissionRole('');
+      await loadDashboard();
+    } catch (err) {
+      console.error('[OrganizationDashboard] update member org role', err);
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.changeMemberPermissionRoleFailed);
     } finally {
       setMemberActionBusyKey(null);
     }
@@ -1248,16 +1311,30 @@ export default function OrganizationDashboard(): JSX.Element {
                         </div>
                       </div>
 
-                      {canManageMembers && (
+                      {(canManageMemberActions || member.profile_id === profile?.id) && (
                         <div className="mt-3 flex items-center justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openChangeTitleDialog(member)}
-                            disabled={memberActionBusyKey != null}
-                          >
-                            Change Title
-                          </Button>
+                          {canManageMemberActions && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openChangeTitleDialog(member)}
+                                disabled={memberActionBusyKey != null}
+                              >
+                                Change Title
+                              </Button>
+                              {((asOrgRole(member.membership_permission_role) !== 'owner') || actorOrgRole === 'owner') && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => openChangeRoleDialog(member)}
+                                  disabled={memberActionBusyKey != null}
+                                >
+                                  Edit Permission Role
+                                </Button>
+                              )}
+                            </>
+                          )}
                           {member.profile_id === profile?.id ? (
                             <button
                               type="button"
@@ -1267,7 +1344,7 @@ export default function OrganizationDashboard(): JSX.Element {
                             >
                               Leave Organization
                             </button>
-                          ) : (
+                          ) : canManageMemberActions ? (
                             <Button
                               variant="outline"
                               size="sm"
@@ -1276,7 +1353,7 @@ export default function OrganizationDashboard(): JSX.Element {
                             >
                               Remove Member
                             </Button>
-                          )}
+                          ) : null}
                         </div>
                       )}
                     </div>
@@ -1284,7 +1361,7 @@ export default function OrganizationDashboard(): JSX.Element {
                 </div>
               )}
 
-              {(profile?.role === 'system_admin' || profile?.role === 'org_admin') && (
+              {canManagePendingInvites && (
                 <div className="mt-6">
                   <h4 className="text-lg font-semibold text-yellow-400 mb-3">Pending membership requests</h4>
                   {pendingInvitesLoading ? (
@@ -1657,6 +1734,60 @@ export default function OrganizationDashboard(): JSX.Element {
               disabled={memberActionBusyKey != null || !changeTitleJobTitleId || changeTitleReason.trim().length === 0}
             >
               {memberActionBusyKey?.startsWith('title:') ? 'Updating…' : 'Update Title'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={changeRoleDialogOpen} onOpenChange={setChangeRoleDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Change member permission role</DialogTitle>
+            <DialogDescription>
+              Update the organization role for {memberToReRole?.full_name ?? memberToReRole?.email ?? 'this member'}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="change-member-permission-role" className="text-sm text-gray-300">Org role</label>
+              <select
+                id="change-member-permission-role"
+                className="w-full rounded border border-background-lighter bg-background px-3 py-2 text-sm text-white"
+                value={changeRolePermissionRole}
+                onChange={(event) => {
+                  const nextRole = asOrgRole(event.target.value);
+                  setChangeRolePermissionRole(nextRole ?? '');
+                }}
+              >
+                <option value="">Select an org role</option>
+                {APPROVAL_ORG_ROLE_OPTIONS.map((roleOption) => (
+                  <option key={roleOption} value={roleOption}>{formatGlobalRole(roleOption)}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setChangeRoleDialogOpen(false);
+                setMemberToReRole(null);
+                setChangeRolePermissionRole('');
+              }}
+              disabled={memberActionBusyKey != null}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { void handleChangeMemberPermissionRole(); }}
+              disabled={memberActionBusyKey != null || !changeRolePermissionRole}
+            >
+              {memberActionBusyKey?.startsWith('role:') ? 'Updating…' : 'Update Role'}
             </Button>
           </DialogFooter>
         </DialogContent>
