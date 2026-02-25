@@ -1,66 +1,46 @@
-// <start env-validator.ts>
-/**
- * Runtime helpers for validating Vite-style `import.meta.env` variables.
- *
- * All functions throw a plain `Error` so CI/dev fail fast when a required
- * variable is missing.  Returns are always `string` (never undefined).
- */
+type RequiredEnvName =
+  | 'VITE_SUPABASE_URL'
+  | 'VITE_SUPABASE_PUBLISHABLE_TOKEN';
 
-type EnvValue = string | boolean | undefined;
+type OptionalEnvName = 'VITE_GOOGLE_MAPS_BROWSER_KEY';
 
-const viteEnv: Record<string, EnvValue> =
-  typeof import.meta !== 'undefined' && 'env' in import.meta
-    ? (import.meta.env as Record<string, EnvValue>)
-    : {};
+export interface ValidatedClientEnv {
+  VITE_SUPABASE_URL: string;
+  VITE_SUPABASE_PUBLISHABLE_TOKEN: string;
+  VITE_GOOGLE_MAPS_BROWSER_KEY?: string;
+}
 
-const nodeEnv: Record<string, string | undefined> =
-  typeof process !== 'undefined' && process.env
-    ? (process.env as Record<string, string | undefined>)
-    : {};
+const REQUIRED_ENV_NAMES: readonly RequiredEnvName[] = [
+  'VITE_SUPABASE_URL',
+  'VITE_SUPABASE_PUBLISHABLE_TOKEN',
+];
+
+const OPTIONAL_ENV_NAMES: readonly OptionalEnvName[] = [
+  'VITE_GOOGLE_MAPS_BROWSER_KEY',
+];
+
+const isBrowserRuntime = typeof window !== 'undefined';
+
+function normalizeEnvValue(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed === '' ? undefined : trimmed;
+}
+
+function readViteEnv(name: string): string | undefined {
+  return normalizeEnvValue(import.meta.env[name]);
+}
+
+function readNodeEnv(name: string): string | undefined {
+  if (isBrowserRuntime) return undefined;
+
+  const processLike = globalThis as { process?: { env?: Record<string, string | undefined> } };
+  const nodeValue = processLike.process?.env?.[name];
+  return normalizeEnvValue(nodeValue);
+}
 
 function readEnvValue(name: string): string | undefined {
-  const viteValue = viteEnv[name];
-  if (typeof viteValue === 'string' && viteValue.trim() !== '') {
-    return viteValue;
-  }
-  const nodeValue = nodeEnv[name];
-  if (typeof nodeValue === 'string' && nodeValue.trim() !== '') {
-    return nodeValue;
-  }
-  return undefined;
-}
-
-/**
- * Throws if ANY name in `vars` is unset or empty.
- */
-export function validateEnvVariables(vars: readonly string[]): void {
-  const missing = vars.filter((v) => readEnvValue(v) == null);
-  if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
-  }
-}
-
-/**
- * Throws if ALL names in a group are unset or empty.
- */
-export function validateEnvVariablesAny(groups: readonly (readonly string[])[]): void {
-  const missingGroups = groups.filter((group) => group.every((name) => readEnvValue(name) == null));
-  if (missingGroups.length > 0) {
-    const labels = missingGroups.map((g) => g.join(' | '));
-    throw new Error(`Missing required environment variables: ${labels.join(', ')}`);
-  }
-}
-
-/**
- * Warns if ALL names in a group are unset or empty. Does not throw.
- */
-export function warnEnvVariablesAny(groups: readonly (readonly string[])[], message: string): void {
-  const isDev = typeof import.meta !== 'undefined' && 'env' in import.meta && Boolean(import.meta.env?.DEV);
-  if (!isDev) return;
-  const missingGroups = groups.filter((group) => group.every((name) => readEnvValue(name) == null));
-  if (missingGroups.length > 0) {
-    console.warn(message);
-  }
+  return readViteEnv(name) ?? readNodeEnv(name);
 }
 
 /**
@@ -82,15 +62,16 @@ export function getRequiredEnvAny(names: readonly string[]): string {
     const value = readEnvValue(name);
     if (value != null) return value;
   }
-  throw new Error(`Missing required environment variable: ${names.join(' | ')}`);
+
+  const primaryName = names.length > 0 ? names[0] : 'UNKNOWN_ENV';
+  throw new Error(`Missing required environment variable: ${primaryName}`);
 }
 
 /**
  * Returns an optional env var, falling back to `defaultValue`.
  */
 export function getOptionalEnv(name: string, defaultValue: string): string {
-  const value = readEnvValue(name);
-  return value == null ? defaultValue : value;
+  return readEnvValue(name) ?? defaultValue;
 }
 
 /**
@@ -103,4 +84,54 @@ export function getOptionalEnvAny(names: readonly string[], defaultValue: string
   }
   return defaultValue;
 }
-// <end env-validator.ts>
+
+/**
+ * Throws if ANY name in `vars` is unset or empty.
+ */
+export function validateEnvVariables(vars: readonly string[]): void {
+  for (const name of vars) {
+    getRequiredEnv(name);
+  }
+}
+
+/**
+ * Throws if ALL names in a group are unset or empty.
+ */
+export function validateEnvVariablesAny(groups: readonly (readonly string[])[]): void {
+  for (const group of groups) {
+    const hasAny = group.some((name) => readEnvValue(name) != null);
+    if (!hasAny) {
+      const firstName = group.length > 0 ? group[0] : 'UNKNOWN_ENV';
+      throw new Error(`Missing required environment variable: ${firstName}`);
+    }
+  }
+}
+
+/**
+ * Warns if ALL names in a group are unset or empty. Does not throw.
+ */
+export function warnEnvVariablesAny(groups: readonly (readonly string[])[], message: string): void {
+  if (!import.meta.env.DEV) return;
+
+  const hasMissingGroup = groups.some((group) => group.every((name) => readEnvValue(name) == null));
+  if (hasMissingGroup) {
+    console.warn(message);
+  }
+}
+
+/**
+ * Validates and returns browser-safe Vite environment variables.
+ */
+export function getValidatedClientEnv(): ValidatedClientEnv {
+  const validated: ValidatedClientEnv = {
+    VITE_SUPABASE_URL: getRequiredEnv(REQUIRED_ENV_NAMES[0]),
+    VITE_SUPABASE_PUBLISHABLE_TOKEN: getRequiredEnv(REQUIRED_ENV_NAMES[1]),
+  };
+
+  const googleMapsKey = readEnvValue(OPTIONAL_ENV_NAMES[0]);
+  if (googleMapsKey != null) {
+    validated.VITE_GOOGLE_MAPS_BROWSER_KEY = googleMapsKey;
+  }
+
+  return validated;
+}

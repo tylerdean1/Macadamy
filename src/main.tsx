@@ -6,18 +6,13 @@ import App from './App';
 import './index.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { initGlobalErrorLogger } from './utils/errorLogger';
-import { validateEnvVariablesAny, warnEnvVariablesAny } from './utils/env-validator';
+import { getValidatedClientEnv } from './utils/env-validator';
 
-validateEnvVariablesAny([
-  ['VITE_SUPABASE_URL'],
-  ['VITE_SUPABASE_PUBLISHABLE_TOKEN'],
-  ['VITE_GOOGLE_MAPS_BROWSER_KEY'],
-]);
+const env = getValidatedClientEnv();
 
-warnEnvVariablesAny(
-  [['VITE_GOOGLE_MAPS_BROWSER_KEY']],
-  'Google Maps API key is missing. Map features will be unavailable.'
-);
+if (!env.VITE_GOOGLE_MAPS_BROWSER_KEY && import.meta.env.DEV) {
+  console.warn('Google Maps API key is missing. Map features will be unavailable.');
+}
 
 initGlobalErrorLogger();
 

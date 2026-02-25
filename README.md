@@ -229,6 +229,8 @@ wbs                       workflows
 
 - Environment naming is consolidated around Vite conventions: use `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_TOKEN`, and `VITE_GOOGLE_MAPS_BROWSER_KEY` for browser-safe values
 
+- Browser runtime env validation reads from `import.meta.env` (Vite client bundle), with optional Node-only fallback for non-browser tooling/tests
+
 - Avoid `VITE_` for secrets; keep server-only values non-public (`SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `DATABASE_URL`, and other admin credentials)
 
 - Runtime configuration now enforces canonical env names only; remove legacy `NEXT_PUBLIC_*` and older `VITE_*_KEY` variables from local/hosted environments

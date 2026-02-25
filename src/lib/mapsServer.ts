@@ -1,5 +1,5 @@
+// SERVER-ONLY: do not import into Vite client bundle.
 import { supabase } from '@/lib/supabase';
-import { getRequiredEnvAny } from '@/utils/env-validator';
 
 export type TravelMode = 'DRIVE' | 'BICYCLE' | 'WALK' | 'TWO_WHEELER';
 
@@ -55,8 +55,41 @@ export interface StaticMapRequest {
 
 type GeocodeRequest = { address: string } | { lat: number; lng: number };
 
-const SUPABASE_URL = getRequiredEnvAny(['VITE_SUPABASE_URL']);
-const SUPABASE_PUBLISHABLE = getRequiredEnvAny(['VITE_SUPABASE_PUBLISHABLE_TOKEN']);
+type DenoRuntime = {
+  env: {
+    get(name: string): string | undefined;
+  };
+};
+
+if (typeof window !== 'undefined') {
+  throw new Error('SERVER-ONLY: mapsServer.ts must not run in the Vite client bundle.');
+}
+
+function readServerEnv(name: string): string | undefined {
+  const denoLike = globalThis as { Deno?: DenoRuntime };
+  const fromDeno = denoLike.Deno?.env?.get(name);
+  if (typeof fromDeno === 'string' && fromDeno.trim() !== '') {
+    return fromDeno.trim();
+  }
+
+  const nodeLike = globalThis as { process?: { env?: Record<string, string | undefined> } };
+  const fromNode = nodeLike.process?.env?.[name];
+  if (typeof fromNode === 'string' && fromNode.trim() !== '') {
+    return fromNode.trim();
+  }
+
+  return undefined;
+}
+
+function getRequiredServerEnv(name: string): string {
+  const value = readServerEnv(name);
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+const GOOGLE_MAPS_SERVER_KEY = getRequiredServerEnv('GOOGLE_MAPS_SERVER_KEY');
 
 async function getAccessTokenOrThrow(): Promise<string> {
   const { data, error } = await supabase.auth.getSession();
@@ -82,6 +115,7 @@ async function invokeJson<Req extends Record<string, unknown>, Res>(
     body,
     headers: {
       Authorization: `Bearer ${accessToken}`,
+      'x-google-maps-server-key': GOOGLE_MAPS_SERVER_KEY,
     },
   });
 
@@ -127,20 +161,21 @@ export async function snapToRoads(path: LatLng[]): Promise<SnappedRoadPoint[]> {
 export async function getStaticMapImage(request: StaticMapRequest): Promise<Blob> {
   const accessToken = await getAccessTokenOrThrow();
 
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/maps_static`, {
-    method: 'POST',
+  const { data, error } = await supabase.functions.invoke<Blob>('maps_static', {
+    body: request,
     headers: {
-      'Content-Type': 'application/json',
-      apikey: SUPABASE_PUBLISHABLE,
       Authorization: `Bearer ${accessToken}`,
+      'x-google-maps-server-key': GOOGLE_MAPS_SERVER_KEY,
     },
-    body: JSON.stringify(request),
   });
 
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => 'Failed to fetch static map image.');
-    throw new Error(errorText || 'Failed to fetch static map image.');
+  if (error) {
+    throw new Error(error.message);
   }
 
-  return response.blob();
+  if (data == null) {
+    throw new Error('maps_static returned an empty response.');
+  }
+
+  return data;
 }
