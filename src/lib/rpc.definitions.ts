@@ -326,6 +326,7 @@ export const RPC_NAMES = [
   'insert_vendors',
   'insert_wbs',
   'insert_workflows',
+  'leave_my_organization',
   'log_rpc_error',
   'purge_orphaned_avatars',
   'rank_equipment_usage',

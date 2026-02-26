@@ -308,6 +308,8 @@ wbs                       workflows
 
 - Leave Organization now shows an explicit confirmation modal in the org dashboard (“Are you sure you want to leave the organization?” with `Yes, I am sure` / `Cancel`) before calling the backend removal RPC
 
+- Self-leave now uses dedicated backend RPC `leave_my_organization` (instead of member-removal RPC) so regular members can always leave without hitting admin/HR/owner removal guards
+
 - When a member leaves, `remove_org_member_with_reason` emits `workflow_update` notifications to org admins (`event: member_left_organization`), and notification rendering now formats this event in navbar + `/notifications`
 
 - Organization dropdown now includes a dedicated `↺ Rejoin Organization` action that routes to `/organizations/onboarding?mode=rejoin`, where users can submit a rejoin request through the existing invite workflow

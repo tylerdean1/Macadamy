@@ -809,9 +809,13 @@ export default function OrganizationDashboard(): JSX.Element {
 
     setMemberActionBusyKey(`leave:${profile.id}`);
     try {
-      await rpcClient.remove_org_member_with_reason({
+      const leaveOrganizationRpc = (rpcClient as unknown as Record<string, (args: { p_org_id: string; p_reason: string }) => Promise<unknown>>).leave_my_organization;
+      if (typeof leaveOrganizationRpc !== 'function') {
+        throw new Error('leave_my_organization RPC is unavailable.');
+      }
+
+      await leaveOrganizationRpc({
         p_org_id: profile.organization_id,
-        p_profile_id: profile.id,
         p_reason: ORG_DASHBOARD_TOAST_MESSAGES.leaveOrganizationReason,
       });
 

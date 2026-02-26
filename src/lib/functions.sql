@@ -2219,18 +2219,34 @@ CREATE FUNCTION public.delete_organization_members(_id uuid) RETURNS void
     AS $$
 DECLARE
   _row public.organization_members;
+  _actor uuid := auth.uid();
 BEGIN
-  SELECT * INTO _row FROM public.organization_members WHERE id = _id;
+  SELECT * INTO _row
+  FROM public.organization_members
+  WHERE id = _id;
+
   IF _row IS NULL THEN
     RAISE EXCEPTION 'row not found' USING DETAIL = jsonb_build_object('id', _id);
   END IF;
 
-  -- organization_members is org-scoped (no project_id column)
-  PERFORM check_access('delete','organization_members', NULL, _row.organization_id);
+  -- Self-delete path: allow member to leave even when org access checks would fail.
+  IF _actor IS NOT NULL AND _row.profile_id = _actor THEN
+    UPDATE public.organization_members
+    SET deleted_at = now(),
+        updated_at = now()
+    WHERE id = _id
+      AND deleted_at IS NULL;
+    RETURN;
+  END IF;
+
+  -- Non-self delete keeps existing safeguards.
+  PERFORM public.check_access('delete', 'organization_members', NULL, _row.organization_id);
 
   UPDATE public.organization_members
-     SET deleted_at = now()
-   WHERE id = _id;
+  SET deleted_at = now(),
+      updated_at = now()
+  WHERE id = _id
+    AND deleted_at IS NULL;
 END;
 $$;
 
@@ -24487,6 +24503,47 @@ CREATE FUNCTION public.insert_workflows(_input jsonb) RETURNS SETOF public.workf
 
 
 --
+-- Name: leave_my_organization(uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.leave_my_organization(p_org_id uuid, p_reason text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated' USING errcode = '42501';
+  END IF;
+
+  IF p_org_id IS NULL THEN
+    RAISE EXCEPTION 'Missing organization id';
+  END IF;
+
+  IF COALESCE(TRIM(p_reason), '') = '' THEN
+    RAISE EXCEPTION 'Reason is required';
+  END IF;
+
+  -- Clear profile pointer first while membership is still active.
+  UPDATE public.profiles
+  SET organization_id = NULL,
+      updated_at = now()
+  WHERE id = v_user_id
+    AND organization_id = p_org_id;
+
+  -- Soft-delete own membership; no-op if already gone.
+  UPDATE public.organization_members
+  SET deleted_at = now(),
+      updated_at = now()
+  WHERE organization_id = p_org_id
+    AND profile_id = v_user_id
+    AND deleted_at IS NULL;
+END;
+$$;
+
+
+--
 -- Name: log_rpc_error(text, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24910,19 +24967,16 @@ BEGIN
   IF v_actor_id IS NULL THEN
     RAISE EXCEPTION 'Not authenticated';
   END IF;
-
   IF p_org_id IS NULL OR p_profile_id IS NULL THEN
     RAISE EXCEPTION 'Missing required inputs';
   END IF;
-
   IF COALESCE(TRIM(p_reason), '') = '' THEN
     RAISE EXCEPTION 'Reason is required';
   END IF;
 
-  v_is_self_leave := (p_profile_id = v_actor_id);
+  v_is_self_leave := p_profile_id = v_actor_id;
 
-  SELECT p.role
-  INTO v_actor_role
+  SELECT p.role INTO v_actor_role
   FROM public.profiles p
   WHERE p.id = v_actor_id
     AND p.deleted_at IS NULL;
@@ -24931,37 +24985,35 @@ BEGIN
     RAISE EXCEPTION 'Access denied' USING errcode = '42501';
   END IF;
 
-  -- Safeguards for removing OTHER members only.
-  IF NOT v_is_self_leave THEN
-    SELECT EXISTS (
-      SELECT 1
-      FROM public.organization_members om
-      WHERE om.organization_id = p_org_id
-        AND om.profile_id = v_actor_id
-        AND om.deleted_at IS NULL
-    ) INTO v_actor_is_member;
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_org_id
+      AND om.profile_id = v_actor_id
+      AND om.deleted_at IS NULL
+  ) INTO v_actor_is_member;
 
-    IF NOT v_actor_is_member AND v_actor_role <> 'system_admin' THEN
-      RAISE EXCEPTION 'Access denied' USING errcode = '42501';
-    END IF;
+  IF NOT v_actor_is_member AND v_actor_role <> 'system_admin' THEN
+    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+  END IF;
 
-    IF v_actor_is_member THEN
-      SELECT om.permission_role
-      INTO v_actor_permission_role
-      FROM public.organization_members om
-      WHERE om.organization_id = p_org_id
-        AND om.profile_id = v_actor_id
-        AND om.deleted_at IS NULL
-      ORDER BY om.created_at DESC
-      LIMIT 1;
-    END IF;
+  IF v_actor_is_member THEN
+    SELECT om.permission_role
+    INTO v_actor_permission_role
+    FROM public.organization_members om
+    WHERE om.organization_id = p_org_id
+      AND om.profile_id = v_actor_id
+      AND om.deleted_at IS NULL
+    ORDER BY om.created_at DESC
+    LIMIT 1;
+  END IF;
 
-    IF NOT (
-      v_actor_role = 'system_admin'
-      OR COALESCE(v_actor_permission_role::text, '') IN ('admin', 'hr', 'owner')
-    ) THEN
-      RAISE EXCEPTION 'Access denied' USING errcode = '42501';
-    END IF;
+  IF NOT (
+    v_is_self_leave
+    OR v_actor_role = 'system_admin'
+    OR COALESCE(v_actor_permission_role::text, '') IN ('admin', 'hr', 'owner')
+  ) THEN
+    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
   END IF;
 
   SELECT om.permission_role
@@ -24973,17 +25025,7 @@ BEGIN
   ORDER BY om.created_at DESC
   LIMIT 1;
 
-  -- Self-leave is idempotent: if membership already absent, just clear profile org pointer and exit.
   IF v_target_permission_role IS NULL THEN
-    IF v_is_self_leave THEN
-      UPDATE public.profiles
-      SET organization_id = NULL,
-          updated_at = now()
-      WHERE id = v_actor_id
-        AND organization_id = p_org_id;
-      RETURN;
-    END IF;
-
     RAISE EXCEPTION 'Target is not an active member of this organization' USING errcode = 'P0001';
   END IF;
 
@@ -25004,33 +25046,10 @@ BEGIN
   LIMIT 1;
 
   IF v_membership_id IS NULL THEN
-    IF v_is_self_leave THEN
-      UPDATE public.profiles
-      SET organization_id = NULL,
-          updated_at = now()
-      WHERE id = v_actor_id
-        AND organization_id = p_org_id;
-      RETURN;
-    END IF;
-
     RAISE EXCEPTION 'Target is not an active member of this organization' USING errcode = 'P0001';
   END IF;
 
-  -- Do NOT call delete_organization_members here; self-leave must bypass generic member-management gate.
-  UPDATE public.organization_members
-  SET deleted_at = now(),
-      updated_at = now()
-  WHERE id = v_membership_id
-    AND deleted_at IS NULL;
-
-  -- Keep profile pointer consistent for self-leave.
-  IF v_is_self_leave THEN
-    UPDATE public.profiles
-    SET organization_id = NULL,
-        updated_at = now()
-    WHERE id = p_profile_id
-      AND organization_id = p_org_id;
-  END IF;
+  PERFORM public.delete_organization_members(v_membership_id);
 
   SELECT p.full_name INTO v_actor_name FROM public.profiles p WHERE p.id = v_actor_id;
   SELECT p.full_name INTO v_target_name FROM public.profiles p WHERE p.id = p_profile_id;
@@ -38842,7 +38861,7 @@ CREATE POLICY p_check_access_update ON public.organization_invites FOR UPDATE US
 -- Name: organization_members p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY p_check_access_update ON public.organization_members FOR UPDATE TO authenticated USING ((public.check_access_bool('update'::text, 'organization_members'::text, NULL::uuid, organization_id) OR ((profile_id = auth.uid()) AND (deleted_at IS NULL)))) WITH CHECK ((public.check_access_bool('update'::text, 'organization_members'::text, NULL::uuid, organization_id) OR ((profile_id = auth.uid()) AND (deleted_at IS NOT NULL))));
+CREATE POLICY p_check_access_update ON public.organization_members FOR UPDATE USING (public.check_access_bool('update'::text, 'organization_members'::text, NULL::uuid, organization_id));
 
 
 --

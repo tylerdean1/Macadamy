@@ -16567,6 +16567,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      leave_my_organization: {
+        Args: { p_org_id: string; p_reason: string }
+        Returns: undefined
+      }
       log_rpc_error: {
         Args: {
           p_operation?: string
