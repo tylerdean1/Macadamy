@@ -1,12 +1,19 @@
 import { rpcClient } from '@/lib/rpc.client';
 import type { Database } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
+import {
+  fetchMyNotificationSettingsSnapshot,
+  fetchOrgNotificationSettingsSnapshot,
+  ORG_WIDE_EVENT_OPTIONS,
+  type NotificationEventKey,
+} from '@/hooks/useNotificationSettings';
 
 type NotificationRow = Database['public']['Functions']['filter_notifications']['Returns'][number];
 
 type NotificationOrderBy = 'created_at' | 'updated_at' | 'id';
 
 const ORDER_BY_FALLBACKS: NotificationOrderBy[] = ['created_at', 'updated_at', 'id'];
+const ORG_WIDE_EVENT_SET = new Set<string>(ORG_WIDE_EVENT_OPTIONS.map((item) => item.key));
 
 const NOTIFICATIONS_TABLE = 'notifications';
 
@@ -15,14 +22,6 @@ function isUnknownOrderByError(error: unknown): boolean {
   const maybeError = error as { message?: string; code?: string };
   const message = (maybeError.message ?? '').toLowerCase();
   return message.includes('unknown order_by column') || maybeError.code === 'P0001';
-}
-
-export function isGracefulEmptyNotificationsError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false;
-  const maybeError = error as { message?: string; code?: string };
-  const message = (maybeError.message ?? '').toLowerCase();
-  return maybeError.code === '22004'
-    || message.includes('query string argument of execute is null');
 }
 
 function sortNotifications(rows: NotificationRow[]): NotificationRow[] {
@@ -35,6 +34,74 @@ function sortNotifications(rows: NotificationRow[]): NotificationRow[] {
     const rightTs = new Date(getNotificationTimestamp(right)).getTime();
     return rightTs - leftTs;
   });
+}
+
+function asPayloadObject(notification: NotificationRow): Record<string, unknown> | null {
+  const payload = notification.payload;
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return null;
+  }
+  return payload as Record<string, unknown>;
+}
+
+function getNotificationEvent(notification: NotificationRow): string | null {
+  const payloadObj = asPayloadObject(notification);
+  const eventValue = payloadObj?.event;
+  return typeof eventValue === 'string' && eventValue.trim() !== '' ? eventValue : null;
+}
+
+function getNotificationOrganizationId(notification: NotificationRow): string | null {
+  const payloadObj = asPayloadObject(notification);
+  const organizationId = payloadObj?.organization_id;
+  return typeof organizationId === 'string' && organizationId.trim() !== '' ? organizationId : null;
+}
+
+async function applyNotificationSettingsFilters(rows: NotificationRow[]): Promise<NotificationRow[]> {
+  if (rows.length === 0) return rows;
+
+  const userSnapshot = await fetchMyNotificationSettingsSnapshot();
+  const silencedCategorySet = new Set(userSnapshot.silencedCategories);
+  const silencedEventSet = new Set<string>(userSnapshot.silencedEvents);
+  const orgSettingsCache = new Map<string, {
+    enabledCategorySet: Set<NotificationRow['category']>;
+    enabledEventSet: Set<string>;
+  }>();
+
+  const filtered: NotificationRow[] = [];
+  for (const notification of rows) {
+    if (silencedCategorySet.has(notification.category)) {
+      continue;
+    }
+
+    const eventName = getNotificationEvent(notification);
+    if (eventName && silencedEventSet.has(eventName)) {
+      continue;
+    }
+
+    if (eventName && ORG_WIDE_EVENT_SET.has(eventName)) {
+      const organizationId = getNotificationOrganizationId(notification);
+      if (organizationId) {
+        let orgSettings = orgSettingsCache.get(organizationId);
+        if (!orgSettings) {
+          const snapshot = await fetchOrgNotificationSettingsSnapshot(organizationId);
+          orgSettings = {
+            enabledCategorySet: new Set(snapshot.enabledCategories),
+            enabledEventSet: new Set<string>(snapshot.enabledEvents),
+          };
+          orgSettingsCache.set(organizationId, orgSettings);
+        }
+
+        const eventKey = eventName as NotificationEventKey;
+        if (!orgSettings.enabledEventSet.has(eventKey) || !orgSettings.enabledCategorySet.has(notification.category)) {
+          continue;
+        }
+      }
+    }
+
+    filtered.push(notification);
+  }
+
+  return filtered;
 }
 
 export async function fetchNotificationsForUser(
@@ -54,20 +121,25 @@ export async function fetchNotificationsForUser(
         _direction: 'desc',
         _limit: limit,
       });
-      return Array.isArray(rows) ? sortNotifications(rows) : [];
+      if (!Array.isArray(rows)) {
+        throw new Error('[NotificationsData] filter_notifications returned a non-array response.');
+      }
+
+      const sortedRows = sortNotifications(rows);
+      return await applyNotificationSettingsFilters(sortedRows);
     } catch (error) {
       lastError = error;
-      if (isGracefulEmptyNotificationsError(error)) {
-        return [];
-      }
       if (!isUnknownOrderByError(error)) {
         throw error;
       }
     }
   }
 
-  if (lastError) throw lastError;
-  return [];
+  if (lastError) {
+    throw lastError;
+  }
+
+  throw new Error('[NotificationsData] Unable to load notifications after order_by fallbacks.');
 }
 
 export async function markNotificationAsRead(id: string): Promise<void> {

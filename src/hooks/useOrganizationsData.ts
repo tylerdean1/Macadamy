@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { getBackendErrorMessage, logBackendError } from '@/lib/backendErrors';
 import { rpcClient } from '@/lib/rpc.client';
 import type { Tables } from '@/lib/database.types';
 
@@ -43,8 +44,13 @@ export function useOrganizationsData(): {
         setOrganizations([]);
       }
     } catch (err) {
-      console.error('Error loading organizations:', err);
-      setError('Failed to load organizations.');
+      logBackendError({
+        module: 'useOrganizationsData',
+        operation: 'load organizations',
+        trigger: 'background',
+        error: err,
+      });
+      setError(getBackendErrorMessage(err));
     } finally {
       setLoading(false);
     }

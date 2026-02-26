@@ -233,7 +233,7 @@ export function useAuth(): UseAuthReturn {
 
     try {
       await supabase.auth.signOut();
-      clearAuth();
+      clearAuth({ clearError: true });
       toast.success('Logged out successfully');
       navigate('/', { replace: true });
     } catch (err) {

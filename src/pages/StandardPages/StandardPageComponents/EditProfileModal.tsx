@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { useAuthStore, type EnrichedProfile } from '@/lib/store';
+import { logBackendError, toBackendErrorToastMessage } from '@/lib/backendErrors';
 import { rpcClient } from '@/lib/rpc.client';
 import { useAvatarUpload } from '@/hooks/useAvatarUpload';
 import type { Database, Tables } from '@/lib/database.types';
-import { USER_ROLE_TYPE_OPTIONS } from '@/lib/types';
 import { formatPhoneUS } from '@/lib/utils/formatters';
 import { PROFILE_ERROR_MESSAGES } from '@/lib/utils/profileErrorMessages';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
@@ -26,9 +26,6 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
 
   const [fullName, setFullName] = useState(profile.full_name ?? '');
   const [phone, setPhone] = useState(formatPhoneUS(profile.phone ?? ''));
-  const [selectedRole, setSelectedRole] = useState<Database['public']['Enums']['user_role_type'] | null>(
-    profile.role ?? 'org_user'
-  );
 
   const [avatars, setAvatars] = useState<AvatarRow[]>([]);
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(profile.avatar_id ?? null);
@@ -67,7 +64,6 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
     setPhone(formatPhoneUS(profile.phone ?? ''));
     setSelectedAvatarId(profile.avatar_id ?? null);
     resetPendingAvatar();
-    setSelectedRole(profile.role ?? 'org_user');
   }, [isOpen, profile]);
 
   useEffect(() => {
@@ -85,7 +81,15 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
         cachedAvatars = resolvedAvatars;
         setAvatars(resolvedAvatars);
       } catch (err) {
-        console.error(err);
+        logBackendError({
+          module: 'EditProfileModal',
+          operation: 'load preset avatars',
+          trigger: 'background',
+          error: err,
+          ids: {
+            userId: user?.id ?? null,
+          },
+        });
         toast.error(PROFILE_ERROR_MESSAGES.LOAD_OPTIONS);
       }
     };
@@ -127,8 +131,8 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
     try {
       let resolvedAvatarId = selectedAvatarId || null;
       if (pendingAvatarBlob) {
-        const uploadedAvatar = await uploadAvatar(pendingAvatarBlob);
-        if (uploadedAvatar) {
+        try {
+          const uploadedAvatar = await uploadAvatar(pendingAvatarBlob);
           setAvatars((prev) => {
             const existingIndex = prev.findIndex((item) => item.id === uploadedAvatar.id);
             if (existingIndex >= 0) {
@@ -147,8 +151,18 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
           resolvedAvatarId = uploadedAvatar.id;
           resetPendingAvatar();
           toast.success('Avatar uploaded');
-        } else {
-          throw new Error('Unable to save avatar');
+        } catch (uploadError) {
+          logBackendError({
+            module: 'EditProfileModal',
+            operation: 'upload avatar during profile edit',
+            trigger: 'user',
+            error: uploadError,
+            ids: {
+              userId: user.id,
+              profileId: profile.id,
+            },
+          });
+          return;
         }
       }
 
@@ -162,10 +176,6 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
 
       if (resolvedAvatarId) {
         payload.p_avatar_id = resolvedAvatarId;
-      }
-      const resolvedRole = selectedRole ?? profile.role ?? undefined;
-      if (resolvedRole) {
-        payload.p_role = resolvedRole;
       }
 
       const updatedRows = await rpcClient.update_my_profile(payload);
@@ -199,16 +209,26 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
       toast.success('Profile updated');
       onClose();
     } catch (err) {
-      console.error(err);
+      const context = {
+        module: 'EditProfileModal',
+        operation: 'save profile edits',
+        trigger: 'user' as const,
+        error: err,
+        ids: {
+          userId: user.id,
+          profileId: profile.id,
+        },
+      };
+      logBackendError(context);
       const message = err instanceof Error ? err.message : String(err);
       const isNetworkError = message.includes('Failed to fetch')
         || message.includes('ERR_CONNECTION_CLOSED')
         || message.includes('NetworkError');
-      toast.error(
-        isNetworkError
-          ? PROFILE_ERROR_MESSAGES.NETWORK_RETRY
-          : 'Unable to update your profile. Please try again.'
-      );
+      if (isNetworkError) {
+        toast.error(PROFILE_ERROR_MESSAGES.NETWORK_RETRY);
+        return;
+      }
+      toast.error(toBackendErrorToastMessage(context));
     } finally {
       setIsSaving(false);
     }
@@ -258,29 +278,6 @@ export function EditProfileModal({ isOpen, profile, onClose }: EditProfileModalP
               disabled={isSaving}
               className="w-full bg-background border border-background-lighter text-gray-100 px-4 py-2.5 rounded-md focus:ring-2 focus:ring-primary disabled:opacity-50"
             />
-          </div>
-
-          <div>
-            <label htmlFor="profile-role" className="block text-sm text-gray-300 mb-2">
-              Role (optional)
-            </label>
-            <select
-              id="profile-role"
-              value={selectedRole ?? ''}
-              onChange={(e) => setSelectedRole(e.target.value as Database['public']['Enums']['user_role_type'])}
-              disabled={isSaving}
-              className="w-full bg-background border border-background-lighter text-gray-100 px-4 py-2.5 rounded-md focus:ring-2 focus:ring-primary disabled:opacity-50"
-            >
-              <option value="">Select a role</option>
-              {USER_ROLE_TYPE_OPTIONS.filter((role) => role !== 'system_admin').map((role) => (
-                <option key={role} value={role}>
-                  {role.replace(/_/g, ' ')}
-                </option>
-              ))}
-            </select>
-            <p className="mt-2 text-xs text-gray-400">
-              System admin access is assigned manually.
-            </p>
           </div>
 
           <div>

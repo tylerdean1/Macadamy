@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Page, PageContainer } from '@/components/Layout';
 import { useAuthStore } from '@/lib/store';
 import { useRequireProfile } from '@/hooks/useRequireProfile';
-import { fetchNotificationsForUser, getNotificationTimestamp, isGracefulEmptyNotificationsError, markNotificationAsRead, subscribeToNotifications } from '@/hooks/useNotificationsData';
+import { fetchNotificationsForUser, getNotificationTimestamp, markNotificationAsRead, subscribeToNotifications } from '@/hooks/useNotificationsData';
 import { getNotificationDisplayMessage } from '@/lib/utils/notificationMessages';
+import { getBackendErrorMessage, logBackendError, toBackendErrorToastMessage, type BackendTriggerType } from '@/lib/backendErrors';
 import type { Database } from '@/lib/database.types';
+import { toast } from 'sonner';
 
 type NotificationRow = Database['public']['Functions']['filter_notifications']['Returns'][number];
 
@@ -32,10 +34,12 @@ export default function Notifications(): JSX.Element {
     useRequireProfile();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
+    const searchParamsKey = searchParams.toString();
     const { profile } = useAuthStore();
 
     const [items, setItems] = useState<NotificationRow[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<'all' | 'unread'>(() => searchParams.get('filter') === 'unread' ? 'unread' : 'all');
     const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') ?? '');
 
@@ -43,13 +47,9 @@ export default function Notifications(): JSX.Element {
         const nextFilter = searchParams.get('filter') === 'unread' ? 'unread' : 'all';
         const nextQuery = searchParams.get('q') ?? '';
 
-        if (nextFilter !== activeFilter) {
-            setActiveFilter(nextFilter);
-        }
-        if (nextQuery !== searchQuery) {
-            setSearchQuery(nextQuery);
-        }
-    }, [searchParams, activeFilter, searchQuery]);
+        setActiveFilter((prev) => (prev === nextFilter ? prev : nextFilter));
+        setSearchQuery((prev) => (prev === nextQuery ? prev : nextQuery));
+    }, [searchParamsKey, searchParams]);
 
     useEffect(() => {
         const nextParams = new URLSearchParams();
@@ -62,21 +62,39 @@ export default function Notifications(): JSX.Element {
             nextParams.set('q', trimmedQuery);
         }
 
-        if (nextParams.toString() !== searchParams.toString()) {
+        const nextParamsKey = nextParams.toString();
+
+        if (nextParamsKey !== searchParamsKey) {
             setSearchParams(nextParams, { replace: true });
         }
-    }, [activeFilter, searchQuery, searchParams, setSearchParams]);
+    }, [activeFilter, searchQuery, searchParamsKey, setSearchParams]);
 
-    const loadNotifications = useCallback(async (activeProfileId: string) => {
+    const loadNotifications = useCallback(async (
+        activeProfileId: string,
+        trigger: BackendTriggerType,
+    ) => {
         setLoading(true);
         try {
             const rows = await fetchNotificationsForUser(activeProfileId, { limit: 100 });
-            setItems(Array.isArray(rows) ? rows : []);
+            setItems(rows);
+            setLoadError(null);
         } catch (err) {
-            if (!isGracefulEmptyNotificationsError(err)) {
-                console.error('Failed to load notifications:', err);
+            const context = {
+                module: 'Notifications',
+                operation: 'load notifications',
+                trigger,
+                error: err,
+                ids: {
+                    profileId: activeProfileId,
+                },
+            } as const;
+
+            logBackendError(context);
+            setLoadError(getBackendErrorMessage(err));
+
+            if (trigger === 'user') {
+                toast.error(toBackendErrorToastMessage(context));
             }
-            setItems([]);
         } finally {
             setLoading(false);
         }
@@ -85,13 +103,14 @@ export default function Notifications(): JSX.Element {
     useEffect(() => {
         if (!profile?.id) {
             setItems([]);
+            setLoadError(null);
             setLoading(false);
             return;
         }
 
-        void loadNotifications(profile.id);
+        void loadNotifications(profile.id, 'user');
         const unsubscribe = subscribeToNotifications(profile.id, () => {
-            void loadNotifications(profile.id);
+            void loadNotifications(profile.id, 'background');
         });
 
         return () => {
@@ -105,11 +124,22 @@ export default function Notifications(): JSX.Element {
                 await markNotificationAsRead(item.id);
                 setItems((prev) => prev.map((p) => p.id === item.id ? { ...p, is_read: true } : p));
             }
-        } catch (err) {
-            console.error('Failed to mark notification as read:', err);
-        }
 
-        navigate(resolveNotificationRoute(item));
+            navigate(resolveNotificationRoute(item));
+        } catch (err) {
+            const context = {
+                module: 'Notifications',
+                operation: 'mark notification as read',
+                trigger: 'user' as const,
+                error: err,
+                ids: {
+                    notificationId: item.id,
+                    profileId: profile?.id ?? null,
+                },
+            };
+            logBackendError(context);
+            toast.error(toBackendErrorToastMessage(context));
+        }
     };
 
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -134,6 +164,21 @@ export default function Notifications(): JSX.Element {
             <PageContainer>
                 <div className="max-w-3xl">
                     <h1 className="text-2xl font-bold text-white mb-4">Notifications</h1>
+
+                    <div className="mb-4 flex flex-wrap gap-2">
+                        <Link
+                            to="/settings/notifications"
+                            className="rounded border border-background-lighter bg-background px-3 py-2 text-sm text-gray-200 hover:text-white"
+                        >
+                            My notification settings
+                        </Link>
+                        <Link
+                            to="/settings/organization-notifications"
+                            className="rounded border border-background-lighter bg-background px-3 py-2 text-sm text-gray-200 hover:text-white"
+                        >
+                            Organization notification settings
+                        </Link>
+                    </div>
 
                     <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="inline-flex rounded border border-background-lighter overflow-hidden">
@@ -164,6 +209,19 @@ export default function Notifications(): JSX.Element {
 
                     {loading ? (
                         <p className="text-gray-400">Loading notifications…</p>
+                    ) : loadError ? (
+                        <div className="rounded border border-red-700 bg-red-900/20 p-4 text-red-300">
+                            <p className="text-sm">Failed to load notifications: {loadError}</p>
+                            {profile?.id && (
+                                <button
+                                    type="button"
+                                    onClick={() => { void loadNotifications(profile.id, 'user'); }}
+                                    className="mt-3 rounded border border-red-500/60 px-3 py-2 text-sm text-red-100 hover:bg-red-950/40"
+                                >
+                                    Retry
+                                </button>
+                            )}
+                        </div>
                     ) : filteredItems.length === 0 ? (
                         <p className="text-gray-400">No notifications.</p>
                     ) : (

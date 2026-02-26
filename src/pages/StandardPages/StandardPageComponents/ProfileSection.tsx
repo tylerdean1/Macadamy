@@ -25,7 +25,11 @@ export function ProfileSection({ profile, onEdit, overrideOrgName = null, overri
   const { isSwitching: isOrgSwitching, switchPrimaryOrganization } = usePrimaryOrganizationSwitch();
 
   const handleOrganizationSwitch = async (organizationId: string) => {
-    await switchPrimaryOrganization(organizationId);
+    try {
+      await switchPrimaryOrganization(organizationId);
+    } catch {
+      return;
+    }
   };
 
   const displayOrgName = overrideOrgName ?? profile.organization_name;

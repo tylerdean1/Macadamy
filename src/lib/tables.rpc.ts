@@ -4003,6 +4003,59 @@ export type TableRpcMap = {
       }[]
     },
   },
+  organization_notification_settings: {
+    delete_organization_notification_settings: {
+      Args: {
+        _id: string
+      }
+      Returns: undefined
+    },
+    filter_organization_notification_settings: {
+      Args: {
+        _direction?: string
+        _filters?: Json
+        _limit?: number
+        _offset?: number
+        _order_by?: string
+        _select_cols?: string[]
+      }
+      Returns: {
+        created_at: string
+        enabled_categories: Database["public"]["Enums"]["notification_category"][]
+        enabled_events: string[]
+        organization_id: string
+        updated_at: string
+        updated_by: string | null
+      }[]
+    },
+    insert_organization_notification_settings: {
+      Args: {
+        _input: Json
+      }
+      Returns: {
+        created_at: string
+        enabled_categories: Database["public"]["Enums"]["notification_category"][]
+        enabled_events: string[]
+        organization_id: string
+        updated_at: string
+        updated_by: string | null
+      }[]
+    },
+    update_organization_notification_settings: {
+      Args: {
+        _id: string
+        _input: Json
+      }
+      Returns: {
+        created_at: string
+        enabled_categories: Database["public"]["Enums"]["notification_category"][]
+        enabled_events: string[]
+        organization_id: string
+        updated_at: string
+        updated_by: string | null
+      }[]
+    },
+  },
   organization_projects: {
     delete_organization_projects: {
       Args: {
@@ -5363,6 +5416,25 @@ export type TableRpcMap = {
       }[]
     },
   },
+  rpc_error_debug: {
+    get_rpc_error_debug: {
+      Args: {
+        p_limit?: number
+      }
+      Returns: {
+        auth_user_id: string
+        created_at: string
+        error_detail: string
+        error_hint: string
+        error_message: string
+        id: number
+        operation: string
+        request_context: Json
+        rpc_name: string
+        sqlstate: string
+      }[]
+    },
+  },
   safety_incidents: {
     delete_safety_incidents: {
       Args: {
@@ -5944,6 +6016,56 @@ export type TableRpcMap = {
         id: string
         training_type: string | null
         updated_at: string
+      }[]
+    },
+  },
+  user_notification_settings: {
+    delete_user_notification_settings: {
+      Args: {
+        _id: string
+      }
+      Returns: undefined
+    },
+    filter_user_notification_settings: {
+      Args: {
+        _direction?: string
+        _filters?: Json
+        _limit?: number
+        _offset?: number
+        _order_by?: string
+        _select_cols?: string[]
+      }
+      Returns: {
+        created_at: string
+        silenced_categories: Database["public"]["Enums"]["notification_category"][]
+        silenced_events: string[]
+        updated_at: string
+        user_id: string
+      }[]
+    },
+    insert_user_notification_settings: {
+      Args: {
+        _input: Json
+      }
+      Returns: {
+        created_at: string
+        silenced_categories: Database["public"]["Enums"]["notification_category"][]
+        silenced_events: string[]
+        updated_at: string
+        user_id: string
+      }[]
+    },
+    update_user_notification_settings: {
+      Args: {
+        _id: string
+        _input: Json
+      }
+      Returns: {
+        created_at: string
+        silenced_categories: Database["public"]["Enums"]["notification_category"][]
+        silenced_events: string[]
+        updated_at: string
+        user_id: string
       }[]
     },
   },

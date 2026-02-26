@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { getBackendErrorMessage, logBackendError } from '@/lib/backendErrors';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
 
@@ -73,10 +74,13 @@ export function useBootstrapAuth(): boolean {
         console.log('[auth] getSession', sessionData, sessionError);
 
         if (sessionError) {
-          if (import.meta.env.DEV && debugAuth) {
-            console.error('[useBootstrapAuth] session error', sessionError);
-          }
-          setError(sessionError.message);
+          logBackendError({
+            module: 'BootstrapAuth',
+            operation: 'get session',
+            trigger: 'background',
+            error: sessionError,
+          });
+          setError(getBackendErrorMessage(sessionError));
           clearAuth();
           return;
         }
@@ -84,7 +88,7 @@ export function useBootstrapAuth(): boolean {
         const session = sessionData?.session ?? null;
         if (!session) {
           // No session on initial load → nothing to validate or sign out
-          clearAuth();
+          clearAuth({ clearError: true });
           return;
         }
 
@@ -93,6 +97,15 @@ export function useBootstrapAuth(): boolean {
         const userStatus = (userError as { status?: number } | null)?.status;
         const isAuthError = userStatus === 401 || userStatus === 403;
         if (userError || !userData?.user) {
+          logBackendError({
+            module: 'BootstrapAuth',
+            operation: 'validate session user',
+            trigger: 'background',
+            error: userError ?? new Error('Session user is missing after getUser.'),
+            ids: {
+              userStatus,
+            },
+          });
           if (import.meta.env.DEV && debugAuth) {
             console.warn('[useBootstrapAuth] invalid or missing user, clearing session', userError);
           }
@@ -117,14 +130,23 @@ export function useBootstrapAuth(): boolean {
               console.log('[useBootstrapAuth] profile loaded');
             }
           } catch (err) {
-            const msg = err instanceof Error ? err.message : 'Error loading user profile';
+            logBackendError({
+              module: 'BootstrapAuth',
+              operation: 'load profile during initial session bootstrap',
+              trigger: 'background',
+              error: err,
+              ids: {
+                userId: sessionUser.id,
+              },
+            });
+            const msg = getBackendErrorMessage(err);
             setError(msg);
             if (import.meta.env.DEV && debugAuth) {
               console.error('[useBootstrapAuth] profile load error', err);
             }
           }
         } else {
-          clearAuth();
+          clearAuth({ clearError: true });
         }
       } finally {
         setLoading({ initialization: false });
@@ -134,7 +156,13 @@ export function useBootstrapAuth(): boolean {
         }
       }
     })().catch((err) => {
-      setError(err instanceof Error ? err.message : String(err));
+      logBackendError({
+        module: 'BootstrapAuth',
+        operation: 'initial session bootstrap',
+        trigger: 'background',
+        error: err,
+      });
+      setError(getBackendErrorMessage(err));
       clearAuth();
       setLoading({ initialization: false });
       setInitialCheckDone(true);
@@ -172,6 +200,17 @@ export function useBootstrapAuth(): boolean {
           const valStatus = (valErr as { status?: number } | null)?.status;
           const isAuthError = valStatus === 401 || valStatus === 403;
           if (valErr || !valUser?.user) {
+            logBackendError({
+              module: 'BootstrapAuth',
+              operation: 'validate auth state user',
+              trigger: 'background',
+              error: valErr ?? new Error('Auth event user is missing after getUser.'),
+              ids: {
+                authEvent: event,
+                userStatus: valStatus ?? null,
+                userId: nextUser.id,
+              },
+            });
             if (import.meta.env.DEV && debugAuth) {
               console.warn('[useBootstrapAuth] auth event user invalid, clearing', valErr);
             }
@@ -188,7 +227,7 @@ export function useBootstrapAuth(): boolean {
         } else {
           // No session/user → nothing to validate or sign out
           setUser(null);
-          clearAuth();
+          clearAuth({ clearError: true });
           setLoading({ initialization: false });
           return;
         }
@@ -203,15 +242,24 @@ export function useBootstrapAuth(): boolean {
           try {
             await loadProfile(nextUser.id);
           } catch (err) {
-            const msg =
-              err instanceof Error ? err.message : 'Error loading user profile';
+            logBackendError({
+              module: 'BootstrapAuth',
+              operation: 'load profile on auth state change',
+              trigger: 'background',
+              error: err,
+              ids: {
+                authEvent: event,
+                userId: nextUser.id,
+              },
+            });
+            const msg = getBackendErrorMessage(err);
             setError(msg);
             if (import.meta.env.DEV) {
               console.error('[useBootstrapAuth] profile load error', err);
             }
           }
         } else {
-          clearAuth();
+          clearAuth({ clearError: true });
         }
 
         setLoading({ initialization: false });

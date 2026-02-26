@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { toast } from 'sonner';
 
 import { rpcClient } from '@/lib/rpc.client';
-import { supabase } from '@/lib/supabase';
+import { logBackendError } from '@/lib/backendErrors';
+import { getStoragePublicUrl, listStoragePaths, removeStoragePaths, uploadStorageFile } from '@/lib/storageClient';
 import type { Tables } from '@/lib/database.types';
 
 type AvatarRow = Tables<'avatars'>;
@@ -20,7 +20,7 @@ interface UseAvatarUploadResult {
     avatarInputRef: RefObject<HTMLInputElement>;
     handleAvatarFileSelected: (file: File) => void;
     handleAvatarCropped: (blob: Blob) => void;
-    uploadAvatar: (blob: Blob) => Promise<AvatarRow | null>;
+    uploadAvatar: (blob: Blob) => Promise<AvatarRow>;
     resetPendingAvatar: () => void;
 }
 
@@ -98,23 +98,18 @@ export function useAvatarUpload({
 
     const listAllAvatarFiles = async (): Promise<string[]> => {
         if (!userId) return [];
-        const files: string[] = [];
-        const limit = 100;
-        let offset = 0;
-        while (true) {
-            const { data: storedFiles } = await supabase.storage
-                .from('avatars-personal')
-                .list(userId, { limit, offset });
-            const batch = Array.isArray(storedFiles) ? storedFiles : [];
-            files.push(...batch.map((item) => `${userId}/${item.name}`));
-            if (batch.length < limit) break;
-            offset += limit;
-        }
-        return files;
+        return listStoragePaths('avatars-personal', userId, {
+            module: 'AvatarUpload',
+            operation: 'list previous avatar files',
+            trigger: 'user',
+            ids: { userId },
+        });
     };
 
-    const uploadAvatar = async (blob: Blob): Promise<AvatarRow | null> => {
-        if (!userId) return null;
+    const uploadAvatar = async (blob: Blob): Promise<AvatarRow> => {
+        if (!userId) {
+            throw new Error('Unable to upload avatar without an active user.');
+        }
         setIsUploadingAvatar(true);
 
         try {
@@ -122,27 +117,28 @@ export function useAvatarUpload({
             const fileName = `${crypto.randomUUID()}.${ext}`;
             const filePath = `${userId}/${fileName}`;
 
-            const { data, error } = await supabase.storage
-                .from('avatars-personal')
-                .upload(filePath, blob, { upsert: false, contentType: blob.type || 'image/jpeg' });
-
-            if (error) {
-                throw error;
-            }
-
-            const { data: publicUrlData } = supabase.storage
-                .from('avatars-personal')
-                .getPublicUrl(data.path);
-
-            const publicUrl = publicUrlData?.publicUrl;
-            if (!publicUrl) {
-                throw new Error('Unable to generate avatar URL');
-            }
+            const storedPath = await uploadStorageFile('avatars-personal', filePath, blob, {
+                module: 'AvatarUpload',
+                operation: 'upload avatar file',
+                trigger: 'user',
+                ids: { userId, filePath },
+            });
+            const publicUrl = getStoragePublicUrl('avatars-personal', storedPath, {
+                module: 'AvatarUpload',
+                operation: 'resolve avatar public url',
+                trigger: 'user',
+                ids: { userId, filePath: storedPath },
+            });
 
             const storedFiles = await listAllAvatarFiles();
-            const removePaths = storedFiles.filter((path) => path !== data.path);
+            const removePaths = storedFiles.filter((path) => path !== storedPath);
             if (removePaths.length > 0) {
-                await supabase.storage.from('avatars-personal').remove(removePaths);
+                await removeStoragePaths('avatars-personal', removePaths, {
+                    module: 'AvatarUpload',
+                    operation: 'remove previous avatar files',
+                    trigger: 'user',
+                    ids: { userId },
+                });
             }
 
             const updatedRows = await rpcClient.upsert_my_avatar({
@@ -157,13 +153,14 @@ export function useAvatarUpload({
 
             return updatedAvatar;
         } catch (err) {
-            console.error(err);
-            const message = err instanceof Error ? err.message : String(err);
-            const isNetworkError = message.includes('Failed to fetch')
-                || message.includes('ERR_CONNECTION_CLOSED')
-                || message.includes('NetworkError');
-            toast.error(isNetworkError ? 'Network error, try again in a minute.' : 'Unable to upload avatar');
-            return null;
+            logBackendError({
+                module: 'AvatarUpload',
+                operation: 'upload avatar',
+                trigger: 'user',
+                error: err,
+                ids: { userId },
+            });
+            throw err;
         } finally {
             setIsUploadingAvatar(false);
         }

@@ -4,47 +4,60 @@ import { toast } from 'sonner';
 
 import { supabase } from '@/lib/supabase';
 
-const MAX_ATTEMPTS = 20;
-const RETRY_DELAY_MS = 200;
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
 export default function AuthCallback(): JSX.Element {
   const navigate = useNavigate();
 
   useEffect(() => {
     let cancelled = false;
+    let settled = false;
+
+    const finalizeToDashboard = (): void => {
+      if (cancelled || settled) return;
+      settled = true;
+      navigate('/dashboard', { replace: true });
+    };
+
+    const finalizeToLogin = (message: string): void => {
+      if (cancelled || settled) return;
+      settled = true;
+      toast.error(message);
+      navigate('/login', { replace: true });
+    };
 
     const completeOAuthSession = async (): Promise<void> => {
-      for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-        const { data, error } = await supabase.auth.getSession();
+      const { data, error } = await supabase.auth.getSession();
 
-        if (cancelled) {
-          return;
-        }
-
-        if (error) {
-          toast.error('Google sign-in failed. Please try again.');
-          navigate('/login', { replace: true });
-          return;
-        }
-
-        if (data.session?.user) {
-          navigate('/dashboard', { replace: true });
-          return;
-        }
-
-        await sleep(RETRY_DELAY_MS);
+      if (cancelled) {
+        return;
       }
 
-      if (!cancelled) {
-        toast.error('Google sign-in did not complete. Please try again.');
-        navigate('/login', { replace: true });
+      if (error) {
+        finalizeToLogin('Google sign-in failed. Please try again.');
+        return;
       }
+
+      if (data.session?.user) {
+        finalizeToDashboard();
+        return;
+      }
+
+      const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+          listener.subscription.unsubscribe();
+          finalizeToDashboard();
+        }
+      });
+
+      const timeoutId = window.setTimeout(() => {
+        listener.subscription.unsubscribe();
+        finalizeToLogin('Google sign-in did not complete. Please try again.');
+      }, 5000);
+
+      const unsubscribe = listener.subscription.unsubscribe.bind(listener.subscription);
+      listener.subscription.unsubscribe = () => {
+        clearTimeout(timeoutId);
+        unsubscribe();
+      };
     };
 
     void completeOAuthSession();

@@ -4226,6 +4226,62 @@ export type Database = {
           },
         ]
       }
+      organization_notification_settings: {
+        Row: {
+          created_at: string
+          enabled_categories: Database["public"]["Enums"]["notification_category"][]
+          enabled_events: string[]
+          organization_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          enabled_categories?: Database["public"]["Enums"]["notification_category"][]
+          enabled_events?: string[]
+          organization_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          enabled_categories?: Database["public"]["Enums"]["notification_category"][]
+          enabled_events?: string[]
+          organization_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_notification_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_notification_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_notification_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_notification_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_active"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_projects: {
         Row: {
           created_at: string | null
@@ -5481,6 +5537,45 @@ export type Database = {
           },
         ]
       }
+      rpc_error_debug: {
+        Row: {
+          auth_user_id: string | null
+          created_at: string
+          error_detail: string | null
+          error_hint: string | null
+          error_message: string
+          id: number
+          operation: string | null
+          request_context: Json
+          rpc_name: string
+          sqlstate: string | null
+        }
+        Insert: {
+          auth_user_id?: string | null
+          created_at?: string
+          error_detail?: string | null
+          error_hint?: string | null
+          error_message: string
+          id?: never
+          operation?: string | null
+          request_context?: Json
+          rpc_name: string
+          sqlstate?: string | null
+        }
+        Update: {
+          auth_user_id?: string | null
+          created_at?: string
+          error_detail?: string | null
+          error_hint?: string | null
+          error_message?: string
+          id?: never
+          operation?: string | null
+          request_context?: Json
+          rpc_name?: string
+          sqlstate?: string | null
+        }
+        Relationships: []
+      }
       safety_incidents: {
         Row: {
           created_at: string
@@ -6048,6 +6143,45 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_active"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_notification_settings: {
+        Row: {
+          created_at: string
+          silenced_categories: Database["public"]["Enums"]["notification_category"][]
+          silenced_events: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          silenced_categories?: Database["public"]["Enums"]["notification_category"][]
+          silenced_events?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          silenced_categories?: Database["public"]["Enums"]["notification_category"][]
+          silenced_events?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notification_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_notification_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_active"
             referencedColumns: ["id"]
           },
         ]
@@ -11581,6 +11715,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      can_edit_org_notification_settings: {
+        Args: { p_organization_id: string }
+        Returns: boolean
+      }
       change_org_member_job_title_with_reason: {
         Args: {
           p_job_title_id: string
@@ -11751,6 +11889,10 @@ export type Database = {
         Returns: undefined
       }
       delete_organization_members: { Args: { _id: string }; Returns: undefined }
+      delete_organization_notification_settings: {
+        Args: { _id: string }
+        Returns: undefined
+      }
       delete_organization_projects: {
         Args: { _id: string }
         Returns: undefined
@@ -11796,6 +11938,10 @@ export type Database = {
       delete_task_status_logs: { Args: { _id: string }; Returns: undefined }
       delete_tasks: { Args: { _id: string }; Returns: undefined }
       delete_training_records: { Args: { _id: string }; Returns: undefined }
+      delete_user_notification_settings: {
+        Args: { _id: string }
+        Returns: undefined
+      }
       delete_user_projects: { Args: { _id: string }; Returns: undefined }
       delete_vendor_bid_packages: { Args: { _id: string }; Returns: undefined }
       delete_vendor_contacts: { Args: { _id: string }; Returns: undefined }
@@ -11807,6 +11953,15 @@ export type Database = {
       delete_vendors: { Args: { _id: string }; Returns: undefined }
       delete_wbs: { Args: { _id: string }; Returns: undefined }
       delete_workflows: { Args: { _id: string }; Returns: undefined }
+      emit_org_notification: {
+        Args: {
+          p_category: Database["public"]["Enums"]["notification_category"]
+          p_message: string
+          p_organization_id: string
+          p_payload?: Json
+        }
+        Returns: undefined
+      }
       ensure_fk_indexes_for_schema: {
         Args: { _schema?: string }
         Returns: undefined
@@ -13271,6 +13426,30 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      filter_organization_notification_settings: {
+        Args: {
+          _direction?: string
+          _filters?: Json
+          _limit?: number
+          _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
+        }
+        Returns: {
+          created_at: string
+          enabled_categories: Database["public"]["Enums"]["notification_category"][]
+          enabled_events: string[]
+          organization_id: string
+          updated_at: string
+          updated_by: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_notification_settings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       filter_organization_projects: {
         Args: {
           _direction?: string
@@ -14052,6 +14231,29 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      filter_user_notification_settings: {
+        Args: {
+          _direction?: string
+          _filters?: Json
+          _limit?: number
+          _offset?: number
+          _order_by?: string
+          _select_cols?: string[]
+        }
+        Returns: {
+          created_at: string
+          silenced_categories: Database["public"]["Enums"]["notification_category"][]
+          silenced_events: string[]
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "user_notification_settings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       filter_user_projects: {
         Args: {
           _direction?: string
@@ -14393,6 +14595,14 @@ export type Database = {
           role: string
         }[]
       }
+      get_my_notification_settings: {
+        Args: never
+        Returns: {
+          silenced_categories: Database["public"]["Enums"]["notification_category"][]
+          silenced_events: string[]
+          updated_at: string
+        }[]
+      }
       get_my_org_profiles_minimal: {
         Args: never
         Returns: {
@@ -14424,6 +14634,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      get_org_notification_settings: {
+        Args: { p_organization_id: string }
+        Returns: {
+          enabled_categories: Database["public"]["Enums"]["notification_category"][]
+          enabled_events: string[]
+          updated_at: string
+        }[]
       }
       get_organization_by_id: {
         Args: { p_organization_id: string }
@@ -14487,6 +14705,21 @@ export type Database = {
           full_name: string
           id: string
           role: Database["public"]["Enums"]["user_role_type"]
+        }[]
+      }
+      get_rpc_error_debug: {
+        Args: { p_limit?: number }
+        Returns: {
+          auth_user_id: string
+          created_at: string
+          error_detail: string
+          error_hint: string
+          error_message: string
+          id: number
+          operation: string
+          request_context: Json
+          rpc_name: string
+          sqlstate: string
         }[]
       }
       insert_accounts_payable: {
@@ -15579,6 +15812,23 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      insert_organization_notification_settings: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          enabled_categories: Database["public"]["Enums"]["notification_category"][]
+          enabled_events: string[]
+          organization_id: string
+          updated_at: string
+          updated_by: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_notification_settings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       insert_organization_projects: {
         Args: { _input: Json }
         Returns: {
@@ -16150,6 +16400,22 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      insert_user_notification_settings: {
+        Args: { _input: Json }
+        Returns: {
+          created_at: string
+          silenced_categories: Database["public"]["Enums"]["notification_category"][]
+          silenced_events: string[]
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "user_notification_settings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       insert_user_projects: {
         Args: { _input: Json }
         Returns: {
@@ -16301,6 +16567,14 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      log_rpc_error: {
+        Args: {
+          p_operation?: string
+          p_request_context?: Json
+          p_rpc_name: string
+        }
+        Returns: undefined
+      }
       purge_orphaned_avatars: {
         Args: never
         Returns: {
@@ -16402,6 +16676,25 @@ export type Database = {
         }
         Returns: Json
       }
+      set_my_notification_settings: {
+        Args: {
+          p_silenced_categories?: Database["public"]["Enums"]["notification_category"][]
+          p_silenced_events?: string[]
+        }
+        Returns: {
+          created_at: string
+          silenced_categories: Database["public"]["Enums"]["notification_category"][]
+          silenced_events: string[]
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "user_notification_settings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       set_my_primary_organization: {
         Args: { p_organization_id: string }
         Returns: {
@@ -16456,6 +16749,28 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_org_notification_settings: {
+        Args: {
+          p_enabled_categories?: Database["public"]["Enums"]["notification_category"][]
+          p_enabled_events?: string[]
+          p_organization_id: string
+        }
+        Returns: {
+          created_at: string
+          enabled_categories: Database["public"]["Enums"]["notification_category"][]
+          enabled_events: string[]
+          organization_id: string
+          updated_at: string
+          updated_by: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_notification_settings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      try_parse_uuid: { Args: { p_text: string }; Returns: string }
       update_accounts_payable: {
         Args: { _id: string; _input: Json }
         Returns: {
@@ -17578,6 +17893,23 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      update_organization_notification_settings: {
+        Args: { _id: string; _input: Json }
+        Returns: {
+          created_at: string
+          enabled_categories: Database["public"]["Enums"]["notification_category"][]
+          enabled_events: string[]
+          organization_id: string
+          updated_at: string
+          updated_by: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_notification_settings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       update_organization_projects: {
         Args: { _id: string; _input: Json }
         Returns: {
@@ -18149,6 +18481,22 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "training_records"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      update_user_notification_settings: {
+        Args: { _id: string; _input: Json }
+        Returns: {
+          created_at: string
+          silenced_categories: Database["public"]["Enums"]["notification_category"][]
+          silenced_events: string[]
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "user_notification_settings"
           isOneToOne: false
           isSetofReturn: true
         }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { logBackendError } from '@/lib/backendErrors';
 import { rpcClient } from '@/lib/rpc.client';
 
 type OrgItem = {
@@ -168,6 +169,15 @@ export function useMyOrganizations(profileId?: string | null) {
 
                 if (mounted) setOrgs(items);
             } catch (err) {
+                logBackendError({
+                    module: 'useMyOrganizations',
+                    operation: 'load member organizations',
+                    trigger: 'background',
+                    error: err,
+                    ids: {
+                        profileId: profileId ?? null,
+                    },
+                });
                 if (mounted) setError(err instanceof Error ? err.message : String(err));
             } finally {
                 if (mounted) setLoading(false);

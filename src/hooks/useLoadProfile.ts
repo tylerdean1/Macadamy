@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { rpcClient } from '@/lib/rpc.client';
+import { logBackendError } from '@/lib/backendErrors';
 import type { EnrichedProfile } from '@/lib/store';
 import { useAuthStore } from '@/lib/store';
 
@@ -98,7 +99,17 @@ export function useLoadProfile(userId: string | null): EnrichedProfile | null {
           profile_completed_at: row.profile_completed_at ?? null,
         };
         setProfile(prof);
-      } catch {
+      } catch (error) {
+        logBackendError({
+          module: 'useLoadProfile',
+          operation: 'load profile',
+          trigger: 'background',
+          error,
+          ids: {
+            userId,
+            currentUserId: currentUser?.id ?? null,
+          },
+        });
         setProfile(null);
       }
     };

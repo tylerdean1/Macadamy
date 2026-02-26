@@ -4,6 +4,7 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/react';
 
+import { logBackendError } from '@/lib/backendErrors';
 import { supabase } from '@/lib/supabase';
 import { useBootstrapAuth } from '@/hooks/useBootstrapAuth';
 import { useAuthStore } from '@/lib/store';
@@ -21,6 +22,7 @@ const UserOnboarding = lazy(() => import('@/pages/StandardPages/UserOnboarding')
 const ProfileOnboarding = lazy(() => import('@/pages/StandardPages/ProfileOnboarding'));
 const Dashboard = lazy(() => import('@/pages/StandardPages/Dashboard'));
 const Notifications = lazy(() => import('@/pages/StandardPages/Notifications'));
+const NotificationSettings = lazy(() => import('@/pages/StandardPages/NotificationSettings'));
 
 const ProjectDashboard = lazy(() => import('@/pages/Projects/ProjectDashboard'));
 const ContractSettings = lazy(() => import('@/pages/Projects/ContractSettings'));
@@ -47,6 +49,7 @@ const ResourcePlanning = lazy(() => import('@/pages/Features/ResourcePlanning'))
 const ReportingCollaboration = lazy(() => import('@/pages/Features/ReportingCollaboration'));
 const OrganizationDashboard = lazy(() => import('@/pages/Organization/OrganizationDashboard'));
 const OrganizationOnboarding = lazy(() => import('@/pages/Organization/OrganizationOnboarding'));
+const OrganizationNotificationSettings = lazy(() => import('@/pages/Organization/OrganizationNotificationSettings'));
 const QualitySafety = lazy(() => import("@/pages/Features/QualitySafety"));
 const SubcontractorManagement = lazy(() => import("@/pages/Features/SubcontractorManagement"));
 const EquipmentManagement = lazy(() => import('@/pages/Features/EquipmentManagement'));
@@ -72,6 +75,75 @@ export default function App(): JSX.Element {
   const location = useLocation();
   const [pageLoading, setPageLoading] = useState<boolean>(false);
 
+  /*
+   * Global long-form text assistance:
+   * ensure every textarea gets native browser spellcheck/autocorrect,
+   * including textareas added after route changes or lazy renders.
+   */
+  useEffect(() => {
+    const isSpellcheckOptOut = (element: HTMLElement): boolean =>
+      element.getAttribute('spellcheck')?.toLowerCase() === 'false';
+
+    const applyTextAssistToElement = (element: HTMLElement): void => {
+      if (isSpellcheckOptOut(element)) {
+        return;
+      }
+
+      const tagName = element.tagName.toLowerCase();
+      const isTextarea = tagName === 'textarea';
+      const isSupportedInput = tagName === 'input'
+        && ['text', 'search', 'email', 'url'].includes((element as HTMLInputElement).type);
+
+      if (!isTextarea && !isSupportedInput) {
+        return;
+      }
+
+      element.spellcheck = true;
+
+      if (element.getAttribute('lang') === null) {
+        element.setAttribute('lang', 'en-US');
+      }
+
+      if (element.getAttribute('autocapitalize') === null) {
+        element.setAttribute('autocapitalize', 'sentences');
+      }
+
+      if (element.getAttribute('autocorrect') === null) {
+        element.setAttribute('autocorrect', 'on');
+      }
+    };
+
+    const applyTextAssist = (root: ParentNode): void => {
+      const fields = root.querySelectorAll('textarea, input[type="text"], input[type="search"], input[type="email"], input[type="url"]');
+      for (const field of fields) {
+        applyTextAssistToElement(field as HTMLElement);
+      }
+    };
+
+    if (document.documentElement.getAttribute('lang') === null) {
+      document.documentElement.setAttribute('lang', 'en-US');
+    }
+
+    applyTextAssist(document);
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (!(node instanceof HTMLElement)) {
+            continue;
+          }
+
+          applyTextAssistToElement(node);
+
+          applyTextAssist(node);
+        }
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     setPageLoading(true);
     const t = setTimeout(() => setPageLoading(false), 500);
@@ -88,13 +160,23 @@ export default function App(): JSX.Element {
       const { data: userData, error: userError } = await supabase.auth.getUser();
 
       if (sessionError) {
-        console.warn('[App] session error', sessionError);
+        logBackendError({
+          module: 'App',
+          operation: 'debug getSession',
+          trigger: 'background',
+          error: sessionError,
+        });
       } else {
         console.log('[App] session', sessionData);
       }
 
       if (userError) {
-        console.warn('[App] user error', userError);
+        logBackendError({
+          module: 'App',
+          operation: 'debug getUser',
+          trigger: 'background',
+          error: userError,
+        });
       } else {
         console.log('[App] user', userData);
       }
@@ -172,6 +254,14 @@ export default function App(): JSX.Element {
             element={
               <ProtectedRoute requireOrganization={false}>
                 <Notifications />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings/notifications"
+            element={
+              <ProtectedRoute requireOrganization={false}>
+                <NotificationSettings />
               </ProtectedRoute>
             }
           />
@@ -437,6 +527,14 @@ export default function App(): JSX.Element {
             element={
               <ProtectedRoute requireOrganization={false}>
                 <OrganizationOnboarding />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings/organization-notifications"
+            element={
+              <ProtectedRoute>
+                <OrganizationNotificationSettings />
               </ProtectedRoute>
             }
           />

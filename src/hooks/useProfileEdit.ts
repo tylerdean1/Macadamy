@@ -34,12 +34,13 @@ const useProfileEdit = (): ReturnType => {
       const { id, ...profileData } = updates;
       // Map frontend fields to backend RPC args
       const isSystemAdmin = profile?.role === 'system_admin';
+      const canEditGlobalRole = isSystemAdmin && id !== user.id;
       const inputPayload: Record<string, unknown> = {
         full_name: profileData.full_name ?? undefined,
         email: profileData.email ?? undefined,
         phone: profileData.phone ?? undefined,
         avatar_id: profileData.avatar_id ?? undefined,
-        ...(isSystemAdmin ? { role: profileData.role ?? undefined } : {}),
+        ...(canEditGlobalRole ? { role: profileData.role ?? undefined } : {}),
         ...(isSystemAdmin ? { organization_id: profileData.organization_id ?? undefined } : {}),
       };
 
@@ -58,7 +59,7 @@ const useProfileEdit = (): ReturnType => {
         const updatedProfileData = { ...profile };
         for (const key in profileData) {
           if (Object.prototype.hasOwnProperty.call(profileData, key)) {
-            if (!isSystemAdmin && (key === 'role' || key === 'organization_id')) {
+            if ((key === 'role' && !canEditGlobalRole) || (key === 'organization_id' && !isSystemAdmin)) {
               continue;
             }
             (updatedProfileData as Record<string, unknown>)[key] = (profileData as Record<string, unknown>)[key];

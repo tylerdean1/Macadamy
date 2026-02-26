@@ -16,10 +16,12 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
 import { FileText, Plus, Pencil } from 'lucide-react';
 import { rpcClient } from '@/lib/rpc.client';
+import { logBackendError, toBackendErrorToastMessage } from '@/lib/backendErrors';
+import { getStoragePublicUrl, uploadStorageFile } from '@/lib/storageClient';
+import { toast } from 'sonner';
 
 // Define the structure of an inspection record
 interface Inspection {
@@ -159,7 +161,17 @@ export default function Inspections() {
 
       setInspections(normalized);
     } catch (err) {
-      console.error('Unexpected error loading inspections payload:', err);
+      logBackendError({
+        module: 'Inspections',
+        operation: 'load inspections payload',
+        trigger: 'background',
+        error: err,
+        ids: {
+          projectId: newInspection.project_id || null,
+          wbsId: newInspection.wbs_id || null,
+          mapId: newInspection.map_id || null,
+        },
+      });
     }
   }
 
@@ -169,15 +181,27 @@ export default function Inspections() {
   }, [newInspection.project_id, newInspection.wbs_id, newInspection.map_id]);
 
   // Upload file (PDF or image) to Supabase Storage and return public URL
-  async function uploadFile(file: File, folder: string): Promise<string | null> {
+  async function uploadFile(file: File, folder: string): Promise<string> {
     const path = `${folder}/${crypto.randomUUID()}-${file.name}`;
-    const { error } = await supabase.storage.from('documents').upload(path, file);
-    if (error) {
-      alert('Failed to upload file');
-      return null;
-    }
-    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(path);
-    return urlData?.publicUrl || null;
+    const storedPath = await uploadStorageFile('documents', path, file, {
+      module: 'Inspections',
+      operation: `upload ${folder} file`,
+      trigger: 'user',
+      ids: {
+        userId: user?.id ?? null,
+        projectId: newInspection.project_id || null,
+      },
+    });
+
+    return getStoragePublicUrl('documents', storedPath, {
+      module: 'Inspections',
+      operation: `resolve ${folder} file url`,
+      trigger: 'user',
+      ids: {
+        userId: user?.id ?? null,
+        projectId: newInspection.project_id || null,
+      },
+    });
   }
 
   // Save inspection (create or update) using correct backend functions
@@ -186,15 +210,31 @@ export default function Inspections() {
     if (!user || !newInspection.name || !newInspection.project_id || !pdfFile) return;
 
     try {
-      const pdfUrl = await uploadFile(pdfFile, 'inspections');
-      if (typeof pdfUrl !== 'string' || pdfUrl.length === 0) return;
-
+      let pdfUrl = '';
       const photoUrls: string[] = [];
-      if (photoFiles) {
-        for (const file of Array.from(photoFiles)) {
-          const url = await uploadFile(file, 'inspection-photos');
-          if (typeof url === 'string' && url.length > 0) photoUrls.push(url);
+
+      try {
+        pdfUrl = await uploadFile(pdfFile, 'inspections');
+
+        if (photoFiles) {
+          for (const file of Array.from(photoFiles)) {
+            const url = await uploadFile(file, 'inspection-photos');
+            photoUrls.push(url);
+          }
         }
+      } catch (uploadError) {
+        logBackendError({
+          module: 'Inspections',
+          operation: 'upload inspection files',
+          trigger: 'user',
+          error: uploadError,
+          ids: {
+            inspectionId: editingId,
+            projectId: newInspection.project_id || null,
+            userId: user.id,
+          },
+        });
+        return;
       }
 
       const insertData = {
@@ -279,8 +319,21 @@ export default function Inspections() {
       setPdfFile(null);
       setPhotoFiles(null);
     } catch (err) {
-      console.error('Unexpected error in handleSave:', err);
-      alert('Error saving inspection');
+      const context = {
+        module: 'Inspections',
+        operation: typeof editingId === 'string' && editingId.length > 0
+          ? 'update inspection'
+          : 'create inspection',
+        trigger: 'user' as const,
+        error: err,
+        ids: {
+          inspectionId: editingId,
+          projectId: newInspection.project_id || null,
+          userId: user?.id ?? null,
+        },
+      };
+      logBackendError(context);
+      toast.error(toBackendErrorToastMessage(context));
     }
   }
 

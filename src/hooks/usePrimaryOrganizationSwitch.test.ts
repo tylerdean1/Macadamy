@@ -1,13 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-    supabaseRpc: vi.fn(),
+    getMyMemberOrganizations: vi.fn(),
+    setMyPrimaryOrganization: vi.fn(),
     useAuthStore: vi.fn(),
     toastSuccess: vi.fn(),
     toastError: vi.fn(),
     setIsSwitching: vi.fn(),
     loadProfile: vi.fn(),
     setSelectedOrganizationId: vi.fn(),
+    logBackendError: vi.fn(),
 }));
 
 vi.mock('react', () => ({
@@ -16,9 +18,18 @@ vi.mock('react', () => ({
     useState: (initialValue: boolean) => [initialValue, mocks.setIsSwitching],
 }));
 
-vi.mock('@/lib/supabase', () => ({
-    supabase: {
-        rpc: mocks.supabaseRpc,
+vi.mock('@/lib/rpc.client', () => ({
+    rpcClient: {
+        get_my_member_organizations: mocks.getMyMemberOrganizations,
+        set_my_primary_organization: mocks.setMyPrimaryOrganization,
+    },
+}));
+
+vi.mock('@/lib/backendErrors', () => ({
+    logBackendError: mocks.logBackendError,
+    toBackendErrorToastMessage: ({ module, operation, error }: { module: string; operation: string; error: unknown }) => {
+        const message = error instanceof Error ? error.message : String(error);
+        return `[${module}] Failed to ${operation}: ${message}`;
     },
 }));
 
@@ -54,23 +65,18 @@ describe('usePrimaryOrganizationSwitch', () => {
             loadProfile: mocks.loadProfile,
             setSelectedOrganizationId: mocks.setSelectedOrganizationId,
         });
-        mocks.supabaseRpc.mockImplementation((fn: string) => {
-            if (fn === 'get_my_member_organizations') {
-                return Promise.resolve({ data: [{ id: 'org-1', name: 'Org One', role: 'org_admin' }], error: null });
-            }
-            return Promise.resolve({ data: null, error: null });
-        });
+        mocks.getMyMemberOrganizations.mockResolvedValue([{ id: 'org-1', name: 'Org One', role: 'org_admin' }]);
+        mocks.setMyPrimaryOrganization.mockResolvedValue(null);
         mocks.loadProfile.mockResolvedValue(undefined);
     });
 
     it('persists org switch and refreshes profile on success', async () => {
         const { switchPrimaryOrganization } = usePrimaryOrganizationSwitch();
 
-        const result = await switchPrimaryOrganization('org-1');
+        await expect(switchPrimaryOrganization('org-1')).resolves.toBeUndefined();
 
-        expect(result).toBe(true);
-        expect(mocks.supabaseRpc).toHaveBeenCalledWith('get_my_member_organizations');
-        expect(mocks.supabaseRpc).toHaveBeenCalledWith('set_my_primary_organization', { p_organization_id: 'org-1' });
+        expect(mocks.getMyMemberOrganizations).toHaveBeenCalled();
+        expect(mocks.setMyPrimaryOrganization).toHaveBeenCalledWith({ p_organization_id: 'org-1' });
         expect(mocks.setSelectedOrganizationId).toHaveBeenCalledWith('org-1');
         expect(mocks.loadProfile).toHaveBeenCalledWith('user-1');
         expect(mocks.toastSuccess).toHaveBeenCalledWith('Primary organization updated');
@@ -78,44 +84,32 @@ describe('usePrimaryOrganizationSwitch', () => {
     });
 
     it('blocks rapid duplicate calls while a switch is in flight', async () => {
-        const pendingRpc = deferred<{ data: Array<{ id: string; name: string; role: string }>; error: null }>();
-        mocks.supabaseRpc.mockImplementationOnce((fn: string) => {
-            if (fn === 'get_my_member_organizations') {
-                return pendingRpc.promise;
-            }
-            return Promise.resolve({ data: null, error: null });
-        });
+        const pendingRpc = deferred<Array<{ id: string; name: string; role: string }>>();
+        mocks.getMyMemberOrganizations.mockImplementationOnce(() => pendingRpc.promise);
 
         const { switchPrimaryOrganization } = usePrimaryOrganizationSwitch();
 
         const firstCall = switchPrimaryOrganization('org-1');
-        const secondResult = await switchPrimaryOrganization('org-2');
+        const secondCall = switchPrimaryOrganization('org-2');
 
-        expect(secondResult).toBe(false);
-        expect(mocks.supabaseRpc).toHaveBeenCalledTimes(1);
-        expect(mocks.supabaseRpc).toHaveBeenCalledWith('get_my_member_organizations');
+        await expect(secondCall).resolves.toBeUndefined();
+        expect(mocks.getMyMemberOrganizations).toHaveBeenCalledTimes(1);
 
-        pendingRpc.resolve({ data: [{ id: 'org-1', name: 'Org One', role: 'org_admin' }], error: null });
-        await expect(firstCall).resolves.toBe(true);
-        expect(mocks.supabaseRpc).toHaveBeenCalledWith('set_my_primary_organization', { p_organization_id: 'org-1' });
+        pendingRpc.resolve([{ id: 'org-1', name: 'Org One', role: 'org_admin' }]);
+        await expect(firstCall).resolves.toBeUndefined();
+        expect(mocks.setMyPrimaryOrganization).toHaveBeenCalledWith({ p_organization_id: 'org-1' });
     });
 
-    it('returns false and skips update rpc when selected org is not in memberships', async () => {
-        mocks.supabaseRpc.mockImplementation((fn: string) => {
-            if (fn === 'get_my_member_organizations') {
-                return Promise.resolve({ data: [{ id: 'org-9', name: 'Other Org', role: 'member' }], error: null });
-            }
-            return Promise.resolve({ data: null, error: null });
-        });
+    it('throws and skips update rpc when selected org is not in memberships', async () => {
+        mocks.getMyMemberOrganizations.mockResolvedValue([{ id: 'org-9', name: 'Other Org', role: 'member' }]);
 
         const { switchPrimaryOrganization } = usePrimaryOrganizationSwitch();
-        const result = await switchPrimaryOrganization('org-1');
+        await expect(switchPrimaryOrganization('org-1')).rejects.toThrow('You are no longer a member of that organization.');
 
-        expect(result).toBe(false);
-        expect(mocks.supabaseRpc).toHaveBeenCalledTimes(1);
-        expect(mocks.supabaseRpc).toHaveBeenCalledWith('get_my_member_organizations');
-        expect(mocks.toastError).toHaveBeenCalledWith('You are no longer a member of that organization.');
+        expect(mocks.getMyMemberOrganizations).toHaveBeenCalledTimes(1);
+        expect(mocks.toastError).toHaveBeenCalledTimes(1);
         expect(mocks.setSelectedOrganizationId).not.toHaveBeenCalled();
+        expect(mocks.setMyPrimaryOrganization).not.toHaveBeenCalled();
     });
 
     it('short-circuits without RPC when selected org is already active', async () => {
@@ -127,10 +121,9 @@ describe('usePrimaryOrganizationSwitch', () => {
         });
 
         const { switchPrimaryOrganization } = usePrimaryOrganizationSwitch();
-        const result = await switchPrimaryOrganization('org-1');
+        await expect(switchPrimaryOrganization('org-1')).resolves.toBeUndefined();
 
-        expect(result).toBe(true);
-        expect(mocks.supabaseRpc).not.toHaveBeenCalled();
+        expect(mocks.getMyMemberOrganizations).not.toHaveBeenCalled();
         expect(mocks.setSelectedOrganizationId).toHaveBeenCalledWith('org-1');
         expect(mocks.loadProfile).not.toHaveBeenCalled();
     });

@@ -20,7 +20,7 @@
     "rpcmap": "node scripts/gen-rpc-map.mjs",
     "backend-snapshot": "node scripts/backend-snapshot.js",
     "fulldb": "npm run typegen && npm run backend-snapshot && npm run gen:rpc && npm run gen:edge-functions && npm run gen:policies && npm run rpcmap && npm run funcgen",
-    "funcgen": "node -r dotenv/config -e \"const { execSync } = require('child_process'); const dbUrl = process.env.SUPABASE_DB_URL; if (!dbUrl) { console.error('ERROR: DATABASE_URL not set in .env file.'); process.exit(1); } const cmd = `pg_dump \\\"${dbUrl}\\\" --schema=public --section=pre-data --section=post-data --no-owner --no-privileges --no-tablespaces --no-unlogged-table-data --no-comments --file=src/lib/functions.sql --verbose`; execSync(cmd, { stdio: 'inherit', env: process.env });\"",
+    "funcgen": "node scripts/gen-functions-sql.cjs",
     "open-all": "node scripts/open-all-files.js",
     "openall": "npm run open-all",
     "audit:deps": "node scripts/deps_audit.mjs",

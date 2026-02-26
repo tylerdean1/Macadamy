@@ -19,9 +19,9 @@ import ImageCropper from '@/pages/StandardPages/StandardPageComponents/ImageCrop
 import { useRequireProfile } from '@/hooks/useRequireProfile';
 import { useMyOrganizations } from '@/hooks/useMyOrganizations';
 import { rpcClient } from '@/lib/rpc.client';
-import { supabase } from '@/lib/supabase';
+import { getStoragePublicUrl, uploadStorageFile } from '@/lib/storageClient';
 import { useAuthStore } from '@/lib/store';
-import { resolveInviteReviewErrorMessage } from '@/lib/utils/inviteErrorMessages';
+import { resolveInviteReviewErrorMessage, resolveOrgMemberActionErrorMessage } from '@/lib/utils/inviteErrorMessages';
 import { formatPhoneUS } from '@/lib/utils/formatters';
 import { toast } from 'sonner';
 import type { Database, Tables } from '@/lib/database.types';
@@ -741,7 +741,7 @@ export default function OrganizationDashboard(): JSX.Element {
       await loadDashboard();
     } catch (err) {
       console.error('[OrganizationDashboard] remove member', err);
-      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.removeMemberFailed);
+      toast.error(resolveOrgMemberActionErrorMessage(err, ORG_DASHBOARD_TOAST_MESSAGES.removeMemberFailed));
     } finally {
       setMemberActionBusyKey(null);
     }
@@ -796,7 +796,7 @@ export default function OrganizationDashboard(): JSX.Element {
       await loadDashboard();
     } catch (err) {
       console.error('[OrganizationDashboard] update member job title', err);
-      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.changeMemberTitleFailed);
+      toast.error(resolveOrgMemberActionErrorMessage(err, ORG_DASHBOARD_TOAST_MESSAGES.changeMemberTitleFailed));
     } finally {
       setMemberActionBusyKey(null);
     }
@@ -825,7 +825,7 @@ export default function OrganizationDashboard(): JSX.Element {
       navigate('/organizations');
     } catch (err) {
       console.error('[OrganizationDashboard] leave organization', err);
-      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.leaveOrganizationFailed);
+      toast.error(resolveOrgMemberActionErrorMessage(err, ORG_DASHBOARD_TOAST_MESSAGES.leaveOrganizationFailed));
     } finally {
       setMemberActionBusyKey(null);
     }
@@ -868,7 +868,7 @@ export default function OrganizationDashboard(): JSX.Element {
       await loadDashboard();
     } catch (err) {
       console.error('[OrganizationDashboard] update member org role', err);
-      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.changeMemberPermissionRoleFailed);
+      toast.error(resolveOrgMemberActionErrorMessage(err, ORG_DASHBOARD_TOAST_MESSAGES.changeMemberPermissionRoleFailed));
     } finally {
       setMemberActionBusyKey(null);
     }
@@ -925,27 +925,25 @@ export default function OrganizationDashboard(): JSX.Element {
       });
       const filePath = `${profile.id}/${fileName}`;
 
-      const { data, error } = await supabase.storage
-        .from('avatars-personal')
-        .upload(filePath, file, {
-          upsert: false,
-          cacheControl: '3600',
-          contentType: file.type || 'image/png',
-        });
+      const storedPath = await uploadStorageFile('avatars-personal', filePath, file, {
+        module: 'OrganizationDashboard',
+        operation: 'upload organization logo',
+        trigger: 'user',
+        ids: {
+          organizationId: safePayload.organization.id,
+          profileId: profile.id,
+        },
+      });
 
-      if (error) {
-        console.error('[OrganizationDashboard] Logo upload error', error);
-        throw error;
-      }
-
-      const { data: publicUrlData } = supabase.storage
-        .from('avatars-personal')
-        .getPublicUrl(data.path);
-
-      const publicUrl = publicUrlData?.publicUrl;
-      if (!publicUrl) {
-        throw new Error('Unable to generate logo URL');
-      }
+      const publicUrl = getStoragePublicUrl('avatars-personal', storedPath, {
+        module: 'OrganizationDashboard',
+        operation: 'resolve organization logo url',
+        trigger: 'user',
+        ids: {
+          organizationId: safePayload.organization.id,
+          profileId: profile.id,
+        },
+      });
 
       return publicUrl;
     } catch (err) {

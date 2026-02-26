@@ -5,10 +5,11 @@ import { useAuthStore } from '@/lib/store'; // Auth store for user management
 import { useAuthContext } from '@/context/AuthContext';
 import { useMyOrganizations } from '@/hooks/useMyOrganizations';
 import { usePrimaryOrganizationSwitch } from '@/hooks/usePrimaryOrganizationSwitch';
-import { rpcClient } from '@/lib/rpc.client';
-import { fetchNotificationsForUser, getNotificationTimestamp, isGracefulEmptyNotificationsError, markNotificationAsRead, subscribeToNotifications } from '@/hooks/useNotificationsData';
+import { fetchNotificationsForUser, getNotificationTimestamp, markNotificationAsRead, subscribeToNotifications } from '@/hooks/useNotificationsData';
 import { getNotificationDisplayMessage } from '@/lib/utils/notificationMessages';
+import { logBackendError, toBackendErrorToastMessage } from '@/lib/backendErrors';
 import type { Database } from '@/lib/database.types';
+import { toast } from 'sonner';
 
 type NotificationRow = Database['public']['Functions']['filter_notifications']['Returns'][number];
 
@@ -27,6 +28,7 @@ export function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [isNotifBusy, setIsNotifBusy] = useState(false);
+  const [isLogoutBusy, setIsLogoutBusy] = useState(false);
   const dashboardMenuRef = useRef<HTMLDivElement | null>(null);
   const orgMenuRef = useRef<HTMLDivElement | null>(null);
   const notificationsMenuRef = useRef<HTMLDivElement | null>(null);
@@ -73,16 +75,36 @@ export function Navbar() {
 
   // Handle user logout
   const handleLogout = async () => {
+    if (isLogoutBusy) return;
+
+    setIsLogoutBusy(true);
     try {
       await logout();
-      navigate('/login');
+      setSelectedOrganizationId(null);
+      navigate('/login', { replace: true });
     } catch (error) {
-      console.error('Error signing out:', error); // Log any errors
+      const context = {
+        module: 'Navbar',
+        operation: 'sign out',
+        trigger: 'user' as const,
+        error,
+        ids: {
+          profileId: profile?.id ?? null,
+        },
+      };
+      logBackendError(context);
+      toast.error(toBackendErrorToastMessage(context));
+    } finally {
+      setIsLogoutBusy(false);
     }
   };
 
   const handleSelectOrganization = async (organizationId: string) => {
-    await switchPrimaryOrganization(organizationId);
+    try {
+      await switchPrimaryOrganization(organizationId);
+    } catch {
+      return;
+    }
   };
 
   const resolveNotificationRoute = (notification: NotificationRow): string => {
@@ -110,17 +132,19 @@ export function Navbar() {
 
   const loadNotifications = useCallback(async (activeProfileId: string) => {
     try {
-      const unread = await rpcClient.count_unread_notifications();
-      setUnreadCount(typeof unread === 'number' ? unread : 0);
-
-      const latest = await fetchNotificationsForUser(activeProfileId, { limit: 6 });
-      setNotifications(Array.isArray(latest) ? latest : []);
+      const latest = await fetchNotificationsForUser(activeProfileId, { limit: 100 });
+      setUnreadCount(latest.reduce((count, item) => count + (item.is_read ? 0 : 1), 0));
+      setNotifications(latest.slice(0, 6));
     } catch (err) {
-      setUnreadCount(0);
-      setNotifications([]);
-      if (!isGracefulEmptyNotificationsError(err)) {
-        console.error('Failed loading notifications:', err);
-      }
+      logBackendError({
+        module: 'Navbar',
+        operation: 'load notifications',
+        trigger: 'background',
+        error: err,
+        ids: {
+          profileId: activeProfileId,
+        },
+      });
     }
   }, []);
 
@@ -157,9 +181,18 @@ export function Navbar() {
       setIsNotificationsOpen(false);
       navigate(resolveNotificationRoute(notification));
     } catch (err) {
-      console.error('Failed updating notification as read:', err);
-      setIsNotificationsOpen(false);
-      navigate(resolveNotificationRoute(notification));
+      const context = {
+        module: 'Navbar',
+        operation: 'mark notification as read',
+        trigger: 'user' as const,
+        error: err,
+        ids: {
+          notificationId: notification.id,
+          profileId: profile?.id ?? null,
+        },
+      };
+      logBackendError(context);
+      toast.error(toBackendErrorToastMessage(context));
     } finally {
       setIsNotifBusy(false);
     }
@@ -359,10 +392,11 @@ export function Navbar() {
             </div>
             <button
               onClick={() => { void handleLogout(); }} // Trigger logout on button click
-              className="flex items-center text-gray-300 hover:text-white transition-colors"
+              className="flex items-center text-gray-300 hover:text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isLogoutBusy}
             >
               <LogOut className="w-5 h-5 mr-2" /> {/* Logout icon */}
-              <span className="font-medium">Sign Out</span> {/* Sign Out label */}
+              <span className="font-medium">{isLogoutBusy ? 'Signing out…' : 'Sign Out'}</span> {/* Sign Out label */}
             </button>
           </div>
         </div>

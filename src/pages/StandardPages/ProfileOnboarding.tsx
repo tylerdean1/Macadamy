@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { useAuthStore } from '@/lib/store';
+import { logBackendError, toBackendErrorToastMessage } from '@/lib/backendErrors';
 import { rpcClient } from '@/lib/rpc.client';
 import { useAvatarUpload } from '@/hooks/useAvatarUpload';
 import { usePlacesLocationAutocomplete } from '@/hooks/usePlacesAutocomplete';
 import type { Database, Tables } from '@/lib/database.types';
-import { USER_ROLE_TYPE_OPTIONS } from '@/lib/types';
 import { formatPhoneUS } from '@/lib/utils/formatters';
 import { PROFILE_ERROR_MESSAGES } from '@/lib/utils/profileErrorMessages';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
@@ -39,9 +39,6 @@ export default function ProfileOnboarding(): JSX.Element {
     // All state that depends on profile must come after profile is defined
     const [fullName, setFullName] = useState(profile?.full_name ?? '');
     const [phone, setPhone] = useState(formatPhoneUS(profile?.phone ?? ''));
-    const [selectedRole, setSelectedRole] = useState<Database['public']['Enums']['user_role_type'] | null>(
-        profile?.role ?? 'org_user'
-    );
 
     const [avatars, setAvatars] = useState<AvatarRow[]>([]);
     const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(profile?.avatar_id ?? null);
@@ -80,7 +77,6 @@ export default function ProfileOnboarding(): JSX.Element {
         setFullName(profile.full_name ?? '');
         setPhone(formatPhoneUS(profile.phone ?? ''));
         setSelectedAvatarId(profile.avatar_id ?? null);
-        setSelectedRole(profile.role ?? 'org_user');
         setLocation(profile.location ?? '');
     }, [profile]);
 
@@ -97,7 +93,15 @@ export default function ProfileOnboarding(): JSX.Element {
                 cachedAvatars = resolvedAvatars;
                 setAvatars(resolvedAvatars);
             } catch (err) {
-                console.error(err);
+                logBackendError({
+                    module: 'ProfileOnboarding',
+                    operation: 'load preset avatars',
+                    trigger: 'background',
+                    error: err,
+                    ids: {
+                        userId: user?.id ?? null,
+                    },
+                });
                 toast.error(PROFILE_ERROR_MESSAGES.LOAD_OPTIONS);
             }
         };
@@ -138,8 +142,8 @@ export default function ProfileOnboarding(): JSX.Element {
         try {
             let resolvedAvatarId = selectedAvatarId || null;
             if (pendingAvatarBlob) {
-                const uploadedAvatar = await uploadAvatar(pendingAvatarBlob);
-                if (uploadedAvatar) {
+                try {
+                    const uploadedAvatar = await uploadAvatar(pendingAvatarBlob);
                     setAvatars((prev) => {
                         const existingIndex = prev.findIndex((item) => item.id === uploadedAvatar.id);
                         if (existingIndex >= 0) {
@@ -158,8 +162,17 @@ export default function ProfileOnboarding(): JSX.Element {
                     resolvedAvatarId = uploadedAvatar.id;
                     resetPendingAvatar();
                     toast.success('Avatar uploaded');
-                } else {
-                    throw new Error('Unable to save avatar');
+                } catch (uploadError) {
+                    logBackendError({
+                        module: 'ProfileOnboarding',
+                        operation: 'upload avatar during profile completion',
+                        trigger: 'user',
+                        error: uploadError,
+                        ids: {
+                            userId: user.id,
+                        },
+                    });
+                    return;
                 }
             }
 
@@ -171,7 +184,6 @@ export default function ProfileOnboarding(): JSX.Element {
                 p_avatar_id: resolvedAvatarId ?? undefined,
                 p_organization_id: undefined,
                 p_phone: formattedPhone,
-                p_role: selectedRole ?? undefined,
                 p_location: normalizeCityState(location) || undefined,
             };
 
@@ -192,16 +204,25 @@ export default function ProfileOnboarding(): JSX.Element {
             // No org onboarding redirect
             navigate('/dashboard');
         } catch (err) {
-            console.error(err);
+            const context = {
+                module: 'ProfileOnboarding',
+                operation: 'complete profile',
+                trigger: 'user' as const,
+                error: err,
+                ids: {
+                    userId: user.id,
+                },
+            };
+            logBackendError(context);
             const message = err instanceof Error ? err.message : String(err);
             const isNetworkError = message.includes('Failed to fetch')
                 || message.includes('ERR_CONNECTION_CLOSED')
                 || message.includes('NetworkError');
-            toast.error(
-                isNetworkError
-                    ? PROFILE_ERROR_MESSAGES.NETWORK_RETRY
-                    : 'Unable to complete your profile. Please try again.'
-            );
+            if (isNetworkError) {
+                toast.error(PROFILE_ERROR_MESSAGES.NETWORK_RETRY);
+                return;
+            }
+            toast.error(toBackendErrorToastMessage(context));
         }
     };
 
@@ -268,29 +289,6 @@ export default function ProfileOnboarding(): JSX.Element {
                                 ))}
                             </ul>
                         )}
-                    </div>
-
-                    <div>
-                        <label htmlFor="profile-role" className="block text-sm text-gray-300 mb-2">
-                            Role (optional)
-                        </label>
-                        <select
-                            id="profile-role"
-                            value={selectedRole ?? ''}
-                            onChange={(e) => setSelectedRole(e.target.value as Database['public']['Enums']['user_role_type'])}
-                            disabled={isLoading}
-                            className="w-full bg-background border border-background-lighter text-gray-100 px-4 py-2.5 rounded-md focus:ring-2 focus:ring-primary disabled:opacity-50"
-                        >
-                            <option value="">Select a role</option>
-                            {USER_ROLE_TYPE_OPTIONS.filter((role) => role !== 'system_admin').map((role) => (
-                                <option key={role} value={role}>
-                                    {role.replace(/_/g, ' ')}
-                                </option>
-                            ))}
-                        </select>
-                        <p className="mt-2 text-xs text-gray-400">
-                            System admin access is assigned manually.
-                        </p>
                     </div>
 
                     <div>

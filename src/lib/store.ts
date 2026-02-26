@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { getBackendErrorMessage, logBackendError } from "@/lib/backendErrors";
 import { rpcClient } from "@/lib/rpc.client";
 import type { UserRoleType } from "@/lib/types";
 
@@ -33,7 +34,15 @@ async function resolveAvatarUrl(avatarId: string | null): Promise<string | null>
     const data = await rpcClient.get_avatar_by_id_public({ p_avatar_id: avatarId });
     return typeof data?.url === 'string' ? data.url : null;
   } catch (error) {
-    console.error("Error resolving avatar URL:", error);
+    logBackendError({
+      module: 'AuthStore',
+      operation: 'resolve avatar url',
+      trigger: 'background',
+      error,
+      ids: {
+        avatarId,
+      },
+    });
     return null;
   }
 }
@@ -53,7 +62,7 @@ export type AuthState = {
   setError: (error: string | null) => void;
   setUser: (user: SupabaseUser | null) => void;
   setProfile: (profile: EnrichedProfile | null) => void;
-  clearAuth: () => void;
+  clearAuth: (options?: { clearError?: boolean }) => void;
   resetLoadingStates: () => void; // New function to clear loading states if they get stuck
   loadProfile: (userId: string) => Promise<void>;
   updateProfile: (
@@ -145,14 +154,17 @@ export const useAuthStore = create<AuthState>()(
       setSelectedOrganizationId: (orgId: string | null): void =>
         set((state) => ({ ...state, selectedOrganizationId: orgId })),
 
-      clearAuth: (): void =>
-        set({
+      clearAuth: (options?: { clearError?: boolean }): void => {
+        const clearError = options?.clearError ?? false;
+        set((state) => ({
+          ...state,
           user: null,
           profile: null,
           loading: { initialization: false, auth: false, profile: false },
           isLoading: false,
-          error: null
-        }),
+          error: clearError ? null : state.error,
+        }));
+      },
 
       // Helper function to force clear loading states if they get stuck
       resetLoadingStates: (): void =>
@@ -303,13 +315,22 @@ export const useAuthStore = create<AuthState>()(
             error: null
           }));
         } catch (err) {
-          console.error("Error loading profile:", err);
+          logBackendError({
+            module: 'AuthStore',
+            operation: 'load profile',
+            trigger: 'background',
+            error: err,
+            ids: {
+              userId,
+              currentUserId: get().user?.id ?? null,
+            },
+          });
           set(state => ({
             ...state,
             profile: null,
             loading: { ...state.loading, profile: false },
             isLoading: state.loading.initialization || state.loading.auth,
-            error: err instanceof Error ? err.message : "Error loading profile"
+            error: getBackendErrorMessage(err)
           }));
         }
       },
@@ -377,12 +398,20 @@ export const useAuthStore = create<AuthState>()(
             }));
           }
         } catch (err) {
-          console.error("Error updating profile:", err);
+          logBackendError({
+            module: 'AuthStore',
+            operation: 'update profile',
+            trigger: 'user',
+            error: err,
+            ids: {
+              profileId,
+            },
+          });
           set(state => ({
             ...state,
             loading: { ...state.loading, profile: false },
             isLoading: state.loading.initialization || state.loading.auth,
-            error: err instanceof Error ? err.message : "Error updating profile"
+            error: getBackendErrorMessage(err)
           }));
         }
       },

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { rpcClient } from '@/lib/rpc.client';
+import { logBackendError } from '@/lib/backendErrors';
 import { useAuthStore, type EnrichedProfile } from '@/lib/store';
 import type { EnrichedUserContract } from '@/lib/types';
 
@@ -22,11 +23,6 @@ interface OrganizationMembershipItem {
     id: string;
     name: string;
     role: string | null;
-}
-
-interface RpcErrorShape {
-    code?: unknown;
-    message?: unknown;
 }
 
 const normalizeString = (value: unknown, fallback: string | null = null): string | null =>
@@ -77,19 +73,6 @@ const dedupeProjects = (items: EnrichedUserContract[]): EnrichedUserContract[] =
         }
     }
     return sortProjectsByUpdatedDesc(Array.from(byId.values()));
-};
-
-const isProfileDashboardJobTitleDriftError = (error: unknown): boolean => {
-    if (!error || typeof error !== 'object') {
-        return false;
-    }
-
-    const candidate = error as RpcErrorShape;
-    if (candidate.code !== '42703' || typeof candidate.message !== 'string') {
-        return false;
-    }
-
-    return candidate.message.includes('v_profile') && candidate.message.includes('job_title_id');
 };
 
 export function useProfileDashboardPayload(): DashboardPayloadResult {
@@ -248,39 +231,11 @@ export function useProfileDashboardPayload(): DashboardPayloadResult {
             }
 
             // Fallback for users with no active memberships: use profile-scoped payload
-            let payload: Record<string, unknown> = {};
-            try {
-                const raw = await rpcClient.rpc_profile_dashboard_payload({
-                    p_projects_page: 1,
-                    p_page_size: 25,
-                });
-                payload = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-            } catch (rpcError) {
-                if (!isProfileDashboardJobTitleDriftError(rpcError)) {
-                    throw rpcError;
-                }
-
-                if (canUpdate()) {
-                    setProjects([]);
-                    setMetrics({ activeContracts: 0, openIssues: 0, pendingInspections: 0 });
-                }
-
-                const shouldClearOrgContext =
-                    profile.organization_name !== null ||
-                    profile.organization_address !== null ||
-                    profile.job_title !== null;
-
-                if (shouldClearOrgContext) {
-                    setProfile({
-                        ...profile,
-                        organization_name: null,
-                        organization_address: null,
-                        job_title: null,
-                    });
-                }
-
-                return;
-            }
+            const raw = await rpcClient.rpc_profile_dashboard_payload({
+                p_projects_page: 1,
+                p_page_size: 25,
+            });
+            const payload: Record<string, unknown> = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
 
             const orgRaw = payload.organization && typeof payload.organization === 'object'
                 ? (payload.organization as Record<string, unknown>)
@@ -328,6 +283,17 @@ export function useProfileDashboardPayload(): DashboardPayloadResult {
             }
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to load dashboard data.';
+            logBackendError({
+                module: 'ProfileDashboardPayload',
+                operation: 'load dashboard payload',
+                trigger: 'background',
+                error: err,
+                ids: {
+                    userId: user?.id ?? null,
+                    profileId: profile?.id ?? null,
+                    selectedOrganizationId,
+                },
+            });
             if (canUpdate()) {
                 setError(message);
                 setProjects([]);

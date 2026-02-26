@@ -13,6 +13,99 @@ The name **Macadamy** comes from the verb **"macadamize"**, which means _to pave
 - Frontend data access uses `rpcClient` for all reads/writes (auth + storage are the only direct Supabase calls)
 - All geometry is stored as WKT in PostGIS geometry columns and parsed on the frontend
 
+## 🚨 Fail-Loud Error Policy (Frontend)
+
+- All backend-bound operations must fail loudly in development: structured `console.error`, preserved error state, and user-visible toast when trigger policy requires.
+- Queries (TanStack Query)
+  - Preserve `isError`; never convert backend failures into empty/default states.
+  - Background failures: `console.error` + error state, no toast by default.
+  - User-triggered failures (including page navigation loads and manual refetch): one toast + `console.error` + error state.
+- Mutations
+  - Treated as user-triggered by default.
+  - On failure: one toast + `console.error`.
+  - Never return boolean success flags to mask failures.
+  - Never continue success UI/navigation/state transitions after failed writes.
+  - Prefer throw/rethrow (or typed error results) so failures propagate.
+- Non-query async loaders/hooks
+  - Throw to an error boundary or set explicit error UI state.
+  - Never return `null`/`[]` as a silent backend-failure fallback.
+
+#### Required Console Error Shape
+
+All backend failures must log via structured `console.error` calls using the following contract:
+
+console.error('[Module] operationName failed', {
+  error,
+  identifiers,
+  trigger: 'user' | 'background'
+})
+
+Required fields:
+
+- module (included in log prefix)
+- operation name
+- full error object
+- relevant identifiers (orgId, projectId, notificationId, etc.)
+- trigger classification ('user' or 'background')
+
+Console logs must not be downgraded to warnings or removed during development.
+
+### Toast Ownership (No Double Toasts)
+
+- A single backend failure should emit at most one toast.
+- Query toasts belong only to user-triggered entry points (navigation load handlers or manual refetch handlers), never to background observers/refetchers.
+- Mutation toasts belong in mutation wrapper/hooks by default; callsites must not duplicate the same toast.
+- If a shared wrapper toasts, downstream code should log/state-handle only.
+
+### Trigger Classification
+
+- User-triggered examples: Save/Submit/Update, Retry/Refresh click, Upload, Switch Organization, Mark-as-read, and page navigation that initiates a fetch (for example `/notifications`) is treated as a user-triggered operation and must show one toast + `console.error` + preserved error state on failure.
+- Background examples: bootstrap/session restore, passive on-mount hydration, interval/polling/stale refetches.
+- Policy: user-triggered => toast + `console.error` + error state; background => `console.error` + error state (toast only if explicitly required by UX).
+
+### Notifications Rule
+
+- Notifications must never show a fake empty state when backend calls fail.
+- Fetch/settings/filter failures must render explicit error UI state with retry.
+- User-triggered loads/refresh show one toast; background refetch failures log + preserve error state.
+
+### Storage Boundary Exception
+
+- Storage access is allowed, but must go through approved wrappers.
+- Approved wrapper utility: `src/lib/storageClient.ts`.
+- `src/lib/storageClient.ts` and `src/lib/rpc.client.ts` are policy enforcement boundaries (observability + fail-loud + dev failure injection). Do not bypass them.
+- Wrapper requirements: always `console.error` on failure, toast when user-triggered, strict typing (`no any`), and never swallow backend/storage errors.
+
+### Dev QA Accelerator: Force-Fail
+
+- RPC force-fail is available in dev via `src/lib/rpc.client.ts`.
+- Query param: `?forceFailRpc=*` or `?forceFailRpc=rpc_name_one,rpc_name_two`.
+- LocalStorage: `DEV_FORCE_FAIL_RPC="*"` or CSV list of RPC names.
+- This is dev-only and does not run in production.
+Force-fail logic is gated behind dev-only checks and is inert in production builds.
+
+### RPC Boundary Audit Proof
+
+- Mechanical sweep run across frontend source for direct table access pattern `supabase.from(`.
+- Current result in `src/**`: **no matches**.
+- Acceptance status: no direct frontend table CRUD access remains; data boundary remains RPC-first.
+
+### RPC Usage Enforcement
+
+Frontend code must not call `supabase.rpc(...)` directly.
+
+All RPC access must go through `rpcClient` so that:
+
+- fail-loud logging is consistently applied
+- dev-only force-fail support works
+- structured console logging is guaranteed
+- toast ownership rules are preserved
+
+Mechanical audit must include search for both:
+
+- `supabase.from(`
+- `supabase.rpc(`
+
 ## 📦 Geometry Utilities
 
 - `parseWktToGeoJson(wkt)` — parses WKT → GeoJSON
@@ -115,6 +208,8 @@ wbs                       workflows
 
 - `fulldb` now also generates `src/lib/edge.functions.ts` (from `src/lib/mapsServer.ts`) as an edge-function reference map and type helper file
 
+- `fulldb` `funcgen` (`scripts/gen-functions-sql.cjs`) now reads env in this order: `ENV_PATH` override, `.env.local`, `apps/web/.env.local`, then `.env`, and accepts either `DATABASE_URL` or `SUPABASE_DB_URL`
+
 - Map edge functions require these Supabase project secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `GOOGLE_MAPS_SERVER_KEY`
 
 - Need WKT parsing? Always handle in frontend using `parseWktToGeoJson`
@@ -124,6 +219,8 @@ wbs                       workflows
 - Outdated profile contract RPCs were removed from `rpc.client.ts`
 
 - New `ProjectsSection` and `OrganizationDashboard` components support project and organization views
+
+- Long-form text fields now get global native browser text assistance (spellcheck/autocorrect/autocapitalize + `lang` hints) from `src/App.tsx`/`index.html` so pages do not need per-field wiring
 
 - Project-related pages now live in `src/pages/Projects` (previously `Contract`)
 
@@ -144,6 +241,8 @@ wbs                       workflows
 - `EnrichedProfile` now includes `location` and onboarding persists it through `complete_my_profile(...)`, keeping frontend profile state aligned with regenerated backend types
 
 - Profile onboarding and edit-profile flows no longer edit a profile-level job title; dashboard role/title context is now derived from organization memberships
+
+- Profile onboarding and self-service edit-profile flows no longer expose or submit global `profiles.role`; global role changes are restricted to system-admin workflows for other users
 
 - Profile onboarding location input now uses Google Places city autocomplete and normalizes saved values to `City, State`
 
@@ -253,13 +352,29 @@ wbs                       workflows
 
 - Google Maps Platform integration setup (browser key vs server key, API enablement, restrictions, and Vercel env mapping) is documented in `docs/maps-setup.md`
 
-- Navbar includes a notifications bell with unread red dot; clicking opens a compact dropdown list of recent notifications, and selecting one marks it read (if unread) and routes to the related page (project dashboard when `payload.project_id` exists, organization dashboard when org/approval context exists)
+- Navbar includes a notifications bell with unread red dot; clicking opens a compact dropdown list of recent notifications, and selecting one must mark it read first before routing to the related page (project dashboard when `payload.project_id` exists, organization dashboard when org/approval context exists)
 
 - Notification lists are displayed with unread items first, then newest by timestamp
+
+- Notification settings are enforced in-feed via `get_my_notification_settings` and `get_org_notification_settings`; there is no client fallback path for missing settings RPCs
 
 - Notification dropdown includes a `View all notifications` footer action that routes to `/notifications`
 
 - `/notifications` includes `All` and `Unread` tabs plus a text search to quickly filter notification entries
+
+- `/notifications` now includes direct links to standalone settings pages for personal and organization notification controls
+
+- `/settings/notifications` lets users manage personal notification silencing (category-level + event-level)
+
+- Notification settings pages now use explicit toggle buttons (instead of native checkboxes), show per-option status labels, and track unsaved changes with `Reset` + save-state messaging for clearer interaction feedback
+
+- `/settings/organization-notifications` is a standalone org settings page; UI visibility is restricted to org `owner`/`admin`
+
+- Org notification settings now preserve the backend `member_job_title_changed_broadcast` event whenever `member_job_title_changed` is enabled, so owner/admin recipients continue receiving org-wide title-change notifications after settings updates
+
+- Notification fetches now apply personal silencing filters (category + event) before rendering in navbar and `/notifications`
+
+- Org-wide policy filters are applied client-side for known org-wide events while backend RPCs are pending; once backend settings RPCs are installed, these filters enforce org category/event toggles per organization
 
 - `/notifications` syncs filter/search in the URL query string (`?filter=unread&q=...`) for shareable/bookmarkable views
 
@@ -337,6 +452,10 @@ Macadamy includes pages for these core construction features:
 - `/reporting` &mdash; dashboards and analytics
 
 - `/notifications` &mdash; view recent account notifications
+
+- `/settings/notifications` &mdash; manage personal notification preferences
+
+- `/settings/organization-notifications` &mdash; manage org-wide notification settings (owner/admin UI)
 
 - `/quality-safety` &mdash; compliance and safety tracking
 
@@ -489,3 +608,10 @@ For hosted environments, use your normal migration deploy flow instead of `db re
   - **Completed:** Migration created to fix result shape (`supabase/migrations/20260220_fix_filter_organization_members_result_shape.sql`) and local/client-side handling improved for non-retriable structural RPC errors.
   - **Still needs:** Apply migration to target Supabase DB environment, run end-to-end dashboard verification, and confirm no recurring `42804` responses.
   - **Next:** Mark as **Completed** after DB deployment + dashboard smoke test pass.
+
+## 🧱 Bulk Insert RPC Rewrite (Default Preservation)
+
+- Generated migration: `supabase/migrations/rewrite_insert_rpc_defaults.sql`
+- Generated audit report: `audits/supabase/insert_rpc_rewrite_audit.md`
+- Generated delta report: `audits/supabase/insert_rpc_rewrite_delta.md`
+- Scope in this workspace snapshot: 95 `insert_*(_input jsonb)` functions, 91 populate-star rewrites, 4 outliers unchanged.

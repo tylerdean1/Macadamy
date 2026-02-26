@@ -18,6 +18,31 @@ function isNetworkFailure(combined: string): boolean {
     || combined.includes('err_connection');
 }
 
+export function resolveOrgMemberActionErrorMessage(error: unknown, fallbackMessage: string): string {
+  const maybeError = error as MaybeRpcError;
+  const code = maybeError?.code ?? '';
+  const message = (maybeError?.message ?? '').trim();
+  const details = (maybeError?.details ?? '').trim();
+
+  if (isNetworkFailure(`${message.toLowerCase()} ${details.toLowerCase()}`)) {
+    return 'Network error. Please try again.';
+  }
+
+  if (code === '42501') {
+    return 'Access denied for this action.';
+  }
+
+  if (message.length > 0) {
+    return message;
+  }
+
+  if (details.length > 0) {
+    return details;
+  }
+
+  return fallbackMessage;
+}
+
 export function resolveInviteRequestErrorMessage(error: unknown): string {
   const { code, combined } = getErrorParts(error);
 

@@ -5,8 +5,6 @@
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.5
 
--- Started on 2026-02-25 01:59:31
-
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -20,7 +18,6 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- TOC entry 56 (class 2615 OID 20818)
 -- Name: public; Type: SCHEMA; Schema: -; Owner: -
 --
 
@@ -28,7 +25,6 @@ CREATE SCHEMA public;
 
 
 --
--- TOC entry 2327 (class 1247 OID 20820)
 -- Name: certification_type; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -43,7 +39,6 @@ CREATE TYPE public.certification_type AS ENUM (
 
 
 --
--- TOC entry 2330 (class 1247 OID 20834)
 -- Name: commitment_type; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -55,7 +50,6 @@ CREATE TYPE public.commitment_type AS ENUM (
 
 
 --
--- TOC entry 2333 (class 1247 OID 20842)
 -- Name: document_type; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -70,7 +64,6 @@ CREATE TYPE public.document_type AS ENUM (
 
 
 --
--- TOC entry 2336 (class 1247 OID 20856)
 -- Name: equipment_type; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -85,7 +78,6 @@ CREATE TYPE public.equipment_type AS ENUM (
 
 
 --
--- TOC entry 2339 (class 1247 OID 20870)
 -- Name: general_status; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -102,7 +94,6 @@ CREATE TYPE public.general_status AS ENUM (
 
 
 --
--- TOC entry 2342 (class 1247 OID 20888)
 -- Name: issue_type; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -116,7 +107,6 @@ CREATE TYPE public.issue_type AS ENUM (
 
 
 --
--- TOC entry 2345 (class 1247 OID 20900)
 -- Name: notification_category; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -131,7 +121,6 @@ CREATE TYPE public.notification_category AS ENUM (
 
 
 --
--- TOC entry 2348 (class 1247 OID 20914)
 -- Name: org_role; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -151,7 +140,6 @@ CREATE TYPE public.org_role AS ENUM (
 
 
 --
--- TOC entry 2351 (class 1247 OID 20936)
 -- Name: project_status; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -166,7 +154,6 @@ CREATE TYPE public.project_status AS ENUM (
 
 
 --
--- TOC entry 2354 (class 1247 OID 20950)
 -- Name: task_status; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -179,7 +166,6 @@ CREATE TYPE public.task_status AS ENUM (
 
 
 --
--- TOC entry 2357 (class 1247 OID 20960)
 -- Name: unit_measure; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -212,7 +198,6 @@ CREATE TYPE public.unit_measure AS ENUM (
 
 
 --
--- TOC entry 2360 (class 1247 OID 21010)
 -- Name: user_role_type; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -228,7 +213,6 @@ CREATE TYPE public.user_role_type AS ENUM (
 
 
 --
--- TOC entry 2363 (class 1247 OID 21026)
 -- Name: workflow_name; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -246,7 +230,6 @@ CREATE TYPE public.workflow_name AS ENUM (
 SET default_table_access_method = heap;
 
 --
--- TOC entry 359 (class 1259 OID 21041)
 -- Name: workflows; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -266,7 +249,6 @@ ALTER TABLE ONLY public.workflows FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 660 (class 1255 OID 21050)
 -- Name: advance_workflow(uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -283,7 +265,54 @@ $$;
 
 
 --
--- TOC entry 419 (class 1259 OID 21745)
+-- Name: can_edit_org_notification_settings(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.can_edit_org_notification_settings(p_organization_id uuid) RETURNS boolean
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_global_role public.user_role_type;
+  v_org_role public.org_role;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RETURN false;
+  END IF;
+
+  SELECT p.role
+  INTO v_global_role
+  FROM public.profiles p
+  WHERE p.id = v_user_id;
+
+  IF v_global_role = 'system_admin' THEN
+    RETURN true;
+  END IF;
+
+  SELECT om.permission_role
+  INTO v_org_role
+  FROM public.organization_members om
+  WHERE om.organization_id = p_organization_id
+    AND om.profile_id = v_user_id
+    AND om.deleted_at IS NULL
+  ORDER BY om.created_at DESC
+  LIMIT 1;
+
+  RETURN v_org_role = ANY (ARRAY[
+    'owner'::public.org_role,
+    'admin'::public.org_role,
+    'manager'::public.org_role,
+    'superintendent'::public.org_role,
+    'foreman'::public.org_role,
+    'accountant'::public.org_role,
+    'hr'::public.org_role
+  ]);
+END;
+$$;
+
+
+--
 -- Name: profiles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -306,7 +335,6 @@ ALTER TABLE ONLY public.profiles FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 690 (class 1255 OID 47801)
 -- Name: change_org_member_job_title_with_reason(uuid, uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -340,8 +368,7 @@ BEGIN
   SELECT om.job_title_id, p.full_name
     INTO v_previous_job_title_id, v_target_name
   FROM public.organization_members om
-  JOIN public.profiles p
-    ON p.id = om.profile_id
+  JOIN public.profiles p ON p.id = om.profile_id
   WHERE om.organization_id = p_org_id
     AND om.profile_id = p_profile_id
     AND om.deleted_at IS NULL
@@ -359,53 +386,38 @@ BEGIN
 
   v_updated_profile := public.set_org_member_job_title(p_org_id, p_profile_id, p_job_title_id);
 
-  SELECT p.full_name INTO v_actor_name
-  FROM public.profiles p
-  WHERE p.id = v_actor_id;
+  SELECT p.full_name INTO v_actor_name FROM public.profiles p WHERE p.id = v_actor_id;
+  SELECT o.name INTO v_org_name FROM public.organizations o WHERE o.id = p_org_id;
+  SELECT jt.name INTO v_previous_job_title_name FROM public.job_titles jt WHERE jt.id = v_previous_job_title_id;
+  SELECT jt.name INTO v_current_job_title_name FROM public.job_titles jt WHERE jt.id = p_job_title_id;
 
-  SELECT o.name INTO v_org_name
-  FROM public.organizations o
-  WHERE o.id = p_org_id;
-
-  SELECT jt.name INTO v_previous_job_title_name
-  FROM public.job_titles jt
-  WHERE jt.id = v_previous_job_title_id;
-
-  SELECT jt.name INTO v_current_job_title_name
-  FROM public.job_titles jt
-  WHERE jt.id = p_job_title_id;
-
-  BEGIN
-    PERFORM public.insert_notifications(
-      jsonb_build_object(
-        'user_id', p_profile_id,
+  PERFORM public.insert_notifications(
+    jsonb_build_object(
+      'user_id', p_profile_id,
+      'organization_id', p_org_id,
+      'category', 'workflow_update',
+      'message',
+        'Your position in ' || COALESCE(v_org_name, 'this organization')
+        || ' has been changed from ' || COALESCE(v_previous_job_title_name, 'Unassigned')
+        || ' to ' || COALESCE(v_current_job_title_name, 'Unassigned')
+        || '. Reason: ' || TRIM(p_reason),
+      'payload', jsonb_build_object(
+        'event', 'member_job_title_changed',
         'organization_id', p_org_id,
-        'category', 'workflow_update',
-        'message',
-          'Your position in ' || COALESCE(v_org_name, 'this organization')
-          || ' has been changed from ' || COALESCE(v_previous_job_title_name, 'Unassigned')
-          || ' to ' || COALESCE(v_current_job_title_name, 'Unassigned')
-          || '. Reason: ' || TRIM(p_reason),
-        'payload', jsonb_build_object(
-          'event', 'member_job_title_changed',
-          'organization_id', p_org_id,
-          'organization_name', v_org_name,
-          'affected_profile_id', p_profile_id,
-          'affected_profile_name', v_target_name,
-          'previous_job_title_id', v_previous_job_title_id,
-          'previous_job_title_name', COALESCE(v_previous_job_title_name, 'Unassigned'),
-          'selected_job_title_id', p_job_title_id,
-          'selected_job_title_name', COALESCE(v_current_job_title_name, 'Unassigned'),
-          'changed_by_profile_id', v_actor_id,
-          'changed_by_name', COALESCE(v_actor_name, 'Organization Admin'),
-          'reason', TRIM(p_reason),
-          'changed_at', now()
-        )
+        'organization_name', v_org_name,
+        'affected_profile_id', p_profile_id,
+        'affected_profile_name', v_target_name,
+        'previous_job_title_id', v_previous_job_title_id,
+        'previous_job_title_name', COALESCE(v_previous_job_title_name, 'Unassigned'),
+        'selected_job_title_id', p_job_title_id,
+        'selected_job_title_name', COALESCE(v_current_job_title_name, 'Unassigned'),
+        'changed_by_profile_id', v_actor_id,
+        'changed_by_name', COALESCE(v_actor_name, 'Organization Admin'),
+        'reason', TRIM(p_reason),
+        'changed_at', now()
       )
-    );
-  EXCEPTION WHEN OTHERS THEN
-    NULL;
-  END;
+    )
+  );
 
   FOR v_member IN
     SELECT om.profile_id
@@ -414,38 +426,34 @@ BEGIN
       AND om.deleted_at IS NULL
       AND om.profile_id <> p_profile_id
   LOOP
-    BEGIN
-      PERFORM public.insert_notifications(
-        jsonb_build_object(
-          'user_id', v_member.profile_id,
+    PERFORM public.insert_notifications(
+      jsonb_build_object(
+        'user_id', v_member.profile_id,
+        'organization_id', p_org_id,
+        'category', 'workflow_update',
+        'message',
+          COALESCE(v_target_name, p_profile_id::text)
+          || '''s title was just changed from '
+          || COALESCE(v_previous_job_title_name, 'Unassigned')
+          || ' to '
+          || COALESCE(v_current_job_title_name, 'Unassigned')
+          || '!',
+        'payload', jsonb_build_object(
+          'event', 'member_job_title_changed_broadcast',
           'organization_id', p_org_id,
-          'category', 'workflow_update',
-          'message',
-            COALESCE(v_target_name, p_profile_id::text)
-            || '''s title was just changed from '
-            || COALESCE(v_previous_job_title_name, 'Unassigned')
-            || ' to '
-            || COALESCE(v_current_job_title_name, 'Unassigned')
-            || '!',
-          'payload', jsonb_build_object(
-            'event', 'member_job_title_changed_broadcast',
-            'organization_id', p_org_id,
-            'organization_name', v_org_name,
-            'affected_profile_id', p_profile_id,
-            'affected_profile_name', v_target_name,
-            'previous_job_title_name', COALESCE(v_previous_job_title_name, 'Unassigned'),
-            'current_job_title_name', COALESCE(v_current_job_title_name, 'Unassigned'),
-            'selected_job_title_name', COALESCE(v_current_job_title_name, 'Unassigned'),
-            'changed_by_profile_id', v_actor_id,
-            'changed_by_name', COALESCE(v_actor_name, 'Organization Admin'),
-            'reason', TRIM(p_reason),
-            'changed_at', now()
-          )
+          'organization_name', v_org_name,
+          'affected_profile_id', p_profile_id,
+          'affected_profile_name', v_target_name,
+          'previous_job_title_name', COALESCE(v_previous_job_title_name, 'Unassigned'),
+          'current_job_title_name', COALESCE(v_current_job_title_name, 'Unassigned'),
+          'selected_job_title_name', COALESCE(v_current_job_title_name, 'Unassigned'),
+          'changed_by_profile_id', v_actor_id,
+          'changed_by_name', COALESCE(v_actor_name, 'Organization Admin'),
+          'reason', TRIM(p_reason),
+          'changed_at', now()
         )
-      );
-    EXCEPTION WHEN OTHERS THEN
-      NULL;
-    END;
+      )
+    );
   END LOOP;
 
   RETURN v_updated_profile;
@@ -454,7 +462,6 @@ $$;
 
 
 --
--- TOC entry 572 (class 1255 OID 21051)
 -- Name: check_access(text, text, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -485,12 +492,10 @@ begin
       using errcode = '42501';
   end if;
 
-  -- System admin bypass
   if _role = 'system_admin' then
     return;
   end if;
 
-  -- Resolve project org (if project is in scope)
   if _project_id is not null then
     select p.organization_id
       into _project_org_id
@@ -504,7 +509,6 @@ begin
     end if;
   end if;
 
-  -- Derive effective organization context
   _effective_org_id := _organization_id;
   if _effective_org_id is null and _project_org_id is not null then
     _effective_org_id := _project_org_id;
@@ -513,14 +517,12 @@ begin
       using errcode = '42501';
   end if;
 
-  -- Require org context for org-scoped resources
   if _resource in ('organizations', 'organization_members', 'profiles', 'job_titles', 'integration_tokens')
      and _effective_org_id is null then
     raise exception 'Access denied: organization context is required for resource %', _resource
       using errcode = '42501';
   end if;
 
-  -- Require active membership for any scoped org context
   if _effective_org_id is not null then
     select exists (
       select 1
@@ -537,14 +539,10 @@ begin
     end if;
   end if;
 
-  -- Role capability matrix (membership role is intentionally ignored)
-
-  -- org_admin: full access within membership/org scope
   if _role = 'org_admin' then
     return;
   end if;
 
-  -- org_supervisor: broad access, except org/user administration
   if _role = 'org_supervisor' then
     if _resource in ('organizations', 'organization_members') then
       raise exception 'Access denied: org_supervisor cannot manage organization metadata or users'
@@ -553,7 +551,6 @@ begin
     return;
   end if;
 
-  -- org_user: mostly read, scoped writes
   if _role = 'org_user' then
     if _action = 'select' and _resource in (
       'organizations', 'organization_members', 'profiles', 'job_titles', 'integration_tokens'
@@ -570,6 +567,9 @@ begin
         'meeting_minutes'
       ) then
         return;
+      elsif _resource = 'notifications' and _effective_org_id is not null then
+        -- allow org-scoped notification writes for active org members
+        return;
       else
         raise exception 'Access denied: org_user cannot write to %', _resource
           using errcode = '42501';
@@ -579,7 +579,6 @@ begin
     return;
   end if;
 
-  -- org_viewer: read-only
   if _role = 'org_viewer' then
     if _action = 'select' then
       return;
@@ -589,7 +588,6 @@ begin
     end if;
   end if;
 
-  -- inspector: assigned-project writes on select resources, otherwise read
   if _role = 'inspector' then
     if _action = 'select' then
       return;
@@ -618,7 +616,6 @@ begin
     end if;
   end if;
 
-  -- auditor: global read-only (still constrained by org membership if context is supplied)
   if _role = 'auditor' then
     if _action = 'select' then
       return;
@@ -635,7 +632,6 @@ $$;
 
 
 --
--- TOC entry 1093 (class 1255 OID 21052)
 -- Name: check_access_bool(text, text, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -654,7 +650,6 @@ $$;
 
 
 --
--- TOC entry 1104 (class 1255 OID 47906)
 -- Name: complete_my_profile(text, uuid, uuid, text, public.user_role_type, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -692,7 +687,6 @@ $$;
 
 
 --
--- TOC entry 862 (class 1255 OID 21053)
 -- Name: count_unread_notifications(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -709,7 +703,6 @@ $$;
 
 
 --
--- TOC entry 810 (class 1255 OID 43245)
 -- Name: create_my_organization(text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -754,7 +747,6 @@ $$;
 
 
 --
--- TOC entry 422 (class 1259 OID 21771)
 -- Name: projects; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -775,7 +767,6 @@ ALTER TABLE ONLY public.projects FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 667 (class 1255 OID 27703)
 -- Name: create_project_with_owner(jsonb, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -783,77 +774,82 @@ CREATE FUNCTION public.create_project_with_owner(_input jsonb, _role text DEFAUL
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
-declare
+DECLARE
   v_user_id uuid;
   v_profile public.profiles%rowtype;
   v_org_id uuid;
-  v_name text := nullif(_input->>'name','');
-  v_description text := nullif(_input->>'description','');
-  v_status public.project_status := coalesce((_input->>'status')::public.project_status, 'planned');
-  v_start_date date := nullif(_input->>'start_date','')::date;
-  v_end_date date := nullif(_input->>'end_date','')::date;
+  v_name text := NULLIF(_input->>'name','');
+  v_description text := NULLIF(_input->>'description','');
+  v_status public.project_status := COALESCE((_input->>'status')::public.project_status, 'planned');
+  v_start_date date := NULLIF(_input->>'start_date','')::date;
+  v_end_date date := NULLIF(_input->>'end_date','')::date;
   v_project public.projects;
-begin
+  v_actor_name text;
+BEGIN
   v_user_id := auth.uid();
-  if v_user_id is null then
-    raise exception 'Not authenticated';
-  end if;
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
 
-  select * into v_profile
-  from public.profiles
-  where id = v_user_id;
+  SELECT * INTO v_profile
+  FROM public.profiles
+  WHERE id = v_user_id;
 
-  if not found then
-    raise exception 'Access denied: profile not found for user %', v_user_id;
-  end if;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Access denied: profile not found for user %', v_user_id;
+  END IF;
 
   v_org_id := v_profile.organization_id;
-  if v_profile.role = 'system_admin' and nullif(_input->>'organization_id','') is not null then
+  IF v_profile.role = 'system_admin' AND NULLIF(_input->>'organization_id','') IS NOT NULL THEN
     v_org_id := (_input->>'organization_id')::uuid;
-  end if;
+  END IF;
 
-  if v_org_id is null then
-    raise exception 'Organization is required to create a project';
-  end if;
+  IF v_org_id IS NULL THEN
+    RAISE EXCEPTION 'Organization is required to create a project';
+  END IF;
 
-  if v_name is null then
-    raise exception 'Project name is required';
-  end if;
+  IF v_name IS NULL THEN
+    RAISE EXCEPTION 'Project name is required';
+  END IF;
 
-  insert into public.projects (
-    name,
-    description,
-    status,
-    start_date,
-    end_date,
-    organization_id
-  ) values (
-    v_name,
-    v_description,
-    v_status,
-    v_start_date,
-    v_end_date,
-    v_org_id
+  INSERT INTO public.projects (
+    name, description, status, start_date, end_date, organization_id
+  ) VALUES (
+    v_name, v_description, v_status, v_start_date, v_end_date, v_org_id
   )
-  returning * into v_project;
+  RETURNING * INTO v_project;
 
-  insert into public.user_projects (
-    user_id,
-    project_id,
-    role
-  ) values (
-    v_user_id,
-    v_project.id,
-    _role
+  INSERT INTO public.user_projects (
+    user_id, project_id, role
+  ) VALUES (
+    v_user_id, v_project.id, _role
   );
 
-  return next v_project;
-end;
+  SELECT p.full_name INTO v_actor_name
+  FROM public.profiles p
+  WHERE p.id = v_user_id;
+
+  PERFORM public.emit_org_notification(
+    v_org_id,
+    'workflow_update',
+    'New project "' || v_project.name || '" was created.',
+    jsonb_build_object(
+      'event', 'new_project_created',
+      'organization_id', v_org_id,
+      'project_id', v_project.id,
+      'project_name', v_project.name,
+      'created_by_profile_id', v_user_id,
+      'created_by_name', COALESCE(v_actor_name, 'System'),
+      'scope', 'org_wide'
+    )
+  );
+
+  RETURN NEXT v_project;
+END;
 $$;
 
 
 --
--- TOC entry 736 (class 1255 OID 21054)
 -- Name: delete_accounts_payable(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -879,7 +875,6 @@ CREATE FUNCTION public.delete_accounts_payable(_id uuid) RETURNS void
 
 
 --
--- TOC entry 801 (class 1255 OID 21055)
 -- Name: delete_accounts_receivable(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -905,7 +900,6 @@ CREATE FUNCTION public.delete_accounts_receivable(_id uuid) RETURNS void
 
 
 --
--- TOC entry 676 (class 1255 OID 21056)
 -- Name: delete_activity_logs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -931,7 +925,6 @@ CREATE FUNCTION public.delete_activity_logs(_id uuid) RETURNS void
 
 
 --
--- TOC entry 1066 (class 1255 OID 21057)
 -- Name: delete_asphalt_types(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -957,7 +950,6 @@ CREATE FUNCTION public.delete_asphalt_types(_id uuid) RETURNS void
 
 
 --
--- TOC entry 903 (class 1255 OID 27713)
 -- Name: delete_audit_log(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -983,7 +975,6 @@ CREATE FUNCTION public.delete_audit_log(_id uuid) RETURNS void
 
 
 --
--- TOC entry 932 (class 1255 OID 21058)
 -- Name: delete_audit_logs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1009,7 +1000,6 @@ CREATE FUNCTION public.delete_audit_logs(_id uuid) RETURNS void
 
 
 --
--- TOC entry 882 (class 1255 OID 21059)
 -- Name: delete_avatars(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1035,7 +1025,6 @@ CREATE FUNCTION public.delete_avatars(_id uuid) RETURNS void
 
 
 --
--- TOC entry 646 (class 1255 OID 21060)
 -- Name: delete_bid_packages(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1061,7 +1050,6 @@ CREATE FUNCTION public.delete_bid_packages(_id uuid) RETURNS void
 
 
 --
--- TOC entry 1005 (class 1255 OID 21061)
 -- Name: delete_bid_vendors(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1087,7 +1075,6 @@ CREATE FUNCTION public.delete_bid_vendors(_id uuid) RETURNS void
 
 
 --
--- TOC entry 1096 (class 1255 OID 21062)
 -- Name: delete_bids(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1113,7 +1100,6 @@ CREATE FUNCTION public.delete_bids(_id uuid) RETURNS void
 
 
 --
--- TOC entry 963 (class 1255 OID 21063)
 -- Name: delete_bim_models(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1139,7 +1125,6 @@ CREATE FUNCTION public.delete_bim_models(_id uuid) RETURNS void
 
 
 --
--- TOC entry 723 (class 1255 OID 21064)
 -- Name: delete_certifications(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1165,7 +1150,6 @@ CREATE FUNCTION public.delete_certifications(_id uuid) RETURNS void
 
 
 --
--- TOC entry 1075 (class 1255 OID 21065)
 -- Name: delete_change_orders(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1191,7 +1175,6 @@ CREATE FUNCTION public.delete_change_orders(_id uuid) RETURNS void
 
 
 --
--- TOC entry 777 (class 1255 OID 21066)
 -- Name: delete_commitments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1217,7 +1200,6 @@ CREATE FUNCTION public.delete_commitments(_id uuid) RETURNS void
 
 
 --
--- TOC entry 925 (class 1255 OID 21067)
 -- Name: delete_compliance_checks(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1243,7 +1225,6 @@ CREATE FUNCTION public.delete_compliance_checks(_id uuid) RETURNS void
 
 
 --
--- TOC entry 670 (class 1255 OID 21068)
 -- Name: delete_compliance_tracking(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1269,7 +1250,6 @@ CREATE FUNCTION public.delete_compliance_tracking(_id uuid) RETURNS void
 
 
 --
--- TOC entry 755 (class 1255 OID 21069)
 -- Name: delete_cost_codes(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1295,7 +1275,6 @@ CREATE FUNCTION public.delete_cost_codes(_id uuid) RETURNS void
 
 
 --
--- TOC entry 594 (class 1255 OID 21070)
 -- Name: delete_crew_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1321,7 +1300,6 @@ CREATE FUNCTION public.delete_crew_assignments(_id uuid) RETURNS void
 
 
 --
--- TOC entry 938 (class 1255 OID 21071)
 -- Name: delete_crew_members(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1347,7 +1325,6 @@ CREATE FUNCTION public.delete_crew_members(_id uuid) RETURNS void
 
 
 --
--- TOC entry 1053 (class 1255 OID 21072)
 -- Name: delete_crews(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1373,7 +1350,6 @@ CREATE FUNCTION public.delete_crews(_id uuid) RETURNS void
 
 
 --
--- TOC entry 959 (class 1255 OID 21073)
 -- Name: delete_daily_logs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1399,7 +1375,6 @@ CREATE FUNCTION public.delete_daily_logs(_id uuid) RETURNS void
 
 
 --
--- TOC entry 1008 (class 1255 OID 21074)
 -- Name: delete_dashboard_configs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1425,7 +1400,6 @@ CREATE FUNCTION public.delete_dashboard_configs(_id uuid) RETURNS void
 
 
 --
--- TOC entry 1105 (class 1255 OID 21075)
 -- Name: delete_document_references(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1451,7 +1425,6 @@ CREATE FUNCTION public.delete_document_references(_id uuid) RETURNS void
 
 
 --
--- TOC entry 964 (class 1255 OID 21076)
 -- Name: delete_documents(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1477,7 +1450,6 @@ CREATE FUNCTION public.delete_documents(_id uuid) RETURNS void
 
 
 --
--- TOC entry 855 (class 1255 OID 21077)
 -- Name: delete_drawing_versions(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1503,7 +1475,6 @@ CREATE FUNCTION public.delete_drawing_versions(_id uuid) RETURNS void
 
 
 --
--- TOC entry 789 (class 1255 OID 21078)
 -- Name: delete_dump_trucks(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1529,7 +1500,6 @@ CREATE FUNCTION public.delete_dump_trucks(_id uuid) RETURNS void
 
 
 --
--- TOC entry 797 (class 1255 OID 21079)
 -- Name: delete_employees(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1555,7 +1525,6 @@ CREATE FUNCTION public.delete_employees(_id uuid) RETURNS void
 
 
 --
--- TOC entry 600 (class 1255 OID 21080)
 -- Name: delete_equipment(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1581,7 +1550,6 @@ CREATE FUNCTION public.delete_equipment(_id uuid) RETURNS void
 
 
 --
--- TOC entry 601 (class 1255 OID 21081)
 -- Name: delete_equipment_assignments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1607,7 +1575,6 @@ CREATE FUNCTION public.delete_equipment_assignments(_id uuid) RETURNS void
 
 
 --
--- TOC entry 923 (class 1255 OID 21082)
 -- Name: delete_equipment_maintenance(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1633,7 +1600,6 @@ CREATE FUNCTION public.delete_equipment_maintenance(_id uuid) RETURNS void
 
 
 --
--- TOC entry 948 (class 1255 OID 21083)
 -- Name: delete_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1659,7 +1625,6 @@ CREATE FUNCTION public.delete_equipment_usage(_id uuid) RETURNS void
 
 
 --
--- TOC entry 799 (class 1255 OID 21084)
 -- Name: delete_estimate_line_items(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1685,7 +1650,6 @@ CREATE FUNCTION public.delete_estimate_line_items(_id uuid) RETURNS void
 
 
 --
--- TOC entry 688 (class 1255 OID 21085)
 -- Name: delete_estimates(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1711,7 +1675,6 @@ CREATE FUNCTION public.delete_estimates(_id uuid) RETURNS void
 
 
 --
--- TOC entry 1094 (class 1255 OID 21086)
 -- Name: delete_financial_documents(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1737,7 +1700,6 @@ CREATE FUNCTION public.delete_financial_documents(_id uuid) RETURNS void
 
 
 --
--- TOC entry 824 (class 1255 OID 21087)
 -- Name: delete_general_ledger(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1763,7 +1725,6 @@ CREATE FUNCTION public.delete_general_ledger(_id uuid) RETURNS void
 
 
 --
--- TOC entry 1017 (class 1255 OID 21088)
 -- Name: delete_hr_documents(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1789,7 +1750,6 @@ CREATE FUNCTION public.delete_hr_documents(_id uuid) RETURNS void
 
 
 --
--- TOC entry 1044 (class 1255 OID 21089)
 -- Name: delete_inspections(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1815,7 +1775,6 @@ CREATE FUNCTION public.delete_inspections(_id uuid) RETURNS void
 
 
 --
--- TOC entry 984 (class 1255 OID 21090)
 -- Name: delete_integration_tokens(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1841,7 +1800,6 @@ CREATE FUNCTION public.delete_integration_tokens(_id uuid) RETURNS void
 
 
 --
--- TOC entry 968 (class 1255 OID 21091)
 -- Name: delete_inventory_transactions(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1867,7 +1825,6 @@ CREATE FUNCTION public.delete_inventory_transactions(_id uuid) RETURNS void
 
 
 --
--- TOC entry 811 (class 1255 OID 21092)
 -- Name: delete_issues(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1893,7 +1850,6 @@ CREATE FUNCTION public.delete_issues(_id uuid) RETURNS void
 
 
 --
--- TOC entry 813 (class 1255 OID 21093)
 -- Name: delete_job_titles(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1919,7 +1875,6 @@ CREATE FUNCTION public.delete_job_titles(_id uuid) RETURNS void
 
 
 --
--- TOC entry 734 (class 1255 OID 21094)
 -- Name: delete_labor_records(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1945,7 +1900,6 @@ CREATE FUNCTION public.delete_labor_records(_id uuid) RETURNS void
 
 
 --
--- TOC entry 579 (class 1255 OID 21095)
 -- Name: delete_line_item_entries(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1971,7 +1925,6 @@ CREATE FUNCTION public.delete_line_item_entries(_id uuid) RETURNS void
 
 
 --
--- TOC entry 927 (class 1255 OID 21096)
 -- Name: delete_line_item_templates(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1997,7 +1950,6 @@ CREATE FUNCTION public.delete_line_item_templates(_id uuid) RETURNS void
 
 
 --
--- TOC entry 859 (class 1255 OID 21097)
 -- Name: delete_line_items(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2023,7 +1975,6 @@ CREATE FUNCTION public.delete_line_items(_id uuid) RETURNS void
 
 
 --
--- TOC entry 724 (class 1255 OID 21098)
 -- Name: delete_maps(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2049,7 +2000,6 @@ CREATE FUNCTION public.delete_maps(_id uuid) RETURNS void
 
 
 --
--- TOC entry 565 (class 1255 OID 21099)
 -- Name: delete_material_inventory(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2075,7 +2025,6 @@ CREATE FUNCTION public.delete_material_inventory(_id uuid) RETURNS void
 
 
 --
--- TOC entry 767 (class 1255 OID 21100)
 -- Name: delete_material_orders(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2101,7 +2050,6 @@ CREATE FUNCTION public.delete_material_orders(_id uuid) RETURNS void
 
 
 --
--- TOC entry 664 (class 1255 OID 21101)
 -- Name: delete_material_receipts(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2127,7 +2075,6 @@ CREATE FUNCTION public.delete_material_receipts(_id uuid) RETURNS void
 
 
 --
--- TOC entry 1071 (class 1255 OID 21102)
 -- Name: delete_materials(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2153,7 +2100,6 @@ CREATE FUNCTION public.delete_materials(_id uuid) RETURNS void
 
 
 --
--- TOC entry 856 (class 1255 OID 21103)
 -- Name: delete_meeting_minutes(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2179,7 +2125,6 @@ CREATE FUNCTION public.delete_meeting_minutes(_id uuid) RETURNS void
 
 
 --
--- TOC entry 863 (class 1255 OID 21104)
 -- Name: delete_notifications(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2187,25 +2132,35 @@ CREATE FUNCTION public.delete_notifications(_id uuid) RETURNS void
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
     AS $$
-        DECLARE
-          _row public.notifications;
-        BEGIN
-          SELECT * INTO _row FROM public.notifications WHERE id = _id;
-          IF _row IS NULL THEN
-            RAISE EXCEPTION 'row not found' USING DETAIL = jsonb_build_object('id', _id);
-          END IF;
+DECLARE
+  _row public.notifications;
+BEGIN
+  SELECT *
+  INTO _row
+  FROM public.notifications
+  WHERE id = _id
+    AND deleted_at IS NULL;
 
-          PERFORM check_access('delete','notifications', _row.project_id, _row.organization_id);
+  IF _row IS NULL THEN
+    RAISE EXCEPTION 'row not found'
+      USING DETAIL = jsonb_build_object('id', _id);
+  END IF;
 
-          UPDATE public.notifications
-             SET deleted_at = now()
-           WHERE id = _id;
-        END;
-        $$;
+  IF _row.user_id <> auth.uid() THEN
+    RAISE EXCEPTION 'Access denied for notification delete'
+      USING errcode = '42501';
+  END IF;
+
+  UPDATE public.notifications
+  SET deleted_at = now()
+  WHERE id = _id
+    AND user_id = auth.uid()
+    AND deleted_at IS NULL;
+END;
+$$;
 
 
 --
--- TOC entry 726 (class 1255 OID 43257)
 -- Name: delete_organization_invites(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2227,7 +2182,6 @@ $$;
 
 
 --
--- TOC entry 787 (class 1255 OID 27717)
 -- Name: delete_organization_member_rates(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2256,7 +2210,6 @@ CREATE FUNCTION public.delete_organization_member_rates(_id uuid) RETURNS void
 
 
 --
--- TOC entry 1099 (class 1255 OID 21105)
 -- Name: delete_organization_members(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2282,7 +2235,25 @@ CREATE FUNCTION public.delete_organization_members(_id uuid) RETURNS void
 
 
 --
--- TOC entry 655 (class 1255 OID 21106)
+-- Name: delete_organization_notification_settings(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.delete_organization_notification_settings(_id uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  IF NOT public.can_edit_org_notification_settings(_id) THEN
+    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+  END IF;
+
+  DELETE FROM public.organization_notification_settings
+  WHERE organization_id = _id;
+END;
+$$;
+
+
+--
 -- Name: delete_organization_projects(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2308,7 +2279,6 @@ CREATE FUNCTION public.delete_organization_projects(_id uuid) RETURNS void
 
 
 --
--- TOC entry 580 (class 1255 OID 27721)
 -- Name: delete_organization_service_areas(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2332,7 +2302,6 @@ CREATE FUNCTION public.delete_organization_service_areas(_id uuid) RETURNS void
 
 
 --
--- TOC entry 1031 (class 1255 OID 21107)
 -- Name: delete_organizations(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2358,7 +2327,6 @@ CREATE FUNCTION public.delete_organizations(_id uuid) RETURNS void
 
 
 --
--- TOC entry 645 (class 1255 OID 21108)
 -- Name: delete_payments(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2384,7 +2352,6 @@ CREATE FUNCTION public.delete_payments(_id uuid) RETURNS void
 
 
 --
--- TOC entry 721 (class 1255 OID 21109)
 -- Name: delete_payroll(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2410,7 +2377,6 @@ CREATE FUNCTION public.delete_payroll(_id uuid) RETURNS void
 
 
 --
--- TOC entry 595 (class 1255 OID 21110)
 -- Name: delete_photos(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2436,7 +2402,6 @@ CREATE FUNCTION public.delete_photos(_id uuid) RETURNS void
 
 
 --
--- TOC entry 904 (class 1255 OID 21111)
 -- Name: delete_prequalifications(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2462,7 +2427,6 @@ CREATE FUNCTION public.delete_prequalifications(_id uuid) RETURNS void
 
 
 --
--- TOC entry 1109 (class 1255 OID 21112)
 -- Name: delete_procurement_workflows(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2488,7 +2452,6 @@ CREATE FUNCTION public.delete_procurement_workflows(_id uuid) RETURNS void
 
 
 --
--- TOC entry 1039 (class 1255 OID 21113)
 -- Name: delete_profiles(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2514,7 +2477,6 @@ CREATE FUNCTION public.delete_profiles(_id uuid) RETURNS void
 
 
 --
--- TOC entry 869 (class 1255 OID 21114)
 -- Name: delete_progress_billings(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2540,7 +2502,6 @@ CREATE FUNCTION public.delete_progress_billings(_id uuid) RETURNS void
 
 
 --
--- TOC entry 946 (class 1255 OID 21115)
 -- Name: delete_project_inspectors(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2566,7 +2527,6 @@ CREATE FUNCTION public.delete_project_inspectors(_id uuid) RETURNS void
 
 
 --
--- TOC entry 912 (class 1255 OID 27725)
 -- Name: delete_project_invites(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2590,7 +2550,6 @@ CREATE FUNCTION public.delete_project_invites(_id uuid) RETURNS void
 
 
 --
--- TOC entry 843 (class 1255 OID 27729)
 -- Name: delete_project_service_areas(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2614,7 +2573,6 @@ CREATE FUNCTION public.delete_project_service_areas(_id uuid) RETURNS void
 
 
 --
--- TOC entry 1057 (class 1255 OID 21116)
 -- Name: delete_projects(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2640,7 +2598,6 @@ CREATE FUNCTION public.delete_projects(_id uuid) RETURNS void
 
 
 --
--- TOC entry 679 (class 1255 OID 21117)
 -- Name: delete_punch_lists(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2666,7 +2623,6 @@ CREATE FUNCTION public.delete_punch_lists(_id uuid) RETURNS void
 
 
 --
--- TOC entry 609 (class 1255 OID 21118)
 -- Name: delete_purchase_orders(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2692,7 +2648,6 @@ CREATE FUNCTION public.delete_purchase_orders(_id uuid) RETURNS void
 
 
 --
--- TOC entry 681 (class 1255 OID 21119)
 -- Name: delete_quality_reviews(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2718,7 +2673,6 @@ CREATE FUNCTION public.delete_quality_reviews(_id uuid) RETURNS void
 
 
 --
--- TOC entry 996 (class 1255 OID 21120)
 -- Name: delete_regulatory_documents(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2744,7 +2698,6 @@ CREATE FUNCTION public.delete_regulatory_documents(_id uuid) RETURNS void
 
 
 --
--- TOC entry 931 (class 1255 OID 21121)
 -- Name: delete_reports(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2770,7 +2723,6 @@ CREATE FUNCTION public.delete_reports(_id uuid) RETURNS void
 
 
 --
--- TOC entry 794 (class 1255 OID 21122)
 -- Name: delete_rfis(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2796,7 +2748,6 @@ CREATE FUNCTION public.delete_rfis(_id uuid) RETURNS void
 
 
 --
--- TOC entry 940 (class 1255 OID 21123)
 -- Name: delete_safety_incidents(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2822,7 +2773,6 @@ CREATE FUNCTION public.delete_safety_incidents(_id uuid) RETURNS void
 
 
 --
--- TOC entry 962 (class 1255 OID 21124)
 -- Name: delete_sensor_data(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2848,7 +2798,6 @@ CREATE FUNCTION public.delete_sensor_data(_id uuid) RETURNS void
 
 
 --
--- TOC entry 829 (class 1255 OID 21125)
 -- Name: delete_subcontractor_agreements(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2874,7 +2823,6 @@ CREATE FUNCTION public.delete_subcontractor_agreements(_id uuid) RETURNS void
 
 
 --
--- TOC entry 638 (class 1255 OID 21126)
 -- Name: delete_subcontracts(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2900,7 +2848,6 @@ CREATE FUNCTION public.delete_subcontracts(_id uuid) RETURNS void
 
 
 --
--- TOC entry 576 (class 1255 OID 21127)
 -- Name: delete_submittals(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2926,7 +2873,6 @@ CREATE FUNCTION public.delete_submittals(_id uuid) RETURNS void
 
 
 --
--- TOC entry 665 (class 1255 OID 21128)
 -- Name: delete_tack_rates(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2952,7 +2898,6 @@ CREATE FUNCTION public.delete_tack_rates(_id uuid) RETURNS void
 
 
 --
--- TOC entry 1100 (class 1255 OID 21129)
 -- Name: delete_task_dependencies(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2978,7 +2923,6 @@ CREATE FUNCTION public.delete_task_dependencies(_id uuid) RETURNS void
 
 
 --
--- TOC entry 744 (class 1255 OID 21130)
 -- Name: delete_task_status_logs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3004,7 +2948,6 @@ CREATE FUNCTION public.delete_task_status_logs(_id uuid) RETURNS void
 
 
 --
--- TOC entry 785 (class 1255 OID 21131)
 -- Name: delete_tasks(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3030,7 +2973,6 @@ CREATE FUNCTION public.delete_tasks(_id uuid) RETURNS void
 
 
 --
--- TOC entry 955 (class 1255 OID 21132)
 -- Name: delete_training_records(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3056,7 +2998,25 @@ CREATE FUNCTION public.delete_training_records(_id uuid) RETURNS void
 
 
 --
--- TOC entry 939 (class 1255 OID 21133)
+-- Name: delete_user_notification_settings(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.delete_user_notification_settings(_id uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  IF auth.uid() IS NULL OR _id IS DISTINCT FROM auth.uid() THEN
+    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+  END IF;
+
+  DELETE FROM public.user_notification_settings
+  WHERE user_id = _id;
+END;
+$$;
+
+
+--
 -- Name: delete_user_projects(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3082,7 +3042,6 @@ CREATE FUNCTION public.delete_user_projects(_id uuid) RETURNS void
 
 
 --
--- TOC entry 737 (class 1255 OID 21134)
 -- Name: delete_vendor_bid_packages(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3108,7 +3067,6 @@ CREATE FUNCTION public.delete_vendor_bid_packages(_id uuid) RETURNS void
 
 
 --
--- TOC entry 648 (class 1255 OID 21135)
 -- Name: delete_vendor_contacts(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3134,7 +3092,6 @@ CREATE FUNCTION public.delete_vendor_contacts(_id uuid) RETURNS void
 
 
 --
--- TOC entry 966 (class 1255 OID 21136)
 -- Name: delete_vendor_documents(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3160,7 +3117,6 @@ CREATE FUNCTION public.delete_vendor_documents(_id uuid) RETURNS void
 
 
 --
--- TOC entry 841 (class 1255 OID 21137)
 -- Name: delete_vendor_qualifications(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3186,7 +3142,6 @@ CREATE FUNCTION public.delete_vendor_qualifications(_id uuid) RETURNS void
 
 
 --
--- TOC entry 918 (class 1255 OID 21138)
 -- Name: delete_vendors(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3212,7 +3167,6 @@ CREATE FUNCTION public.delete_vendors(_id uuid) RETURNS void
 
 
 --
--- TOC entry 747 (class 1255 OID 21139)
 -- Name: delete_wbs(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3238,7 +3192,6 @@ CREATE FUNCTION public.delete_wbs(_id uuid) RETURNS void
 
 
 --
--- TOC entry 817 (class 1255 OID 21140)
 -- Name: delete_workflows(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3264,7 +3217,48 @@ CREATE FUNCTION public.delete_workflows(_id uuid) RETURNS void
 
 
 --
--- TOC entry 802 (class 1255 OID 21141)
+-- Name: emit_org_notification(uuid, public.notification_category, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.emit_org_notification(p_organization_id uuid, p_category public.notification_category, p_message text, p_payload jsonb DEFAULT '{}'::jsonb) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_member record;
+  v_payload jsonb;
+BEGIN
+  IF p_organization_id IS NULL THEN
+    RETURN;
+  END IF;
+
+  v_payload := COALESCE(p_payload, '{}'::jsonb)
+               || jsonb_build_object(
+                 'organization_id', p_organization_id,
+                 'scope', 'org_wide'
+               );
+
+  FOR v_member IN
+    SELECT om.profile_id
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.deleted_at IS NULL
+  LOOP
+    PERFORM public.insert_notifications(
+      jsonb_build_object(
+        'user_id', v_member.profile_id,
+        'organization_id', p_organization_id,
+        'category', p_category,
+        'message', p_message,
+        'payload', v_payload
+      )
+    );
+  END LOOP;
+END;
+$$;
+
+
+--
 -- Name: ensure_fk_indexes_for_schema(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3371,7 +3365,6 @@ $$;
 
 
 --
--- TOC entry 752 (class 1255 OID 21142)
 -- Name: ensure_soft_delete_cols(regclass); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3397,7 +3390,6 @@ $$;
 
 
 --
--- TOC entry 360 (class 1259 OID 21143)
 -- Name: accounts_payable; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3416,7 +3408,6 @@ ALTER TABLE ONLY public.accounts_payable FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 694 (class 1255 OID 21151)
 -- Name: filter_accounts_payable(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3537,7 +3528,6 @@ CREATE FUNCTION public.filter_accounts_payable(_filters jsonb DEFAULT '{}'::json
 
 
 --
--- TOC entry 361 (class 1259 OID 21153)
 -- Name: accounts_receivable; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3556,7 +3546,6 @@ ALTER TABLE ONLY public.accounts_receivable FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 1060 (class 1255 OID 21161)
 -- Name: filter_accounts_receivable(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3677,7 +3666,6 @@ CREATE FUNCTION public.filter_accounts_receivable(_filters jsonb DEFAULT '{}'::j
 
 
 --
--- TOC entry 362 (class 1259 OID 21163)
 -- Name: activity_logs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3695,7 +3683,6 @@ ALTER TABLE ONLY public.activity_logs FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 850 (class 1255 OID 21172)
 -- Name: filter_activity_logs(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3816,7 +3803,6 @@ CREATE FUNCTION public.filter_activity_logs(_filters jsonb DEFAULT '{}'::jsonb, 
 
 
 --
--- TOC entry 363 (class 1259 OID 21174)
 -- Name: asphalt_types; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3833,7 +3819,6 @@ ALTER TABLE ONLY public.asphalt_types FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 608 (class 1255 OID 21182)
 -- Name: filter_asphalt_types(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3954,7 +3939,6 @@ CREATE FUNCTION public.filter_asphalt_types(_filters jsonb DEFAULT '{}'::jsonb, 
 
 
 --
--- TOC entry 450 (class 1259 OID 22221)
 -- Name: audit_log; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3972,7 +3956,6 @@ CREATE TABLE public.audit_log (
 
 
 --
--- TOC entry 1106 (class 1255 OID 27710)
 -- Name: filter_audit_log(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4088,7 +4071,6 @@ CREATE FUNCTION public.filter_audit_log(_filters jsonb DEFAULT '{}'::jsonb, _sel
 
 
 --
--- TOC entry 364 (class 1259 OID 21184)
 -- Name: audit_logs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4107,7 +4089,6 @@ ALTER TABLE ONLY public.audit_logs FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 818 (class 1255 OID 21193)
 -- Name: filter_audit_logs(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4228,7 +4209,6 @@ CREATE FUNCTION public.filter_audit_logs(_filters jsonb DEFAULT '{}'::jsonb, _se
 
 
 --
--- TOC entry 365 (class 1259 OID 21195)
 -- Name: avatars; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4245,7 +4225,6 @@ ALTER TABLE ONLY public.avatars FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 828 (class 1255 OID 21203)
 -- Name: filter_avatars(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4366,7 +4345,6 @@ CREATE FUNCTION public.filter_avatars(_filters jsonb DEFAULT '{}'::jsonb, _selec
 
 
 --
--- TOC entry 366 (class 1259 OID 21205)
 -- Name: bid_packages; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4385,7 +4363,6 @@ ALTER TABLE ONLY public.bid_packages FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 857 (class 1255 OID 21213)
 -- Name: filter_bid_packages(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4506,7 +4483,6 @@ CREATE FUNCTION public.filter_bid_packages(_filters jsonb DEFAULT '{}'::jsonb, _
 
 
 --
--- TOC entry 367 (class 1259 OID 21215)
 -- Name: bid_vendors; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4524,7 +4500,6 @@ ALTER TABLE ONLY public.bid_vendors FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 568 (class 1255 OID 21222)
 -- Name: filter_bid_vendors(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4645,7 +4620,6 @@ CREATE FUNCTION public.filter_bid_vendors(_filters jsonb DEFAULT '{}'::jsonb, _s
 
 
 --
--- TOC entry 368 (class 1259 OID 21224)
 -- Name: bids; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4665,7 +4639,6 @@ ALTER TABLE ONLY public.bids FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 1092 (class 1255 OID 21234)
 -- Name: filter_bids(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4786,7 +4759,6 @@ CREATE FUNCTION public.filter_bids(_filters jsonb DEFAULT '{}'::jsonb, _select_c
 
 
 --
--- TOC entry 369 (class 1259 OID 21235)
 -- Name: bim_models; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4805,7 +4777,6 @@ ALTER TABLE ONLY public.bim_models FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 672 (class 1255 OID 21244)
 -- Name: filter_bim_models(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4926,7 +4897,6 @@ CREATE FUNCTION public.filter_bim_models(_filters jsonb DEFAULT '{}'::jsonb, _se
 
 
 --
--- TOC entry 370 (class 1259 OID 21246)
 -- Name: certifications; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4945,7 +4915,6 @@ ALTER TABLE ONLY public.certifications FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 920 (class 1255 OID 21254)
 -- Name: filter_certifications(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5066,7 +5035,6 @@ CREATE FUNCTION public.filter_certifications(_filters jsonb DEFAULT '{}'::jsonb,
 
 
 --
--- TOC entry 371 (class 1259 OID 21256)
 -- Name: change_orders; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5086,7 +5054,6 @@ ALTER TABLE ONLY public.change_orders FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 581 (class 1255 OID 21264)
 -- Name: filter_change_orders(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5207,7 +5174,6 @@ CREATE FUNCTION public.filter_change_orders(_filters jsonb DEFAULT '{}'::jsonb, 
 
 
 --
--- TOC entry 372 (class 1259 OID 21266)
 -- Name: commitments; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5227,7 +5193,6 @@ ALTER TABLE ONLY public.commitments FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 853 (class 1255 OID 21274)
 -- Name: filter_commitments(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5348,7 +5313,6 @@ CREATE FUNCTION public.filter_commitments(_filters jsonb DEFAULT '{}'::jsonb, _s
 
 
 --
--- TOC entry 373 (class 1259 OID 21276)
 -- Name: compliance_checks; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5367,7 +5331,6 @@ ALTER TABLE ONLY public.compliance_checks FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 1012 (class 1255 OID 21284)
 -- Name: filter_compliance_checks(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5488,7 +5451,6 @@ CREATE FUNCTION public.filter_compliance_checks(_filters jsonb DEFAULT '{}'::jso
 
 
 --
--- TOC entry 374 (class 1259 OID 21286)
 -- Name: compliance_tracking; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5507,7 +5469,6 @@ ALTER TABLE ONLY public.compliance_tracking FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 729 (class 1255 OID 21294)
 -- Name: filter_compliance_tracking(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5628,7 +5589,6 @@ CREATE FUNCTION public.filter_compliance_tracking(_filters jsonb DEFAULT '{}'::j
 
 
 --
--- TOC entry 375 (class 1259 OID 21296)
 -- Name: cost_codes; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5645,7 +5605,6 @@ ALTER TABLE ONLY public.cost_codes FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 589 (class 1255 OID 21304)
 -- Name: filter_cost_codes(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5766,7 +5725,6 @@ CREATE FUNCTION public.filter_cost_codes(_filters jsonb DEFAULT '{}'::jsonb, _se
 
 
 --
--- TOC entry 376 (class 1259 OID 21306)
 -- Name: crew_assignments; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5784,7 +5742,6 @@ ALTER TABLE ONLY public.crew_assignments FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 634 (class 1255 OID 21312)
 -- Name: filter_crew_assignments(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5905,7 +5862,6 @@ CREATE FUNCTION public.filter_crew_assignments(_filters jsonb DEFAULT '{}'::json
 
 
 --
--- TOC entry 377 (class 1259 OID 21314)
 -- Name: crew_members; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5925,7 +5881,6 @@ ALTER TABLE ONLY public.crew_members FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 872 (class 1255 OID 21322)
 -- Name: filter_crew_members(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -6046,7 +6001,6 @@ CREATE FUNCTION public.filter_crew_members(_filters jsonb DEFAULT '{}'::jsonb, _
 
 
 --
--- TOC entry 378 (class 1259 OID 21329)
 -- Name: crews; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -6063,7 +6017,6 @@ ALTER TABLE ONLY public.crews FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 718 (class 1255 OID 21337)
 -- Name: filter_crews(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -6184,7 +6137,6 @@ CREATE FUNCTION public.filter_crews(_filters jsonb DEFAULT '{}'::jsonb, _select_
 
 
 --
--- TOC entry 379 (class 1259 OID 21339)
 -- Name: daily_logs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -6203,7 +6155,6 @@ ALTER TABLE ONLY public.daily_logs FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 668 (class 1255 OID 21347)
 -- Name: filter_daily_logs(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -6324,7 +6275,6 @@ CREATE FUNCTION public.filter_daily_logs(_filters jsonb DEFAULT '{}'::jsonb, _se
 
 
 --
--- TOC entry 380 (class 1259 OID 21349)
 -- Name: dashboard_configs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -6341,7 +6291,6 @@ ALTER TABLE ONLY public.dashboard_configs FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 1025 (class 1255 OID 21357)
 -- Name: filter_dashboard_configs(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -6462,7 +6411,6 @@ CREATE FUNCTION public.filter_dashboard_configs(_filters jsonb DEFAULT '{}'::jso
 
 
 --
--- TOC entry 381 (class 1259 OID 21359)
 -- Name: document_references; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -6480,7 +6428,6 @@ ALTER TABLE ONLY public.document_references FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 805 (class 1255 OID 21367)
 -- Name: filter_document_references(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -6601,7 +6548,6 @@ CREATE FUNCTION public.filter_document_references(_filters jsonb DEFAULT '{}'::j
 
 
 --
--- TOC entry 382 (class 1259 OID 21369)
 -- Name: documents; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -6622,7 +6568,6 @@ ALTER TABLE ONLY public.documents FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 1027 (class 1255 OID 21378)
 -- Name: filter_documents(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -6743,7 +6688,6 @@ CREATE FUNCTION public.filter_documents(_filters jsonb DEFAULT '{}'::jsonb, _sel
 
 
 --
--- TOC entry 383 (class 1259 OID 21380)
 -- Name: drawing_versions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -6762,7 +6706,6 @@ ALTER TABLE ONLY public.drawing_versions FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 561 (class 1255 OID 21389)
 -- Name: filter_drawing_versions(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -6883,7 +6826,6 @@ CREATE FUNCTION public.filter_drawing_versions(_filters jsonb DEFAULT '{}'::json
 
 
 --
--- TOC entry 384 (class 1259 OID 21391)
 -- Name: dump_trucks; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -6902,7 +6844,6 @@ ALTER TABLE ONLY public.dump_trucks FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 657 (class 1255 OID 21399)
 -- Name: filter_dump_trucks(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -7023,7 +6964,6 @@ CREATE FUNCTION public.filter_dump_trucks(_filters jsonb DEFAULT '{}'::jsonb, _s
 
 
 --
--- TOC entry 385 (class 1259 OID 21401)
 -- Name: employees; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -7042,7 +6982,6 @@ ALTER TABLE ONLY public.employees FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 552 (class 1255 OID 21409)
 -- Name: filter_employees(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -7163,7 +7102,6 @@ CREATE FUNCTION public.filter_employees(_filters jsonb DEFAULT '{}'::jsonb, _sel
 
 
 --
--- TOC entry 386 (class 1259 OID 21411)
 -- Name: equipment; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -7184,7 +7122,6 @@ ALTER TABLE ONLY public.equipment FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 987 (class 1255 OID 21419)
 -- Name: filter_equipment(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -7305,7 +7242,6 @@ CREATE FUNCTION public.filter_equipment(_filters jsonb DEFAULT '{}'::jsonb, _sel
 
 
 --
--- TOC entry 387 (class 1259 OID 21421)
 -- Name: equipment_assignments; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -7326,7 +7262,6 @@ ALTER TABLE ONLY public.equipment_assignments FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 1058 (class 1255 OID 21429)
 -- Name: filter_equipment_assignments(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -7447,7 +7382,6 @@ CREATE FUNCTION public.filter_equipment_assignments(_filters jsonb DEFAULT '{}':
 
 
 --
--- TOC entry 388 (class 1259 OID 21431)
 -- Name: equipment_maintenance; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -7467,7 +7401,6 @@ ALTER TABLE ONLY public.equipment_maintenance FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 1034 (class 1255 OID 21439)
 -- Name: filter_equipment_maintenance(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -7588,7 +7521,6 @@ CREATE FUNCTION public.filter_equipment_maintenance(_filters jsonb DEFAULT '{}':
 
 
 --
--- TOC entry 389 (class 1259 OID 21441)
 -- Name: equipment_usage; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -7608,7 +7540,6 @@ ALTER TABLE ONLY public.equipment_usage FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 790 (class 1255 OID 21449)
 -- Name: filter_equipment_usage(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -7729,7 +7660,6 @@ CREATE FUNCTION public.filter_equipment_usage(_filters jsonb DEFAULT '{}'::jsonb
 
 
 --
--- TOC entry 390 (class 1259 OID 21451)
 -- Name: estimate_line_items; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -7751,7 +7681,6 @@ ALTER TABLE ONLY public.estimate_line_items FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 627 (class 1255 OID 21459)
 -- Name: filter_estimate_line_items(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -7872,7 +7801,6 @@ CREATE FUNCTION public.filter_estimate_line_items(_filters jsonb DEFAULT '{}'::j
 
 
 --
--- TOC entry 391 (class 1259 OID 21461)
 -- Name: estimates; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -7891,7 +7819,6 @@ ALTER TABLE ONLY public.estimates FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 943 (class 1255 OID 21469)
 -- Name: filter_estimates(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -8012,7 +7939,6 @@ CREATE FUNCTION public.filter_estimates(_filters jsonb DEFAULT '{}'::jsonb, _sel
 
 
 --
--- TOC entry 392 (class 1259 OID 21471)
 -- Name: financial_documents; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8031,7 +7957,6 @@ ALTER TABLE ONLY public.financial_documents FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 881 (class 1255 OID 21480)
 -- Name: filter_financial_documents(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -8152,7 +8077,6 @@ CREATE FUNCTION public.filter_financial_documents(_filters jsonb DEFAULT '{}'::j
 
 
 --
--- TOC entry 393 (class 1259 OID 21482)
 -- Name: general_ledger; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8173,7 +8097,6 @@ ALTER TABLE ONLY public.general_ledger FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 1110 (class 1255 OID 21490)
 -- Name: filter_general_ledger(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -8294,7 +8217,6 @@ CREATE FUNCTION public.filter_general_ledger(_filters jsonb DEFAULT '{}'::jsonb,
 
 
 --
--- TOC entry 394 (class 1259 OID 21492)
 -- Name: hr_documents; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8313,7 +8235,6 @@ ALTER TABLE ONLY public.hr_documents FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 753 (class 1255 OID 21501)
 -- Name: filter_hr_documents(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -8434,7 +8355,6 @@ CREATE FUNCTION public.filter_hr_documents(_filters jsonb DEFAULT '{}'::jsonb, _
 
 
 --
--- TOC entry 395 (class 1259 OID 21503)
 -- Name: inspections; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8456,7 +8376,6 @@ ALTER TABLE ONLY public.inspections FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 851 (class 1255 OID 21511)
 -- Name: filter_inspections(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -8577,7 +8496,6 @@ CREATE FUNCTION public.filter_inspections(_filters jsonb DEFAULT '{}'::jsonb, _s
 
 
 --
--- TOC entry 396 (class 1259 OID 21513)
 -- Name: integration_tokens; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8595,7 +8513,6 @@ ALTER TABLE ONLY public.integration_tokens FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 1038 (class 1255 OID 21521)
 -- Name: filter_integration_tokens(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -8716,7 +8633,6 @@ CREATE FUNCTION public.filter_integration_tokens(_filters jsonb DEFAULT '{}'::js
 
 
 --
--- TOC entry 397 (class 1259 OID 21523)
 -- Name: inventory_transactions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8736,7 +8652,6 @@ ALTER TABLE ONLY public.inventory_transactions FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 551 (class 1255 OID 21531)
 -- Name: filter_inventory_transactions(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -8857,7 +8772,6 @@ CREATE FUNCTION public.filter_inventory_transactions(_filters jsonb DEFAULT '{}'
 
 
 --
--- TOC entry 398 (class 1259 OID 21533)
 -- Name: issues; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8879,7 +8793,6 @@ ALTER TABLE ONLY public.issues FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 673 (class 1255 OID 21542)
 -- Name: filter_issues(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -9000,7 +8913,6 @@ CREATE FUNCTION public.filter_issues(_filters jsonb DEFAULT '{}'::jsonb, _select
 
 
 --
--- TOC entry 399 (class 1259 OID 21544)
 -- Name: job_titles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9016,7 +8928,6 @@ ALTER TABLE ONLY public.job_titles FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 972 (class 1255 OID 21552)
 -- Name: filter_job_titles(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -9137,7 +9048,6 @@ CREATE FUNCTION public.filter_job_titles(_filters jsonb DEFAULT '{}'::jsonb, _se
 
 
 --
--- TOC entry 400 (class 1259 OID 21554)
 -- Name: labor_records; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9158,7 +9068,6 @@ ALTER TABLE ONLY public.labor_records FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 624 (class 1255 OID 21562)
 -- Name: filter_labor_records(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -9279,7 +9188,6 @@ CREATE FUNCTION public.filter_labor_records(_filters jsonb DEFAULT '{}'::jsonb, 
 
 
 --
--- TOC entry 401 (class 1259 OID 21564)
 -- Name: line_item_entries; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9298,7 +9206,6 @@ ALTER TABLE ONLY public.line_item_entries FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 695 (class 1255 OID 21572)
 -- Name: filter_line_item_entries(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -9419,7 +9326,6 @@ CREATE FUNCTION public.filter_line_item_entries(_filters jsonb DEFAULT '{}'::jso
 
 
 --
--- TOC entry 402 (class 1259 OID 21574)
 -- Name: line_item_templates; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9438,7 +9344,6 @@ ALTER TABLE ONLY public.line_item_templates FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 584 (class 1255 OID 21582)
 -- Name: filter_line_item_templates(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -9559,7 +9464,6 @@ CREATE FUNCTION public.filter_line_item_templates(_filters jsonb DEFAULT '{}'::j
 
 
 --
--- TOC entry 403 (class 1259 OID 21584)
 -- Name: line_items; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9584,7 +9488,6 @@ ALTER TABLE ONLY public.line_items FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 1090 (class 1255 OID 21592)
 -- Name: filter_line_items(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -9705,7 +9608,6 @@ CREATE FUNCTION public.filter_line_items(_filters jsonb DEFAULT '{}'::jsonb, _se
 
 
 --
--- TOC entry 404 (class 1259 OID 21594)
 -- Name: maps; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9727,7 +9629,6 @@ ALTER TABLE ONLY public.maps FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 921 (class 1255 OID 21602)
 -- Name: filter_maps(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -9848,7 +9749,6 @@ CREATE FUNCTION public.filter_maps(_filters jsonb DEFAULT '{}'::jsonb, _select_c
 
 
 --
--- TOC entry 405 (class 1259 OID 21603)
 -- Name: material_inventory; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9867,7 +9767,6 @@ ALTER TABLE ONLY public.material_inventory FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 1018 (class 1255 OID 21612)
 -- Name: filter_material_inventory(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -9988,7 +9887,6 @@ CREATE FUNCTION public.filter_material_inventory(_filters jsonb DEFAULT '{}'::js
 
 
 --
--- TOC entry 406 (class 1259 OID 21614)
 -- Name: material_orders; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10008,7 +9906,6 @@ ALTER TABLE ONLY public.material_orders FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 812 (class 1255 OID 21622)
 -- Name: filter_material_orders(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -10129,7 +10026,6 @@ CREATE FUNCTION public.filter_material_orders(_filters jsonb DEFAULT '{}'::jsonb
 
 
 --
--- TOC entry 407 (class 1259 OID 21624)
 -- Name: material_receipts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10148,7 +10044,6 @@ ALTER TABLE ONLY public.material_receipts FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 574 (class 1255 OID 21632)
 -- Name: filter_material_receipts(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -10269,7 +10164,6 @@ CREATE FUNCTION public.filter_material_receipts(_filters jsonb DEFAULT '{}'::jso
 
 
 --
--- TOC entry 408 (class 1259 OID 21634)
 -- Name: materials; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10288,7 +10182,6 @@ ALTER TABLE ONLY public.materials FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 722 (class 1255 OID 21642)
 -- Name: filter_materials(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -10409,7 +10302,6 @@ CREATE FUNCTION public.filter_materials(_filters jsonb DEFAULT '{}'::jsonb, _sel
 
 
 --
--- TOC entry 409 (class 1259 OID 21644)
 -- Name: meeting_minutes; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10428,7 +10320,6 @@ ALTER TABLE ONLY public.meeting_minutes FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 573 (class 1255 OID 21652)
 -- Name: filter_meeting_minutes(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -10549,7 +10440,6 @@ CREATE FUNCTION public.filter_meeting_minutes(_filters jsonb DEFAULT '{}'::jsonb
 
 
 --
--- TOC entry 410 (class 1259 OID 21654)
 -- Name: notifications; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10569,7 +10459,6 @@ ALTER TABLE ONLY public.notifications FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 1080 (class 1255 OID 21665)
 -- Name: filter_notifications(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -10702,7 +10591,6 @@ $_$;
 
 
 --
--- TOC entry 538 (class 1259 OID 43246)
 -- Name: organization_invites; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10727,7 +10615,6 @@ ALTER TABLE ONLY public.organization_invites FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 642 (class 1255 OID 43254)
 -- Name: filter_organization_invites(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -10857,7 +10744,6 @@ $_$;
 
 
 --
--- TOC entry 536 (class 1259 OID 26528)
 -- Name: organization_member_rates; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10877,7 +10763,6 @@ ALTER TABLE ONLY public.organization_member_rates FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 926 (class 1255 OID 27714)
 -- Name: filter_organization_member_rates(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -10996,7 +10881,6 @@ CREATE FUNCTION public.filter_organization_member_rates(_filters jsonb DEFAULT '
 
 
 --
--- TOC entry 411 (class 1259 OID 21667)
 -- Name: organization_members; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -11015,7 +10899,6 @@ ALTER TABLE ONLY public.organization_members FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 649 (class 1255 OID 21675)
 -- Name: filter_organization_members(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -11136,7 +11019,57 @@ $_$;
 
 
 --
--- TOC entry 412 (class 1259 OID 21677)
+-- Name: organization_notification_settings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.organization_notification_settings (
+    organization_id uuid NOT NULL,
+    enabled_categories public.notification_category[] DEFAULT ARRAY['workflow_update'::public.notification_category, 'approval_needed'::public.notification_category, 'bid_received'::public.notification_category] NOT NULL,
+    enabled_events text[] DEFAULT ARRAY['member_added'::text, 'member_removed'::text, 'contract_completed'::text, 'bid_accepted'::text, 'new_project_created'::text, 'member_job_title_changed'::text, 'member_permission_role_changed'::text] NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_by uuid
+);
+
+ALTER TABLE ONLY public.organization_notification_settings FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: filter_organization_notification_settings(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filter_organization_notification_settings(_filters jsonb DEFAULT '{}'::jsonb, _select_cols text[] DEFAULT NULL::text[], _order_by text DEFAULT 'updated_at'::text, _direction text DEFAULT 'desc'::text, _limit integer DEFAULT NULL::integer, _offset integer DEFAULT NULL::integer) RETURNS SETOF public.organization_notification_settings
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_org_id uuid := NULLIF(_filters->>'organization_id','')::uuid;
+BEGIN
+  IF v_org_id IS NULL THEN
+    SELECT p.organization_id
+    INTO v_org_id
+    FROM public.profiles p
+    WHERE p.id = auth.uid();
+  END IF;
+
+  IF v_org_id IS NULL THEN
+    RETURN;
+  END IF;
+
+  PERFORM public.check_access('select', 'organizations', NULL::uuid, v_org_id);
+
+  RETURN QUERY
+  SELECT ons.*
+  FROM public.organization_notification_settings ons
+  WHERE ons.organization_id = v_org_id
+  ORDER BY ons.updated_at DESC
+  LIMIT COALESCE(_limit, 1000)
+  OFFSET COALESCE(_offset, 0);
+END;
+$$;
+
+
+--
 -- Name: organization_projects; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -11153,7 +11086,6 @@ ALTER TABLE ONLY public.organization_projects FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 625 (class 1255 OID 21683)
 -- Name: filter_organization_projects(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -11274,7 +11206,6 @@ CREATE FUNCTION public.filter_organization_projects(_filters jsonb DEFAULT '{}':
 
 
 --
--- TOC entry 534 (class 1259 OID 26485)
 -- Name: organization_service_areas; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -11290,7 +11221,6 @@ ALTER TABLE ONLY public.organization_service_areas FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 1011 (class 1255 OID 27718)
 -- Name: filter_organization_service_areas(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -11402,7 +11332,6 @@ CREATE FUNCTION public.filter_organization_service_areas(_filters jsonb DEFAULT 
 
 
 --
--- TOC entry 413 (class 1259 OID 21685)
 -- Name: organizations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -11422,7 +11351,6 @@ ALTER TABLE ONLY public.organizations FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 949 (class 1255 OID 21693)
 -- Name: filter_organizations(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -11543,7 +11471,6 @@ CREATE FUNCTION public.filter_organizations(_filters jsonb DEFAULT '{}'::jsonb, 
 
 
 --
--- TOC entry 414 (class 1259 OID 21694)
 -- Name: payments; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -11562,7 +11489,6 @@ ALTER TABLE ONLY public.payments FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 607 (class 1255 OID 21702)
 -- Name: filter_payments(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -11683,7 +11609,6 @@ CREATE FUNCTION public.filter_payments(_filters jsonb DEFAULT '{}'::jsonb, _sele
 
 
 --
--- TOC entry 415 (class 1259 OID 21704)
 -- Name: payroll; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -11703,7 +11628,6 @@ ALTER TABLE ONLY public.payroll FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 571 (class 1255 OID 21712)
 -- Name: filter_payroll(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -11824,7 +11748,6 @@ CREATE FUNCTION public.filter_payroll(_filters jsonb DEFAULT '{}'::jsonb, _selec
 
 
 --
--- TOC entry 416 (class 1259 OID 21714)
 -- Name: photos; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -11844,7 +11767,6 @@ ALTER TABLE ONLY public.photos FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 1091 (class 1255 OID 21723)
 -- Name: filter_photos(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -11965,7 +11887,6 @@ CREATE FUNCTION public.filter_photos(_filters jsonb DEFAULT '{}'::jsonb, _select
 
 
 --
--- TOC entry 417 (class 1259 OID 21725)
 -- Name: prequalifications; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -11984,7 +11905,6 @@ ALTER TABLE ONLY public.prequalifications FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 567 (class 1255 OID 21733)
 -- Name: filter_prequalifications(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -12105,7 +12025,6 @@ CREATE FUNCTION public.filter_prequalifications(_filters jsonb DEFAULT '{}'::jso
 
 
 --
--- TOC entry 418 (class 1259 OID 21735)
 -- Name: procurement_workflows; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -12123,7 +12042,6 @@ ALTER TABLE ONLY public.procurement_workflows FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 958 (class 1255 OID 21743)
 -- Name: filter_procurement_workflows(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -12244,7 +12162,6 @@ CREATE FUNCTION public.filter_procurement_workflows(_filters jsonb DEFAULT '{}':
 
 
 --
--- TOC entry 714 (class 1255 OID 21753)
 -- Name: filter_profiles(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -12365,7 +12282,6 @@ CREATE FUNCTION public.filter_profiles(_filters jsonb DEFAULT '{}'::jsonb, _sele
 
 
 --
--- TOC entry 420 (class 1259 OID 21755)
 -- Name: progress_billings; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -12384,7 +12300,6 @@ ALTER TABLE ONLY public.progress_billings FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 965 (class 1255 OID 21763)
 -- Name: filter_progress_billings(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -12505,7 +12420,6 @@ CREATE FUNCTION public.filter_progress_billings(_filters jsonb DEFAULT '{}'::jso
 
 
 --
--- TOC entry 421 (class 1259 OID 21765)
 -- Name: project_inspectors; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -12521,7 +12435,6 @@ ALTER TABLE ONLY public.project_inspectors FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 854 (class 1255 OID 21769)
 -- Name: filter_project_inspectors(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -12642,7 +12555,6 @@ CREATE FUNCTION public.filter_project_inspectors(_filters jsonb DEFAULT '{}'::js
 
 
 --
--- TOC entry 537 (class 1259 OID 26547)
 -- Name: project_invites; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -12662,7 +12574,6 @@ ALTER TABLE ONLY public.project_invites FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 978 (class 1255 OID 27722)
 -- Name: filter_project_invites(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -12774,7 +12685,6 @@ CREATE FUNCTION public.filter_project_invites(_filters jsonb DEFAULT '{}'::jsonb
 
 
 --
--- TOC entry 535 (class 1259 OID 26504)
 -- Name: project_service_areas; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -12790,7 +12700,6 @@ ALTER TABLE ONLY public.project_service_areas FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 974 (class 1255 OID 27726)
 -- Name: filter_project_service_areas(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -12902,7 +12811,6 @@ CREATE FUNCTION public.filter_project_service_areas(_filters jsonb DEFAULT '{}':
 
 
 --
--- TOC entry 911 (class 1255 OID 21779)
 -- Name: filter_projects(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -13009,7 +12917,6 @@ $_$;
 
 
 --
--- TOC entry 423 (class 1259 OID 21783)
 -- Name: punch_lists; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -13028,7 +12935,6 @@ ALTER TABLE ONLY public.punch_lists FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 990 (class 1255 OID 21791)
 -- Name: filter_punch_lists(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -13149,7 +13055,6 @@ CREATE FUNCTION public.filter_punch_lists(_filters jsonb DEFAULT '{}'::jsonb, _s
 
 
 --
--- TOC entry 424 (class 1259 OID 21793)
 -- Name: purchase_orders; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -13170,7 +13075,6 @@ ALTER TABLE ONLY public.purchase_orders FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 1019 (class 1255 OID 21801)
 -- Name: filter_purchase_orders(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -13291,7 +13195,6 @@ CREATE FUNCTION public.filter_purchase_orders(_filters jsonb DEFAULT '{}'::jsonb
 
 
 --
--- TOC entry 425 (class 1259 OID 21803)
 -- Name: quality_reviews; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -13310,7 +13213,6 @@ ALTER TABLE ONLY public.quality_reviews FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 597 (class 1255 OID 21811)
 -- Name: filter_quality_reviews(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -13431,7 +13333,6 @@ CREATE FUNCTION public.filter_quality_reviews(_filters jsonb DEFAULT '{}'::jsonb
 
 
 --
--- TOC entry 426 (class 1259 OID 21813)
 -- Name: regulatory_documents; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -13450,7 +13351,6 @@ ALTER TABLE ONLY public.regulatory_documents FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 1064 (class 1255 OID 21822)
 -- Name: filter_regulatory_documents(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -13571,7 +13471,6 @@ CREATE FUNCTION public.filter_regulatory_documents(_filters jsonb DEFAULT '{}'::
 
 
 --
--- TOC entry 427 (class 1259 OID 21824)
 -- Name: reports; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -13589,7 +13488,6 @@ ALTER TABLE ONLY public.reports FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 666 (class 1255 OID 21833)
 -- Name: filter_reports(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -13710,7 +13608,6 @@ CREATE FUNCTION public.filter_reports(_filters jsonb DEFAULT '{}'::jsonb, _selec
 
 
 --
--- TOC entry 428 (class 1259 OID 21835)
 -- Name: rfis; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -13734,7 +13631,6 @@ ALTER TABLE ONLY public.rfis FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 743 (class 1255 OID 21844)
 -- Name: filter_rfis(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -13855,7 +13751,6 @@ CREATE FUNCTION public.filter_rfis(_filters jsonb DEFAULT '{}'::jsonb, _select_c
 
 
 --
--- TOC entry 429 (class 1259 OID 21845)
 -- Name: safety_incidents; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -13876,7 +13771,6 @@ ALTER TABLE ONLY public.safety_incidents FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 558 (class 1255 OID 21854)
 -- Name: filter_safety_incidents(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -13997,7 +13891,6 @@ CREATE FUNCTION public.filter_safety_incidents(_filters jsonb DEFAULT '{}'::json
 
 
 --
--- TOC entry 430 (class 1259 OID 21856)
 -- Name: sensor_data; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -14015,7 +13908,6 @@ ALTER TABLE ONLY public.sensor_data FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 582 (class 1255 OID 21865)
 -- Name: filter_sensor_data(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -14136,7 +14028,6 @@ CREATE FUNCTION public.filter_sensor_data(_filters jsonb DEFAULT '{}'::jsonb, _s
 
 
 --
--- TOC entry 431 (class 1259 OID 21867)
 -- Name: subcontractor_agreements; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -14154,7 +14045,6 @@ ALTER TABLE ONLY public.subcontractor_agreements FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 825 (class 1255 OID 21875)
 -- Name: filter_subcontractor_agreements(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -14275,7 +14165,6 @@ CREATE FUNCTION public.filter_subcontractor_agreements(_filters jsonb DEFAULT '{
 
 
 --
--- TOC entry 432 (class 1259 OID 21877)
 -- Name: subcontracts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -14295,7 +14184,6 @@ ALTER TABLE ONLY public.subcontracts FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 845 (class 1255 OID 21885)
 -- Name: filter_subcontracts(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -14416,7 +14304,6 @@ CREATE FUNCTION public.filter_subcontracts(_filters jsonb DEFAULT '{}'::jsonb, _
 
 
 --
--- TOC entry 433 (class 1259 OID 21887)
 -- Name: submittals; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -14438,7 +14325,6 @@ ALTER TABLE ONLY public.submittals FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 748 (class 1255 OID 21896)
 -- Name: filter_submittals(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -14559,7 +14445,6 @@ CREATE FUNCTION public.filter_submittals(_filters jsonb DEFAULT '{}'::jsonb, _se
 
 
 --
--- TOC entry 434 (class 1259 OID 21898)
 -- Name: tack_rates; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -14577,7 +14462,6 @@ ALTER TABLE ONLY public.tack_rates FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 791 (class 1255 OID 21906)
 -- Name: filter_tack_rates(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -14698,7 +14582,6 @@ CREATE FUNCTION public.filter_tack_rates(_filters jsonb DEFAULT '{}'::jsonb, _se
 
 
 --
--- TOC entry 435 (class 1259 OID 21908)
 -- Name: task_dependencies; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -14714,7 +14597,6 @@ ALTER TABLE ONLY public.task_dependencies FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 776 (class 1255 OID 21913)
 -- Name: filter_task_dependencies(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -14835,7 +14717,6 @@ CREATE FUNCTION public.filter_task_dependencies(_filters jsonb DEFAULT '{}'::jso
 
 
 --
--- TOC entry 436 (class 1259 OID 21915)
 -- Name: task_status_logs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -14851,7 +14732,6 @@ ALTER TABLE ONLY public.task_status_logs FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 759 (class 1255 OID 21919)
 -- Name: filter_task_status_logs(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -14972,7 +14852,6 @@ CREATE FUNCTION public.filter_task_status_logs(_filters jsonb DEFAULT '{}'::json
 
 
 --
--- TOC entry 437 (class 1259 OID 21921)
 -- Name: tasks; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -14993,7 +14872,6 @@ ALTER TABLE ONLY public.tasks FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 1036 (class 1255 OID 21930)
 -- Name: filter_tasks(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -15114,7 +14992,6 @@ CREATE FUNCTION public.filter_tasks(_filters jsonb DEFAULT '{}'::jsonb, _select_
 
 
 --
--- TOC entry 438 (class 1259 OID 21932)
 -- Name: training_records; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -15132,7 +15009,6 @@ ALTER TABLE ONLY public.training_records FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 1113 (class 1255 OID 21940)
 -- Name: filter_training_records(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -15253,7 +15129,47 @@ CREATE FUNCTION public.filter_training_records(_filters jsonb DEFAULT '{}'::json
 
 
 --
--- TOC entry 439 (class 1259 OID 21942)
+-- Name: user_notification_settings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_notification_settings (
+    user_id uuid NOT NULL,
+    silenced_categories public.notification_category[] DEFAULT '{}'::public.notification_category[] NOT NULL,
+    silenced_events text[] DEFAULT '{}'::text[] NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+ALTER TABLE ONLY public.user_notification_settings FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: filter_user_notification_settings(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.filter_user_notification_settings(_filters jsonb DEFAULT '{}'::jsonb, _select_cols text[] DEFAULT NULL::text[], _order_by text DEFAULT 'updated_at'::text, _direction text DEFAULT 'desc'::text, _limit integer DEFAULT NULL::integer, _offset integer DEFAULT NULL::integer) RETURNS SETOF public.user_notification_settings
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated' USING errcode = '42501';
+  END IF;
+
+  RETURN QUERY
+  SELECT uns.*
+  FROM public.user_notification_settings uns
+  WHERE uns.user_id = v_user_id
+  ORDER BY uns.updated_at DESC
+  LIMIT COALESCE(_limit, 1000)
+  OFFSET COALESCE(_offset, 0);
+END;
+$$;
+
+
+--
 -- Name: user_projects; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -15271,7 +15187,6 @@ ALTER TABLE ONLY public.user_projects FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 915 (class 1255 OID 21950)
 -- Name: filter_user_projects(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -15392,7 +15307,6 @@ CREATE FUNCTION public.filter_user_projects(_filters jsonb DEFAULT '{}'::jsonb, 
 
 
 --
--- TOC entry 440 (class 1259 OID 21952)
 -- Name: vendor_bid_packages; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -15409,7 +15323,6 @@ ALTER TABLE ONLY public.vendor_bid_packages FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 956 (class 1255 OID 21958)
 -- Name: filter_vendor_bid_packages(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -15530,7 +15443,6 @@ CREATE FUNCTION public.filter_vendor_bid_packages(_filters jsonb DEFAULT '{}'::j
 
 
 --
--- TOC entry 441 (class 1259 OID 21960)
 -- Name: vendor_contacts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -15549,7 +15461,6 @@ ALTER TABLE ONLY public.vendor_contacts FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 844 (class 1255 OID 21968)
 -- Name: filter_vendor_contacts(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -15670,7 +15581,6 @@ CREATE FUNCTION public.filter_vendor_contacts(_filters jsonb DEFAULT '{}'::jsonb
 
 
 --
--- TOC entry 442 (class 1259 OID 21970)
 -- Name: vendor_documents; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -15689,7 +15599,6 @@ ALTER TABLE ONLY public.vendor_documents FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 807 (class 1255 OID 21979)
 -- Name: filter_vendor_documents(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -15810,7 +15719,6 @@ CREATE FUNCTION public.filter_vendor_documents(_filters jsonb DEFAULT '{}'::json
 
 
 --
--- TOC entry 443 (class 1259 OID 21981)
 -- Name: vendor_qualifications; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -15829,7 +15737,6 @@ ALTER TABLE ONLY public.vendor_qualifications FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 852 (class 1255 OID 21989)
 -- Name: filter_vendor_qualifications(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -15950,7 +15857,6 @@ CREATE FUNCTION public.filter_vendor_qualifications(_filters jsonb DEFAULT '{}':
 
 
 --
--- TOC entry 444 (class 1259 OID 21991)
 -- Name: vendors; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -15970,7 +15876,6 @@ ALTER TABLE ONLY public.vendors FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 823 (class 1255 OID 21999)
 -- Name: filter_vendors(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16091,7 +15996,6 @@ CREATE FUNCTION public.filter_vendors(_filters jsonb DEFAULT '{}'::jsonb, _selec
 
 
 --
--- TOC entry 445 (class 1259 OID 22001)
 -- Name: wbs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -16110,7 +16014,6 @@ ALTER TABLE ONLY public.wbs FORCE ROW LEVEL SECURITY;
 
 
 --
--- TOC entry 875 (class 1255 OID 22009)
 -- Name: filter_wbs(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16231,7 +16134,6 @@ CREATE FUNCTION public.filter_wbs(_filters jsonb DEFAULT '{}'::jsonb, _select_co
 
 
 --
--- TOC entry 1050 (class 1255 OID 22010)
 -- Name: filter_workflows(jsonb, text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16352,7 +16254,6 @@ CREATE FUNCTION public.filter_workflows(_filters jsonb DEFAULT '{}'::jsonb, _sel
 
 
 --
--- TOC entry 894 (class 1255 OID 22012)
 -- Name: fn_cashflow_curve(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16389,7 +16290,6 @@ $$;
 
 
 --
--- TOC entry 1035 (class 1255 OID 22013)
 -- Name: fn_eqp_7d_avg_hours(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16414,7 +16314,6 @@ $$;
 
 
 --
--- TOC entry 900 (class 1255 OID 22014)
 -- Name: fn_find_rpc_dupes(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16434,7 +16333,6 @@ $$;
 
 
 --
--- TOC entry 905 (class 1255 OID 22015)
 -- Name: fn_inventory_balance(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16465,7 +16363,6 @@ $$;
 
 
 --
--- TOC entry 590 (class 1255 OID 22016)
 -- Name: fn_list_tables_and_columns(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16481,7 +16378,6 @@ $$;
 
 
 --
--- TOC entry 788 (class 1255 OID 22017)
 -- Name: fn_materials_on_hand(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16502,7 +16398,6 @@ $$;
 
 
 --
--- TOC entry 1062 (class 1255 OID 22018)
 -- Name: fn_task_cycle_time(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16527,7 +16422,6 @@ $$;
 
 
 --
--- TOC entry 1051 (class 1255 OID 22019)
 -- Name: fn_top5_cost_codes(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16549,7 +16443,6 @@ $$;
 
 
 --
--- TOC entry 980 (class 1255 OID 22020)
 -- Name: fn_weekly_receipt_perf(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16579,7 +16472,6 @@ $$;
 
 
 --
--- TOC entry 1079 (class 1255 OID 22021)
 -- Name: fn_worst10_crews_by_incidents(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16601,7 +16493,6 @@ $$;
 
 
 --
--- TOC entry 1063 (class 1255 OID 26476)
 -- Name: get_avatar_by_id_public(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16624,7 +16515,6 @@ $$;
 
 
 --
--- TOC entry 792 (class 1255 OID 27746)
 -- Name: get_avatar_storage_paths(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16648,7 +16538,6 @@ CREATE FUNCTION public.get_avatar_storage_paths() RETURNS SETOF text
 
 
 --
--- TOC entry 640 (class 1255 OID 27699)
 -- Name: get_contract_with_wkt(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16685,7 +16574,6 @@ $$;
 
 
 --
--- TOC entry 621 (class 1255 OID 26469)
 -- Name: get_job_titles_public(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16704,7 +16592,6 @@ $$;
 
 
 --
--- TOC entry 876 (class 1255 OID 45478)
 -- Name: get_my_member_organizations(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16768,7 +16655,30 @@ $$;
 
 
 --
--- TOC entry 1013 (class 1255 OID 26442)
+-- Name: get_my_notification_settings(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_my_notification_settings() RETURNS TABLE(silenced_categories public.notification_category[], silenced_events text[], updated_at timestamp with time zone)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+  WITH current_row AS (
+    SELECT
+      uns.silenced_categories,
+      uns.silenced_events,
+      uns.updated_at
+    FROM public.user_notification_settings uns
+    WHERE uns.user_id = auth.uid()
+  )
+  SELECT * FROM current_row
+  UNION ALL
+  SELECT '{}'::public.notification_category[], '{}'::text[], NULL::timestamptz
+  WHERE NOT EXISTS (SELECT 1 FROM current_row)
+  LIMIT 1;
+$$;
+
+
+--
 -- Name: get_my_org_profiles_minimal(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16795,7 +16705,6 @@ $$;
 
 
 --
--- TOC entry 1016 (class 1255 OID 26399)
 -- Name: get_my_profile(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16823,7 +16732,50 @@ $$;
 
 
 --
--- TOC entry 893 (class 1255 OID 27695)
+-- Name: get_org_notification_settings(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_org_notification_settings(p_organization_id uuid) RETURNS TABLE(enabled_categories public.notification_category[], enabled_events text[], updated_at timestamp with time zone)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+BEGIN
+  PERFORM public.check_access('select', 'organizations', NULL::uuid, p_organization_id);
+
+  RETURN QUERY
+  SELECT
+    ons.enabled_categories,
+    ons.enabled_events,
+    ons.updated_at
+  FROM public.organization_notification_settings ons
+  WHERE ons.organization_id = p_organization_id;
+
+  IF NOT FOUND THEN
+    RETURN QUERY
+    SELECT
+      ARRAY[
+        'workflow_update'::public.notification_category,
+        'approval_needed'::public.notification_category,
+        'bid_received'::public.notification_category
+      ],
+      ARRAY[
+        'member_added',
+        'member_removed',
+        'member_left_organization',
+        'contract_completed',
+        'bid_accepted',
+        'new_project_created',
+        'member_job_title_changed',
+        'member_job_title_changed_broadcast',
+        'member_permission_role_changed'
+      ]::text[],
+      NULL::timestamptz;
+  END IF;
+END;
+$$;
+
+
+--
 -- Name: get_organization_by_id(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16891,7 +16843,6 @@ $$;
 
 
 --
--- TOC entry 1112 (class 1255 OID 26475)
 -- Name: get_organizations_public(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16912,7 +16863,6 @@ $$;
 
 
 --
--- TOC entry 902 (class 1255 OID 49054)
 -- Name: get_pending_organization_invites_with_profiles(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -17004,7 +16954,6 @@ $$;
 
 
 --
--- TOC entry 556 (class 1255 OID 26451)
 -- Name: get_preset_avatars_public(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -17024,7 +16973,6 @@ $$;
 
 
 --
--- TOC entry 774 (class 1255 OID 27700)
 -- Name: get_profiles_by_contract(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -17057,7 +17005,59 @@ $$;
 
 
 --
--- TOC entry 916 (class 1255 OID 22022)
+-- Name: get_rpc_error_debug(integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_rpc_error_debug(p_limit integer DEFAULT 100) RETURNS TABLE(id bigint, created_at timestamp with time zone, rpc_name text, operation text, sqlstate text, error_message text, error_detail text, error_hint text, auth_user_id uuid, request_context jsonb)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_role public.user_role_type;
+  v_limit integer := LEAST(GREATEST(COALESCE(p_limit, 100), 1), 500);
+  v_jwt_role text := current_setting('request.jwt.claim.role', true);
+  v_is_privileged_session boolean := false;
+BEGIN
+  v_is_privileged_session :=
+    current_user IN ('postgres', 'supabase_admin', 'service_role')
+    OR COALESCE(v_jwt_role, '') IN ('service_role', 'supabase_admin');
+
+  IF v_uid IS NULL THEN
+    IF NOT v_is_privileged_session THEN
+      RAISE EXCEPTION 'Not authenticated';
+    END IF;
+  ELSE
+    SELECT p.role INTO v_role
+    FROM public.profiles p
+    WHERE p.id = v_uid
+      AND p.deleted_at IS NULL;
+
+    IF v_role IS NULL OR v_role::text NOT IN ('system_admin', 'org_admin') THEN
+      RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+    END IF;
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    d.id,
+    d.created_at,
+    d.rpc_name,
+    d.operation,
+    d.sqlstate,
+    d.error_message,
+    d.error_detail,
+    d.error_hint,
+    d.auth_user_id,
+    d.request_context
+  FROM public.rpc_error_debug d
+  ORDER BY d.created_at DESC
+  LIMIT v_limit;
+END;
+$$;
+
+
+--
 -- Name: handle_auth_user_profile_sync(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -17083,18 +17083,28 @@ $$;
 
 
 --
--- TOC entry 647 (class 1255 OID 22023)
 -- Name: insert_accounts_payable(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_accounts_payable(_input jsonb) RETURNS SETOF public.accounts_payable
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.accounts_payable;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.accounts_payable;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','accounts_payable', _project_id, _organization_id);
@@ -17103,28 +17113,75 @@ CREATE FUNCTION public.insert_accounts_payable(_input jsonb) RETURNS SETOF publi
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.accounts_payable
-        SELECT (jsonb_populate_record(NULL::public.accounts_payable, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.accounts_payable, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'amount_due' THEN
+    _insert_columns := array_append(_insert_columns, 'amount_due');
+  END IF;
+
+  IF _input_sanitized ? 'due_date' THEN
+    _insert_columns := array_append(_insert_columns, 'due_date');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.accounts_payable DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.accounts_payable (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 622 (class 1255 OID 22024)
 -- Name: insert_accounts_receivable(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_accounts_receivable(_input jsonb) RETURNS SETOF public.accounts_receivable
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.accounts_receivable;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.accounts_receivable;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','accounts_receivable', _project_id, _organization_id);
@@ -17133,28 +17190,75 @@ CREATE FUNCTION public.insert_accounts_receivable(_input jsonb) RETURNS SETOF pu
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.accounts_receivable
-        SELECT (jsonb_populate_record(NULL::public.accounts_receivable, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.accounts_receivable, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'amount_due' THEN
+    _insert_columns := array_append(_insert_columns, 'amount_due');
+  END IF;
+
+  IF _input_sanitized ? 'due_date' THEN
+    _insert_columns := array_append(_insert_columns, 'due_date');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.accounts_receivable DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.accounts_receivable (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 719 (class 1255 OID 22025)
 -- Name: insert_activity_logs(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_activity_logs(_input jsonb) RETURNS SETOF public.activity_logs
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.activity_logs;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.activity_logs;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','activity_logs', _project_id, _organization_id);
@@ -17163,28 +17267,71 @@ CREATE FUNCTION public.insert_activity_logs(_input jsonb) RETURNS SETOF public.a
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.activity_logs
-        SELECT (jsonb_populate_record(NULL::public.activity_logs, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.activity_logs, _input_sanitized);
+
+  IF _input_sanitized ? 'profile_id' THEN
+    _insert_columns := array_append(_insert_columns, 'profile_id');
+  END IF;
+
+  IF _input_sanitized ? 'activity_type' THEN
+    _insert_columns := array_append(_insert_columns, 'activity_type');
+  END IF;
+
+  IF _input_sanitized ? 'activity_at' THEN
+    _insert_columns := array_append(_insert_columns, 'activity_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.activity_logs DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.activity_logs (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 798 (class 1255 OID 22026)
 -- Name: insert_asphalt_types(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_asphalt_types(_input jsonb) RETURNS SETOF public.asphalt_types
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.asphalt_types;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.asphalt_types;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','asphalt_types', _project_id, _organization_id);
@@ -17193,56 +17340,149 @@ CREATE FUNCTION public.insert_asphalt_types(_input jsonb) RETURNS SETOF public.a
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.asphalt_types
-        SELECT (jsonb_populate_record(NULL::public.asphalt_types, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.asphalt_types, _input_sanitized);
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'description' THEN
+    _insert_columns := array_append(_insert_columns, 'description');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.asphalt_types DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.asphalt_types (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 764 (class 1255 OID 27711)
 -- Name: insert_audit_log(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_audit_log(_input jsonb) RETURNS SETOF public.audit_log
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
     DECLARE
       _project_id      uuid := (_input->>'project_id')::uuid;
       _organization_id uuid := (_input->>'organization_id')::uuid;
       _new_row         public.audit_log;
+      _input_sanitized jsonb := '{}'::jsonb;
+      _insert_columns text[] := ARRAY[]::text[];
+      _insert_column_list text;
+      _insert_value_list text;
+      _r public.audit_log;
+
     BEGIN
       PERFORM check_access('insert','audit_log', _project_id, _organization_id);
 
       _input := COALESCE(_input, '{}'::jsonb)
                 - 'id' - 'changed_at' - 'changed_by' - 'deleted_at';
 
-      INSERT INTO public.audit_log
-      SELECT (jsonb_populate_record(NULL::public.audit_log, _input)).*
-      RETURNING * INTO _new_row;
+        _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.audit_log, _input_sanitized);
+
+  IF _input_sanitized ? 'table_name' THEN
+    _insert_columns := array_append(_insert_columns, 'table_name');
+  END IF;
+
+  IF _input_sanitized ? 'action' THEN
+    _insert_columns := array_append(_insert_columns, 'action');
+  END IF;
+
+  IF _input_sanitized ? 'row_id' THEN
+    _insert_columns := array_append(_insert_columns, 'row_id');
+  END IF;
+
+  IF _input_sanitized ? 'before_data' THEN
+    _insert_columns := array_append(_insert_columns, 'before_data');
+  END IF;
+
+  IF _input_sanitized ? 'after_data' THEN
+    _insert_columns := array_append(_insert_columns, 'after_data');
+  END IF;
+
+  IF _input_sanitized ? 'changed_by' THEN
+    _insert_columns := array_append(_insert_columns, 'changed_by');
+  END IF;
+
+  IF _input_sanitized ? 'changed_at' THEN
+    _insert_columns := array_append(_insert_columns, 'changed_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.audit_log DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.audit_log (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
       RETURN NEXT _new_row;
     END;
-    $$;
+    $_$;
 
 
 --
--- TOC entry 835 (class 1255 OID 22027)
 -- Name: insert_audit_logs(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_audit_logs(_input jsonb) RETURNS SETOF public.audit_logs
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.audit_logs;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.audit_logs;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','audit_logs', _project_id, _organization_id);
@@ -17251,17 +17491,53 @@ CREATE FUNCTION public.insert_audit_logs(_input jsonb) RETURNS SETOF public.audi
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.audit_logs
-        SELECT (jsonb_populate_record(NULL::public.audit_logs, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.audit_logs, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'action' THEN
+    _insert_columns := array_append(_insert_columns, 'action');
+  END IF;
+
+  IF _input_sanitized ? 'performed_by' THEN
+    _insert_columns := array_append(_insert_columns, 'performed_by');
+  END IF;
+
+  IF _input_sanitized ? 'performed_at' THEN
+    _insert_columns := array_append(_insert_columns, 'performed_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.audit_logs DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.audit_logs (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 708 (class 1255 OID 22028)
 -- Name: insert_avatars(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -17269,9 +17545,15 @@ CREATE FUNCTION public.insert_avatars(_input jsonb) RETURNS SETOF public.avatars
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     SET row_security TO 'off'
-    AS $$
+    AS $_$
     DECLARE
       _new_row public.avatars;
+      _input_sanitized jsonb := '{}'::jsonb;
+      _insert_columns text[] := ARRAY[]::text[];
+      _insert_column_list text;
+      _insert_value_list text;
+      _r public.avatars;
+
     BEGIN
       _input := COALESCE(_input, '{}'::jsonb)
                 - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
@@ -17288,28 +17570,67 @@ CREATE FUNCTION public.insert_avatars(_input jsonb) RETURNS SETOF public.avatars
         _input := jsonb_set(_input, '{updated_at}', to_jsonb(now()), true);
       END IF;
 
-      INSERT INTO public.avatars
-      SELECT (jsonb_populate_record(NULL::public.avatars, _input)).*
-      RETURNING * INTO _new_row;
+        _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.avatars, _input_sanitized);
+
+  IF _input_sanitized ? 'url' THEN
+    _insert_columns := array_append(_insert_columns, 'url');
+  END IF;
+
+  IF _input_sanitized ? 'is_preset' THEN
+    _insert_columns := array_append(_insert_columns, 'is_preset');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.avatars DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.avatars (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
       RETURN NEXT _new_row;
     END;
-    $$;
+    $_$;
 
 
 --
--- TOC entry 796 (class 1255 OID 22029)
 -- Name: insert_bid_packages(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_bid_packages(_input jsonb) RETURNS SETOF public.bid_packages
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.bid_packages;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.bid_packages;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','bid_packages', _project_id, _organization_id);
@@ -17318,28 +17639,75 @@ CREATE FUNCTION public.insert_bid_packages(_input jsonb) RETURNS SETOF public.bi
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.bid_packages
-        SELECT (jsonb_populate_record(NULL::public.bid_packages, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.bid_packages, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF _input_sanitized ? 'created_by' THEN
+    _insert_columns := array_append(_insert_columns, 'created_by');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.bid_packages DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.bid_packages (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 816 (class 1255 OID 22030)
 -- Name: insert_bid_vendors(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_bid_vendors(_input jsonb) RETURNS SETOF public.bid_vendors
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.bid_vendors;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.bid_vendors;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','bid_vendors', _project_id, _organization_id);
@@ -17348,28 +17716,71 @@ CREATE FUNCTION public.insert_bid_vendors(_input jsonb) RETURNS SETOF public.bid
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.bid_vendors
-        SELECT (jsonb_populate_record(NULL::public.bid_vendors, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.bid_vendors, _input_sanitized);
+
+  IF _input_sanitized ? 'bid_package_id' THEN
+    _insert_columns := array_append(_insert_columns, 'bid_package_id');
+  END IF;
+
+  IF _input_sanitized ? 'vendor_id' THEN
+    _insert_columns := array_append(_insert_columns, 'vendor_id');
+  END IF;
+
+  IF _input_sanitized ? 'invited_at' THEN
+    _insert_columns := array_append(_insert_columns, 'invited_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.bid_vendors DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.bid_vendors (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 922 (class 1255 OID 22031)
 -- Name: insert_bids(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_bids(_input jsonb) RETURNS SETOF public.bids
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.bids;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.bids;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','bids', _project_id, _organization_id);
@@ -17378,28 +17789,79 @@ CREATE FUNCTION public.insert_bids(_input jsonb) RETURNS SETOF public.bids
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.bids
-        SELECT (jsonb_populate_record(NULL::public.bids, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.bids, _input_sanitized);
+
+  IF _input_sanitized ? 'bid_package_id' THEN
+    _insert_columns := array_append(_insert_columns, 'bid_package_id');
+  END IF;
+
+  IF _input_sanitized ? 'vendor_id' THEN
+    _insert_columns := array_append(_insert_columns, 'vendor_id');
+  END IF;
+
+  IF _input_sanitized ? 'amount' THEN
+    _insert_columns := array_append(_insert_columns, 'amount');
+  END IF;
+
+  IF _input_sanitized ? 'submitted_at' THEN
+    _insert_columns := array_append(_insert_columns, 'submitted_at');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.bids DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.bids (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 917 (class 1255 OID 22032)
 -- Name: insert_bim_models(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_bim_models(_input jsonb) RETURNS SETOF public.bim_models
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.bim_models;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.bim_models;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','bim_models', _project_id, _organization_id);
@@ -17408,28 +17870,75 @@ CREATE FUNCTION public.insert_bim_models(_input jsonb) RETURNS SETOF public.bim_
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.bim_models
-        SELECT (jsonb_populate_record(NULL::public.bim_models, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.bim_models, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'url' THEN
+    _insert_columns := array_append(_insert_columns, 'url');
+  END IF;
+
+  IF _input_sanitized ? 'uploaded_at' THEN
+    _insert_columns := array_append(_insert_columns, 'uploaded_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.bim_models DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.bim_models (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 868 (class 1255 OID 22033)
 -- Name: insert_certifications(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_certifications(_input jsonb) RETURNS SETOF public.certifications
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.certifications;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.certifications;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','certifications', _project_id, _organization_id);
@@ -17438,28 +17947,75 @@ CREATE FUNCTION public.insert_certifications(_input jsonb) RETURNS SETOF public.
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.certifications
-        SELECT (jsonb_populate_record(NULL::public.certifications, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.certifications, _input_sanitized);
+
+  IF _input_sanitized ? 'employee_id' THEN
+    _insert_columns := array_append(_insert_columns, 'employee_id');
+  END IF;
+
+  IF _input_sanitized ? 'certification_type' THEN
+    _insert_columns := array_append(_insert_columns, 'certification_type');
+  END IF;
+
+  IF _input_sanitized ? 'issue_date' THEN
+    _insert_columns := array_append(_insert_columns, 'issue_date');
+  END IF;
+
+  IF _input_sanitized ? 'expiry_date' THEN
+    _insert_columns := array_append(_insert_columns, 'expiry_date');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.certifications DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.certifications (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 562 (class 1255 OID 22034)
 -- Name: insert_change_orders(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_change_orders(_input jsonb) RETURNS SETOF public.change_orders
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.change_orders;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.change_orders;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','change_orders', _project_id, _organization_id);
@@ -17468,28 +18024,79 @@ CREATE FUNCTION public.insert_change_orders(_input jsonb) RETURNS SETOF public.c
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.change_orders
-        SELECT (jsonb_populate_record(NULL::public.change_orders, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.change_orders, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'number' THEN
+    _insert_columns := array_append(_insert_columns, 'number');
+  END IF;
+
+  IF _input_sanitized ? 'description' THEN
+    _insert_columns := array_append(_insert_columns, 'description');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF _input_sanitized ? 'amount' THEN
+    _insert_columns := array_append(_insert_columns, 'amount');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.change_orders DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.change_orders (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 599 (class 1255 OID 22035)
 -- Name: insert_commitments(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_commitments(_input jsonb) RETURNS SETOF public.commitments
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.commitments;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.commitments;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','commitments', _project_id, _organization_id);
@@ -17498,28 +18105,79 @@ CREATE FUNCTION public.insert_commitments(_input jsonb) RETURNS SETOF public.com
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.commitments
-        SELECT (jsonb_populate_record(NULL::public.commitments, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.commitments, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'vendor_id' THEN
+    _insert_columns := array_append(_insert_columns, 'vendor_id');
+  END IF;
+
+  IF _input_sanitized ? 'type' THEN
+    _insert_columns := array_append(_insert_columns, 'type');
+  END IF;
+
+  IF _input_sanitized ? 'amount' THEN
+    _insert_columns := array_append(_insert_columns, 'amount');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.commitments DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.commitments (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 691 (class 1255 OID 22036)
 -- Name: insert_compliance_checks(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_compliance_checks(_input jsonb) RETURNS SETOF public.compliance_checks
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.compliance_checks;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.compliance_checks;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','compliance_checks', _project_id, _organization_id);
@@ -17528,28 +18186,75 @@ CREATE FUNCTION public.insert_compliance_checks(_input jsonb) RETURNS SETOF publ
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.compliance_checks
-        SELECT (jsonb_populate_record(NULL::public.compliance_checks, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.compliance_checks, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'check_date' THEN
+    _insert_columns := array_append(_insert_columns, 'check_date');
+  END IF;
+
+  IF _input_sanitized ? 'description' THEN
+    _insert_columns := array_append(_insert_columns, 'description');
+  END IF;
+
+  IF _input_sanitized ? 'result' THEN
+    _insert_columns := array_append(_insert_columns, 'result');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.compliance_checks DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.compliance_checks (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 833 (class 1255 OID 22037)
 -- Name: insert_compliance_tracking(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_compliance_tracking(_input jsonb) RETURNS SETOF public.compliance_tracking
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.compliance_tracking;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.compliance_tracking;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','compliance_tracking', _project_id, _organization_id);
@@ -17558,28 +18263,75 @@ CREATE FUNCTION public.insert_compliance_tracking(_input jsonb) RETURNS SETOF pu
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.compliance_tracking
-        SELECT (jsonb_populate_record(NULL::public.compliance_tracking, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.compliance_tracking, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'tracking_type' THEN
+    _insert_columns := array_append(_insert_columns, 'tracking_type');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF _input_sanitized ? 'notes' THEN
+    _insert_columns := array_append(_insert_columns, 'notes');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.compliance_tracking DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.compliance_tracking (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 969 (class 1255 OID 22038)
 -- Name: insert_cost_codes(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_cost_codes(_input jsonb) RETURNS SETOF public.cost_codes
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.cost_codes;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.cost_codes;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','cost_codes', _project_id, _organization_id);
@@ -17588,28 +18340,67 @@ CREATE FUNCTION public.insert_cost_codes(_input jsonb) RETURNS SETOF public.cost
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.cost_codes
-        SELECT (jsonb_populate_record(NULL::public.cost_codes, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.cost_codes, _input_sanitized);
+
+  IF _input_sanitized ? 'code' THEN
+    _insert_columns := array_append(_insert_columns, 'code');
+  END IF;
+
+  IF _input_sanitized ? 'description' THEN
+    _insert_columns := array_append(_insert_columns, 'description');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.cost_codes DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.cost_codes (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 834 (class 1255 OID 22039)
 -- Name: insert_crew_assignments(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_crew_assignments(_input jsonb) RETURNS SETOF public.crew_assignments
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.crew_assignments;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.crew_assignments;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','crew_assignments', _project_id, _organization_id);
@@ -17618,28 +18409,71 @@ CREATE FUNCTION public.insert_crew_assignments(_input jsonb) RETURNS SETOF publi
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.crew_assignments
-        SELECT (jsonb_populate_record(NULL::public.crew_assignments, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.crew_assignments, _input_sanitized);
+
+  IF _input_sanitized ? 'crew_id' THEN
+    _insert_columns := array_append(_insert_columns, 'crew_id');
+  END IF;
+
+  IF _input_sanitized ? 'profile_id' THEN
+    _insert_columns := array_append(_insert_columns, 'profile_id');
+  END IF;
+
+  IF _input_sanitized ? 'assigned_date' THEN
+    _insert_columns := array_append(_insert_columns, 'assigned_date');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.crew_assignments DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.crew_assignments (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 997 (class 1255 OID 22040)
 -- Name: insert_crew_members(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_crew_members(_input jsonb) RETURNS SETOF public.crew_members
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.crew_members;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.crew_members;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','crew_members', _project_id, _organization_id);
@@ -17648,28 +18482,79 @@ CREATE FUNCTION public.insert_crew_members(_input jsonb) RETURNS SETOF public.cr
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.crew_members
-        SELECT (jsonb_populate_record(NULL::public.crew_members, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.crew_members, _input_sanitized);
+
+  IF _input_sanitized ? 'crew_id' THEN
+    _insert_columns := array_append(_insert_columns, 'crew_id');
+  END IF;
+
+  IF _input_sanitized ? 'profile_id' THEN
+    _insert_columns := array_append(_insert_columns, 'profile_id');
+  END IF;
+
+  IF _input_sanitized ? 'role' THEN
+    _insert_columns := array_append(_insert_columns, 'role');
+  END IF;
+
+  IF _input_sanitized ? 'start_date' THEN
+    _insert_columns := array_append(_insert_columns, 'start_date');
+  END IF;
+
+  IF _input_sanitized ? 'end_date' THEN
+    _insert_columns := array_append(_insert_columns, 'end_date');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.crew_members DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.crew_members (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 952 (class 1255 OID 22041)
 -- Name: insert_crews(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_crews(_input jsonb) RETURNS SETOF public.crews
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.crews;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.crews;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','crews', _project_id, _organization_id);
@@ -17678,28 +18563,67 @@ CREATE FUNCTION public.insert_crews(_input jsonb) RETURNS SETOF public.crews
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.crews
-        SELECT (jsonb_populate_record(NULL::public.crews, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.crews, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.crews DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.crews (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 770 (class 1255 OID 22042)
 -- Name: insert_daily_logs(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_daily_logs(_input jsonb) RETURNS SETOF public.daily_logs
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.daily_logs;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.daily_logs;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','daily_logs', _project_id, _organization_id);
@@ -17708,28 +18632,75 @@ CREATE FUNCTION public.insert_daily_logs(_input jsonb) RETURNS SETOF public.dail
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.daily_logs
-        SELECT (jsonb_populate_record(NULL::public.daily_logs, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.daily_logs, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'date' THEN
+    _insert_columns := array_append(_insert_columns, 'date');
+  END IF;
+
+  IF _input_sanitized ? 'weather' THEN
+    _insert_columns := array_append(_insert_columns, 'weather');
+  END IF;
+
+  IF _input_sanitized ? 'notes' THEN
+    _insert_columns := array_append(_insert_columns, 'notes');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.daily_logs DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.daily_logs (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 896 (class 1255 OID 22043)
 -- Name: insert_dashboard_configs(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_dashboard_configs(_input jsonb) RETURNS SETOF public.dashboard_configs
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.dashboard_configs;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.dashboard_configs;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','dashboard_configs', _project_id, _organization_id);
@@ -17738,28 +18709,67 @@ CREATE FUNCTION public.insert_dashboard_configs(_input jsonb) RETURNS SETOF publ
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.dashboard_configs
-        SELECT (jsonb_populate_record(NULL::public.dashboard_configs, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.dashboard_configs, _input_sanitized);
+
+  IF _input_sanitized ? 'profile_id' THEN
+    _insert_columns := array_append(_insert_columns, 'profile_id');
+  END IF;
+
+  IF _input_sanitized ? 'config' THEN
+    _insert_columns := array_append(_insert_columns, 'config');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.dashboard_configs DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.dashboard_configs (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 730 (class 1255 OID 22044)
 -- Name: insert_document_references(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_document_references(_input jsonb) RETURNS SETOF public.document_references
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.document_references;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.document_references;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','document_references', _project_id, _organization_id);
@@ -17768,28 +18778,71 @@ CREATE FUNCTION public.insert_document_references(_input jsonb) RETURNS SETOF pu
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.document_references
-        SELECT (jsonb_populate_record(NULL::public.document_references, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.document_references, _input_sanitized);
+
+  IF _input_sanitized ? 'document_id' THEN
+    _insert_columns := array_append(_insert_columns, 'document_id');
+  END IF;
+
+  IF _input_sanitized ? 'reference_type' THEN
+    _insert_columns := array_append(_insert_columns, 'reference_type');
+  END IF;
+
+  IF _input_sanitized ? 'reference_id' THEN
+    _insert_columns := array_append(_insert_columns, 'reference_id');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.document_references DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.document_references (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 610 (class 1255 OID 22045)
 -- Name: insert_documents(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_documents(_input jsonb) RETURNS SETOF public.documents
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.documents;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.documents;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','documents', _project_id, _organization_id);
@@ -17798,28 +18851,83 @@ CREATE FUNCTION public.insert_documents(_input jsonb) RETURNS SETOF public.docum
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.documents
-        SELECT (jsonb_populate_record(NULL::public.documents, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.documents, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'type' THEN
+    _insert_columns := array_append(_insert_columns, 'type');
+  END IF;
+
+  IF _input_sanitized ? 'url' THEN
+    _insert_columns := array_append(_insert_columns, 'url');
+  END IF;
+
+  IF _input_sanitized ? 'uploaded_by' THEN
+    _insert_columns := array_append(_insert_columns, 'uploaded_by');
+  END IF;
+
+  IF _input_sanitized ? 'uploaded_at' THEN
+    _insert_columns := array_append(_insert_columns, 'uploaded_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.documents DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.documents (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 954 (class 1255 OID 22046)
 -- Name: insert_drawing_versions(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_drawing_versions(_input jsonb) RETURNS SETOF public.drawing_versions
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.drawing_versions;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.drawing_versions;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','drawing_versions', _project_id, _organization_id);
@@ -17828,28 +18936,75 @@ CREATE FUNCTION public.insert_drawing_versions(_input jsonb) RETURNS SETOF publi
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.drawing_versions
-        SELECT (jsonb_populate_record(NULL::public.drawing_versions, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.drawing_versions, _input_sanitized);
+
+  IF _input_sanitized ? 'document_id' THEN
+    _insert_columns := array_append(_insert_columns, 'document_id');
+  END IF;
+
+  IF _input_sanitized ? 'version' THEN
+    _insert_columns := array_append(_insert_columns, 'version');
+  END IF;
+
+  IF _input_sanitized ? 'uploaded_by' THEN
+    _insert_columns := array_append(_insert_columns, 'uploaded_by');
+  END IF;
+
+  IF _input_sanitized ? 'uploaded_at' THEN
+    _insert_columns := array_append(_insert_columns, 'uploaded_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.drawing_versions DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.drawing_versions (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 768 (class 1255 OID 22047)
 -- Name: insert_dump_trucks(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_dump_trucks(_input jsonb) RETURNS SETOF public.dump_trucks
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.dump_trucks;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.dump_trucks;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','dump_trucks', _project_id, _organization_id);
@@ -17858,28 +19013,75 @@ CREATE FUNCTION public.insert_dump_trucks(_input jsonb) RETURNS SETOF public.dum
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.dump_trucks
-        SELECT (jsonb_populate_record(NULL::public.dump_trucks, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.dump_trucks, _input_sanitized);
+
+  IF _input_sanitized ? 'organization_id' THEN
+    _insert_columns := array_append(_insert_columns, 'organization_id');
+  END IF;
+
+  IF _input_sanitized ? 'make' THEN
+    _insert_columns := array_append(_insert_columns, 'make');
+  END IF;
+
+  IF _input_sanitized ? 'model' THEN
+    _insert_columns := array_append(_insert_columns, 'model');
+  END IF;
+
+  IF _input_sanitized ? 'capacity' THEN
+    _insert_columns := array_append(_insert_columns, 'capacity');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.dump_trucks DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.dump_trucks (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 629 (class 1255 OID 22048)
 -- Name: insert_employees(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_employees(_input jsonb) RETURNS SETOF public.employees
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.employees;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.employees;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','employees', _project_id, _organization_id);
@@ -17888,28 +19090,75 @@ CREATE FUNCTION public.insert_employees(_input jsonb) RETURNS SETOF public.emplo
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.employees
-        SELECT (jsonb_populate_record(NULL::public.employees, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.employees, _input_sanitized);
+
+  IF _input_sanitized ? 'organization_id' THEN
+    _insert_columns := array_append(_insert_columns, 'organization_id');
+  END IF;
+
+  IF _input_sanitized ? 'profile_id' THEN
+    _insert_columns := array_append(_insert_columns, 'profile_id');
+  END IF;
+
+  IF _input_sanitized ? 'hire_date' THEN
+    _insert_columns := array_append(_insert_columns, 'hire_date');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.employees DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.employees (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 1014 (class 1255 OID 22049)
 -- Name: insert_equipment(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_equipment(_input jsonb) RETURNS SETOF public.equipment
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.equipment;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.equipment;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','equipment', _project_id, _organization_id);
@@ -17918,28 +19167,83 @@ CREATE FUNCTION public.insert_equipment(_input jsonb) RETURNS SETOF public.equip
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.equipment
-        SELECT (jsonb_populate_record(NULL::public.equipment, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.equipment, _input_sanitized);
+
+  IF _input_sanitized ? 'organization_id' THEN
+    _insert_columns := array_append(_insert_columns, 'organization_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'type' THEN
+    _insert_columns := array_append(_insert_columns, 'type');
+  END IF;
+
+  IF _input_sanitized ? 'model' THEN
+    _insert_columns := array_append(_insert_columns, 'model');
+  END IF;
+
+  IF _input_sanitized ? 'serial_number' THEN
+    _insert_columns := array_append(_insert_columns, 'serial_number');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.equipment DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.equipment (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 569 (class 1255 OID 22050)
 -- Name: insert_equipment_assignments(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_equipment_assignments(_input jsonb) RETURNS SETOF public.equipment_assignments
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.equipment_assignments;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.equipment_assignments;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','equipment_assignments', _project_id, _organization_id);
@@ -17948,28 +19252,83 @@ CREATE FUNCTION public.insert_equipment_assignments(_input jsonb) RETURNS SETOF 
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.equipment_assignments
-        SELECT (jsonb_populate_record(NULL::public.equipment_assignments, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.equipment_assignments, _input_sanitized);
+
+  IF _input_sanitized ? 'equipment_id' THEN
+    _insert_columns := array_append(_insert_columns, 'equipment_id');
+  END IF;
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'assigned_to' THEN
+    _insert_columns := array_append(_insert_columns, 'assigned_to');
+  END IF;
+
+  IF _input_sanitized ? 'assigned_date' THEN
+    _insert_columns := array_append(_insert_columns, 'assigned_date');
+  END IF;
+
+  IF _input_sanitized ? 'released_date' THEN
+    _insert_columns := array_append(_insert_columns, 'released_date');
+  END IF;
+
+  IF _input_sanitized ? 'notes' THEN
+    _insert_columns := array_append(_insert_columns, 'notes');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.equipment_assignments DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.equipment_assignments (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 765 (class 1255 OID 22051)
 -- Name: insert_equipment_maintenance(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_equipment_maintenance(_input jsonb) RETURNS SETOF public.equipment_maintenance
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.equipment_maintenance;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.equipment_maintenance;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','equipment_maintenance', _project_id, _organization_id);
@@ -17978,28 +19337,79 @@ CREATE FUNCTION public.insert_equipment_maintenance(_input jsonb) RETURNS SETOF 
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.equipment_maintenance
-        SELECT (jsonb_populate_record(NULL::public.equipment_maintenance, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.equipment_maintenance, _input_sanitized);
+
+  IF _input_sanitized ? 'equipment_id' THEN
+    _insert_columns := array_append(_insert_columns, 'equipment_id');
+  END IF;
+
+  IF _input_sanitized ? 'maintenance_date' THEN
+    _insert_columns := array_append(_insert_columns, 'maintenance_date');
+  END IF;
+
+  IF _input_sanitized ? 'type' THEN
+    _insert_columns := array_append(_insert_columns, 'type');
+  END IF;
+
+  IF _input_sanitized ? 'description' THEN
+    _insert_columns := array_append(_insert_columns, 'description');
+  END IF;
+
+  IF _input_sanitized ? 'performed_by' THEN
+    _insert_columns := array_append(_insert_columns, 'performed_by');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.equipment_maintenance DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.equipment_maintenance (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 702 (class 1255 OID 22052)
 -- Name: insert_equipment_usage(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_equipment_usage(_input jsonb) RETURNS SETOF public.equipment_usage
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.equipment_usage;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.equipment_usage;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','equipment_usage', _project_id, _organization_id);
@@ -18008,28 +19418,79 @@ CREATE FUNCTION public.insert_equipment_usage(_input jsonb) RETURNS SETOF public
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.equipment_usage
-        SELECT (jsonb_populate_record(NULL::public.equipment_usage, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.equipment_usage, _input_sanitized);
+
+  IF _input_sanitized ? 'equipment_id' THEN
+    _insert_columns := array_append(_insert_columns, 'equipment_id');
+  END IF;
+
+  IF _input_sanitized ? 'date' THEN
+    _insert_columns := array_append(_insert_columns, 'date');
+  END IF;
+
+  IF _input_sanitized ? 'hours_used' THEN
+    _insert_columns := array_append(_insert_columns, 'hours_used');
+  END IF;
+
+  IF _input_sanitized ? 'quantity' THEN
+    _insert_columns := array_append(_insert_columns, 'quantity');
+  END IF;
+
+  IF _input_sanitized ? 'notes' THEN
+    _insert_columns := array_append(_insert_columns, 'notes');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.equipment_usage DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.equipment_usage (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 847 (class 1255 OID 22053)
 -- Name: insert_estimate_line_items(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_estimate_line_items(_input jsonb) RETURNS SETOF public.estimate_line_items
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.estimate_line_items;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.estimate_line_items;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','estimate_line_items', _project_id, _organization_id);
@@ -18038,28 +19499,87 @@ CREATE FUNCTION public.insert_estimate_line_items(_input jsonb) RETURNS SETOF pu
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.estimate_line_items
-        SELECT (jsonb_populate_record(NULL::public.estimate_line_items, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.estimate_line_items, _input_sanitized);
+
+  IF _input_sanitized ? 'estimate_id' THEN
+    _insert_columns := array_append(_insert_columns, 'estimate_id');
+  END IF;
+
+  IF _input_sanitized ? 'cost_code_id' THEN
+    _insert_columns := array_append(_insert_columns, 'cost_code_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'unit_measure' THEN
+    _insert_columns := array_append(_insert_columns, 'unit_measure');
+  END IF;
+
+  IF _input_sanitized ? 'quantity' THEN
+    _insert_columns := array_append(_insert_columns, 'quantity');
+  END IF;
+
+  IF _input_sanitized ? 'unit_price' THEN
+    _insert_columns := array_append(_insert_columns, 'unit_price');
+  END IF;
+
+  IF _input_sanitized ? 'total_cost' THEN
+    _insert_columns := array_append(_insert_columns, 'total_cost');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.estimate_line_items DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.estimate_line_items (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 596 (class 1255 OID 22054)
 -- Name: insert_estimates(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_estimates(_input jsonb) RETURNS SETOF public.estimates
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.estimates;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.estimates;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','estimates', _project_id, _organization_id);
@@ -18068,28 +19588,75 @@ CREATE FUNCTION public.insert_estimates(_input jsonb) RETURNS SETOF public.estim
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.estimates
-        SELECT (jsonb_populate_record(NULL::public.estimates, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.estimates, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF _input_sanitized ? 'created_by' THEN
+    _insert_columns := array_append(_insert_columns, 'created_by');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.estimates DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.estimates (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 698 (class 1255 OID 22055)
 -- Name: insert_financial_documents(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_financial_documents(_input jsonb) RETURNS SETOF public.financial_documents
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.financial_documents;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.financial_documents;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','financial_documents', _project_id, _organization_id);
@@ -18098,28 +19665,75 @@ CREATE FUNCTION public.insert_financial_documents(_input jsonb) RETURNS SETOF pu
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.financial_documents
-        SELECT (jsonb_populate_record(NULL::public.financial_documents, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.financial_documents, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'document_type' THEN
+    _insert_columns := array_append(_insert_columns, 'document_type');
+  END IF;
+
+  IF _input_sanitized ? 'url' THEN
+    _insert_columns := array_append(_insert_columns, 'url');
+  END IF;
+
+  IF _input_sanitized ? 'uploaded_at' THEN
+    _insert_columns := array_append(_insert_columns, 'uploaded_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.financial_documents DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.financial_documents (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 928 (class 1255 OID 22056)
 -- Name: insert_general_ledger(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_general_ledger(_input jsonb) RETURNS SETOF public.general_ledger
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.general_ledger;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.general_ledger;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','general_ledger', _project_id, _organization_id);
@@ -18128,28 +19742,83 @@ CREATE FUNCTION public.insert_general_ledger(_input jsonb) RETURNS SETOF public.
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.general_ledger
-        SELECT (jsonb_populate_record(NULL::public.general_ledger, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.general_ledger, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'entry_date' THEN
+    _insert_columns := array_append(_insert_columns, 'entry_date');
+  END IF;
+
+  IF _input_sanitized ? 'description' THEN
+    _insert_columns := array_append(_insert_columns, 'description');
+  END IF;
+
+  IF _input_sanitized ? 'debit' THEN
+    _insert_columns := array_append(_insert_columns, 'debit');
+  END IF;
+
+  IF _input_sanitized ? 'credit' THEN
+    _insert_columns := array_append(_insert_columns, 'credit');
+  END IF;
+
+  IF _input_sanitized ? 'balance' THEN
+    _insert_columns := array_append(_insert_columns, 'balance');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.general_ledger DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.general_ledger (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 675 (class 1255 OID 22057)
 -- Name: insert_hr_documents(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_hr_documents(_input jsonb) RETURNS SETOF public.hr_documents
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.hr_documents;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.hr_documents;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','hr_documents', _project_id, _organization_id);
@@ -18158,28 +19827,75 @@ CREATE FUNCTION public.insert_hr_documents(_input jsonb) RETURNS SETOF public.hr
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.hr_documents
-        SELECT (jsonb_populate_record(NULL::public.hr_documents, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.hr_documents, _input_sanitized);
+
+  IF _input_sanitized ? 'employee_id' THEN
+    _insert_columns := array_append(_insert_columns, 'employee_id');
+  END IF;
+
+  IF _input_sanitized ? 'document_type' THEN
+    _insert_columns := array_append(_insert_columns, 'document_type');
+  END IF;
+
+  IF _input_sanitized ? 'url' THEN
+    _insert_columns := array_append(_insert_columns, 'url');
+  END IF;
+
+  IF _input_sanitized ? 'uploaded_at' THEN
+    _insert_columns := array_append(_insert_columns, 'uploaded_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.hr_documents DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.hr_documents (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 1021 (class 1255 OID 22058)
 -- Name: insert_inspections(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_inspections(_input jsonb) RETURNS SETOF public.inspections
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.inspections;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.inspections;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','inspections', _project_id, _organization_id);
@@ -18188,28 +19904,87 @@ CREATE FUNCTION public.insert_inspections(_input jsonb) RETURNS SETOF public.ins
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.inspections
-        SELECT (jsonb_populate_record(NULL::public.inspections, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.inspections, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'inspection_type' THEN
+    _insert_columns := array_append(_insert_columns, 'inspection_type');
+  END IF;
+
+  IF _input_sanitized ? 'date' THEN
+    _insert_columns := array_append(_insert_columns, 'date');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF _input_sanitized ? 'result' THEN
+    _insert_columns := array_append(_insert_columns, 'result');
+  END IF;
+
+  IF _input_sanitized ? 'notes' THEN
+    _insert_columns := array_append(_insert_columns, 'notes');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.inspections DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.inspections (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 989 (class 1255 OID 22059)
 -- Name: insert_integration_tokens(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_integration_tokens(_input jsonb) RETURNS SETOF public.integration_tokens
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.integration_tokens;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.integration_tokens;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','integration_tokens', _project_id, _organization_id);
@@ -18218,28 +19993,71 @@ CREATE FUNCTION public.insert_integration_tokens(_input jsonb) RETURNS SETOF pub
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.integration_tokens
-        SELECT (jsonb_populate_record(NULL::public.integration_tokens, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.integration_tokens, _input_sanitized);
+
+  IF _input_sanitized ? 'profile_id' THEN
+    _insert_columns := array_append(_insert_columns, 'profile_id');
+  END IF;
+
+  IF _input_sanitized ? 'service_name' THEN
+    _insert_columns := array_append(_insert_columns, 'service_name');
+  END IF;
+
+  IF _input_sanitized ? 'token' THEN
+    _insert_columns := array_append(_insert_columns, 'token');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.integration_tokens DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.integration_tokens (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 1009 (class 1255 OID 22060)
 -- Name: insert_inventory_transactions(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_inventory_transactions(_input jsonb) RETURNS SETOF public.inventory_transactions
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.inventory_transactions;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.inventory_transactions;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','inventory_transactions', _project_id, _organization_id);
@@ -18248,28 +20066,79 @@ CREATE FUNCTION public.insert_inventory_transactions(_input jsonb) RETURNS SETOF
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.inventory_transactions
-        SELECT (jsonb_populate_record(NULL::public.inventory_transactions, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.inventory_transactions, _input_sanitized);
+
+  IF _input_sanitized ? 'material_id' THEN
+    _insert_columns := array_append(_insert_columns, 'material_id');
+  END IF;
+
+  IF _input_sanitized ? 'transaction_type' THEN
+    _insert_columns := array_append(_insert_columns, 'transaction_type');
+  END IF;
+
+  IF _input_sanitized ? 'quantity' THEN
+    _insert_columns := array_append(_insert_columns, 'quantity');
+  END IF;
+
+  IF _input_sanitized ? 'transaction_date' THEN
+    _insert_columns := array_append(_insert_columns, 'transaction_date');
+  END IF;
+
+  IF _input_sanitized ? 'notes' THEN
+    _insert_columns := array_append(_insert_columns, 'notes');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.inventory_transactions DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.inventory_transactions (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 981 (class 1255 OID 22061)
 -- Name: insert_issues(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_issues(_input jsonb) RETURNS SETOF public.issues
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.issues;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.issues;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','issues', _project_id, _organization_id);
@@ -18278,17 +20147,65 @@ CREATE FUNCTION public.insert_issues(_input jsonb) RETURNS SETOF public.issues
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.issues
-        SELECT (jsonb_populate_record(NULL::public.issues, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.issues, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'type' THEN
+    _insert_columns := array_append(_insert_columns, 'type');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF _input_sanitized ? 'reported_by' THEN
+    _insert_columns := array_append(_insert_columns, 'reported_by');
+  END IF;
+
+  IF _input_sanitized ? 'description' THEN
+    _insert_columns := array_append(_insert_columns, 'description');
+  END IF;
+
+  IF _input_sanitized ? 'resolved' THEN
+    _insert_columns := array_append(_insert_columns, 'resolved');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.issues DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.issues (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 1002 (class 1255 OID 26470)
 -- Name: insert_job_title_public(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -18326,18 +20243,28 @@ $$;
 
 
 --
--- TOC entry 1089 (class 1255 OID 22062)
 -- Name: insert_job_titles(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_job_titles(_input jsonb) RETURNS SETOF public.job_titles
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.job_titles;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.job_titles;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','job_titles', _project_id, _organization_id);
@@ -18346,28 +20273,63 @@ CREATE FUNCTION public.insert_job_titles(_input jsonb) RETURNS SETOF public.job_
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.job_titles
-        SELECT (jsonb_populate_record(NULL::public.job_titles, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.job_titles, _input_sanitized);
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.job_titles DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.job_titles (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 637 (class 1255 OID 22063)
 -- Name: insert_labor_records(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_labor_records(_input jsonb) RETURNS SETOF public.labor_records
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.labor_records;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.labor_records;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','labor_records', _project_id, _organization_id);
@@ -18376,28 +20338,83 @@ CREATE FUNCTION public.insert_labor_records(_input jsonb) RETURNS SETOF public.l
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.labor_records
-        SELECT (jsonb_populate_record(NULL::public.labor_records, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.labor_records, _input_sanitized);
+
+  IF _input_sanitized ? 'line_item_id' THEN
+    _insert_columns := array_append(_insert_columns, 'line_item_id');
+  END IF;
+
+  IF _input_sanitized ? 'worker_count' THEN
+    _insert_columns := array_append(_insert_columns, 'worker_count');
+  END IF;
+
+  IF _input_sanitized ? 'hours_worked' THEN
+    _insert_columns := array_append(_insert_columns, 'hours_worked');
+  END IF;
+
+  IF _input_sanitized ? 'work_date' THEN
+    _insert_columns := array_append(_insert_columns, 'work_date');
+  END IF;
+
+  IF _input_sanitized ? 'work_type' THEN
+    _insert_columns := array_append(_insert_columns, 'work_type');
+  END IF;
+
+  IF _input_sanitized ? 'notes' THEN
+    _insert_columns := array_append(_insert_columns, 'notes');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.labor_records DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.labor_records (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 689 (class 1255 OID 22064)
 -- Name: insert_line_item_entries(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_line_item_entries(_input jsonb) RETURNS SETOF public.line_item_entries
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.line_item_entries;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.line_item_entries;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','line_item_entries', _project_id, _organization_id);
@@ -18406,28 +20423,75 @@ CREATE FUNCTION public.insert_line_item_entries(_input jsonb) RETURNS SETOF publ
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.line_item_entries
-        SELECT (jsonb_populate_record(NULL::public.line_item_entries, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.line_item_entries, _input_sanitized);
+
+  IF _input_sanitized ? 'line_item_id' THEN
+    _insert_columns := array_append(_insert_columns, 'line_item_id');
+  END IF;
+
+  IF _input_sanitized ? 'date' THEN
+    _insert_columns := array_append(_insert_columns, 'date');
+  END IF;
+
+  IF _input_sanitized ? 'quantity_completed' THEN
+    _insert_columns := array_append(_insert_columns, 'quantity_completed');
+  END IF;
+
+  IF _input_sanitized ? 'notes' THEN
+    _insert_columns := array_append(_insert_columns, 'notes');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.line_item_entries DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.line_item_entries (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 751 (class 1255 OID 22065)
 -- Name: insert_line_item_templates(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_line_item_templates(_input jsonb) RETURNS SETOF public.line_item_templates
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.line_item_templates;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.line_item_templates;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','line_item_templates', _project_id, _organization_id);
@@ -18436,28 +20500,75 @@ CREATE FUNCTION public.insert_line_item_templates(_input jsonb) RETURNS SETOF pu
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.line_item_templates
-        SELECT (jsonb_populate_record(NULL::public.line_item_templates, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.line_item_templates, _input_sanitized);
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'formula' THEN
+    _insert_columns := array_append(_insert_columns, 'formula');
+  END IF;
+
+  IF _input_sanitized ? 'variables' THEN
+    _insert_columns := array_append(_insert_columns, 'variables');
+  END IF;
+
+  IF _input_sanitized ? 'created_by' THEN
+    _insert_columns := array_append(_insert_columns, 'created_by');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.line_item_templates DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.line_item_templates (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 830 (class 1255 OID 22066)
 -- Name: insert_line_items(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_line_items(_input jsonb) RETURNS SETOF public.line_items
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.line_items;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.line_items;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','line_items', _project_id, _organization_id);
@@ -18466,28 +20577,99 @@ CREATE FUNCTION public.insert_line_items(_input jsonb) RETURNS SETOF public.line
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.line_items
-        SELECT (jsonb_populate_record(NULL::public.line_items, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.line_items, _input_sanitized);
+
+  IF _input_sanitized ? 'map_id' THEN
+    _insert_columns := array_append(_insert_columns, 'map_id');
+  END IF;
+
+  IF _input_sanitized ? 'wbs_id' THEN
+    _insert_columns := array_append(_insert_columns, 'wbs_id');
+  END IF;
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'cost_code_id' THEN
+    _insert_columns := array_append(_insert_columns, 'cost_code_id');
+  END IF;
+
+  IF _input_sanitized ? 'template_id' THEN
+    _insert_columns := array_append(_insert_columns, 'template_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'description' THEN
+    _insert_columns := array_append(_insert_columns, 'description');
+  END IF;
+
+  IF _input_sanitized ? 'unit_measure' THEN
+    _insert_columns := array_append(_insert_columns, 'unit_measure');
+  END IF;
+
+  IF _input_sanitized ? 'quantity' THEN
+    _insert_columns := array_append(_insert_columns, 'quantity');
+  END IF;
+
+  IF _input_sanitized ? 'unit_price' THEN
+    _insert_columns := array_append(_insert_columns, 'unit_price');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.line_items DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.line_items (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 998 (class 1255 OID 22067)
 -- Name: insert_maps(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_maps(_input jsonb) RETURNS SETOF public.maps
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.maps;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.maps;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','maps', _project_id, _organization_id);
@@ -18496,28 +20678,87 @@ CREATE FUNCTION public.insert_maps(_input jsonb) RETURNS SETOF public.maps
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.maps
-        SELECT (jsonb_populate_record(NULL::public.maps, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.maps, _input_sanitized);
+
+  IF _input_sanitized ? 'wbs_id' THEN
+    _insert_columns := array_append(_insert_columns, 'wbs_id');
+  END IF;
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'description' THEN
+    _insert_columns := array_append(_insert_columns, 'description');
+  END IF;
+
+  IF _input_sanitized ? 'coordinates' THEN
+    _insert_columns := array_append(_insert_columns, 'coordinates');
+  END IF;
+
+  IF _input_sanitized ? 'scope' THEN
+    _insert_columns := array_append(_insert_columns, 'scope');
+  END IF;
+
+  IF _input_sanitized ? 'order_num' THEN
+    _insert_columns := array_append(_insert_columns, 'order_num');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.maps DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.maps (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 710 (class 1255 OID 22068)
 -- Name: insert_material_inventory(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_material_inventory(_input jsonb) RETURNS SETOF public.material_inventory
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.material_inventory;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.material_inventory;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','material_inventory', _project_id, _organization_id);
@@ -18526,28 +20767,75 @@ CREATE FUNCTION public.insert_material_inventory(_input jsonb) RETURNS SETOF pub
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.material_inventory
-        SELECT (jsonb_populate_record(NULL::public.material_inventory, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.material_inventory, _input_sanitized);
+
+  IF _input_sanitized ? 'material_id' THEN
+    _insert_columns := array_append(_insert_columns, 'material_id');
+  END IF;
+
+  IF _input_sanitized ? 'organization_id' THEN
+    _insert_columns := array_append(_insert_columns, 'organization_id');
+  END IF;
+
+  IF _input_sanitized ? 'quantity' THEN
+    _insert_columns := array_append(_insert_columns, 'quantity');
+  END IF;
+
+  IF _input_sanitized ? 'last_updated' THEN
+    _insert_columns := array_append(_insert_columns, 'last_updated');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.material_inventory DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.material_inventory (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 884 (class 1255 OID 22069)
 -- Name: insert_material_orders(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_material_orders(_input jsonb) RETURNS SETOF public.material_orders
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.material_orders;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.material_orders;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','material_orders', _project_id, _organization_id);
@@ -18556,28 +20844,79 @@ CREATE FUNCTION public.insert_material_orders(_input jsonb) RETURNS SETOF public
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.material_orders
-        SELECT (jsonb_populate_record(NULL::public.material_orders, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.material_orders, _input_sanitized);
+
+  IF _input_sanitized ? 'material_id' THEN
+    _insert_columns := array_append(_insert_columns, 'material_id');
+  END IF;
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'order_date' THEN
+    _insert_columns := array_append(_insert_columns, 'order_date');
+  END IF;
+
+  IF _input_sanitized ? 'quantity' THEN
+    _insert_columns := array_append(_insert_columns, 'quantity');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.material_orders DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.material_orders (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 864 (class 1255 OID 22070)
 -- Name: insert_material_receipts(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_material_receipts(_input jsonb) RETURNS SETOF public.material_receipts
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.material_receipts;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.material_receipts;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','material_receipts', _project_id, _organization_id);
@@ -18586,28 +20925,75 @@ CREATE FUNCTION public.insert_material_receipts(_input jsonb) RETURNS SETOF publ
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.material_receipts
-        SELECT (jsonb_populate_record(NULL::public.material_receipts, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.material_receipts, _input_sanitized);
+
+  IF _input_sanitized ? 'material_order_id' THEN
+    _insert_columns := array_append(_insert_columns, 'material_order_id');
+  END IF;
+
+  IF _input_sanitized ? 'received_date' THEN
+    _insert_columns := array_append(_insert_columns, 'received_date');
+  END IF;
+
+  IF _input_sanitized ? 'quantity' THEN
+    _insert_columns := array_append(_insert_columns, 'quantity');
+  END IF;
+
+  IF _input_sanitized ? 'received_by' THEN
+    _insert_columns := array_append(_insert_columns, 'received_by');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.material_receipts DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.material_receipts (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 800 (class 1255 OID 22071)
 -- Name: insert_materials(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_materials(_input jsonb) RETURNS SETOF public.materials
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.materials;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.materials;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','materials', _project_id, _organization_id);
@@ -18616,28 +21002,75 @@ CREATE FUNCTION public.insert_materials(_input jsonb) RETURNS SETOF public.mater
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.materials
-        SELECT (jsonb_populate_record(NULL::public.materials, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.materials, _input_sanitized);
+
+  IF _input_sanitized ? 'organization_id' THEN
+    _insert_columns := array_append(_insert_columns, 'organization_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'description' THEN
+    _insert_columns := array_append(_insert_columns, 'description');
+  END IF;
+
+  IF _input_sanitized ? 'unit' THEN
+    _insert_columns := array_append(_insert_columns, 'unit');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.materials DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.materials (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 936 (class 1255 OID 22072)
 -- Name: insert_meeting_minutes(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_meeting_minutes(_input jsonb) RETURNS SETOF public.meeting_minutes
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.meeting_minutes;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.meeting_minutes;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','meeting_minutes', _project_id, _organization_id);
@@ -18646,17 +21079,53 @@ CREATE FUNCTION public.insert_meeting_minutes(_input jsonb) RETURNS SETOF public
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.meeting_minutes
-        SELECT (jsonb_populate_record(NULL::public.meeting_minutes, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.meeting_minutes, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'meeting_date' THEN
+    _insert_columns := array_append(_insert_columns, 'meeting_date');
+  END IF;
+
+  IF _input_sanitized ? 'notes' THEN
+    _insert_columns := array_append(_insert_columns, 'notes');
+  END IF;
+
+  IF _input_sanitized ? 'created_by' THEN
+    _insert_columns := array_append(_insert_columns, 'created_by');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.meeting_minutes DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.meeting_minutes (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 1098 (class 1255 OID 22073)
 -- Name: insert_notifications(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -18664,29 +21133,60 @@ CREATE FUNCTION public.insert_notifications(_input jsonb) RETURNS SETOF public.n
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
     AS $$
-      DECLARE
-        _project_id      uuid := (_input->>'project_id')::uuid;
-        _organization_id uuid := (_input->>'organization_id')::uuid;
-        _new_row         public.notifications;
-      BEGIN
-        -- Authorization gate (RLS still applies)
-        PERFORM check_access('insert','notifications', _project_id, _organization_id);
+declare
+  _project_id uuid := (_input->>'project_id')::uuid;
+  _organization_id uuid := (_input->>'organization_id')::uuid;
+  _new_row public.notifications;
+  _row public.notifications;
+begin
+  perform check_access('insert','notifications', _project_id, _organization_id);
 
-        -- Tweak #1: strip DB-owned/reserved fields so clients can't spoof them
-        _input := COALESCE(_input, '{}'::jsonb)
-                  - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+  _input := coalesce(_input, '{}'::jsonb)
+            - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.notifications
-        SELECT (jsonb_populate_record(NULL::public.notifications, _input)).*
-        RETURNING * INTO _new_row;
+  _row := jsonb_populate_record(null::public.notifications, _input);
 
-        RETURN NEXT _new_row;
-      END;
-      $$;
+  insert into public.notifications (
+    user_id,
+    category,
+    message,
+    payload,
+    is_read,
+    created_at,
+    updated_at,
+    deleted_at
+  )
+  values (
+    _row.user_id,
+    coalesce(_row.category, 'general'::public.notification_category),
+    _row.message,
+    coalesce(_row.payload, '{}'::jsonb),
+    coalesce(_row.is_read, false),
+    coalesce(_row.created_at, now()),
+    coalesce(_row.updated_at, now()),
+    _row.deleted_at
+  )
+  returning * into _new_row;
+
+  return next _new_row;
+
+exception
+  when others then
+    perform public.log_rpc_error(
+      'insert_notifications',
+      'insert',
+      jsonb_build_object(
+        'input', _input,
+        'project_id', _project_id,
+        'organization_id', _organization_id
+      )
+    );
+    raise;
+end;
+$$;
 
 
 --
--- TOC entry 822 (class 1255 OID 43255)
 -- Name: insert_organization_invites(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -18703,17 +21203,13 @@ DECLARE
   v_comment text := NULLIF(_input->>'comment', '');
   v_created_at timestamptz := COALESCE(NULLIF(_input->>'created_at', '')::timestamptz, now());
   v_responded_at timestamptz := NULLIF(_input->>'responded_at', '')::timestamptz;
-
   v_requested_permission_role public.org_role := NULLIF(_input->>'requested_permission_role', '')::public.org_role;
   v_requested_job_title_id uuid := NULLIF(_input->>'requested_job_title_id', '')::uuid;
-
   v_legacy_role_text text := NULLIF(TRIM(_input->>'role'), '');
   v_legacy_role_uuid uuid := NULL;
-
   _new_row public.organization_invites;
   _admin record;
 BEGIN
-  -- Accept legacy "role" payload if present.
   IF v_legacy_role_text IS NOT NULL THEN
     IF v_requested_permission_role IS NULL
        AND v_legacy_role_text IN ('admin','manager','superintendent','foreman','worker','viewer','accountant','hr','estimator','guest','owner') THEN
@@ -18726,68 +21222,44 @@ BEGIN
     END IF;
   END IF;
 
-  -- Legacy role column is uuid, mirror requested_job_title_id there for compatibility.
   v_legacy_role_uuid := v_requested_job_title_id;
 
   PERFORM check_access('insert','organization_invites', NULL, v_organization_id);
 
   INSERT INTO public.organization_invites (
-    id,
-    organization_id,
-    invited_profile_id,
-    invited_by_profile_id,
-    status,
-    comment,
-    created_at,
-    responded_at,
-    requested_permission_role,
-    requested_job_title_id,
-    role
+    id, organization_id, invited_profile_id, invited_by_profile_id, status, comment,
+    created_at, responded_at, requested_permission_role, requested_job_title_id, role
   )
   VALUES (
-    v_id,
-    v_organization_id,
-    v_invited_profile_id,
-    v_invited_by_profile_id,
-    v_status,
-    v_comment,
-    v_created_at,
-    v_responded_at,
-    v_requested_permission_role,
-    v_requested_job_title_id,
-    v_legacy_role_uuid
+    v_id, v_organization_id, v_invited_profile_id, v_invited_by_profile_id, v_status, v_comment,
+    v_created_at, v_responded_at, v_requested_permission_role, v_requested_job_title_id, v_legacy_role_uuid
   )
   RETURNING * INTO _new_row;
 
-  -- Notify org admins (and system admins who are active org members)
   FOR _admin IN
     SELECT om.profile_id
     FROM public.organization_members om
-    JOIN public.profiles p
-      ON p.id = om.profile_id
+    JOIN public.profiles p ON p.id = om.profile_id
     WHERE om.organization_id = _new_row.organization_id
       AND om.deleted_at IS NULL
       AND p.deleted_at IS NULL
-      AND p.role IN ('system_admin', 'org_admin')
+      AND om.permission_role IN ('admin', 'hr', 'owner')
   LOOP
-    BEGIN
-      PERFORM public.insert_notifications(
-        jsonb_build_object(
-          'user_id', _admin.profile_id,
-          'category', 'general',
-          'message', 'Membership request submitted',
-          'payload', jsonb_build_object(
-            'invite_id', _new_row.id,
-            'organization_id', _new_row.organization_id,
-            'invited_profile_id', _new_row.invited_profile_id,
-            'requested_permission_role', _new_row.requested_permission_role,
-            'requested_job_title_id', _new_row.requested_job_title_id
-          )
+    PERFORM public.insert_notifications(
+      jsonb_build_object(
+        'user_id', _admin.profile_id,
+        'organization_id', _new_row.organization_id,
+        'category', 'general',
+        'message', 'Membership request submitted',
+        'payload', jsonb_build_object(
+          'invite_id', _new_row.id,
+          'organization_id', _new_row.organization_id,
+          'invited_profile_id', _new_row.invited_profile_id,
+          'requested_permission_role', _new_row.requested_permission_role,
+          'requested_job_title_id', _new_row.requested_job_title_id
         )
-      );
-    EXCEPTION WHEN OTHERS THEN
-      NULL;
-    END;
+      )
+    );
   END LOOP;
 
   RETURN NEXT _new_row;
@@ -18796,19 +21268,24 @@ $_$;
 
 
 --
--- TOC entry 842 (class 1255 OID 27715)
 -- Name: insert_organization_member_rates(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_organization_member_rates(_input jsonb) RETURNS SETOF public.organization_member_rates
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
     DECLARE
       _project_id      uuid := (_input->>'project_id')::uuid;
       _organization_id uuid := (_input->>'organization_id')::uuid;
       _membership_id   uuid := (_input->>'membership_id')::uuid;
       _new_row         public.organization_member_rates;
+      _input_sanitized jsonb := '{}'::jsonb;
+      _insert_columns text[] := ARRAY[]::text[];
+      _insert_column_list text;
+      _insert_value_list text;
+      _r public.organization_member_rates;
+
     BEGIN
       IF _organization_id IS NULL AND _membership_id IS NOT NULL THEN
         SELECT organization_id INTO _organization_id
@@ -18821,28 +21298,79 @@ CREATE FUNCTION public.insert_organization_member_rates(_input jsonb) RETURNS SE
       _input := COALESCE(_input, '{}'::jsonb)
                 - 'id' - 'created_at' - 'updated_at';
 
-      INSERT INTO public.organization_member_rates
-      SELECT (jsonb_populate_record(NULL::public.organization_member_rates, _input)).*
-      RETURNING * INTO _new_row;
+        _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.organization_member_rates, _input_sanitized);
+
+  IF _input_sanitized ? 'membership_id' THEN
+    _insert_columns := array_append(_insert_columns, 'membership_id');
+  END IF;
+
+  IF _input_sanitized ? 'rate_type' THEN
+    _insert_columns := array_append(_insert_columns, 'rate_type');
+  END IF;
+
+  IF _input_sanitized ? 'rate_amount' THEN
+    _insert_columns := array_append(_insert_columns, 'rate_amount');
+  END IF;
+
+  IF _input_sanitized ? 'effective_start' THEN
+    _insert_columns := array_append(_insert_columns, 'effective_start');
+  END IF;
+
+  IF _input_sanitized ? 'effective_end' THEN
+    _insert_columns := array_append(_insert_columns, 'effective_end');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.organization_member_rates DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.organization_member_rates (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
       RETURN NEXT _new_row;
     END;
-    $$;
+    $_$;
 
 
 --
--- TOC entry 733 (class 1255 OID 22074)
 -- Name: insert_organization_members(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_organization_members(_input jsonb) RETURNS SETOF public.organization_members
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.organization_members;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.organization_members;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','organization_members', _project_id, _organization_id);
@@ -18851,28 +21379,128 @@ CREATE FUNCTION public.insert_organization_members(_input jsonb) RETURNS SETOF p
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.organization_members
-        SELECT (jsonb_populate_record(NULL::public.organization_members, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.organization_members, _input_sanitized);
+
+  IF _input_sanitized ? 'profile_id' THEN
+    _insert_columns := array_append(_insert_columns, 'profile_id');
+  END IF;
+
+  IF _input_sanitized ? 'organization_id' THEN
+    _insert_columns := array_append(_insert_columns, 'organization_id');
+  END IF;
+
+  IF _input_sanitized ? 'job_title_id' THEN
+    _insert_columns := array_append(_insert_columns, 'job_title_id');
+  END IF;
+
+  IF _input_sanitized ? 'permission_role' THEN
+    _insert_columns := array_append(_insert_columns, 'permission_role');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.organization_members DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.organization_members (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 1054 (class 1255 OID 22075)
+-- Name: insert_organization_notification_settings(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_organization_notification_settings(_input jsonb) RETURNS SETOF public.organization_notification_settings
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_org_id uuid := NULLIF(_input->>'organization_id','')::uuid;
+  v_categories public.notification_category[] := COALESCE(
+    ARRAY(
+      SELECT value::public.notification_category
+      FROM jsonb_array_elements_text(COALESCE(_input->'enabled_categories', '[]'::jsonb))
+    ),
+    '{}'::public.notification_category[]
+  );
+  v_events text[] := COALESCE(
+    ARRAY(
+      SELECT value
+      FROM jsonb_array_elements_text(COALESCE(_input->'enabled_events', '[]'::jsonb))
+    ),
+    '{}'::text[]
+  );
+  v_row public.organization_notification_settings;
+BEGIN
+  IF v_org_id IS NULL THEN
+    RAISE EXCEPTION 'organization_id is required';
+  END IF;
+
+  IF NOT public.can_edit_org_notification_settings(v_org_id) THEN
+    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+  END IF;
+
+  INSERT INTO public.organization_notification_settings (
+    organization_id, enabled_categories, enabled_events, updated_by, updated_at
+  )
+  VALUES (
+    v_org_id, v_categories, v_events, auth.uid(), now()
+  )
+  ON CONFLICT (organization_id) DO UPDATE
+  SET
+    enabled_categories = EXCLUDED.enabled_categories,
+    enabled_events = EXCLUDED.enabled_events,
+    updated_by = auth.uid(),
+    updated_at = now()
+  RETURNING * INTO v_row;
+
+  RETURN NEXT v_row;
+END;
+$$;
+
+
+--
 -- Name: insert_organization_projects(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_organization_projects(_input jsonb) RETURNS SETOF public.organization_projects
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.organization_projects;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.organization_projects;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','organization_projects', _project_id, _organization_id);
@@ -18881,56 +21509,129 @@ CREATE FUNCTION public.insert_organization_projects(_input jsonb) RETURNS SETOF 
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.organization_projects
-        SELECT (jsonb_populate_record(NULL::public.organization_projects, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.organization_projects, _input_sanitized);
+
+  IF _input_sanitized ? 'organization_id' THEN
+    _insert_columns := array_append(_insert_columns, 'organization_id');
+  END IF;
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.organization_projects DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.organization_projects (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 745 (class 1255 OID 27719)
 -- Name: insert_organization_service_areas(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_organization_service_areas(_input jsonb) RETURNS SETOF public.organization_service_areas
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
     DECLARE
       _project_id      uuid := (_input->>'project_id')::uuid;
       _organization_id uuid := (_input->>'organization_id')::uuid;
       _new_row         public.organization_service_areas;
+      _input_sanitized jsonb := '{}'::jsonb;
+      _insert_columns text[] := ARRAY[]::text[];
+      _insert_column_list text;
+      _insert_value_list text;
+      _r public.organization_service_areas;
+
     BEGIN
       PERFORM check_access('insert','organization_service_areas', _project_id, _organization_id);
 
       _input := COALESCE(_input, '{}'::jsonb)
                 - 'id' - 'created_at' - 'updated_at';
 
-      INSERT INTO public.organization_service_areas
-      SELECT (jsonb_populate_record(NULL::public.organization_service_areas, _input)).*
-      RETURNING * INTO _new_row;
+        _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.organization_service_areas, _input_sanitized);
+
+  IF _input_sanitized ? 'organization_id' THEN
+    _insert_columns := array_append(_insert_columns, 'organization_id');
+  END IF;
+
+  IF _input_sanitized ? 'service_area_text' THEN
+    _insert_columns := array_append(_insert_columns, 'service_area_text');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.organization_service_areas DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.organization_service_areas (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
       RETURN NEXT _new_row;
     END;
-    $$;
+    $_$;
 
 
 --
--- TOC entry 783 (class 1255 OID 22076)
 -- Name: insert_organizations(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_organizations(_input jsonb) RETURNS SETOF public.organizations
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.organizations;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.organizations;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','organizations', _project_id, _organization_id);
@@ -18939,28 +21640,79 @@ CREATE FUNCTION public.insert_organizations(_input jsonb) RETURNS SETOF public.o
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.organizations
-        SELECT (jsonb_populate_record(NULL::public.organizations, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.organizations, _input_sanitized);
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'description' THEN
+    _insert_columns := array_append(_insert_columns, 'description');
+  END IF;
+
+  IF _input_sanitized ? 'mission_statement' THEN
+    _insert_columns := array_append(_insert_columns, 'mission_statement');
+  END IF;
+
+  IF _input_sanitized ? 'headquarters' THEN
+    _insert_columns := array_append(_insert_columns, 'headquarters');
+  END IF;
+
+  IF _input_sanitized ? 'logo_url' THEN
+    _insert_columns := array_append(_insert_columns, 'logo_url');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.organizations DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.organizations (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 613 (class 1255 OID 22077)
 -- Name: insert_payments(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_payments(_input jsonb) RETURNS SETOF public.payments
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.payments;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.payments;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','payments', _project_id, _organization_id);
@@ -18969,28 +21721,75 @@ CREATE FUNCTION public.insert_payments(_input jsonb) RETURNS SETOF public.paymen
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.payments
-        SELECT (jsonb_populate_record(NULL::public.payments, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.payments, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'commitment_id' THEN
+    _insert_columns := array_append(_insert_columns, 'commitment_id');
+  END IF;
+
+  IF _input_sanitized ? 'amount' THEN
+    _insert_columns := array_append(_insert_columns, 'amount');
+  END IF;
+
+  IF _input_sanitized ? 'paid_at' THEN
+    _insert_columns := array_append(_insert_columns, 'paid_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.payments DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.payments (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 1020 (class 1255 OID 22078)
 -- Name: insert_payroll(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_payroll(_input jsonb) RETURNS SETOF public.payroll
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.payroll;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.payroll;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','payroll', _project_id, _organization_id);
@@ -18999,28 +21798,79 @@ CREATE FUNCTION public.insert_payroll(_input jsonb) RETURNS SETOF public.payroll
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.payroll
-        SELECT (jsonb_populate_record(NULL::public.payroll, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.payroll, _input_sanitized);
+
+  IF _input_sanitized ? 'employee_id' THEN
+    _insert_columns := array_append(_insert_columns, 'employee_id');
+  END IF;
+
+  IF _input_sanitized ? 'pay_period_start' THEN
+    _insert_columns := array_append(_insert_columns, 'pay_period_start');
+  END IF;
+
+  IF _input_sanitized ? 'pay_period_end' THEN
+    _insert_columns := array_append(_insert_columns, 'pay_period_end');
+  END IF;
+
+  IF _input_sanitized ? 'gross_pay' THEN
+    _insert_columns := array_append(_insert_columns, 'gross_pay');
+  END IF;
+
+  IF _input_sanitized ? 'net_pay' THEN
+    _insert_columns := array_append(_insert_columns, 'net_pay');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.payroll DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.payroll (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 758 (class 1255 OID 22079)
 -- Name: insert_photos(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_photos(_input jsonb) RETURNS SETOF public.photos
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.photos;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.photos;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','photos', _project_id, _organization_id);
@@ -19029,28 +21879,79 @@ CREATE FUNCTION public.insert_photos(_input jsonb) RETURNS SETOF public.photos
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.photos
-        SELECT (jsonb_populate_record(NULL::public.photos, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.photos, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'url' THEN
+    _insert_columns := array_append(_insert_columns, 'url');
+  END IF;
+
+  IF _input_sanitized ? 'caption' THEN
+    _insert_columns := array_append(_insert_columns, 'caption');
+  END IF;
+
+  IF _input_sanitized ? 'uploaded_by' THEN
+    _insert_columns := array_append(_insert_columns, 'uploaded_by');
+  END IF;
+
+  IF _input_sanitized ? 'uploaded_at' THEN
+    _insert_columns := array_append(_insert_columns, 'uploaded_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.photos DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.photos (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 686 (class 1255 OID 22080)
 -- Name: insert_prequalifications(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_prequalifications(_input jsonb) RETURNS SETOF public.prequalifications
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.prequalifications;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.prequalifications;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','prequalifications', _project_id, _organization_id);
@@ -19059,28 +21960,75 @@ CREATE FUNCTION public.insert_prequalifications(_input jsonb) RETURNS SETOF publ
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.prequalifications
-        SELECT (jsonb_populate_record(NULL::public.prequalifications, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.prequalifications, _input_sanitized);
+
+  IF _input_sanitized ? 'vendor_id' THEN
+    _insert_columns := array_append(_insert_columns, 'vendor_id');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF _input_sanitized ? 'reviewed_by' THEN
+    _insert_columns := array_append(_insert_columns, 'reviewed_by');
+  END IF;
+
+  IF _input_sanitized ? 'reviewed_at' THEN
+    _insert_columns := array_append(_insert_columns, 'reviewed_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.prequalifications DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.prequalifications (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 1046 (class 1255 OID 22081)
 -- Name: insert_procurement_workflows(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_procurement_workflows(_input jsonb) RETURNS SETOF public.procurement_workflows
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.procurement_workflows;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.procurement_workflows;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','procurement_workflows', _project_id, _organization_id);
@@ -19089,28 +22037,71 @@ CREATE FUNCTION public.insert_procurement_workflows(_input jsonb) RETURNS SETOF 
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.procurement_workflows
-        SELECT (jsonb_populate_record(NULL::public.procurement_workflows, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.procurement_workflows, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.procurement_workflows DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.procurement_workflows (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 786 (class 1255 OID 22082)
 -- Name: insert_profiles(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_profiles(_input jsonb) RETURNS SETOF public.profiles
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.profiles;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.profiles;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','profiles', _project_id, _organization_id);
@@ -19119,28 +22110,91 @@ CREATE FUNCTION public.insert_profiles(_input jsonb) RETURNS SETOF public.profil
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.profiles
-        SELECT (jsonb_populate_record(NULL::public.profiles, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.profiles, _input_sanitized);
+
+  IF _input_sanitized ? 'email' THEN
+    _insert_columns := array_append(_insert_columns, 'email');
+  END IF;
+
+  IF _input_sanitized ? 'full_name' THEN
+    _insert_columns := array_append(_insert_columns, 'full_name');
+  END IF;
+
+  IF _input_sanitized ? 'phone' THEN
+    _insert_columns := array_append(_insert_columns, 'phone');
+  END IF;
+
+  IF _input_sanitized ? 'organization_id' THEN
+    _insert_columns := array_append(_insert_columns, 'organization_id');
+  END IF;
+
+  IF _input_sanitized ? 'role' THEN
+    _insert_columns := array_append(_insert_columns, 'role');
+  END IF;
+
+  IF _input_sanitized ? 'profile_completed_at' THEN
+    _insert_columns := array_append(_insert_columns, 'profile_completed_at');
+  END IF;
+
+  IF _input_sanitized ? 'avatar_id' THEN
+    _insert_columns := array_append(_insert_columns, 'avatar_id');
+  END IF;
+
+  IF _input_sanitized ? 'location' THEN
+    _insert_columns := array_append(_insert_columns, 'location');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.profiles DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.profiles (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 994 (class 1255 OID 22083)
 -- Name: insert_progress_billings(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_progress_billings(_input jsonb) RETURNS SETOF public.progress_billings
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.progress_billings;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.progress_billings;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','progress_billings', _project_id, _organization_id);
@@ -19149,28 +22203,75 @@ CREATE FUNCTION public.insert_progress_billings(_input jsonb) RETURNS SETOF publ
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.progress_billings
-        SELECT (jsonb_populate_record(NULL::public.progress_billings, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.progress_billings, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'billing_number' THEN
+    _insert_columns := array_append(_insert_columns, 'billing_number');
+  END IF;
+
+  IF _input_sanitized ? 'amount' THEN
+    _insert_columns := array_append(_insert_columns, 'amount');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.progress_billings DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.progress_billings (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 586 (class 1255 OID 22084)
 -- Name: insert_project_inspectors(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_project_inspectors(_input jsonb) RETURNS SETOF public.project_inspectors
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.project_inspectors;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.project_inspectors;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','project_inspectors', _project_id, _organization_id);
@@ -19179,84 +22280,215 @@ CREATE FUNCTION public.insert_project_inspectors(_input jsonb) RETURNS SETOF pub
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.project_inspectors
-        SELECT (jsonb_populate_record(NULL::public.project_inspectors, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.project_inspectors, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'profile_id' THEN
+    _insert_columns := array_append(_insert_columns, 'profile_id');
+  END IF;
+
+  IF _input_sanitized ? 'assigned_by' THEN
+    _insert_columns := array_append(_insert_columns, 'assigned_by');
+  END IF;
+
+  IF _input_sanitized ? 'assigned_at' THEN
+    _insert_columns := array_append(_insert_columns, 'assigned_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.project_inspectors DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.project_inspectors (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 592 (class 1255 OID 27723)
 -- Name: insert_project_invites(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_project_invites(_input jsonb) RETURNS SETOF public.project_invites
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
     DECLARE
       _project_id      uuid := (_input->>'project_id')::uuid;
       _organization_id uuid := (_input->>'organization_id')::uuid;
       _new_row         public.project_invites;
+      _input_sanitized jsonb := '{}'::jsonb;
+      _insert_columns text[] := ARRAY[]::text[];
+      _insert_column_list text;
+      _insert_value_list text;
+      _r public.project_invites;
+
     BEGIN
       PERFORM check_access('insert','project_invites', _project_id, _organization_id);
 
       _input := COALESCE(_input, '{}'::jsonb)
                 - 'id' - 'created_at';
 
-      INSERT INTO public.project_invites
-      SELECT (jsonb_populate_record(NULL::public.project_invites, _input)).*
-      RETURNING * INTO _new_row;
+        _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.project_invites, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'invited_profile_id' THEN
+    _insert_columns := array_append(_insert_columns, 'invited_profile_id');
+  END IF;
+
+  IF _input_sanitized ? 'invited_by_profile_id' THEN
+    _insert_columns := array_append(_insert_columns, 'invited_by_profile_id');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF _input_sanitized ? 'comment' THEN
+    _insert_columns := array_append(_insert_columns, 'comment');
+  END IF;
+
+  IF _input_sanitized ? 'responded_at' THEN
+    _insert_columns := array_append(_insert_columns, 'responded_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.project_invites DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.project_invites (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
       RETURN NEXT _new_row;
     END;
-    $$;
+    $_$;
 
 
 --
--- TOC entry 988 (class 1255 OID 27727)
 -- Name: insert_project_service_areas(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_project_service_areas(_input jsonb) RETURNS SETOF public.project_service_areas
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
     DECLARE
       _project_id      uuid := (_input->>'project_id')::uuid;
       _organization_id uuid := (_input->>'organization_id')::uuid;
       _new_row         public.project_service_areas;
+      _input_sanitized jsonb := '{}'::jsonb;
+      _insert_columns text[] := ARRAY[]::text[];
+      _insert_column_list text;
+      _insert_value_list text;
+      _r public.project_service_areas;
+
     BEGIN
       PERFORM check_access('insert','project_service_areas', _project_id, _organization_id);
 
       _input := COALESCE(_input, '{}'::jsonb)
                 - 'id' - 'created_at' - 'updated_at';
 
-      INSERT INTO public.project_service_areas
-      SELECT (jsonb_populate_record(NULL::public.project_service_areas, _input)).*
-      RETURNING * INTO _new_row;
+        _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.project_service_areas, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'service_area_id' THEN
+    _insert_columns := array_append(_insert_columns, 'service_area_id');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.project_service_areas DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.project_service_areas (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
       RETURN NEXT _new_row;
     END;
-    $$;
+    $_$;
 
 
 --
--- TOC entry 761 (class 1255 OID 22085)
 -- Name: insert_projects(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_projects(_input jsonb) RETURNS SETOF public.projects
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.projects;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.projects;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','projects', _project_id, _organization_id);
@@ -19265,28 +22497,83 @@ CREATE FUNCTION public.insert_projects(_input jsonb) RETURNS SETOF public.projec
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.projects
-        SELECT (jsonb_populate_record(NULL::public.projects, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.projects, _input_sanitized);
+
+  IF _input_sanitized ? 'organization_id' THEN
+    _insert_columns := array_append(_insert_columns, 'organization_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'description' THEN
+    _insert_columns := array_append(_insert_columns, 'description');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF _input_sanitized ? 'start_date' THEN
+    _insert_columns := array_append(_insert_columns, 'start_date');
+  END IF;
+
+  IF _input_sanitized ? 'end_date' THEN
+    _insert_columns := array_append(_insert_columns, 'end_date');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.projects DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.projects (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 906 (class 1255 OID 22086)
 -- Name: insert_punch_lists(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_punch_lists(_input jsonb) RETURNS SETOF public.punch_lists
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.punch_lists;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.punch_lists;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','punch_lists', _project_id, _organization_id);
@@ -19295,28 +22582,75 @@ CREATE FUNCTION public.insert_punch_lists(_input jsonb) RETURNS SETOF public.pun
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.punch_lists
-        SELECT (jsonb_populate_record(NULL::public.punch_lists, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.punch_lists, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'item' THEN
+    _insert_columns := array_append(_insert_columns, 'item');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF _input_sanitized ? 'assigned_to' THEN
+    _insert_columns := array_append(_insert_columns, 'assigned_to');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.punch_lists DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.punch_lists (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 838 (class 1255 OID 22087)
 -- Name: insert_purchase_orders(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_purchase_orders(_input jsonb) RETURNS SETOF public.purchase_orders
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.purchase_orders;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.purchase_orders;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','purchase_orders', _project_id, _organization_id);
@@ -19325,28 +22659,83 @@ CREATE FUNCTION public.insert_purchase_orders(_input jsonb) RETURNS SETOF public
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.purchase_orders
-        SELECT (jsonb_populate_record(NULL::public.purchase_orders, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.purchase_orders, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'vendor_id' THEN
+    _insert_columns := array_append(_insert_columns, 'vendor_id');
+  END IF;
+
+  IF _input_sanitized ? 'order_number' THEN
+    _insert_columns := array_append(_insert_columns, 'order_number');
+  END IF;
+
+  IF _input_sanitized ? 'order_date' THEN
+    _insert_columns := array_append(_insert_columns, 'order_date');
+  END IF;
+
+  IF _input_sanitized ? 'amount' THEN
+    _insert_columns := array_append(_insert_columns, 'amount');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.purchase_orders DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.purchase_orders (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 781 (class 1255 OID 22088)
 -- Name: insert_quality_reviews(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_quality_reviews(_input jsonb) RETURNS SETOF public.quality_reviews
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.quality_reviews;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.quality_reviews;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','quality_reviews', _project_id, _organization_id);
@@ -19355,28 +22744,75 @@ CREATE FUNCTION public.insert_quality_reviews(_input jsonb) RETURNS SETOF public
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.quality_reviews
-        SELECT (jsonb_populate_record(NULL::public.quality_reviews, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.quality_reviews, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'review_date' THEN
+    _insert_columns := array_append(_insert_columns, 'review_date');
+  END IF;
+
+  IF _input_sanitized ? 'reviewer' THEN
+    _insert_columns := array_append(_insert_columns, 'reviewer');
+  END IF;
+
+  IF _input_sanitized ? 'findings' THEN
+    _insert_columns := array_append(_insert_columns, 'findings');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.quality_reviews DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.quality_reviews (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 892 (class 1255 OID 22089)
 -- Name: insert_regulatory_documents(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_regulatory_documents(_input jsonb) RETURNS SETOF public.regulatory_documents
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.regulatory_documents;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.regulatory_documents;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','regulatory_documents', _project_id, _organization_id);
@@ -19385,28 +22821,75 @@ CREATE FUNCTION public.insert_regulatory_documents(_input jsonb) RETURNS SETOF p
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.regulatory_documents
-        SELECT (jsonb_populate_record(NULL::public.regulatory_documents, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.regulatory_documents, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'document_type' THEN
+    _insert_columns := array_append(_insert_columns, 'document_type');
+  END IF;
+
+  IF _input_sanitized ? 'url' THEN
+    _insert_columns := array_append(_insert_columns, 'url');
+  END IF;
+
+  IF _input_sanitized ? 'uploaded_at' THEN
+    _insert_columns := array_append(_insert_columns, 'uploaded_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.regulatory_documents DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.regulatory_documents (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 1004 (class 1255 OID 22090)
 -- Name: insert_reports(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_reports(_input jsonb) RETURNS SETOF public.reports
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.reports;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.reports;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','reports', _project_id, _organization_id);
@@ -19415,28 +22898,71 @@ CREATE FUNCTION public.insert_reports(_input jsonb) RETURNS SETOF public.reports
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.reports
-        SELECT (jsonb_populate_record(NULL::public.reports, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.reports, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'report_type' THEN
+    _insert_columns := array_append(_insert_columns, 'report_type');
+  END IF;
+
+  IF _input_sanitized ? 'generated_at' THEN
+    _insert_columns := array_append(_insert_columns, 'generated_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.reports DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.reports (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 957 (class 1255 OID 22091)
 -- Name: insert_rfis(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_rfis(_input jsonb) RETURNS SETOF public.rfis
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.rfis;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.rfis;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','rfis', _project_id, _organization_id);
@@ -19445,28 +22971,95 @@ CREATE FUNCTION public.insert_rfis(_input jsonb) RETURNS SETOF public.rfis
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.rfis
-        SELECT (jsonb_populate_record(NULL::public.rfis, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.rfis, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'subject' THEN
+    _insert_columns := array_append(_insert_columns, 'subject');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF _input_sanitized ? 'question' THEN
+    _insert_columns := array_append(_insert_columns, 'question');
+  END IF;
+
+  IF _input_sanitized ? 'answer' THEN
+    _insert_columns := array_append(_insert_columns, 'answer');
+  END IF;
+
+  IF _input_sanitized ? 'submitted_by' THEN
+    _insert_columns := array_append(_insert_columns, 'submitted_by');
+  END IF;
+
+  IF _input_sanitized ? 'reviewed_by' THEN
+    _insert_columns := array_append(_insert_columns, 'reviewed_by');
+  END IF;
+
+  IF _input_sanitized ? 'submitted_at' THEN
+    _insert_columns := array_append(_insert_columns, 'submitted_at');
+  END IF;
+
+  IF _input_sanitized ? 'reviewed_at' THEN
+    _insert_columns := array_append(_insert_columns, 'reviewed_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.rfis DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.rfis (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 1073 (class 1255 OID 22092)
 -- Name: insert_safety_incidents(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_safety_incidents(_input jsonb) RETURNS SETOF public.safety_incidents
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.safety_incidents;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.safety_incidents;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','safety_incidents', _project_id, _organization_id);
@@ -19475,28 +23068,83 @@ CREATE FUNCTION public.insert_safety_incidents(_input jsonb) RETURNS SETOF publi
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.safety_incidents
-        SELECT (jsonb_populate_record(NULL::public.safety_incidents, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.safety_incidents, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'incident_date' THEN
+    _insert_columns := array_append(_insert_columns, 'incident_date');
+  END IF;
+
+  IF _input_sanitized ? 'description' THEN
+    _insert_columns := array_append(_insert_columns, 'description');
+  END IF;
+
+  IF _input_sanitized ? 'reported_by' THEN
+    _insert_columns := array_append(_insert_columns, 'reported_by');
+  END IF;
+
+  IF _input_sanitized ? 'severity' THEN
+    _insert_columns := array_append(_insert_columns, 'severity');
+  END IF;
+
+  IF _input_sanitized ? 'resolved' THEN
+    _insert_columns := array_append(_insert_columns, 'resolved');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.safety_incidents DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.safety_incidents (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 1059 (class 1255 OID 22093)
 -- Name: insert_sensor_data(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_sensor_data(_input jsonb) RETURNS SETOF public.sensor_data
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.sensor_data;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.sensor_data;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','sensor_data', _project_id, _organization_id);
@@ -19505,28 +23153,71 @@ CREATE FUNCTION public.insert_sensor_data(_input jsonb) RETURNS SETOF public.sen
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.sensor_data
-        SELECT (jsonb_populate_record(NULL::public.sensor_data, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.sensor_data, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'data' THEN
+    _insert_columns := array_append(_insert_columns, 'data');
+  END IF;
+
+  IF _input_sanitized ? 'collected_at' THEN
+    _insert_columns := array_append(_insert_columns, 'collected_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.sensor_data DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.sensor_data (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 858 (class 1255 OID 22094)
 -- Name: insert_subcontractor_agreements(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_subcontractor_agreements(_input jsonb) RETURNS SETOF public.subcontractor_agreements
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.subcontractor_agreements;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.subcontractor_agreements;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','subcontractor_agreements', _project_id, _organization_id);
@@ -19535,28 +23226,71 @@ CREATE FUNCTION public.insert_subcontractor_agreements(_input jsonb) RETURNS SET
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.subcontractor_agreements
-        SELECT (jsonb_populate_record(NULL::public.subcontractor_agreements, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.subcontractor_agreements, _input_sanitized);
+
+  IF _input_sanitized ? 'subcontract_id' THEN
+    _insert_columns := array_append(_insert_columns, 'subcontract_id');
+  END IF;
+
+  IF _input_sanitized ? 'agreement_url' THEN
+    _insert_columns := array_append(_insert_columns, 'agreement_url');
+  END IF;
+
+  IF _input_sanitized ? 'signed_at' THEN
+    _insert_columns := array_append(_insert_columns, 'signed_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.subcontractor_agreements DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.subcontractor_agreements (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 760 (class 1255 OID 22095)
 -- Name: insert_subcontracts(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_subcontracts(_input jsonb) RETURNS SETOF public.subcontracts
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.subcontracts;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.subcontracts;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','subcontracts', _project_id, _organization_id);
@@ -19565,28 +23299,79 @@ CREATE FUNCTION public.insert_subcontracts(_input jsonb) RETURNS SETOF public.su
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.subcontracts
-        SELECT (jsonb_populate_record(NULL::public.subcontracts, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.subcontracts, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'vendor_id' THEN
+    _insert_columns := array_append(_insert_columns, 'vendor_id');
+  END IF;
+
+  IF _input_sanitized ? 'amount' THEN
+    _insert_columns := array_append(_insert_columns, 'amount');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF _input_sanitized ? 'signed_at' THEN
+    _insert_columns := array_append(_insert_columns, 'signed_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.subcontracts DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.subcontracts (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 700 (class 1255 OID 22096)
 -- Name: insert_submittals(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_submittals(_input jsonb) RETURNS SETOF public.submittals
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.submittals;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.submittals;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','submittals', _project_id, _organization_id);
@@ -19595,28 +23380,87 @@ CREATE FUNCTION public.insert_submittals(_input jsonb) RETURNS SETOF public.subm
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.submittals
-        SELECT (jsonb_populate_record(NULL::public.submittals, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.submittals, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF _input_sanitized ? 'submitted_by' THEN
+    _insert_columns := array_append(_insert_columns, 'submitted_by');
+  END IF;
+
+  IF _input_sanitized ? 'reviewed_by' THEN
+    _insert_columns := array_append(_insert_columns, 'reviewed_by');
+  END IF;
+
+  IF _input_sanitized ? 'submitted_at' THEN
+    _insert_columns := array_append(_insert_columns, 'submitted_at');
+  END IF;
+
+  IF _input_sanitized ? 'reviewed_at' THEN
+    _insert_columns := array_append(_insert_columns, 'reviewed_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.submittals DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.submittals (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 682 (class 1255 OID 22097)
 -- Name: insert_tack_rates(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_tack_rates(_input jsonb) RETURNS SETOF public.tack_rates
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.tack_rates;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.tack_rates;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','tack_rates', _project_id, _organization_id);
@@ -19625,28 +23469,71 @@ CREATE FUNCTION public.insert_tack_rates(_input jsonb) RETURNS SETOF public.tack
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.tack_rates
-        SELECT (jsonb_populate_record(NULL::public.tack_rates, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.tack_rates, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'rate' THEN
+    _insert_columns := array_append(_insert_columns, 'rate');
+  END IF;
+
+  IF _input_sanitized ? 'material_type' THEN
+    _insert_columns := array_append(_insert_columns, 'material_type');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.tack_rates DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.tack_rates (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 901 (class 1255 OID 22098)
 -- Name: insert_task_dependencies(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_task_dependencies(_input jsonb) RETURNS SETOF public.task_dependencies
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.task_dependencies;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.task_dependencies;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','task_dependencies', _project_id, _organization_id);
@@ -19655,28 +23542,67 @@ CREATE FUNCTION public.insert_task_dependencies(_input jsonb) RETURNS SETOF publ
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.task_dependencies
-        SELECT (jsonb_populate_record(NULL::public.task_dependencies, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.task_dependencies, _input_sanitized);
+
+  IF _input_sanitized ? 'task_id' THEN
+    _insert_columns := array_append(_insert_columns, 'task_id');
+  END IF;
+
+  IF _input_sanitized ? 'depends_on_task_id' THEN
+    _insert_columns := array_append(_insert_columns, 'depends_on_task_id');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.task_dependencies DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.task_dependencies (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 814 (class 1255 OID 22099)
 -- Name: insert_task_status_logs(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_task_status_logs(_input jsonb) RETURNS SETOF public.task_status_logs
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.task_status_logs;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.task_status_logs;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','task_status_logs', _project_id, _organization_id);
@@ -19685,28 +23611,71 @@ CREATE FUNCTION public.insert_task_status_logs(_input jsonb) RETURNS SETOF publi
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.task_status_logs
-        SELECT (jsonb_populate_record(NULL::public.task_status_logs, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.task_status_logs, _input_sanitized);
+
+  IF _input_sanitized ? 'task_id' THEN
+    _insert_columns := array_append(_insert_columns, 'task_id');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF _input_sanitized ? 'changed_at' THEN
+    _insert_columns := array_append(_insert_columns, 'changed_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.task_status_logs DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.task_status_logs (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 937 (class 1255 OID 22100)
 -- Name: insert_tasks(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_tasks(_input jsonb) RETURNS SETOF public.tasks
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.tasks;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.tasks;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','tasks', _project_id, _organization_id);
@@ -19715,28 +23684,83 @@ CREATE FUNCTION public.insert_tasks(_input jsonb) RETURNS SETOF public.tasks
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.tasks
-        SELECT (jsonb_populate_record(NULL::public.tasks, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.tasks, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'description' THEN
+    _insert_columns := array_append(_insert_columns, 'description');
+  END IF;
+
+  IF _input_sanitized ? 'start_date' THEN
+    _insert_columns := array_append(_insert_columns, 'start_date');
+  END IF;
+
+  IF _input_sanitized ? 'end_date' THEN
+    _insert_columns := array_append(_insert_columns, 'end_date');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.tasks DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.tasks (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 630 (class 1255 OID 22101)
 -- Name: insert_training_records(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_training_records(_input jsonb) RETURNS SETOF public.training_records
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.training_records;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.training_records;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','training_records', _project_id, _organization_id);
@@ -19745,28 +23769,119 @@ CREATE FUNCTION public.insert_training_records(_input jsonb) RETURNS SETOF publi
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.training_records
-        SELECT (jsonb_populate_record(NULL::public.training_records, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.training_records, _input_sanitized);
+
+  IF _input_sanitized ? 'employee_id' THEN
+    _insert_columns := array_append(_insert_columns, 'employee_id');
+  END IF;
+
+  IF _input_sanitized ? 'training_type' THEN
+    _insert_columns := array_append(_insert_columns, 'training_type');
+  END IF;
+
+  IF _input_sanitized ? 'completion_date' THEN
+    _insert_columns := array_append(_insert_columns, 'completion_date');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.training_records DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.training_records (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 1042 (class 1255 OID 22102)
+-- Name: insert_user_notification_settings(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.insert_user_notification_settings(_input jsonb) RETURNS SETOF public.user_notification_settings
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_categories public.notification_category[] := COALESCE(
+    ARRAY(
+      SELECT value::public.notification_category
+      FROM jsonb_array_elements_text(COALESCE(_input->'silenced_categories', '[]'::jsonb))
+    ),
+    '{}'::public.notification_category[]
+  );
+  v_events text[] := COALESCE(
+    ARRAY(
+      SELECT value
+      FROM jsonb_array_elements_text(COALESCE(_input->'silenced_events', '[]'::jsonb))
+    ),
+    '{}'::text[]
+  );
+  v_row public.user_notification_settings;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated' USING errcode = '42501';
+  END IF;
+
+  INSERT INTO public.user_notification_settings (
+    user_id, silenced_categories, silenced_events, updated_at
+  )
+  VALUES (
+    v_user_id, v_categories, v_events, now()
+  )
+  ON CONFLICT (user_id) DO UPDATE
+  SET
+    silenced_categories = EXCLUDED.silenced_categories,
+    silenced_events = EXCLUDED.silenced_events,
+    updated_at = now()
+  RETURNING * INTO v_row;
+
+  RETURN NEXT v_row;
+END;
+$$;
+
+
+--
 -- Name: insert_user_projects(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_user_projects(_input jsonb) RETURNS SETOF public.user_projects
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.user_projects;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.user_projects;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','user_projects', _project_id, _organization_id);
@@ -19775,28 +23890,71 @@ CREATE FUNCTION public.insert_user_projects(_input jsonb) RETURNS SETOF public.u
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.user_projects
-        SELECT (jsonb_populate_record(NULL::public.user_projects, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.user_projects, _input_sanitized);
+
+  IF _input_sanitized ? 'user_id' THEN
+    _insert_columns := array_append(_insert_columns, 'user_id');
+  END IF;
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'role' THEN
+    _insert_columns := array_append(_insert_columns, 'role');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.user_projects DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.user_projects (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 1088 (class 1255 OID 22103)
 -- Name: insert_vendor_bid_packages(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_vendor_bid_packages(_input jsonb) RETURNS SETOF public.vendor_bid_packages
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.vendor_bid_packages;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.vendor_bid_packages;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','vendor_bid_packages', _project_id, _organization_id);
@@ -19805,28 +23963,67 @@ CREATE FUNCTION public.insert_vendor_bid_packages(_input jsonb) RETURNS SETOF pu
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.vendor_bid_packages
-        SELECT (jsonb_populate_record(NULL::public.vendor_bid_packages, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.vendor_bid_packages, _input_sanitized);
+
+  IF _input_sanitized ? 'bid_package_id' THEN
+    _insert_columns := array_append(_insert_columns, 'bid_package_id');
+  END IF;
+
+  IF _input_sanitized ? 'vendor_id' THEN
+    _insert_columns := array_append(_insert_columns, 'vendor_id');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.vendor_bid_packages DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.vendor_bid_packages (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 897 (class 1255 OID 22104)
 -- Name: insert_vendor_contacts(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_vendor_contacts(_input jsonb) RETURNS SETOF public.vendor_contacts
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.vendor_contacts;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.vendor_contacts;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','vendor_contacts', _project_id, _organization_id);
@@ -19835,28 +24032,75 @@ CREATE FUNCTION public.insert_vendor_contacts(_input jsonb) RETURNS SETOF public
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.vendor_contacts
-        SELECT (jsonb_populate_record(NULL::public.vendor_contacts, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.vendor_contacts, _input_sanitized);
+
+  IF _input_sanitized ? 'vendor_id' THEN
+    _insert_columns := array_append(_insert_columns, 'vendor_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'email' THEN
+    _insert_columns := array_append(_insert_columns, 'email');
+  END IF;
+
+  IF _input_sanitized ? 'phone' THEN
+    _insert_columns := array_append(_insert_columns, 'phone');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.vendor_contacts DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.vendor_contacts (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 793 (class 1255 OID 22105)
 -- Name: insert_vendor_documents(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_vendor_documents(_input jsonb) RETURNS SETOF public.vendor_documents
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.vendor_documents;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.vendor_documents;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','vendor_documents', _project_id, _organization_id);
@@ -19865,28 +24109,75 @@ CREATE FUNCTION public.insert_vendor_documents(_input jsonb) RETURNS SETOF publi
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.vendor_documents
-        SELECT (jsonb_populate_record(NULL::public.vendor_documents, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.vendor_documents, _input_sanitized);
+
+  IF _input_sanitized ? 'vendor_id' THEN
+    _insert_columns := array_append(_insert_columns, 'vendor_id');
+  END IF;
+
+  IF _input_sanitized ? 'document_type' THEN
+    _insert_columns := array_append(_insert_columns, 'document_type');
+  END IF;
+
+  IF _input_sanitized ? 'url' THEN
+    _insert_columns := array_append(_insert_columns, 'url');
+  END IF;
+
+  IF _input_sanitized ? 'uploaded_at' THEN
+    _insert_columns := array_append(_insert_columns, 'uploaded_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.vendor_documents DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.vendor_documents (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 1045 (class 1255 OID 22106)
 -- Name: insert_vendor_qualifications(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_vendor_qualifications(_input jsonb) RETURNS SETOF public.vendor_qualifications
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.vendor_qualifications;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.vendor_qualifications;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','vendor_qualifications', _project_id, _organization_id);
@@ -19895,28 +24186,75 @@ CREATE FUNCTION public.insert_vendor_qualifications(_input jsonb) RETURNS SETOF 
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.vendor_qualifications
-        SELECT (jsonb_populate_record(NULL::public.vendor_qualifications, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.vendor_qualifications, _input_sanitized);
+
+  IF _input_sanitized ? 'vendor_id' THEN
+    _insert_columns := array_append(_insert_columns, 'vendor_id');
+  END IF;
+
+  IF _input_sanitized ? 'qualification_type' THEN
+    _insert_columns := array_append(_insert_columns, 'qualification_type');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF _input_sanitized ? 'reviewed_at' THEN
+    _insert_columns := array_append(_insert_columns, 'reviewed_at');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.vendor_qualifications DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.vendor_qualifications (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 687 (class 1255 OID 22107)
 -- Name: insert_vendors(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_vendors(_input jsonb) RETURNS SETOF public.vendors
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.vendors;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.vendors;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','vendors', _project_id, _organization_id);
@@ -19925,28 +24263,79 @@ CREATE FUNCTION public.insert_vendors(_input jsonb) RETURNS SETOF public.vendors
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.vendors
-        SELECT (jsonb_populate_record(NULL::public.vendors, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.vendors, _input_sanitized);
+
+  IF _input_sanitized ? 'organization_id' THEN
+    _insert_columns := array_append(_insert_columns, 'organization_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'status' THEN
+    _insert_columns := array_append(_insert_columns, 'status');
+  END IF;
+
+  IF _input_sanitized ? 'contact_email' THEN
+    _insert_columns := array_append(_insert_columns, 'contact_email');
+  END IF;
+
+  IF _input_sanitized ? 'contact_phone' THEN
+    _insert_columns := array_append(_insert_columns, 'contact_phone');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.vendors DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.vendors (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 588 (class 1255 OID 22108)
 -- Name: insert_wbs(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_wbs(_input jsonb) RETURNS SETOF public.wbs
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.wbs;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.wbs;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','wbs', _project_id, _organization_id);
@@ -19955,28 +24344,75 @@ CREATE FUNCTION public.insert_wbs(_input jsonb) RETURNS SETOF public.wbs
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.wbs
-        SELECT (jsonb_populate_record(NULL::public.wbs, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.wbs, _input_sanitized);
+
+  IF _input_sanitized ? 'project_id' THEN
+    _insert_columns := array_append(_insert_columns, 'project_id');
+  END IF;
+
+  IF _input_sanitized ? 'name' THEN
+    _insert_columns := array_append(_insert_columns, 'name');
+  END IF;
+
+  IF _input_sanitized ? 'location' THEN
+    _insert_columns := array_append(_insert_columns, 'location');
+  END IF;
+
+  IF _input_sanitized ? 'order_num' THEN
+    _insert_columns := array_append(_insert_columns, 'order_num');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.wbs DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.wbs (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 1007 (class 1255 OID 22109)
 -- Name: insert_workflows(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.insert_workflows(_input jsonb) RETURNS SETOF public.workflows
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
-    AS $$
+    AS $_$
       DECLARE
         _project_id      uuid := (_input->>'project_id')::uuid;
         _organization_id uuid := (_input->>'organization_id')::uuid;
         _new_row         public.workflows;
+
+        _input_sanitized jsonb := '{}'::jsonb;
+
+        _insert_columns text[] := ARRAY[]::text[];
+
+        _insert_column_list text;
+
+        _insert_value_list text;
+
+        _r public.workflows;
+
       BEGIN
         -- Authorization gate (RLS still applies)
         PERFORM check_access('insert','workflows', _project_id, _organization_id);
@@ -19985,17 +24421,104 @@ CREATE FUNCTION public.insert_workflows(_input jsonb) RETURNS SETOF public.workf
         _input := COALESCE(_input, '{}'::jsonb)
                   - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
 
-        INSERT INTO public.workflows
-        SELECT (jsonb_populate_record(NULL::public.workflows, _input)).*
-        RETURNING * INTO _new_row;
+          _input_sanitized := COALESCE(_input, '{}'::jsonb) - 'id' - 'created_at' - 'updated_at' - 'deleted_at';
+
+  _r := jsonb_populate_record(NULL::public.workflows, _input_sanitized);
+
+  IF _input_sanitized ? 'entity_schema' THEN
+    _insert_columns := array_append(_insert_columns, 'entity_schema');
+  END IF;
+
+  IF _input_sanitized ? 'entity_table' THEN
+    _insert_columns := array_append(_insert_columns, 'entity_table');
+  END IF;
+
+  IF _input_sanitized ? 'entity_id' THEN
+    _insert_columns := array_append(_insert_columns, 'entity_id');
+  END IF;
+
+  IF _input_sanitized ? 'workflow_name' THEN
+    _insert_columns := array_append(_insert_columns, 'workflow_name');
+  END IF;
+
+  IF _input_sanitized ? 'current_state' THEN
+    _insert_columns := array_append(_insert_columns, 'current_state');
+  END IF;
+
+  IF COALESCE(array_length(_insert_columns, 1), 0) = 0 THEN
+    INSERT INTO public.workflows DEFAULT VALUES
+    RETURNING * INTO _new_row;
+  ELSE
+    SELECT string_agg(format('%I', c), ', ')
+    INTO _insert_column_list
+    FROM unnest(_insert_columns) AS c;
+
+    SELECT string_agg(format('($1).%I', c), ', ')
+    INTO _insert_value_list
+    FROM unnest(_insert_columns) AS c;
+
+    EXECUTE format(
+      'INSERT INTO public.workflows (%s) VALUES (%s) RETURNING *',
+      _insert_column_list,
+      _insert_value_list
+    )
+    USING _r
+    INTO _new_row;
+  END IF;
 
         RETURN NEXT _new_row;
       END;
-      $$;
+      $_$;
 
 
 --
--- TOC entry 986 (class 1255 OID 45479)
+-- Name: log_rpc_error(text, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.log_rpc_error(p_rpc_name text, p_operation text DEFAULT NULL::text, p_request_context jsonb DEFAULT '{}'::jsonb) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_sqlstate text;
+  v_message text;
+  v_detail text;
+  v_hint text;
+BEGIN
+  GET STACKED DIAGNOSTICS
+    v_sqlstate = RETURNED_SQLSTATE,
+    v_message = MESSAGE_TEXT,
+    v_detail = PG_EXCEPTION_DETAIL,
+    v_hint = PG_EXCEPTION_HINT;
+
+  INSERT INTO public.rpc_error_debug (
+    rpc_name,
+    operation,
+    sqlstate,
+    error_message,
+    error_detail,
+    error_hint,
+    auth_user_id,
+    request_context
+  ) VALUES (
+    COALESCE(p_rpc_name, 'unknown_rpc'),
+    p_operation,
+    v_sqlstate,
+    COALESCE(v_message, 'unknown error'),
+    v_detail,
+    v_hint,
+    auth.uid(),
+    COALESCE(p_request_context, '{}'::jsonb)
+  );
+EXCEPTION
+  WHEN OTHERS THEN
+    -- logger must never break caller flow
+    RETURN;
+END;
+$$;
+
+
+--
 -- Name: notifications_broadcast_trigger(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -20019,7 +24542,162 @@ $$;
 
 
 --
--- TOC entry 644 (class 1255 OID 22110)
+-- Name: notifications_enforce_delivery_policy(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.notifications_enforce_delivery_policy() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+DECLARE
+  v_payload jsonb := COALESCE(NEW.payload, '{}'::jsonb);
+  v_event text := NULLIF(v_payload->>'event', '');
+  v_scope text := NULLIF(v_payload->>'scope', '');
+  v_org_id uuid := public.try_parse_uuid(v_payload->>'organization_id');
+  v_affected_profile_id uuid := public.try_parse_uuid(v_payload->>'affected_profile_id');
+  v_enabled_categories public.notification_category[];
+  v_enabled_events text[];
+BEGIN
+  -- Infer scope if not explicitly provided.
+  -- Personal-by-default; org-wide for known org events when row is not target-user specific.
+  IF v_scope IS NULL THEN
+    IF v_event IN (
+      'member_added',
+      'member_removed',
+      'member_left_organization',
+      'contract_completed',
+      'bid_accepted',
+      'new_project_created',
+      'member_job_title_changed',
+      'member_job_title_changed_broadcast',
+      'member_permission_role_changed'
+    )
+    AND (v_affected_profile_id IS NULL OR v_affected_profile_id <> NEW.user_id) THEN
+      v_scope := 'org_wide';
+    ELSE
+      v_scope := 'personal';
+    END IF;
+  END IF;
+
+  IF v_scope NOT IN ('personal', 'org_wide') THEN
+    v_scope := 'personal';
+  END IF;
+
+  -- Org-wide policy enforcement: skip inserts disallowed by org settings.
+  IF v_scope = 'org_wide' THEN
+    IF v_org_id IS NULL THEN
+      RETURN NULL;
+    END IF;
+
+    SELECT
+      ons.enabled_categories,
+      ons.enabled_events
+    INTO
+      v_enabled_categories,
+      v_enabled_events
+    FROM public.organization_notification_settings ons
+    WHERE ons.organization_id = v_org_id;
+
+    IF v_enabled_categories IS NULL THEN
+      v_enabled_categories := ARRAY[
+        'workflow_update'::public.notification_category,
+        'approval_needed'::public.notification_category,
+        'bid_received'::public.notification_category
+      ];
+    END IF;
+
+    IF v_enabled_events IS NULL THEN
+      v_enabled_events := ARRAY[
+        'member_added',
+        'member_removed',
+        'member_left_organization',
+        'contract_completed',
+        'bid_accepted',
+        'new_project_created',
+        'member_job_title_changed',
+        'member_job_title_changed_broadcast',
+        'member_permission_role_changed'
+      ]::text[];
+    END IF;
+
+    IF NOT (NEW.category = ANY (v_enabled_categories)) THEN
+      RETURN NULL;
+    END IF;
+
+    IF v_event IS NOT NULL AND NOT (v_event = ANY (v_enabled_events)) THEN
+      RETURN NULL;
+    END IF;
+  END IF;
+
+  -- User-level silencing enforcement: skip delivery to users who muted category/event.
+  IF EXISTS (
+    SELECT 1
+    FROM public.user_notification_settings uns
+    WHERE uns.user_id = NEW.user_id
+      AND (
+        NEW.category = ANY (uns.silenced_categories)
+        OR (v_event IS NOT NULL AND v_event = ANY (uns.silenced_events))
+      )
+  ) THEN
+    RETURN NULL;
+  END IF;
+
+  -- Persist resolved scope into payload for policy checks and read semantics.
+  NEW.payload := jsonb_set(v_payload, '{scope}', to_jsonb(v_scope), true);
+
+  RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: notify_bid_accepted_on_update(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.notify_bid_accepted_on_update() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+DECLARE
+  v_org_id uuid;
+  v_project_name text;
+BEGIN
+  IF COALESCE(OLD.status::text, '') = 'approved'
+     OR COALESCE(NEW.status::text, '') <> 'approved' THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT p.organization_id, p.name
+  INTO v_org_id, v_project_name
+  FROM public.projects p
+  WHERE p.id = NEW.project_id
+    AND p.deleted_at IS NULL;
+
+  IF v_org_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  PERFORM public.emit_org_notification(
+    v_org_id,
+    'workflow_update',
+    'A bid was accepted for ' || COALESCE(v_project_name, 'a project') || '.',
+    jsonb_build_object(
+      'event', 'bid_accepted',
+      'organization_id', v_org_id,
+      'project_id', NEW.project_id,
+      'project_name', v_project_name,
+      'bid_id', NEW.id,
+      'vendor_id', NEW.vendor_id,
+      'scope', 'org_wide'
+    )
+  );
+
+  RETURN NEW;
+END;
+$$;
+
+
+--
 -- Name: notify_new_bid(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -20027,20 +24705,52 @@ CREATE FUNCTION public.notify_new_bid() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
+DECLARE
+  v_org_id uuid;
+  v_project_name text;
+  v_member record;
 BEGIN
-  PERFORM public.create_notification(
-    (SELECT owner_id FROM public.projects WHERE id = NEW.project_id),
-    'bid_received',
-    'A new bid ('||NEW.id||') was submitted.',
-    jsonb_build_object('bid_id', NEW.id, 'vendor_id', NEW.vendor_id)
-  );
+  SELECT p.organization_id, p.name
+  INTO v_org_id, v_project_name
+  FROM public.projects p
+  WHERE p.id = NEW.project_id
+    AND p.deleted_at IS NULL;
+
+  IF v_org_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  FOR v_member IN
+    SELECT om.profile_id
+    FROM public.organization_members om
+    WHERE om.organization_id = v_org_id
+      AND om.deleted_at IS NULL
+  LOOP
+    PERFORM public.insert_notifications(
+      jsonb_build_object(
+        'user_id', v_member.profile_id,
+        'organization_id', v_org_id,
+        'category', 'bid_received',
+        'message', 'A new bid was submitted for ' || COALESCE(v_project_name, 'a project') || '.',
+        'payload', jsonb_build_object(
+          'event', 'bid_received',
+          'organization_id', v_org_id,
+          'project_id', NEW.project_id,
+          'project_name', v_project_name,
+          'bid_id', NEW.id,
+          'vendor_id', NEW.vendor_id,
+          'scope', 'org_wide'
+        )
+      )
+    );
+  END LOOP;
+
   RETURN NEW;
 END;
 $$;
 
 
 --
--- TOC entry 806 (class 1255 OID 22111)
 -- Name: on_create_function_pin_search_path(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -20084,7 +24794,6 @@ $$;
 
 
 --
--- TOC entry 889 (class 1255 OID 22112)
 -- Name: on_ddl_ensure_fk_indexes(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -20099,7 +24808,6 @@ $$;
 
 
 --
--- TOC entry 577 (class 1255 OID 27745)
 -- Name: purge_orphaned_avatars(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -20128,7 +24836,6 @@ CREATE FUNCTION public.purge_orphaned_avatars() RETURNS SETOF public.avatars
 
 
 --
--- TOC entry 861 (class 1255 OID 22113)
 -- Name: rank_equipment_usage(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -20153,7 +24860,6 @@ $$;
 
 
 --
--- TOC entry 795 (class 1255 OID 22114)
 -- Name: refresh_project_cost_summary(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -20166,7 +24872,6 @@ $$;
 
 
 --
--- TOC entry 669 (class 1255 OID 47800)
 -- Name: remove_org_member_with_reason(uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -20190,19 +24895,16 @@ BEGIN
   IF v_actor_id IS NULL THEN
     RAISE EXCEPTION 'Not authenticated';
   END IF;
-
   IF p_org_id IS NULL OR p_profile_id IS NULL THEN
     RAISE EXCEPTION 'Missing required inputs';
   END IF;
-
   IF COALESCE(TRIM(p_reason), '') = '' THEN
     RAISE EXCEPTION 'Reason is required';
   END IF;
 
   v_is_self_leave := p_profile_id = v_actor_id;
 
-  SELECT p.role
-  INTO v_actor_role
+  SELECT p.role INTO v_actor_role
   FROM public.profiles p
   WHERE p.id = v_actor_id
     AND p.deleted_at IS NULL;
@@ -20277,41 +24979,29 @@ BEGIN
 
   PERFORM public.delete_organization_members(v_membership_id);
 
-  SELECT p.full_name INTO v_actor_name
-  FROM public.profiles p
-  WHERE p.id = v_actor_id;
-
-  SELECT p.full_name INTO v_target_name
-  FROM public.profiles p
-  WHERE p.id = p_profile_id;
-
-  SELECT o.name INTO v_org_name
-  FROM public.organizations o
-  WHERE o.id = p_org_id;
+  SELECT p.full_name INTO v_actor_name FROM public.profiles p WHERE p.id = v_actor_id;
+  SELECT p.full_name INTO v_target_name FROM public.profiles p WHERE p.id = p_profile_id;
+  SELECT o.name INTO v_org_name FROM public.organizations o WHERE o.id = p_org_id;
 
   IF NOT v_is_self_leave THEN
-    BEGIN
-      PERFORM public.insert_notifications(
-        jsonb_build_object(
-          'user_id', p_profile_id,
+    PERFORM public.insert_notifications(
+      jsonb_build_object(
+        'user_id', p_profile_id,
+        'organization_id', p_org_id,
+        'category', 'workflow_update',
+        'message', 'You have been removed from ' || COALESCE(v_org_name, 'this organization') || '. Reason: ' || TRIM(p_reason),
+        'payload', jsonb_build_object(
+          'event', 'member_removed',
           'organization_id', p_org_id,
-          'category', 'workflow_update',
-          'message', 'You have been removed from ' || COALESCE(v_org_name, 'this organization') || '. Reason: ' || TRIM(p_reason),
-          'payload', jsonb_build_object(
-            'event', 'member_removed',
-            'organization_id', p_org_id,
-            'organization_name', v_org_name,
-            'affected_profile_id', p_profile_id,
-            'removed_by_profile_id', v_actor_id,
-            'removed_by_name', COALESCE(v_actor_name, 'Organization Admin'),
-            'reason', TRIM(p_reason),
-            'removed_at', now()
-          )
+          'organization_name', v_org_name,
+          'affected_profile_id', p_profile_id,
+          'removed_by_profile_id', v_actor_id,
+          'removed_by_name', COALESCE(v_actor_name, 'Organization Admin'),
+          'reason', TRIM(p_reason),
+          'removed_at', now()
         )
-      );
-    EXCEPTION WHEN OTHERS THEN
-      NULL;
-    END;
+      )
+    );
   END IF;
 
   FOR v_admin IN
@@ -20321,42 +25011,37 @@ BEGIN
       AND om.deleted_at IS NULL
       AND om.permission_role IN ('admin', 'hr', 'owner')
   LOOP
-    BEGIN
-      PERFORM public.insert_notifications(
-        jsonb_build_object(
-          'user_id', v_admin.profile_id,
+    PERFORM public.insert_notifications(
+      jsonb_build_object(
+        'user_id', v_admin.profile_id,
+        'organization_id', p_org_id,
+        'category', 'workflow_update',
+        'message',
+          CASE
+            WHEN v_is_self_leave THEN
+              COALESCE(v_target_name, p_profile_id::text) || ' left ' || COALESCE(v_org_name, 'the organization') || '.'
+            ELSE
+              COALESCE(v_target_name, p_profile_id::text) || ' was removed from ' || COALESCE(v_org_name, 'the organization') || '.'
+          END,
+        'payload', jsonb_build_object(
+          'event', CASE WHEN v_is_self_leave THEN 'member_left_organization' ELSE 'member_removed' END,
           'organization_id', p_org_id,
-          'category', 'workflow_update',
-          'message',
-            CASE
-              WHEN v_is_self_leave THEN
-                COALESCE(v_target_name, p_profile_id::text) || ' left ' || COALESCE(v_org_name, 'the organization') || '.'
-              ELSE
-                COALESCE(v_target_name, p_profile_id::text) || ' was removed from ' || COALESCE(v_org_name, 'the organization') || '.'
-            END,
-          'payload', jsonb_build_object(
-            'event', CASE WHEN v_is_self_leave THEN 'member_left_organization' ELSE 'member_removed' END,
-            'organization_id', p_org_id,
-            'organization_name', v_org_name,
-            'affected_profile_id', p_profile_id,
-            'affected_profile_name', v_target_name,
-            'actor_profile_id', v_actor_id,
-            'actor_name', COALESCE(v_actor_name, 'Organization Admin'),
-            'reason', TRIM(p_reason),
-            'occurred_at', now()
-          )
+          'organization_name', v_org_name,
+          'affected_profile_id', p_profile_id,
+          'affected_profile_name', v_target_name,
+          'actor_profile_id', v_actor_id,
+          'actor_name', COALESCE(v_actor_name, 'Organization Admin'),
+          'reason', TRIM(p_reason),
+          'occurred_at', now()
         )
-      );
-    EXCEPTION WHEN OTHERS THEN
-      NULL;
-    END;
+      )
+    );
   END LOOP;
 END;
 $$;
 
 
 --
--- TOC entry 1083 (class 1255 OID 27701)
 -- Name: remove_profile_from_contract(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -20382,7 +25067,6 @@ $$;
 
 
 --
--- TOC entry 866 (class 1255 OID 49055)
 -- Name: review_organization_invite(uuid, text, timestamp with time zone, uuid, public.org_role); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -20405,16 +25089,12 @@ BEGIN
     RAISE EXCEPTION 'invalid decision' USING detail = jsonb_build_object('decision', p_decision);
   END IF;
 
-  SELECT * INTO _old_row
-  FROM public.organization_invites
-  WHERE id = p_invite_id;
-
+  SELECT * INTO _old_row FROM public.organization_invites WHERE id = p_invite_id;
   IF _old_row IS NULL THEN
     RAISE EXCEPTION 'row not found' USING detail = jsonb_build_object('id', p_invite_id);
   END IF;
 
-  SELECT p.role
-  INTO _reviewer_role
+  SELECT p.role INTO _reviewer_role
   FROM public.profiles p
   WHERE p.id = _reviewer_id
     AND p.deleted_at IS NULL;
@@ -20483,12 +25163,7 @@ BEGIN
         AND m.deleted_at IS NULL
     ) THEN
       INSERT INTO public.organization_members (
-        organization_id,
-        profile_id,
-        permission_role,
-        job_title_id,
-        created_at,
-        updated_at
+        organization_id, profile_id, permission_role, job_title_id, created_at, updated_at
       )
       VALUES (
         _new_row.organization_id,
@@ -20518,9 +25193,7 @@ BEGIN
     WHERE id = _new_row.invited_profile_id;
   END IF;
 
-  SELECT o.name INTO _organization_name
-  FROM public.organizations o
-  WHERE o.id = _new_row.organization_id;
+  SELECT o.name INTO _organization_name FROM public.organizations o WHERE o.id = _new_row.organization_id;
 
   IF COALESCE(p_selected_job_title_id, _new_row.reviewed_job_title_id, _new_row.requested_job_title_id) IS NOT NULL THEN
     SELECT jt.name INTO _selected_job_title_name
@@ -20530,40 +25203,36 @@ BEGIN
 
   _decision_word := CASE WHEN _new_row.status = 'accepted' THEN 'approved' ELSE 'denied' END;
 
-  BEGIN
-    PERFORM public.insert_notifications(
-      jsonb_build_object(
-        'user_id', _new_row.invited_profile_id,
+  PERFORM public.insert_notifications(
+    jsonb_build_object(
+      'user_id', _new_row.invited_profile_id,
+      'organization_id', _new_row.organization_id,
+      'category', 'workflow_update',
+      'message',
+        CASE
+          WHEN _selected_job_title_name IS NOT NULL THEN
+            'Your request to join ' || COALESCE(_organization_name, 'this organization')
+            || ' has been ' || _decision_word
+            || ' for the position of ' || _selected_job_title_name || '.'
+          ELSE
+            'Your request to join ' || COALESCE(_organization_name, 'this organization')
+            || ' has been ' || _decision_word || '.'
+        END,
+      'payload', jsonb_build_object(
+        'event', 'membership_request_reviewed',
+        'invite_id', _new_row.id,
         'organization_id', _new_row.organization_id,
-        'category', 'workflow_update',
-        'message',
-          CASE
-            WHEN _selected_job_title_name IS NOT NULL THEN
-              'Your request to join ' || COALESCE(_organization_name, 'this organization')
-              || ' has been ' || _decision_word
-              || ' for the position of ' || _selected_job_title_name || '.'
-            ELSE
-              'Your request to join ' || COALESCE(_organization_name, 'this organization')
-              || ' has been ' || _decision_word || '.'
-          END,
-        'payload', jsonb_build_object(
-          'event', 'membership_request_reviewed',
-          'invite_id', _new_row.id,
-          'organization_id', _new_row.organization_id,
-          'organization_name', _organization_name,
-          'status', _new_row.status,
-          'decision_word', _decision_word,
-          'requested_role', COALESCE(_new_row.reviewed_permission_role, _new_row.requested_permission_role)::text,
-          'position_label', _selected_job_title_name,
-          'selected_job_title_name', _selected_job_title_name,
-          'reviewed_by_profile_id', _reviewer_id,
-          'reviewed_at', _new_row.responded_at
-        )
+        'organization_name', _organization_name,
+        'status', _new_row.status,
+        'decision_word', _decision_word,
+        'requested_role', COALESCE(_new_row.reviewed_permission_role, _new_row.requested_permission_role)::text,
+        'position_label', _selected_job_title_name,
+        'selected_job_title_name', _selected_job_title_name,
+        'reviewed_by_profile_id', _reviewer_id,
+        'reviewed_at', _new_row.responded_at
       )
-    );
-  EXCEPTION WHEN OTHERS THEN
-    NULL;
-  END;
+    )
+  );
 
   RETURN NEXT _new_row;
 END;
@@ -20571,7 +25240,6 @@ $$;
 
 
 --
--- TOC entry 848 (class 1255 OID 27708)
 -- Name: rpc_calculator_template_payload(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -20630,7 +25298,6 @@ $$;
 
 
 --
--- TOC entry 944 (class 1255 OID 27707)
 -- Name: rpc_calculators_payload(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -20690,7 +25357,6 @@ $$;
 
 
 --
--- TOC entry 1003 (class 1255 OID 27704)
 -- Name: rpc_equipment_log_payload(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -20791,7 +25457,6 @@ $$;
 
 
 --
--- TOC entry 603 (class 1255 OID 27706)
 -- Name: rpc_equipment_maintenance_payload(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -20856,7 +25521,6 @@ $$;
 
 
 --
--- TOC entry 583 (class 1255 OID 27705)
 -- Name: rpc_estimates_payload(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -20919,7 +25583,6 @@ $$;
 
 
 --
--- TOC entry 973 (class 1255 OID 27698)
 -- Name: rpc_inspections_payload(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -21096,7 +25759,6 @@ $$;
 
 
 --
--- TOC entry 1001 (class 1255 OID 27709)
 -- Name: rpc_issues_payload(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -21171,7 +25833,6 @@ $$;
 
 
 --
--- TOC entry 947 (class 1255 OID 33272)
 -- Name: rpc_org_dashboard_payload(uuid, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -21346,7 +26007,6 @@ $$;
 
 
 --
--- TOC entry 821 (class 1255 OID 27696)
 -- Name: rpc_profile_dashboard_payload(integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -21527,7 +26187,6 @@ $$;
 
 
 --
--- TOC entry 685 (class 1255 OID 27697)
 -- Name: rpc_project_dashboard_payload(uuid, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -21707,7 +26366,46 @@ $$;
 
 
 --
--- TOC entry 636 (class 1255 OID 45574)
+-- Name: set_my_notification_settings(public.notification_category[], text[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_my_notification_settings(p_silenced_categories public.notification_category[] DEFAULT '{}'::public.notification_category[], p_silenced_events text[] DEFAULT '{}'::text[]) RETURNS SETOF public.user_notification_settings
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_row public.user_notification_settings;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated' USING errcode = '42501';
+  END IF;
+
+  INSERT INTO public.user_notification_settings (
+    user_id,
+    silenced_categories,
+    silenced_events,
+    updated_at
+  )
+  VALUES (
+    v_user_id,
+    COALESCE(p_silenced_categories, '{}'::public.notification_category[]),
+    COALESCE(p_silenced_events, '{}'::text[]),
+    now()
+  )
+  ON CONFLICT (user_id) DO UPDATE
+  SET
+    silenced_categories = EXCLUDED.silenced_categories,
+    silenced_events = EXCLUDED.silenced_events,
+    updated_at = now()
+  RETURNING * INTO v_row;
+
+  RETURN NEXT v_row;
+END;
+$$;
+
+
+--
 -- Name: set_my_primary_organization(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -21751,7 +26449,6 @@ $$;
 
 
 --
--- TOC entry 677 (class 1255 OID 46683)
 -- Name: set_org_member_job_title(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -21846,7 +26543,6 @@ $$;
 
 
 --
--- TOC entry 934 (class 1255 OID 26406)
 -- Name: set_org_member_role(uuid, uuid, public.org_role); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -21860,7 +26556,9 @@ DECLARE
   v_actor_permission_role public.org_role;
   v_target_permission_role public.org_role;
   v_actor_name text;
+  v_target_name text;
   v_org_name text;
+  v_member record;
 BEGIN
   IF v_user_id IS NULL THEN
     RAISE EXCEPTION 'Not authenticated';
@@ -21926,23 +26624,54 @@ BEGIN
     AND profile_id = p_profile_id
     AND deleted_at IS NULL;
 
-  SELECT p.full_name INTO v_actor_name
-  FROM public.profiles p
-  WHERE p.id = v_user_id;
+  SELECT p.full_name INTO v_actor_name FROM public.profiles p WHERE p.id = v_user_id;
+  SELECT p.full_name INTO v_target_name FROM public.profiles p WHERE p.id = p_profile_id;
+  SELECT o.name INTO v_org_name FROM public.organizations o WHERE o.id = p_org_id;
 
-  SELECT o.name INTO v_org_name
-  FROM public.organizations o
-  WHERE o.id = p_org_id;
+  -- Personal notification to affected member.
+  PERFORM public.insert_notifications(
+    jsonb_build_object(
+      'user_id', p_profile_id,
+      'organization_id', p_org_id,
+      'category', 'workflow_update',
+      'message',
+        'Your role in ' || COALESCE(v_org_name, 'this organization')
+        || ' has been changed from '
+        || INITCAP(REPLACE(v_target_permission_role::text, '_', ' '))
+        || ' to '
+        || INITCAP(REPLACE(p_role::text, '_', ' '))
+        || '.',
+      'payload', jsonb_build_object(
+        'event', 'member_permission_role_changed',
+        'organization_id', p_org_id,
+        'organization_name', v_org_name,
+        'affected_profile_id', p_profile_id,
+        'affected_profile_name', v_target_name,
+        'previous_permission_role', v_target_permission_role,
+        'updated_permission_role', p_role,
+        'changed_by_profile_id', v_user_id,
+        'changed_by_name', COALESCE(v_actor_name, 'Organization Admin'),
+        'changed_at', now()
+      )
+    )
+  );
 
-  BEGIN
+  -- Org-wide notifications to everyone else (including acting owner when different from target).
+  FOR v_member IN
+    SELECT om.profile_id
+    FROM public.organization_members om
+    WHERE om.organization_id = p_org_id
+      AND om.deleted_at IS NULL
+      AND om.profile_id <> p_profile_id
+  LOOP
     PERFORM public.insert_notifications(
       jsonb_build_object(
-        'user_id', p_profile_id,
+        'user_id', v_member.profile_id,
         'organization_id', p_org_id,
         'category', 'workflow_update',
         'message',
-          'Your role in ' || COALESCE(v_org_name, 'this organization')
-          || ' has been changed from '
+          COALESCE(v_target_name, p_profile_id::text)
+          || '''s role was changed from '
           || INITCAP(REPLACE(v_target_permission_role::text, '_', ' '))
           || ' to '
           || INITCAP(REPLACE(p_role::text, '_', ' '))
@@ -21952,6 +26681,7 @@ BEGIN
           'organization_id', p_org_id,
           'organization_name', v_org_name,
           'affected_profile_id', p_profile_id,
+          'affected_profile_name', v_target_name,
           'previous_permission_role', v_target_permission_role,
           'updated_permission_role', p_role,
           'changed_by_profile_id', v_user_id,
@@ -21960,15 +26690,55 @@ BEGIN
         )
       )
     );
-  EXCEPTION WHEN OTHERS THEN
-    NULL;
-  END;
+  END LOOP;
 END;
 $$;
 
 
 --
--- TOC entry 890 (class 1255 OID 22115)
+-- Name: set_org_notification_settings(uuid, public.notification_category[], text[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_org_notification_settings(p_organization_id uuid, p_enabled_categories public.notification_category[] DEFAULT ARRAY['workflow_update'::public.notification_category, 'approval_needed'::public.notification_category, 'bid_received'::public.notification_category], p_enabled_events text[] DEFAULT ARRAY['member_added'::text, 'member_removed'::text, 'member_left_organization'::text, 'contract_completed'::text, 'bid_accepted'::text, 'new_project_created'::text, 'member_job_title_changed'::text, 'member_job_title_changed_broadcast'::text, 'member_permission_role_changed'::text]) RETURNS SETOF public.organization_notification_settings
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_row public.organization_notification_settings;
+BEGIN
+  IF NOT public.can_edit_org_notification_settings(p_organization_id) THEN
+    RAISE EXCEPTION 'Access denied for organization notification settings'
+      USING errcode = '42501';
+  END IF;
+
+  INSERT INTO public.organization_notification_settings (
+    organization_id,
+    enabled_categories,
+    enabled_events,
+    updated_by,
+    updated_at
+  )
+  VALUES (
+    p_organization_id,
+    COALESCE(p_enabled_categories, '{}'::public.notification_category[]),
+    COALESCE(p_enabled_events, '{}'::text[]),
+    auth.uid(),
+    now()
+  )
+  ON CONFLICT (organization_id) DO UPDATE
+  SET
+    enabled_categories = EXCLUDED.enabled_categories,
+    enabled_events = EXCLUDED.enabled_events,
+    updated_by = auth.uid(),
+    updated_at = now()
+  RETURNING * INTO v_row;
+
+  RETURN NEXT v_row;
+END;
+$$;
+
+
+--
 -- Name: set_updated_at(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -21986,7 +26756,6 @@ $$;
 
 
 --
--- TOC entry 840 (class 1255 OID 22116)
 -- Name: touch_created_at(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22004,7 +26773,30 @@ $$;
 
 
 --
--- TOC entry 735 (class 1255 OID 22117)
+-- Name: try_parse_uuid(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.try_parse_uuid(p_text text) RETURNS uuid
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
+DECLARE
+  v_uuid uuid;
+BEGIN
+  IF p_text IS NULL OR btrim(p_text) = '' THEN
+    RETURN NULL;
+  END IF;
+
+  BEGIN
+    v_uuid := p_text::uuid;
+    RETURN v_uuid;
+  EXCEPTION WHEN others THEN
+    RETURN NULL;
+  END;
+END;
+$$;
+
+
+--
 -- Name: update_accounts_payable(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22039,7 +26831,6 @@ CREATE FUNCTION public.update_accounts_payable(_id uuid, _input jsonb) RETURNS S
 
 
 --
--- TOC entry 706 (class 1255 OID 22118)
 -- Name: update_accounts_receivable(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22074,7 +26865,6 @@ CREATE FUNCTION public.update_accounts_receivable(_id uuid, _input jsonb) RETURN
 
 
 --
--- TOC entry 871 (class 1255 OID 22119)
 -- Name: update_activity_logs(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22109,7 +26899,6 @@ CREATE FUNCTION public.update_activity_logs(_id uuid, _input jsonb) RETURNS SETO
 
 
 --
--- TOC entry 593 (class 1255 OID 22120)
 -- Name: update_asphalt_types(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22144,7 +26933,6 @@ CREATE FUNCTION public.update_asphalt_types(_id uuid, _input jsonb) RETURNS SETO
 
 
 --
--- TOC entry 1081 (class 1255 OID 27712)
 -- Name: update_audit_log(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22179,7 +26967,6 @@ CREATE FUNCTION public.update_audit_log(_id uuid, _input jsonb) RETURNS SETOF pu
 
 
 --
--- TOC entry 684 (class 1255 OID 22121)
 -- Name: update_audit_logs(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22214,7 +27001,6 @@ CREATE FUNCTION public.update_audit_logs(_id uuid, _input jsonb) RETURNS SETOF p
 
 
 --
--- TOC entry 712 (class 1255 OID 22122)
 -- Name: update_avatars(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22249,7 +27035,6 @@ CREATE FUNCTION public.update_avatars(_id uuid, _input jsonb) RETURNS SETOF publ
 
 
 --
--- TOC entry 950 (class 1255 OID 22124)
 -- Name: update_bid_packages(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22284,7 +27069,6 @@ CREATE FUNCTION public.update_bid_packages(_id uuid, _input jsonb) RETURNS SETOF
 
 
 --
--- TOC entry 976 (class 1255 OID 22125)
 -- Name: update_bid_vendors(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22319,7 +27103,6 @@ CREATE FUNCTION public.update_bid_vendors(_id uuid, _input jsonb) RETURNS SETOF 
 
 
 --
--- TOC entry 560 (class 1255 OID 22126)
 -- Name: update_bids(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22354,7 +27137,6 @@ CREATE FUNCTION public.update_bids(_id uuid, _input jsonb) RETURNS SETOF public.
 
 
 --
--- TOC entry 612 (class 1255 OID 22127)
 -- Name: update_bim_models(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22389,7 +27171,6 @@ CREATE FUNCTION public.update_bim_models(_id uuid, _input jsonb) RETURNS SETOF p
 
 
 --
--- TOC entry 1068 (class 1255 OID 22128)
 -- Name: update_certifications(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22424,7 +27205,6 @@ CREATE FUNCTION public.update_certifications(_id uuid, _input jsonb) RETURNS SET
 
 
 --
--- TOC entry 707 (class 1255 OID 22129)
 -- Name: update_change_orders(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22459,7 +27239,6 @@ CREATE FUNCTION public.update_change_orders(_id uuid, _input jsonb) RETURNS SETO
 
 
 --
--- TOC entry 826 (class 1255 OID 22130)
 -- Name: update_commitments(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22494,7 +27273,6 @@ CREATE FUNCTION public.update_commitments(_id uuid, _input jsonb) RETURNS SETOF 
 
 
 --
--- TOC entry 563 (class 1255 OID 22131)
 -- Name: update_compliance_checks(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22529,7 +27307,6 @@ CREATE FUNCTION public.update_compliance_checks(_id uuid, _input jsonb) RETURNS 
 
 
 --
--- TOC entry 711 (class 1255 OID 22132)
 -- Name: update_compliance_tracking(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22564,7 +27341,6 @@ CREATE FUNCTION public.update_compliance_tracking(_id uuid, _input jsonb) RETURN
 
 
 --
--- TOC entry 1074 (class 1255 OID 22133)
 -- Name: update_cost_codes(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22599,7 +27375,6 @@ CREATE FUNCTION public.update_cost_codes(_id uuid, _input jsonb) RETURNS SETOF p
 
 
 --
--- TOC entry 1041 (class 1255 OID 22134)
 -- Name: update_crew_assignments(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22634,7 +27409,6 @@ CREATE FUNCTION public.update_crew_assignments(_id uuid, _input jsonb) RETURNS S
 
 
 --
--- TOC entry 971 (class 1255 OID 22135)
 -- Name: update_crew_members(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22669,7 +27443,6 @@ CREATE FUNCTION public.update_crew_members(_id uuid, _input jsonb) RETURNS SETOF
 
 
 --
--- TOC entry 731 (class 1255 OID 22136)
 -- Name: update_crews(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22704,7 +27477,6 @@ CREATE FUNCTION public.update_crews(_id uuid, _input jsonb) RETURNS SETOF public
 
 
 --
--- TOC entry 757 (class 1255 OID 22137)
 -- Name: update_daily_logs(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22739,7 +27511,6 @@ CREATE FUNCTION public.update_daily_logs(_id uuid, _input jsonb) RETURNS SETOF p
 
 
 --
--- TOC entry 908 (class 1255 OID 22138)
 -- Name: update_dashboard_configs(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22774,7 +27545,6 @@ CREATE FUNCTION public.update_dashboard_configs(_id uuid, _input jsonb) RETURNS 
 
 
 --
--- TOC entry 699 (class 1255 OID 22139)
 -- Name: update_document_references(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22809,7 +27579,6 @@ CREATE FUNCTION public.update_document_references(_id uuid, _input jsonb) RETURN
 
 
 --
--- TOC entry 611 (class 1255 OID 22140)
 -- Name: update_documents(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22844,7 +27613,6 @@ CREATE FUNCTION public.update_documents(_id uuid, _input jsonb) RETURNS SETOF pu
 
 
 --
--- TOC entry 865 (class 1255 OID 22141)
 -- Name: update_drawing_versions(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22879,7 +27647,6 @@ CREATE FUNCTION public.update_drawing_versions(_id uuid, _input jsonb) RETURNS S
 
 
 --
--- TOC entry 671 (class 1255 OID 22142)
 -- Name: update_dump_trucks(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22914,7 +27681,6 @@ CREATE FUNCTION public.update_dump_trucks(_id uuid, _input jsonb) RETURNS SETOF 
 
 
 --
--- TOC entry 693 (class 1255 OID 22143)
 -- Name: update_employees(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22949,7 +27715,6 @@ CREATE FUNCTION public.update_employees(_id uuid, _input jsonb) RETURNS SETOF pu
 
 
 --
--- TOC entry 678 (class 1255 OID 22144)
 -- Name: update_equipment(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22984,7 +27749,6 @@ CREATE FUNCTION public.update_equipment(_id uuid, _input jsonb) RETURNS SETOF pu
 
 
 --
--- TOC entry 846 (class 1255 OID 22145)
 -- Name: update_equipment_assignments(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23019,7 +27783,6 @@ CREATE FUNCTION public.update_equipment_assignments(_id uuid, _input jsonb) RETU
 
 
 --
--- TOC entry 713 (class 1255 OID 22146)
 -- Name: update_equipment_maintenance(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23054,7 +27817,6 @@ CREATE FUNCTION public.update_equipment_maintenance(_id uuid, _input jsonb) RETU
 
 
 --
--- TOC entry 803 (class 1255 OID 22147)
 -- Name: update_equipment_usage(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23089,7 +27851,6 @@ CREATE FUNCTION public.update_equipment_usage(_id uuid, _input jsonb) RETURNS SE
 
 
 --
--- TOC entry 738 (class 1255 OID 22148)
 -- Name: update_estimate_line_items(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23124,7 +27885,6 @@ CREATE FUNCTION public.update_estimate_line_items(_id uuid, _input jsonb) RETURN
 
 
 --
--- TOC entry 717 (class 1255 OID 22149)
 -- Name: update_estimates(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23159,7 +27919,6 @@ CREATE FUNCTION public.update_estimates(_id uuid, _input jsonb) RETURNS SETOF pu
 
 
 --
--- TOC entry 1078 (class 1255 OID 22150)
 -- Name: update_financial_documents(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23194,7 +27953,6 @@ CREATE FUNCTION public.update_financial_documents(_id uuid, _input jsonb) RETURN
 
 
 --
--- TOC entry 578 (class 1255 OID 22151)
 -- Name: update_general_ledger(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23229,7 +27987,6 @@ CREATE FUNCTION public.update_general_ledger(_id uuid, _input jsonb) RETURNS SET
 
 
 --
--- TOC entry 604 (class 1255 OID 22152)
 -- Name: update_hr_documents(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23264,7 +28021,6 @@ CREATE FUNCTION public.update_hr_documents(_id uuid, _input jsonb) RETURNS SETOF
 
 
 --
--- TOC entry 1086 (class 1255 OID 22153)
 -- Name: update_inspections(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23299,7 +28055,6 @@ CREATE FUNCTION public.update_inspections(_id uuid, _input jsonb) RETURNS SETOF 
 
 
 --
--- TOC entry 725 (class 1255 OID 22154)
 -- Name: update_integration_tokens(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23334,7 +28089,6 @@ CREATE FUNCTION public.update_integration_tokens(_id uuid, _input jsonb) RETURNS
 
 
 --
--- TOC entry 766 (class 1255 OID 22155)
 -- Name: update_inventory_transactions(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23369,7 +28123,6 @@ CREATE FUNCTION public.update_inventory_transactions(_id uuid, _input jsonb) RET
 
 
 --
--- TOC entry 832 (class 1255 OID 22156)
 -- Name: update_issues(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23404,7 +28157,6 @@ CREATE FUNCTION public.update_issues(_id uuid, _input jsonb) RETURNS SETOF publi
 
 
 --
--- TOC entry 1077 (class 1255 OID 22157)
 -- Name: update_job_titles(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23439,7 +28191,6 @@ CREATE FUNCTION public.update_job_titles(_id uuid, _input jsonb) RETURNS SETOF p
 
 
 --
--- TOC entry 991 (class 1255 OID 22158)
 -- Name: update_labor_records(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23474,7 +28225,6 @@ CREATE FUNCTION public.update_labor_records(_id uuid, _input jsonb) RETURNS SETO
 
 
 --
--- TOC entry 741 (class 1255 OID 22159)
 -- Name: update_line_item_entries(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23509,7 +28259,6 @@ CREATE FUNCTION public.update_line_item_entries(_id uuid, _input jsonb) RETURNS 
 
 
 --
--- TOC entry 919 (class 1255 OID 22160)
 -- Name: update_line_item_templates(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23544,7 +28293,6 @@ CREATE FUNCTION public.update_line_item_templates(_id uuid, _input jsonb) RETURN
 
 
 --
--- TOC entry 652 (class 1255 OID 22161)
 -- Name: update_line_items(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23579,7 +28327,6 @@ CREATE FUNCTION public.update_line_items(_id uuid, _input jsonb) RETURNS SETOF p
 
 
 --
--- TOC entry 867 (class 1255 OID 22162)
 -- Name: update_maps(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23614,7 +28361,6 @@ CREATE FUNCTION public.update_maps(_id uuid, _input jsonb) RETURNS SETOF public.
 
 
 --
--- TOC entry 754 (class 1255 OID 22163)
 -- Name: update_material_inventory(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23649,7 +28395,6 @@ CREATE FUNCTION public.update_material_inventory(_id uuid, _input jsonb) RETURNS
 
 
 --
--- TOC entry 653 (class 1255 OID 22164)
 -- Name: update_material_orders(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23684,7 +28429,6 @@ CREATE FUNCTION public.update_material_orders(_id uuid, _input jsonb) RETURNS SE
 
 
 --
--- TOC entry 674 (class 1255 OID 22165)
 -- Name: update_material_receipts(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23719,7 +28463,6 @@ CREATE FUNCTION public.update_material_receipts(_id uuid, _input jsonb) RETURNS 
 
 
 --
--- TOC entry 750 (class 1255 OID 22166)
 -- Name: update_materials(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23754,7 +28497,6 @@ CREATE FUNCTION public.update_materials(_id uuid, _input jsonb) RETURNS SETOF pu
 
 
 --
--- TOC entry 924 (class 1255 OID 22167)
 -- Name: update_meeting_minutes(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23789,7 +28531,6 @@ CREATE FUNCTION public.update_meeting_minutes(_id uuid, _input jsonb) RETURNS SE
 
 
 --
--- TOC entry 639 (class 1255 OID 28853)
 -- Name: update_my_organization(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23841,7 +28582,6 @@ CREATE FUNCTION public.update_my_organization(_input jsonb) RETURNS SETOF public
 
 
 --
--- TOC entry 930 (class 1255 OID 47907)
 -- Name: update_my_profile(text, text, uuid, public.user_role_type); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23884,42 +28624,57 @@ $$;
 
 
 --
--- TOC entry 839 (class 1255 OID 22168)
 -- Name: update_notifications(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.update_notifications(_id uuid, _input jsonb) RETURNS SETOF public.notifications
-    LANGUAGE plpgsql
+    LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
-      DECLARE
-        _old_row public.notifications;
-        _new_row public.notifications;
-        -- Map only known columns; keys not in the table are ignored safely
-        _row     public.notifications := (jsonb_populate_record(NULL::public.notifications, COALESCE(_input, '{}'::jsonb)));
-      BEGIN
-        -- Fetch row (RLS decides visibility)
-        SELECT * INTO _old_row FROM public.notifications WHERE id = _id;
-        IF _old_row IS NULL THEN
-          RAISE EXCEPTION 'row not found' USING DETAIL = jsonb_build_object('id', _id);
-        END IF;
+DECLARE
+  _old_row public.notifications;
+  _new_row public.notifications;
+  _row public.notifications := (jsonb_populate_record(NULL::public.notifications, COALESCE(_input, '{}'::jsonb)));
+BEGIN
+  SELECT *
+  INTO _old_row
+  FROM public.notifications
+  WHERE id = _id
+    AND deleted_at IS NULL;
 
-        -- Authorization gate with existing row scope (prevents privilege escalation)
-        PERFORM check_access('update','notifications', _old_row.project_id, _old_row.organization_id);
+  IF _old_row IS NULL THEN
+    RAISE EXCEPTION 'row not found'
+      USING DETAIL = jsonb_build_object('id', _id);
+  END IF;
 
-        -- Tweak #2: scope columns are excluded from set_list, so they cannot be changed here
-        UPDATE public.notifications
-           SET user_id = COALESCE(_row.user_id, user_id), category = COALESCE(_row.category, category), message = COALESCE(_row.message, message), payload = COALESCE(_row.payload, payload), is_read = COALESCE(_row.is_read, is_read), updated_at = now()
-         WHERE id = _id
-         RETURNING * INTO _new_row;
+  IF _old_row.user_id <> auth.uid() THEN
+    RAISE EXCEPTION 'Access denied for notification update'
+      USING errcode = '42501';
+  END IF;
 
-        RETURN NEXT _new_row;
-      END;
-      $$;
+  UPDATE public.notifications
+  SET
+    is_read = COALESCE(_row.is_read, is_read),
+    category = COALESCE(_row.category, category),
+    message = COALESCE(_row.message, message),
+    payload = COALESCE(_row.payload, payload),
+    updated_at = now()
+  WHERE id = _id
+    AND user_id = auth.uid()
+    AND deleted_at IS NULL
+  RETURNING * INTO _new_row;
+
+  IF _new_row IS NULL THEN
+    RAISE EXCEPTION 'row not found'
+      USING DETAIL = jsonb_build_object('id', _id);
+  END IF;
+
+  RETURN NEXT _new_row;
+END;
+$$;
 
 
 --
--- TOC entry 662 (class 1255 OID 43256)
 -- Name: update_organization_invites(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23957,20 +28712,14 @@ BEGIN
         AND deleted_at IS NULL
     ) THEN
       INSERT INTO public.organization_members (
-        organization_id,
-        profile_id,
-        permission_role,
-        job_title_id,
-        created_at,
-        updated_at
+        organization_id, profile_id, permission_role, job_title_id, created_at, updated_at
       )
       VALUES (
         _new_row.organization_id,
         _new_row.invited_profile_id,
         COALESCE(_new_row.reviewed_permission_role, _new_row.requested_permission_role, 'worker'::public.org_role),
         COALESCE(_new_row.reviewed_job_title_id, _new_row.requested_job_title_id, _new_row.role),
-        now(),
-        now()
+        now(), now()
       );
 
       UPDATE public.profiles
@@ -23978,28 +28727,35 @@ BEGIN
       WHERE id = _new_row.invited_profile_id;
     END IF;
 
-    BEGIN
-      PERFORM public.insert_notifications(
-        jsonb_build_object(
-          'user_id', _new_row.invited_profile_id,
-          'category', 'general',
-          'message', ('Your request to join organization ' || _new_row.organization_id || ' was approved'),
-          'payload', jsonb_build_object('invite_id', _new_row.id, 'organization_id', _new_row.organization_id, 'status', _new_row.status)
+    PERFORM public.insert_notifications(
+      jsonb_build_object(
+        'user_id', _new_row.invited_profile_id,
+        'organization_id', _new_row.organization_id,
+        'category', 'general',
+        'message', ('Your request to join organization ' || _new_row.organization_id || ' was approved'),
+        'payload', jsonb_build_object(
+          'invite_id', _new_row.id,
+          'organization_id', _new_row.organization_id,
+          'status', _new_row.status
         )
-      );
-    EXCEPTION WHEN OTHERS THEN NULL; END;
+      )
+    );
 
   ELSIF _new_row.status = 'declined' THEN
-    BEGIN
-      PERFORM public.insert_notifications(
-        jsonb_build_object(
-          'user_id', _new_row.invited_profile_id,
-          'category', 'general',
-          'message', ('Your request to join organization ' || _new_row.organization_id || ' was declined'),
-          'payload', jsonb_build_object('invite_id', _new_row.id, 'organization_id', _new_row.organization_id, 'status', _new_row.status, 'reason', _new_row.comment)
+    PERFORM public.insert_notifications(
+      jsonb_build_object(
+        'user_id', _new_row.invited_profile_id,
+        'organization_id', _new_row.organization_id,
+        'category', 'general',
+        'message', ('Your request to join organization ' || _new_row.organization_id || ' was declined'),
+        'payload', jsonb_build_object(
+          'invite_id', _new_row.id,
+          'organization_id', _new_row.organization_id,
+          'status', _new_row.status,
+          'reason', _new_row.comment
         )
-      );
-    EXCEPTION WHEN OTHERS THEN NULL; END;
+      )
+    );
   END IF;
 
   RETURN NEXT _new_row;
@@ -24008,7 +28764,6 @@ $$;
 
 
 --
--- TOC entry 1048 (class 1255 OID 27716)
 -- Name: update_organization_member_rates(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24049,7 +28804,6 @@ CREATE FUNCTION public.update_organization_member_rates(_id uuid, _input jsonb) 
 
 
 --
--- TOC entry 907 (class 1255 OID 22169)
 -- Name: update_organization_members(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24083,7 +28837,56 @@ $$;
 
 
 --
--- TOC entry 970 (class 1255 OID 22170)
+-- Name: update_organization_notification_settings(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_organization_notification_settings(_id uuid, _input jsonb) RETURNS SETOF public.organization_notification_settings
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_old public.organization_notification_settings;
+  v_row public.organization_notification_settings;
+BEGIN
+  IF NOT public.can_edit_org_notification_settings(_id) THEN
+    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+  END IF;
+
+  SELECT * INTO v_old
+  FROM public.organization_notification_settings
+  WHERE organization_id = _id;
+
+  IF v_old IS NULL THEN
+    RAISE EXCEPTION 'row not found' USING DETAIL = jsonb_build_object('id', _id);
+  END IF;
+
+  UPDATE public.organization_notification_settings
+  SET
+    enabled_categories = COALESCE(
+      (SELECT ARRAY(
+        SELECT value::public.notification_category
+        FROM jsonb_array_elements_text(COALESCE(_input->'enabled_categories', to_jsonb(v_old.enabled_categories)))
+      )),
+      v_old.enabled_categories
+    ),
+    enabled_events = COALESCE(
+      (SELECT ARRAY(
+        SELECT value
+        FROM jsonb_array_elements_text(COALESCE(_input->'enabled_events', to_jsonb(v_old.enabled_events)))
+      )),
+      v_old.enabled_events
+    ),
+    updated_by = auth.uid(),
+    updated_at = now()
+  WHERE organization_id = _id
+  RETURNING * INTO v_row;
+
+  RETURN NEXT v_row;
+END;
+$$;
+
+
+--
 -- Name: update_organization_projects(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24118,7 +28921,6 @@ CREATE FUNCTION public.update_organization_projects(_id uuid, _input jsonb) RETU
 
 
 --
--- TOC entry 658 (class 1255 OID 27720)
 -- Name: update_organization_service_areas(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24151,7 +28953,6 @@ CREATE FUNCTION public.update_organization_service_areas(_id uuid, _input jsonb)
 
 
 --
--- TOC entry 975 (class 1255 OID 22171)
 -- Name: update_organizations(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24209,7 +29010,6 @@ CREATE FUNCTION public.update_organizations(_id uuid, _input jsonb) RETURNS SETO
 
 
 --
--- TOC entry 993 (class 1255 OID 22172)
 -- Name: update_payments(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24244,7 +29044,6 @@ CREATE FUNCTION public.update_payments(_id uuid, _input jsonb) RETURNS SETOF pub
 
 
 --
--- TOC entry 870 (class 1255 OID 22173)
 -- Name: update_payroll(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24279,7 +29078,6 @@ CREATE FUNCTION public.update_payroll(_id uuid, _input jsonb) RETURNS SETOF publ
 
 
 --
--- TOC entry 979 (class 1255 OID 22174)
 -- Name: update_photos(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24314,7 +29112,6 @@ CREATE FUNCTION public.update_photos(_id uuid, _input jsonb) RETURNS SETOF publi
 
 
 --
--- TOC entry 566 (class 1255 OID 22175)
 -- Name: update_prequalifications(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24349,7 +29146,6 @@ CREATE FUNCTION public.update_prequalifications(_id uuid, _input jsonb) RETURNS 
 
 
 --
--- TOC entry 780 (class 1255 OID 22176)
 -- Name: update_procurement_workflows(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24384,7 +29180,6 @@ CREATE FUNCTION public.update_procurement_workflows(_id uuid, _input jsonb) RETU
 
 
 --
--- TOC entry 641 (class 1255 OID 27702)
 -- Name: update_profile_contract_role(uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24418,7 +29213,6 @@ $$;
 
 
 --
--- TOC entry 887 (class 1255 OID 22177)
 -- Name: update_profiles(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24461,7 +29255,6 @@ $$;
 
 
 --
--- TOC entry 967 (class 1255 OID 22178)
 -- Name: update_progress_billings(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24496,7 +29289,6 @@ CREATE FUNCTION public.update_progress_billings(_id uuid, _input jsonb) RETURNS 
 
 
 --
--- TOC entry 860 (class 1255 OID 22179)
 -- Name: update_project_inspectors(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24531,7 +29323,6 @@ CREATE FUNCTION public.update_project_inspectors(_id uuid, _input jsonb) RETURNS
 
 
 --
--- TOC entry 654 (class 1255 OID 27724)
 -- Name: update_project_invites(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24567,7 +29358,6 @@ CREATE FUNCTION public.update_project_invites(_id uuid, _input jsonb) RETURNS SE
 
 
 --
--- TOC entry 819 (class 1255 OID 27728)
 -- Name: update_project_service_areas(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24600,7 +29390,6 @@ CREATE FUNCTION public.update_project_service_areas(_id uuid, _input jsonb) RETU
 
 
 --
--- TOC entry 804 (class 1255 OID 22180)
 -- Name: update_projects(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24608,34 +29397,35 @@ CREATE FUNCTION public.update_projects(_id uuid, _input jsonb) RETURNS SETOF pub
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
     AS $$
-      DECLARE
-        _old_row public.projects;
-        _new_row public.projects;
-        -- Map only known columns; keys not in the table are ignored safely
-        _row     public.projects := (jsonb_populate_record(NULL::public.projects, COALESCE(_input, '{}'::jsonb)));
-      BEGIN
-        -- Fetch row (RLS decides visibility)
-        SELECT * INTO _old_row FROM public.projects WHERE id = _id;
-        IF _old_row IS NULL THEN
-          RAISE EXCEPTION 'row not found' USING DETAIL = jsonb_build_object('id', _id);
-        END IF;
+DECLARE
+  _old_row public.projects;
+  _new_row public.projects;
+  _row public.projects := (jsonb_populate_record(NULL::public.projects, COALESCE(_input, '{}'::jsonb)));
+BEGIN
+  SELECT * INTO _old_row FROM public.projects WHERE id = _id;
+  IF _old_row IS NULL THEN
+    RAISE EXCEPTION 'row not found' USING DETAIL = jsonb_build_object('id', _id);
+  END IF;
 
-        -- Authorization gate with existing row scope (prevents privilege escalation)
-        PERFORM check_access('update','projects', _old_row.project_id, _old_row.organization_id);
+  -- fixed: projects table has no project_id column; use row id as project context
+  PERFORM check_access('update','projects', _old_row.id, _old_row.organization_id);
 
-        -- Tweak #2: scope columns are excluded from set_list, so they cannot be changed here
-        UPDATE public.projects
-           SET name = COALESCE(_row.name, name), description = COALESCE(_row.description, description), status = COALESCE(_row.status, status), start_date = COALESCE(_row.start_date, start_date), end_date = COALESCE(_row.end_date, end_date), updated_at = now()
-         WHERE id = _id
-         RETURNING * INTO _new_row;
+  UPDATE public.projects
+     SET name = COALESCE(_row.name, name),
+         description = COALESCE(_row.description, description),
+         status = COALESCE(_row.status, status),
+         start_date = COALESCE(_row.start_date, start_date),
+         end_date = COALESCE(_row.end_date, end_date),
+         updated_at = now()
+   WHERE id = _id
+   RETURNING * INTO _new_row;
 
-        RETURN NEXT _new_row;
-      END;
-      $$;
+  RETURN NEXT _new_row;
+END;
+$$;
 
 
 --
--- TOC entry 632 (class 1255 OID 22181)
 -- Name: update_punch_lists(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24670,7 +29460,6 @@ CREATE FUNCTION public.update_punch_lists(_id uuid, _input jsonb) RETURNS SETOF 
 
 
 --
--- TOC entry 614 (class 1255 OID 22182)
 -- Name: update_purchase_orders(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24705,7 +29494,6 @@ CREATE FUNCTION public.update_purchase_orders(_id uuid, _input jsonb) RETURNS SE
 
 
 --
--- TOC entry 656 (class 1255 OID 22183)
 -- Name: update_quality_reviews(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24740,7 +29528,6 @@ CREATE FUNCTION public.update_quality_reviews(_id uuid, _input jsonb) RETURNS SE
 
 
 --
--- TOC entry 701 (class 1255 OID 22184)
 -- Name: update_regulatory_documents(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24775,7 +29562,6 @@ CREATE FUNCTION public.update_regulatory_documents(_id uuid, _input jsonb) RETUR
 
 
 --
--- TOC entry 898 (class 1255 OID 22185)
 -- Name: update_reports(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24810,7 +29596,6 @@ CREATE FUNCTION public.update_reports(_id uuid, _input jsonb) RETURNS SETOF publ
 
 
 --
--- TOC entry 910 (class 1255 OID 22186)
 -- Name: update_rfis(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24845,7 +29630,6 @@ CREATE FUNCTION public.update_rfis(_id uuid, _input jsonb) RETURNS SETOF public.
 
 
 --
--- TOC entry 715 (class 1255 OID 22187)
 -- Name: update_safety_incidents(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24880,7 +29664,6 @@ CREATE FUNCTION public.update_safety_incidents(_id uuid, _input jsonb) RETURNS S
 
 
 --
--- TOC entry 1010 (class 1255 OID 22188)
 -- Name: update_sensor_data(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24915,7 +29698,6 @@ CREATE FUNCTION public.update_sensor_data(_id uuid, _input jsonb) RETURNS SETOF 
 
 
 --
--- TOC entry 961 (class 1255 OID 22189)
 -- Name: update_subcontractor_agreements(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24950,7 +29732,6 @@ CREATE FUNCTION public.update_subcontractor_agreements(_id uuid, _input jsonb) R
 
 
 --
--- TOC entry 935 (class 1255 OID 22190)
 -- Name: update_subcontracts(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -24985,7 +29766,6 @@ CREATE FUNCTION public.update_subcontracts(_id uuid, _input jsonb) RETURNS SETOF
 
 
 --
--- TOC entry 564 (class 1255 OID 22191)
 -- Name: update_submittals(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -25020,7 +29800,6 @@ CREATE FUNCTION public.update_submittals(_id uuid, _input jsonb) RETURNS SETOF p
 
 
 --
--- TOC entry 680 (class 1255 OID 22192)
 -- Name: update_tack_rates(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -25055,7 +29834,6 @@ CREATE FUNCTION public.update_tack_rates(_id uuid, _input jsonb) RETURNS SETOF p
 
 
 --
--- TOC entry 598 (class 1255 OID 22193)
 -- Name: update_task_dependencies(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -25090,7 +29868,6 @@ CREATE FUNCTION public.update_task_dependencies(_id uuid, _input jsonb) RETURNS 
 
 
 --
--- TOC entry 1103 (class 1255 OID 22194)
 -- Name: update_task_status_logs(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -25125,7 +29902,6 @@ CREATE FUNCTION public.update_task_status_logs(_id uuid, _input jsonb) RETURNS S
 
 
 --
--- TOC entry 1000 (class 1255 OID 22195)
 -- Name: update_tasks(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -25160,7 +29936,6 @@ CREATE FUNCTION public.update_tasks(_id uuid, _input jsonb) RETURNS SETOF public
 
 
 --
--- TOC entry 716 (class 1255 OID 22196)
 -- Name: update_training_records(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -25195,7 +29970,56 @@ CREATE FUNCTION public.update_training_records(_id uuid, _input jsonb) RETURNS S
 
 
 --
--- TOC entry 746 (class 1255 OID 22197)
+-- Name: update_user_notification_settings(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_user_notification_settings(_id uuid, _input jsonb) RETURNS SETOF public.user_notification_settings
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_old public.user_notification_settings;
+  v_row public.user_notification_settings;
+BEGIN
+  IF v_user_id IS NULL OR _id IS DISTINCT FROM v_user_id THEN
+    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+  END IF;
+
+  SELECT * INTO v_old
+  FROM public.user_notification_settings
+  WHERE user_id = _id;
+
+  IF v_old IS NULL THEN
+    RAISE EXCEPTION 'row not found' USING DETAIL = jsonb_build_object('id', _id);
+  END IF;
+
+  UPDATE public.user_notification_settings
+  SET
+    silenced_categories = COALESCE(
+      (SELECT ARRAY(
+        SELECT value::public.notification_category
+        FROM jsonb_array_elements_text(COALESCE(_input->'silenced_categories', to_jsonb(v_old.silenced_categories)))
+      )),
+      v_old.silenced_categories
+    ),
+    silenced_events = COALESCE(
+      (SELECT ARRAY(
+        SELECT value
+        FROM jsonb_array_elements_text(COALESCE(_input->'silenced_events', to_jsonb(v_old.silenced_events)))
+      )),
+      v_old.silenced_events
+    ),
+    updated_at = now()
+  WHERE user_id = _id
+  RETURNING * INTO v_row;
+
+  RETURN NEXT v_row;
+END;
+$$;
+
+
+--
 -- Name: update_user_projects(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -25230,7 +30054,6 @@ CREATE FUNCTION public.update_user_projects(_id uuid, _input jsonb) RETURNS SETO
 
 
 --
--- TOC entry 1087 (class 1255 OID 22198)
 -- Name: update_vendor_bid_packages(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -25265,7 +30088,6 @@ CREATE FUNCTION public.update_vendor_bid_packages(_id uuid, _input jsonb) RETURN
 
 
 --
--- TOC entry 591 (class 1255 OID 22199)
 -- Name: update_vendor_contacts(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -25300,7 +30122,6 @@ CREATE FUNCTION public.update_vendor_contacts(_id uuid, _input jsonb) RETURNS SE
 
 
 --
--- TOC entry 683 (class 1255 OID 22200)
 -- Name: update_vendor_documents(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -25335,7 +30156,6 @@ CREATE FUNCTION public.update_vendor_documents(_id uuid, _input jsonb) RETURNS S
 
 
 --
--- TOC entry 1067 (class 1255 OID 22201)
 -- Name: update_vendor_qualifications(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -25370,7 +30190,6 @@ CREATE FUNCTION public.update_vendor_qualifications(_id uuid, _input jsonb) RETU
 
 
 --
--- TOC entry 1056 (class 1255 OID 22202)
 -- Name: update_vendors(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -25405,7 +30224,6 @@ CREATE FUNCTION public.update_vendors(_id uuid, _input jsonb) RETURNS SETOF publ
 
 
 --
--- TOC entry 585 (class 1255 OID 22203)
 -- Name: update_wbs(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -25440,7 +30258,6 @@ CREATE FUNCTION public.update_wbs(_id uuid, _input jsonb) RETURNS SETOF public.w
 
 
 --
--- TOC entry 1040 (class 1255 OID 22204)
 -- Name: update_workflows(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -25475,7 +30292,6 @@ CREATE FUNCTION public.update_workflows(_id uuid, _input jsonb) RETURNS SETOF pu
 
 
 --
--- TOC entry 628 (class 1255 OID 27741)
 -- Name: upsert_my_avatar(text, boolean); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -25525,7 +30341,6 @@ CREATE FUNCTION public.upsert_my_avatar(p_url text, p_is_preset boolean DEFAULT 
 
 
 --
--- TOC entry 446 (class 1259 OID 22205)
 -- Name: accounts_payable_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25543,7 +30358,6 @@ CREATE VIEW public.accounts_payable_active AS
 
 
 --
--- TOC entry 447 (class 1259 OID 22209)
 -- Name: accounts_receivable_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25561,7 +30375,6 @@ CREATE VIEW public.accounts_receivable_active AS
 
 
 --
--- TOC entry 448 (class 1259 OID 22213)
 -- Name: activity_logs_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25578,7 +30391,6 @@ CREATE VIEW public.activity_logs_active AS
 
 
 --
--- TOC entry 449 (class 1259 OID 22217)
 -- Name: asphalt_types_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25594,7 +30406,6 @@ CREATE VIEW public.asphalt_types_active AS
 
 
 --
--- TOC entry 451 (class 1259 OID 22229)
 -- Name: audit_log_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25613,7 +30424,6 @@ CREATE VIEW public.audit_log_active AS
 
 
 --
--- TOC entry 452 (class 1259 OID 22233)
 -- Name: audit_logs_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25631,7 +30441,6 @@ CREATE VIEW public.audit_logs_active AS
 
 
 --
--- TOC entry 453 (class 1259 OID 22237)
 -- Name: avatars_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25646,7 +30455,6 @@ CREATE VIEW public.avatars_active AS
 
 
 --
--- TOC entry 454 (class 1259 OID 22241)
 -- Name: bid_packages_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25664,7 +30472,6 @@ CREATE VIEW public.bid_packages_active AS
 
 
 --
--- TOC entry 455 (class 1259 OID 22245)
 -- Name: bid_vendors_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25681,7 +30488,6 @@ CREATE VIEW public.bid_vendors_active AS
 
 
 --
--- TOC entry 456 (class 1259 OID 22249)
 -- Name: bids_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25700,7 +30506,6 @@ CREATE VIEW public.bids_active AS
 
 
 --
--- TOC entry 457 (class 1259 OID 22253)
 -- Name: bim_models_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25718,7 +30523,6 @@ CREATE VIEW public.bim_models_active AS
 
 
 --
--- TOC entry 458 (class 1259 OID 22257)
 -- Name: certifications_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25736,7 +30540,6 @@ CREATE VIEW public.certifications_active AS
 
 
 --
--- TOC entry 459 (class 1259 OID 22261)
 -- Name: change_orders_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25755,7 +30558,6 @@ CREATE VIEW public.change_orders_active AS
 
 
 --
--- TOC entry 460 (class 1259 OID 22265)
 -- Name: commitments_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25774,7 +30576,6 @@ CREATE VIEW public.commitments_active AS
 
 
 --
--- TOC entry 461 (class 1259 OID 22269)
 -- Name: compliance_checks_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25792,7 +30593,6 @@ CREATE VIEW public.compliance_checks_active AS
 
 
 --
--- TOC entry 462 (class 1259 OID 22273)
 -- Name: compliance_tracking_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25810,7 +30610,6 @@ CREATE VIEW public.compliance_tracking_active AS
 
 
 --
--- TOC entry 463 (class 1259 OID 22277)
 -- Name: cost_codes_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25826,7 +30625,6 @@ CREATE VIEW public.cost_codes_active AS
 
 
 --
--- TOC entry 464 (class 1259 OID 22281)
 -- Name: crew_assignments_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25843,7 +30641,6 @@ CREATE VIEW public.crew_assignments_active AS
 
 
 --
--- TOC entry 465 (class 1259 OID 22285)
 -- Name: crew_members_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25862,7 +30659,6 @@ CREATE VIEW public.crew_members_active AS
 
 
 --
--- TOC entry 466 (class 1259 OID 22289)
 -- Name: crews_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25878,7 +30674,6 @@ CREATE VIEW public.crews_active AS
 
 
 --
--- TOC entry 467 (class 1259 OID 22293)
 -- Name: daily_logs_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25896,7 +30691,6 @@ CREATE VIEW public.daily_logs_active AS
 
 
 --
--- TOC entry 468 (class 1259 OID 22297)
 -- Name: dashboard_configs_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25912,7 +30706,6 @@ CREATE VIEW public.dashboard_configs_active AS
 
 
 --
--- TOC entry 469 (class 1259 OID 22301)
 -- Name: document_references_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25929,7 +30722,6 @@ CREATE VIEW public.document_references_active AS
 
 
 --
--- TOC entry 470 (class 1259 OID 22305)
 -- Name: documents_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25949,7 +30741,6 @@ CREATE VIEW public.documents_active AS
 
 
 --
--- TOC entry 471 (class 1259 OID 22309)
 -- Name: drawing_versions_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25967,7 +30758,6 @@ CREATE VIEW public.drawing_versions_active AS
 
 
 --
--- TOC entry 472 (class 1259 OID 22313)
 -- Name: dump_trucks_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -25985,7 +30775,6 @@ CREATE VIEW public.dump_trucks_active AS
 
 
 --
--- TOC entry 473 (class 1259 OID 22317)
 -- Name: employees_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26003,7 +30792,6 @@ CREATE VIEW public.employees_active AS
 
 
 --
--- TOC entry 474 (class 1259 OID 22321)
 -- Name: equipment_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26023,7 +30811,6 @@ CREATE VIEW public.equipment_active AS
 
 
 --
--- TOC entry 475 (class 1259 OID 22325)
 -- Name: equipment_assignments_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26043,7 +30830,6 @@ CREATE VIEW public.equipment_assignments_active AS
 
 
 --
--- TOC entry 476 (class 1259 OID 22329)
 -- Name: equipment_maintenance_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26062,7 +30848,6 @@ CREATE VIEW public.equipment_maintenance_active AS
 
 
 --
--- TOC entry 477 (class 1259 OID 22333)
 -- Name: equipment_usage_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26081,7 +30866,6 @@ CREATE VIEW public.equipment_usage_active AS
 
 
 --
--- TOC entry 478 (class 1259 OID 22337)
 -- Name: estimate_line_items_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26102,7 +30886,6 @@ CREATE VIEW public.estimate_line_items_active AS
 
 
 --
--- TOC entry 479 (class 1259 OID 22341)
 -- Name: estimates_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26120,7 +30903,6 @@ CREATE VIEW public.estimates_active AS
 
 
 --
--- TOC entry 480 (class 1259 OID 22345)
 -- Name: financial_documents_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26138,7 +30920,6 @@ CREATE VIEW public.financial_documents_active AS
 
 
 --
--- TOC entry 481 (class 1259 OID 22349)
 -- Name: general_ledger_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26158,7 +30939,6 @@ CREATE VIEW public.general_ledger_active AS
 
 
 --
--- TOC entry 482 (class 1259 OID 22353)
 -- Name: hr_documents_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26176,7 +30956,6 @@ CREATE VIEW public.hr_documents_active AS
 
 
 --
--- TOC entry 483 (class 1259 OID 22357)
 -- Name: inspections_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26197,7 +30976,6 @@ CREATE VIEW public.inspections_active AS
 
 
 --
--- TOC entry 484 (class 1259 OID 22361)
 -- Name: integration_tokens_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26214,7 +30992,6 @@ CREATE VIEW public.integration_tokens_active AS
 
 
 --
--- TOC entry 485 (class 1259 OID 22365)
 -- Name: inventory_transactions_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26233,7 +31010,6 @@ CREATE VIEW public.inventory_transactions_active AS
 
 
 --
--- TOC entry 486 (class 1259 OID 22369)
 -- Name: issues_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26254,7 +31030,6 @@ CREATE VIEW public.issues_active AS
 
 
 --
--- TOC entry 487 (class 1259 OID 22373)
 -- Name: job_titles_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26269,7 +31044,6 @@ CREATE VIEW public.job_titles_active AS
 
 
 --
--- TOC entry 488 (class 1259 OID 22377)
 -- Name: labor_records_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26289,7 +31063,6 @@ CREATE VIEW public.labor_records_active AS
 
 
 --
--- TOC entry 489 (class 1259 OID 22381)
 -- Name: line_item_entries_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26307,7 +31080,6 @@ CREATE VIEW public.line_item_entries_active AS
 
 
 --
--- TOC entry 490 (class 1259 OID 22385)
 -- Name: line_item_templates_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26325,7 +31097,6 @@ CREATE VIEW public.line_item_templates_active AS
 
 
 --
--- TOC entry 491 (class 1259 OID 22389)
 -- Name: line_items_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26349,7 +31120,6 @@ CREATE VIEW public.line_items_active AS
 
 
 --
--- TOC entry 492 (class 1259 OID 22393)
 -- Name: maps_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26370,7 +31140,6 @@ CREATE VIEW public.maps_active AS
 
 
 --
--- TOC entry 493 (class 1259 OID 22397)
 -- Name: material_inventory_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26388,7 +31157,6 @@ CREATE VIEW public.material_inventory_active AS
 
 
 --
--- TOC entry 494 (class 1259 OID 22401)
 -- Name: material_orders_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26407,7 +31175,6 @@ CREATE VIEW public.material_orders_active AS
 
 
 --
--- TOC entry 495 (class 1259 OID 22405)
 -- Name: material_receipts_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26425,7 +31192,6 @@ CREATE VIEW public.material_receipts_active AS
 
 
 --
--- TOC entry 496 (class 1259 OID 22409)
 -- Name: materials_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26443,7 +31209,6 @@ CREATE VIEW public.materials_active AS
 
 
 --
--- TOC entry 497 (class 1259 OID 22413)
 -- Name: meeting_minutes_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26461,7 +31226,6 @@ CREATE VIEW public.meeting_minutes_active AS
 
 
 --
--- TOC entry 498 (class 1259 OID 22417)
 -- Name: notifications_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26480,7 +31244,6 @@ CREATE VIEW public.notifications_active AS
 
 
 --
--- TOC entry 550 (class 1259 OID 50227)
 -- Name: organization_members_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26498,7 +31261,6 @@ CREATE VIEW public.organization_members_active AS
 
 
 --
--- TOC entry 499 (class 1259 OID 22425)
 -- Name: organization_projects_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26514,7 +31276,6 @@ CREATE VIEW public.organization_projects_active AS
 
 
 --
--- TOC entry 500 (class 1259 OID 22429)
 -- Name: organizations_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26530,7 +31291,6 @@ CREATE VIEW public.organizations_active AS
 
 
 --
--- TOC entry 501 (class 1259 OID 22433)
 -- Name: payments_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26548,7 +31308,6 @@ CREATE VIEW public.payments_active AS
 
 
 --
--- TOC entry 502 (class 1259 OID 22437)
 -- Name: payroll_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26567,7 +31326,6 @@ CREATE VIEW public.payroll_active AS
 
 
 --
--- TOC entry 503 (class 1259 OID 22441)
 -- Name: photos_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26586,7 +31344,6 @@ CREATE VIEW public.photos_active AS
 
 
 --
--- TOC entry 504 (class 1259 OID 22445)
 -- Name: prequalifications_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26604,7 +31361,6 @@ CREATE VIEW public.prequalifications_active AS
 
 
 --
--- TOC entry 505 (class 1259 OID 22449)
 -- Name: procurement_workflows_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26621,7 +31377,6 @@ CREATE VIEW public.procurement_workflows_active AS
 
 
 --
--- TOC entry 546 (class 1259 OID 47897)
 -- Name: profiles_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26642,7 +31397,6 @@ CREATE VIEW public.profiles_active AS
 
 
 --
--- TOC entry 506 (class 1259 OID 22457)
 -- Name: progress_billings_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26660,7 +31414,6 @@ CREATE VIEW public.progress_billings_active AS
 
 
 --
--- TOC entry 507 (class 1259 OID 22461)
 -- Name: project_cost_summary; Type: MATERIALIZED VIEW; Schema: public; Owner: -
 --
 
@@ -26679,7 +31432,6 @@ CREATE MATERIALIZED VIEW public.project_cost_summary AS
 
 
 --
--- TOC entry 508 (class 1259 OID 22468)
 -- Name: project_inspectors_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26694,7 +31446,6 @@ CREATE VIEW public.project_inspectors_active AS
 
 
 --
--- TOC entry 509 (class 1259 OID 22472)
 -- Name: projects_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26714,7 +31465,6 @@ CREATE VIEW public.projects_active AS
 
 
 --
--- TOC entry 510 (class 1259 OID 22476)
 -- Name: punch_lists_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26732,7 +31482,6 @@ CREATE VIEW public.punch_lists_active AS
 
 
 --
--- TOC entry 511 (class 1259 OID 22480)
 -- Name: purchase_orders_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26752,7 +31501,6 @@ CREATE VIEW public.purchase_orders_active AS
 
 
 --
--- TOC entry 512 (class 1259 OID 22484)
 -- Name: quality_reviews_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26770,7 +31518,6 @@ CREATE VIEW public.quality_reviews_active AS
 
 
 --
--- TOC entry 513 (class 1259 OID 22488)
 -- Name: regulatory_documents_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26788,7 +31535,6 @@ CREATE VIEW public.regulatory_documents_active AS
 
 
 --
--- TOC entry 514 (class 1259 OID 22492)
 -- Name: reports_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26805,7 +31551,6 @@ CREATE VIEW public.reports_active AS
 
 
 --
--- TOC entry 515 (class 1259 OID 22496)
 -- Name: rfis_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26828,7 +31573,38 @@ CREATE VIEW public.rfis_active AS
 
 
 --
--- TOC entry 516 (class 1259 OID 22500)
+-- Name: rpc_error_debug; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.rpc_error_debug (
+    id bigint NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    rpc_name text NOT NULL,
+    operation text,
+    sqlstate text,
+    error_message text NOT NULL,
+    error_detail text,
+    error_hint text,
+    auth_user_id uuid,
+    request_context jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+
+
+--
+-- Name: rpc_error_debug_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.rpc_error_debug ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.rpc_error_debug_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: safety_incidents_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26848,7 +31624,6 @@ CREATE VIEW public.safety_incidents_active AS
 
 
 --
--- TOC entry 517 (class 1259 OID 22504)
 -- Name: sensor_data_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26865,7 +31640,6 @@ CREATE VIEW public.sensor_data_active AS
 
 
 --
--- TOC entry 518 (class 1259 OID 22508)
 -- Name: subcontractor_agreements_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26882,7 +31656,6 @@ CREATE VIEW public.subcontractor_agreements_active AS
 
 
 --
--- TOC entry 519 (class 1259 OID 22512)
 -- Name: subcontracts_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26901,7 +31674,6 @@ CREATE VIEW public.subcontracts_active AS
 
 
 --
--- TOC entry 520 (class 1259 OID 22516)
 -- Name: submittals_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26922,7 +31694,6 @@ CREATE VIEW public.submittals_active AS
 
 
 --
--- TOC entry 521 (class 1259 OID 22520)
 -- Name: tack_rates_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26939,7 +31710,6 @@ CREATE VIEW public.tack_rates_active AS
 
 
 --
--- TOC entry 522 (class 1259 OID 22524)
 -- Name: task_dependencies_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26954,7 +31724,6 @@ CREATE VIEW public.task_dependencies_active AS
 
 
 --
--- TOC entry 523 (class 1259 OID 22528)
 -- Name: task_status_logs_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26968,7 +31737,6 @@ CREATE VIEW public.task_status_logs_active AS
 
 
 --
--- TOC entry 524 (class 1259 OID 22532)
 -- Name: tasks_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -26988,7 +31756,6 @@ CREATE VIEW public.tasks_active AS
 
 
 --
--- TOC entry 525 (class 1259 OID 22536)
 -- Name: training_records_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -27005,7 +31772,6 @@ CREATE VIEW public.training_records_active AS
 
 
 --
--- TOC entry 526 (class 1259 OID 22540)
 -- Name: user_projects_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -27022,7 +31788,6 @@ CREATE VIEW public.user_projects_active AS
 
 
 --
--- TOC entry 527 (class 1259 OID 22544)
 -- Name: vendor_bid_packages_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -27038,7 +31803,6 @@ CREATE VIEW public.vendor_bid_packages_active AS
 
 
 --
--- TOC entry 528 (class 1259 OID 22548)
 -- Name: vendor_contacts_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -27056,7 +31820,6 @@ CREATE VIEW public.vendor_contacts_active AS
 
 
 --
--- TOC entry 529 (class 1259 OID 22552)
 -- Name: vendor_documents_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -27074,7 +31837,6 @@ CREATE VIEW public.vendor_documents_active AS
 
 
 --
--- TOC entry 530 (class 1259 OID 22556)
 -- Name: vendor_qualifications_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -27092,7 +31854,6 @@ CREATE VIEW public.vendor_qualifications_active AS
 
 
 --
--- TOC entry 531 (class 1259 OID 22560)
 -- Name: vendors_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -27111,7 +31872,6 @@ CREATE VIEW public.vendors_active AS
 
 
 --
--- TOC entry 532 (class 1259 OID 22564)
 -- Name: wbs_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -27129,7 +31889,6 @@ CREATE VIEW public.wbs_active AS
 
 
 --
--- TOC entry 533 (class 1259 OID 22568)
 -- Name: workflows_active; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -27148,7 +31907,6 @@ CREATE VIEW public.workflows_active AS
 
 
 --
--- TOC entry 5132 (class 2606 OID 22574)
 -- Name: accounts_payable accounts_payable_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27157,7 +31915,6 @@ ALTER TABLE ONLY public.accounts_payable
 
 
 --
--- TOC entry 5135 (class 2606 OID 22576)
 -- Name: accounts_receivable accounts_receivable_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27166,7 +31923,6 @@ ALTER TABLE ONLY public.accounts_receivable
 
 
 --
--- TOC entry 5138 (class 2606 OID 22578)
 -- Name: activity_logs activity_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27175,7 +31931,6 @@ ALTER TABLE ONLY public.activity_logs
 
 
 --
--- TOC entry 5141 (class 2606 OID 22580)
 -- Name: asphalt_types asphalt_types_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27184,7 +31939,6 @@ ALTER TABLE ONLY public.asphalt_types
 
 
 --
--- TOC entry 5448 (class 2606 OID 22582)
 -- Name: audit_log audit_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27193,7 +31947,6 @@ ALTER TABLE ONLY public.audit_log
 
 
 --
--- TOC entry 5143 (class 2606 OID 22584)
 -- Name: audit_logs audit_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27202,7 +31955,6 @@ ALTER TABLE ONLY public.audit_logs
 
 
 --
--- TOC entry 5147 (class 2606 OID 22586)
 -- Name: avatars avatars_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27211,7 +31963,6 @@ ALTER TABLE ONLY public.avatars
 
 
 --
--- TOC entry 5149 (class 2606 OID 22588)
 -- Name: bid_packages bid_packages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27220,7 +31971,6 @@ ALTER TABLE ONLY public.bid_packages
 
 
 --
--- TOC entry 5153 (class 2606 OID 22590)
 -- Name: bid_vendors bid_vendors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27229,7 +31979,6 @@ ALTER TABLE ONLY public.bid_vendors
 
 
 --
--- TOC entry 5157 (class 2606 OID 22592)
 -- Name: bids bids_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27238,7 +31987,6 @@ ALTER TABLE ONLY public.bids
 
 
 --
--- TOC entry 5161 (class 2606 OID 22594)
 -- Name: bim_models bim_models_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27247,7 +31995,6 @@ ALTER TABLE ONLY public.bim_models
 
 
 --
--- TOC entry 5164 (class 2606 OID 22596)
 -- Name: certifications certifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27256,7 +32003,6 @@ ALTER TABLE ONLY public.certifications
 
 
 --
--- TOC entry 5167 (class 2606 OID 22598)
 -- Name: change_orders change_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27265,7 +32011,6 @@ ALTER TABLE ONLY public.change_orders
 
 
 --
--- TOC entry 5170 (class 2606 OID 22600)
 -- Name: commitments commitments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27274,7 +32019,6 @@ ALTER TABLE ONLY public.commitments
 
 
 --
--- TOC entry 5174 (class 2606 OID 22602)
 -- Name: compliance_checks compliance_checks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27283,7 +32027,6 @@ ALTER TABLE ONLY public.compliance_checks
 
 
 --
--- TOC entry 5177 (class 2606 OID 22604)
 -- Name: compliance_tracking compliance_tracking_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27292,7 +32035,6 @@ ALTER TABLE ONLY public.compliance_tracking
 
 
 --
--- TOC entry 5180 (class 2606 OID 22608)
 -- Name: cost_codes cost_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27301,7 +32043,6 @@ ALTER TABLE ONLY public.cost_codes
 
 
 --
--- TOC entry 5184 (class 2606 OID 22610)
 -- Name: crew_assignments crew_assignments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27310,7 +32051,6 @@ ALTER TABLE ONLY public.crew_assignments
 
 
 --
--- TOC entry 5188 (class 2606 OID 22612)
 -- Name: crew_members crew_members_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27319,7 +32059,6 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5192 (class 2606 OID 22614)
 -- Name: crews crews_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27328,7 +32067,6 @@ ALTER TABLE ONLY public.crews
 
 
 --
--- TOC entry 5195 (class 2606 OID 22616)
 -- Name: daily_logs daily_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27337,7 +32075,6 @@ ALTER TABLE ONLY public.daily_logs
 
 
 --
--- TOC entry 5198 (class 2606 OID 22618)
 -- Name: dashboard_configs dashboard_configs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27346,7 +32083,6 @@ ALTER TABLE ONLY public.dashboard_configs
 
 
 --
--- TOC entry 5201 (class 2606 OID 22620)
 -- Name: document_references document_references_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27355,7 +32091,6 @@ ALTER TABLE ONLY public.document_references
 
 
 --
--- TOC entry 5204 (class 2606 OID 22622)
 -- Name: documents documents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27364,7 +32099,6 @@ ALTER TABLE ONLY public.documents
 
 
 --
--- TOC entry 5208 (class 2606 OID 22624)
 -- Name: drawing_versions drawing_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27373,7 +32107,6 @@ ALTER TABLE ONLY public.drawing_versions
 
 
 --
--- TOC entry 5212 (class 2606 OID 22626)
 -- Name: dump_trucks dump_trucks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27382,7 +32115,6 @@ ALTER TABLE ONLY public.dump_trucks
 
 
 --
--- TOC entry 5215 (class 2606 OID 22628)
 -- Name: employees employees_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27391,7 +32123,6 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- TOC entry 5222 (class 2606 OID 22630)
 -- Name: equipment_assignments equipment_assignments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27400,7 +32131,6 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5227 (class 2606 OID 22632)
 -- Name: equipment_maintenance equipment_maintenance_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27409,7 +32139,6 @@ ALTER TABLE ONLY public.equipment_maintenance
 
 
 --
--- TOC entry 5219 (class 2606 OID 22634)
 -- Name: equipment equipment_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27418,7 +32147,6 @@ ALTER TABLE ONLY public.equipment
 
 
 --
--- TOC entry 5231 (class 2606 OID 22636)
 -- Name: equipment_usage equipment_usage_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27427,7 +32155,6 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5234 (class 2606 OID 22638)
 -- Name: estimate_line_items estimate_line_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27436,7 +32163,6 @@ ALTER TABLE ONLY public.estimate_line_items
 
 
 --
--- TOC entry 5238 (class 2606 OID 22640)
 -- Name: estimates estimates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27445,7 +32171,6 @@ ALTER TABLE ONLY public.estimates
 
 
 --
--- TOC entry 5242 (class 2606 OID 22642)
 -- Name: financial_documents financial_documents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27454,7 +32179,6 @@ ALTER TABLE ONLY public.financial_documents
 
 
 --
--- TOC entry 5245 (class 2606 OID 22644)
 -- Name: general_ledger general_ledger_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27463,7 +32187,6 @@ ALTER TABLE ONLY public.general_ledger
 
 
 --
--- TOC entry 5248 (class 2606 OID 22646)
 -- Name: hr_documents hr_documents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27472,7 +32195,6 @@ ALTER TABLE ONLY public.hr_documents
 
 
 --
--- TOC entry 5252 (class 2606 OID 22648)
 -- Name: inspections inspections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27481,7 +32203,6 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 5254 (class 2606 OID 22650)
 -- Name: integration_tokens integration_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27490,7 +32211,6 @@ ALTER TABLE ONLY public.integration_tokens
 
 
 --
--- TOC entry 5257 (class 2606 OID 22652)
 -- Name: inventory_transactions inventory_transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27499,7 +32219,6 @@ ALTER TABLE ONLY public.inventory_transactions
 
 
 --
--- TOC entry 5261 (class 2606 OID 22654)
 -- Name: issues issues_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27508,7 +32227,6 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5264 (class 2606 OID 22656)
 -- Name: job_titles job_titles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27517,7 +32235,6 @@ ALTER TABLE ONLY public.job_titles
 
 
 --
--- TOC entry 5267 (class 2606 OID 22658)
 -- Name: labor_records labor_records_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27526,7 +32243,6 @@ ALTER TABLE ONLY public.labor_records
 
 
 --
--- TOC entry 5270 (class 2606 OID 22660)
 -- Name: line_item_entries line_item_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27535,7 +32251,6 @@ ALTER TABLE ONLY public.line_item_entries
 
 
 --
--- TOC entry 5273 (class 2606 OID 22662)
 -- Name: line_item_templates line_item_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27544,7 +32259,6 @@ ALTER TABLE ONLY public.line_item_templates
 
 
 --
--- TOC entry 5280 (class 2606 OID 22664)
 -- Name: line_items line_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27553,7 +32267,6 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5284 (class 2606 OID 22666)
 -- Name: maps maps_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27562,7 +32275,6 @@ ALTER TABLE ONLY public.maps
 
 
 --
--- TOC entry 5288 (class 2606 OID 22668)
 -- Name: material_inventory material_inventory_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27571,7 +32283,6 @@ ALTER TABLE ONLY public.material_inventory
 
 
 --
--- TOC entry 5292 (class 2606 OID 22670)
 -- Name: material_orders material_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27580,7 +32291,6 @@ ALTER TABLE ONLY public.material_orders
 
 
 --
--- TOC entry 5296 (class 2606 OID 22672)
 -- Name: material_receipts material_receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27589,7 +32299,6 @@ ALTER TABLE ONLY public.material_receipts
 
 
 --
--- TOC entry 5299 (class 2606 OID 22674)
 -- Name: materials materials_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27598,7 +32307,6 @@ ALTER TABLE ONLY public.materials
 
 
 --
--- TOC entry 5303 (class 2606 OID 22676)
 -- Name: meeting_minutes meeting_minutes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27607,7 +32315,6 @@ ALTER TABLE ONLY public.meeting_minutes
 
 
 --
--- TOC entry 5307 (class 2606 OID 22678)
 -- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27616,7 +32323,6 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- TOC entry 5476 (class 2606 OID 45506)
 -- Name: organization_invites organization_invites_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27625,7 +32331,6 @@ ALTER TABLE ONLY public.organization_invites
 
 
 --
--- TOC entry 5461 (class 2606 OID 26538)
 -- Name: organization_member_rates organization_member_rates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27634,7 +32339,6 @@ ALTER TABLE ONLY public.organization_member_rates
 
 
 --
--- TOC entry 5313 (class 2606 OID 22680)
 -- Name: organization_members organization_members_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27643,7 +32347,14 @@ ALTER TABLE ONLY public.organization_members
 
 
 --
--- TOC entry 5319 (class 2606 OID 22682)
+-- Name: organization_notification_settings organization_notification_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organization_notification_settings
+    ADD CONSTRAINT organization_notification_settings_pkey PRIMARY KEY (organization_id);
+
+
+--
 -- Name: organization_projects organization_projects_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27652,7 +32363,6 @@ ALTER TABLE ONLY public.organization_projects
 
 
 --
--- TOC entry 5452 (class 2606 OID 26494)
 -- Name: organization_service_areas organization_service_areas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27661,7 +32371,6 @@ ALTER TABLE ONLY public.organization_service_areas
 
 
 --
--- TOC entry 5321 (class 2606 OID 22684)
 -- Name: organizations organizations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27670,7 +32379,6 @@ ALTER TABLE ONLY public.organizations
 
 
 --
--- TOC entry 5327 (class 2606 OID 22686)
 -- Name: payments payments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27679,7 +32387,6 @@ ALTER TABLE ONLY public.payments
 
 
 --
--- TOC entry 5330 (class 2606 OID 22688)
 -- Name: payroll payroll_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27688,7 +32395,6 @@ ALTER TABLE ONLY public.payroll
 
 
 --
--- TOC entry 5334 (class 2606 OID 22690)
 -- Name: photos photos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27697,7 +32403,6 @@ ALTER TABLE ONLY public.photos
 
 
 --
--- TOC entry 5338 (class 2606 OID 22692)
 -- Name: prequalifications prequalifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27706,7 +32411,6 @@ ALTER TABLE ONLY public.prequalifications
 
 
 --
--- TOC entry 5341 (class 2606 OID 22694)
 -- Name: procurement_workflows procurement_workflows_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27715,7 +32419,6 @@ ALTER TABLE ONLY public.procurement_workflows
 
 
 --
--- TOC entry 5345 (class 2606 OID 22696)
 -- Name: profiles profiles_email_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27724,7 +32427,6 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5347 (class 2606 OID 22698)
 -- Name: profiles profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27733,7 +32435,6 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5350 (class 2606 OID 22700)
 -- Name: progress_billings progress_billings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27742,7 +32443,6 @@ ALTER TABLE ONLY public.progress_billings
 
 
 --
--- TOC entry 5355 (class 2606 OID 22702)
 -- Name: project_inspectors project_inspectors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27751,7 +32451,6 @@ ALTER TABLE ONLY public.project_inspectors
 
 
 --
--- TOC entry 5465 (class 2606 OID 26556)
 -- Name: project_invites project_invites_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27760,7 +32459,6 @@ ALTER TABLE ONLY public.project_invites
 
 
 --
--- TOC entry 5454 (class 2606 OID 26511)
 -- Name: project_service_areas project_service_areas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27769,7 +32467,6 @@ ALTER TABLE ONLY public.project_service_areas
 
 
 --
--- TOC entry 5358 (class 2606 OID 22704)
 -- Name: projects projects_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27778,7 +32475,6 @@ ALTER TABLE ONLY public.projects
 
 
 --
--- TOC entry 5364 (class 2606 OID 22706)
 -- Name: punch_lists punch_lists_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27787,7 +32483,6 @@ ALTER TABLE ONLY public.punch_lists
 
 
 --
--- TOC entry 5368 (class 2606 OID 22708)
 -- Name: purchase_orders purchase_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27796,7 +32491,6 @@ ALTER TABLE ONLY public.purchase_orders
 
 
 --
--- TOC entry 5372 (class 2606 OID 22710)
 -- Name: quality_reviews quality_reviews_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27805,7 +32499,6 @@ ALTER TABLE ONLY public.quality_reviews
 
 
 --
--- TOC entry 5375 (class 2606 OID 22712)
 -- Name: regulatory_documents regulatory_documents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27814,7 +32507,6 @@ ALTER TABLE ONLY public.regulatory_documents
 
 
 --
--- TOC entry 5378 (class 2606 OID 22714)
 -- Name: reports reports_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27823,7 +32515,6 @@ ALTER TABLE ONLY public.reports
 
 
 --
--- TOC entry 5383 (class 2606 OID 22716)
 -- Name: rfis rfis_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27832,7 +32523,14 @@ ALTER TABLE ONLY public.rfis
 
 
 --
--- TOC entry 5387 (class 2606 OID 22718)
+-- Name: rpc_error_debug rpc_error_debug_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rpc_error_debug
+    ADD CONSTRAINT rpc_error_debug_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: safety_incidents safety_incidents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27841,7 +32539,6 @@ ALTER TABLE ONLY public.safety_incidents
 
 
 --
--- TOC entry 5390 (class 2606 OID 22720)
 -- Name: sensor_data sensor_data_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27850,7 +32547,6 @@ ALTER TABLE ONLY public.sensor_data
 
 
 --
--- TOC entry 5393 (class 2606 OID 22722)
 -- Name: subcontractor_agreements subcontractor_agreements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27859,7 +32555,6 @@ ALTER TABLE ONLY public.subcontractor_agreements
 
 
 --
--- TOC entry 5397 (class 2606 OID 22724)
 -- Name: subcontracts subcontracts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27868,7 +32563,6 @@ ALTER TABLE ONLY public.subcontracts
 
 
 --
--- TOC entry 5402 (class 2606 OID 22726)
 -- Name: submittals submittals_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27877,7 +32571,6 @@ ALTER TABLE ONLY public.submittals
 
 
 --
--- TOC entry 5405 (class 2606 OID 22728)
 -- Name: tack_rates tack_rates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27886,7 +32579,6 @@ ALTER TABLE ONLY public.tack_rates
 
 
 --
--- TOC entry 5409 (class 2606 OID 22730)
 -- Name: task_dependencies task_dependencies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27895,7 +32587,6 @@ ALTER TABLE ONLY public.task_dependencies
 
 
 --
--- TOC entry 5413 (class 2606 OID 45509)
 -- Name: task_status_logs task_status_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27904,7 +32595,6 @@ ALTER TABLE ONLY public.task_status_logs
 
 
 --
--- TOC entry 5416 (class 2606 OID 22732)
 -- Name: tasks tasks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27913,7 +32603,6 @@ ALTER TABLE ONLY public.tasks
 
 
 --
--- TOC entry 5419 (class 2606 OID 22734)
 -- Name: training_records training_records_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27922,7 +32611,6 @@ ALTER TABLE ONLY public.training_records
 
 
 --
--- TOC entry 5182 (class 2606 OID 22736)
 -- Name: cost_codes uq_cost_codes_code; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27931,7 +32619,6 @@ ALTER TABLE ONLY public.cost_codes
 
 
 --
--- TOC entry 5315 (class 2606 OID 22738)
 -- Name: organization_members uq_organization_members; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27940,7 +32627,6 @@ ALTER TABLE ONLY public.organization_members
 
 
 --
--- TOC entry 5323 (class 2606 OID 22740)
 -- Name: organizations uq_organizations_name; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27949,7 +32635,6 @@ ALTER TABLE ONLY public.organizations
 
 
 --
--- TOC entry 5360 (class 2606 OID 22744)
 -- Name: projects uq_projects_name; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27958,7 +32643,6 @@ ALTER TABLE ONLY public.projects
 
 
 --
--- TOC entry 5423 (class 2606 OID 22746)
 -- Name: user_projects uq_user_projects; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27967,7 +32651,6 @@ ALTER TABLE ONLY public.user_projects
 
 
 --
--- TOC entry 5441 (class 2606 OID 22748)
 -- Name: vendors uq_vendors_name; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27976,7 +32659,14 @@ ALTER TABLE ONLY public.vendors
 
 
 --
--- TOC entry 5425 (class 2606 OID 22750)
+-- Name: user_notification_settings user_notification_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_notification_settings
+    ADD CONSTRAINT user_notification_settings_pkey PRIMARY KEY (user_id);
+
+
+--
 -- Name: user_projects user_projects_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27985,7 +32675,6 @@ ALTER TABLE ONLY public.user_projects
 
 
 --
--- TOC entry 5429 (class 2606 OID 22752)
 -- Name: vendor_bid_packages vendor_bid_packages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -27994,7 +32683,6 @@ ALTER TABLE ONLY public.vendor_bid_packages
 
 
 --
--- TOC entry 5432 (class 2606 OID 22754)
 -- Name: vendor_contacts vendor_contacts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -28003,7 +32691,6 @@ ALTER TABLE ONLY public.vendor_contacts
 
 
 --
--- TOC entry 5435 (class 2606 OID 22756)
 -- Name: vendor_documents vendor_documents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -28012,7 +32699,6 @@ ALTER TABLE ONLY public.vendor_documents
 
 
 --
--- TOC entry 5438 (class 2606 OID 22758)
 -- Name: vendor_qualifications vendor_qualifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -28021,7 +32707,6 @@ ALTER TABLE ONLY public.vendor_qualifications
 
 
 --
--- TOC entry 5443 (class 2606 OID 22760)
 -- Name: vendors vendors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -28030,7 +32715,6 @@ ALTER TABLE ONLY public.vendors
 
 
 --
--- TOC entry 5446 (class 2606 OID 22762)
 -- Name: wbs wbs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -28039,7 +32723,6 @@ ALTER TABLE ONLY public.wbs
 
 
 --
--- TOC entry 5130 (class 2606 OID 22764)
 -- Name: workflows workflows_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -28048,7 +32731,6 @@ ALTER TABLE ONLY public.workflows
 
 
 --
--- TOC entry 5205 (class 1259 OID 22765)
 -- Name: idx_documents_project_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28056,7 +32738,6 @@ CREATE INDEX idx_documents_project_id ON public.documents USING btree (project_i
 
 
 --
--- TOC entry 5250 (class 1259 OID 22766)
 -- Name: idx_inspections_project_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28064,7 +32745,6 @@ CREATE INDEX idx_inspections_project_id ON public.inspections USING btree (proje
 
 
 --
--- TOC entry 5259 (class 1259 OID 22767)
 -- Name: idx_issues_project_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28072,7 +32752,6 @@ CREATE INDEX idx_issues_project_id ON public.issues USING btree (project_id);
 
 
 --
--- TOC entry 5274 (class 1259 OID 22768)
 -- Name: idx_line_items_map_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28080,7 +32759,6 @@ CREATE INDEX idx_line_items_map_id ON public.line_items USING btree (map_id);
 
 
 --
--- TOC entry 5275 (class 1259 OID 22769)
 -- Name: idx_line_items_project_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28088,7 +32766,6 @@ CREATE INDEX idx_line_items_project_id ON public.line_items USING btree (project
 
 
 --
--- TOC entry 5276 (class 1259 OID 22770)
 -- Name: idx_line_items_wbs_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28096,7 +32773,6 @@ CREATE INDEX idx_line_items_wbs_id ON public.line_items USING btree (wbs_id);
 
 
 --
--- TOC entry 5281 (class 1259 OID 22771)
 -- Name: idx_maps_project_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28104,7 +32780,6 @@ CREATE INDEX idx_maps_project_id ON public.maps USING btree (project_id);
 
 
 --
--- TOC entry 5282 (class 1259 OID 22772)
 -- Name: idx_maps_wbs_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28112,7 +32787,6 @@ CREATE INDEX idx_maps_wbs_id ON public.maps USING btree (wbs_id);
 
 
 --
--- TOC entry 5304 (class 1259 OID 45487)
 -- Name: idx_notifications_user_created_at_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28120,7 +32794,6 @@ CREATE INDEX idx_notifications_user_created_at_active ON public.notifications US
 
 
 --
--- TOC entry 5305 (class 1259 OID 45488)
 -- Name: idx_notifications_user_unread_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28128,7 +32801,6 @@ CREATE INDEX idx_notifications_user_unread_active ON public.notifications USING 
 
 
 --
--- TOC entry 5468 (class 1259 OID 47892)
 -- Name: idx_organization_invites_role; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28136,7 +32808,6 @@ CREATE INDEX idx_organization_invites_role ON public.organization_invites USING 
 
 
 --
--- TOC entry 5356 (class 1259 OID 22773)
 -- Name: idx_projects_organization_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28144,7 +32815,20 @@ CREATE INDEX idx_projects_organization_id ON public.projects USING btree (organi
 
 
 --
--- TOC entry 5410 (class 1259 OID 45510)
+-- Name: idx_rpc_error_debug_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_rpc_error_debug_created_at ON public.rpc_error_debug USING btree (created_at DESC);
+
+
+--
+-- Name: idx_rpc_error_debug_rpc_name; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_rpc_error_debug_rpc_name ON public.rpc_error_debug USING btree (rpc_name);
+
+
+--
 -- Name: idx_task_status_logs_task_changed; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28152,7 +32836,6 @@ CREATE INDEX idx_task_status_logs_task_changed ON public.task_status_logs USING 
 
 
 --
--- TOC entry 5411 (class 1259 OID 45511)
 -- Name: idx_task_status_logs_task_changed_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28160,7 +32843,6 @@ CREATE INDEX idx_task_status_logs_task_changed_at ON public.task_status_logs USI
 
 
 --
--- TOC entry 5420 (class 1259 OID 22774)
 -- Name: idx_user_projects_project_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28168,7 +32850,6 @@ CREATE INDEX idx_user_projects_project_id ON public.user_projects USING btree (p
 
 
 --
--- TOC entry 5421 (class 1259 OID 22775)
 -- Name: idx_user_projects_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28176,7 +32857,6 @@ CREATE INDEX idx_user_projects_user_id ON public.user_projects USING btree (user
 
 
 --
--- TOC entry 5444 (class 1259 OID 22776)
 -- Name: idx_wbs_project_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28184,7 +32864,6 @@ CREATE INDEX idx_wbs_project_id ON public.wbs USING btree (project_id);
 
 
 --
--- TOC entry 5133 (class 1259 OID 22777)
 -- Name: ix_accounts_payable__fk_fk_ap_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28192,7 +32871,6 @@ CREATE INDEX ix_accounts_payable__fk_fk_ap_project ON public.accounts_payable US
 
 
 --
--- TOC entry 5136 (class 1259 OID 22778)
 -- Name: ix_accounts_receivable__fk_fk_ar_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28200,7 +32878,6 @@ CREATE INDEX ix_accounts_receivable__fk_fk_ar_project ON public.accounts_receiva
 
 
 --
--- TOC entry 5139 (class 1259 OID 22779)
 -- Name: ix_activity_logs__fk_fk_activity_logs_profile; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28208,7 +32885,6 @@ CREATE INDEX ix_activity_logs__fk_fk_activity_logs_profile ON public.activity_lo
 
 
 --
--- TOC entry 5144 (class 1259 OID 22780)
 -- Name: ix_audit_logs__fk_fk_audit_logs_performed_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28216,7 +32892,6 @@ CREATE INDEX ix_audit_logs__fk_fk_audit_logs_performed_by ON public.audit_logs U
 
 
 --
--- TOC entry 5145 (class 1259 OID 22781)
 -- Name: ix_audit_logs__fk_fk_audit_logs_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28224,7 +32899,6 @@ CREATE INDEX ix_audit_logs__fk_fk_audit_logs_project ON public.audit_logs USING 
 
 
 --
--- TOC entry 5150 (class 1259 OID 22782)
 -- Name: ix_bid_packages__fk_fk_bid_packages_created_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28232,7 +32906,6 @@ CREATE INDEX ix_bid_packages__fk_fk_bid_packages_created_by ON public.bid_packag
 
 
 --
--- TOC entry 5151 (class 1259 OID 22783)
 -- Name: ix_bid_packages__fk_fk_bid_packages_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28240,7 +32913,6 @@ CREATE INDEX ix_bid_packages__fk_fk_bid_packages_project ON public.bid_packages 
 
 
 --
--- TOC entry 5154 (class 1259 OID 22784)
 -- Name: ix_bid_vendors__fk_fk_bid_vendors_bid_package; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28248,7 +32920,6 @@ CREATE INDEX ix_bid_vendors__fk_fk_bid_vendors_bid_package ON public.bid_vendors
 
 
 --
--- TOC entry 5155 (class 1259 OID 22785)
 -- Name: ix_bid_vendors__fk_fk_bid_vendors_vendor; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28256,7 +32927,6 @@ CREATE INDEX ix_bid_vendors__fk_fk_bid_vendors_vendor ON public.bid_vendors USIN
 
 
 --
--- TOC entry 5158 (class 1259 OID 22786)
 -- Name: ix_bids__fk_fk_bids_bid_package; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28264,7 +32934,6 @@ CREATE INDEX ix_bids__fk_fk_bids_bid_package ON public.bids USING btree (bid_pac
 
 
 --
--- TOC entry 5159 (class 1259 OID 22787)
 -- Name: ix_bids__fk_fk_bids_vendor; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28272,7 +32941,6 @@ CREATE INDEX ix_bids__fk_fk_bids_vendor ON public.bids USING btree (vendor_id);
 
 
 --
--- TOC entry 5162 (class 1259 OID 22788)
 -- Name: ix_bim_models__fk_fk_bim_models_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28280,7 +32948,6 @@ CREATE INDEX ix_bim_models__fk_fk_bim_models_project ON public.bim_models USING 
 
 
 --
--- TOC entry 5165 (class 1259 OID 22789)
 -- Name: ix_certifications__fk_fk_certifications_employee; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28288,7 +32955,6 @@ CREATE INDEX ix_certifications__fk_fk_certifications_employee ON public.certific
 
 
 --
--- TOC entry 5168 (class 1259 OID 22790)
 -- Name: ix_change_orders__fk_fk_change_orders_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28296,7 +32962,6 @@ CREATE INDEX ix_change_orders__fk_fk_change_orders_project ON public.change_orde
 
 
 --
--- TOC entry 5171 (class 1259 OID 22791)
 -- Name: ix_commitments__fk_fk_commitments_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28304,7 +32969,6 @@ CREATE INDEX ix_commitments__fk_fk_commitments_project ON public.commitments USI
 
 
 --
--- TOC entry 5172 (class 1259 OID 22792)
 -- Name: ix_commitments__fk_fk_commitments_vendor; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28312,7 +32976,6 @@ CREATE INDEX ix_commitments__fk_fk_commitments_vendor ON public.commitments USIN
 
 
 --
--- TOC entry 5175 (class 1259 OID 22793)
 -- Name: ix_compliance_checks__fk_fk_compliance_checks_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28320,7 +32983,6 @@ CREATE INDEX ix_compliance_checks__fk_fk_compliance_checks_project ON public.com
 
 
 --
--- TOC entry 5178 (class 1259 OID 22794)
 -- Name: ix_compliance_tracking__fk_fk_compliance_tracking_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28328,7 +32990,6 @@ CREATE INDEX ix_compliance_tracking__fk_fk_compliance_tracking_project ON public
 
 
 --
--- TOC entry 5185 (class 1259 OID 22795)
 -- Name: ix_crew_assignments__fk_fk_crew_assignments_crew; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28336,7 +32997,6 @@ CREATE INDEX ix_crew_assignments__fk_fk_crew_assignments_crew ON public.crew_ass
 
 
 --
--- TOC entry 5186 (class 1259 OID 22796)
 -- Name: ix_crew_assignments__fk_fk_crew_assignments_profile; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28344,7 +33004,6 @@ CREATE INDEX ix_crew_assignments__fk_fk_crew_assignments_profile ON public.crew_
 
 
 --
--- TOC entry 5189 (class 1259 OID 22797)
 -- Name: ix_crew_members__fk_fk_crew_members_crew; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28352,7 +33011,6 @@ CREATE INDEX ix_crew_members__fk_fk_crew_members_crew ON public.crew_members USI
 
 
 --
--- TOC entry 5190 (class 1259 OID 22798)
 -- Name: ix_crew_members__fk_fk_crew_members_profile; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28360,7 +33018,6 @@ CREATE INDEX ix_crew_members__fk_fk_crew_members_profile ON public.crew_members 
 
 
 --
--- TOC entry 5193 (class 1259 OID 22799)
 -- Name: ix_crews__fk_fk_crews_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28368,7 +33025,6 @@ CREATE INDEX ix_crews__fk_fk_crews_project ON public.crews USING btree (project_
 
 
 --
--- TOC entry 5196 (class 1259 OID 22800)
 -- Name: ix_daily_logs__fk_fk_daily_logs_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28376,7 +33032,6 @@ CREATE INDEX ix_daily_logs__fk_fk_daily_logs_project ON public.daily_logs USING 
 
 
 --
--- TOC entry 5199 (class 1259 OID 22801)
 -- Name: ix_dashboard_configs__fk_fk_dashboard_configs_profile; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28384,7 +33039,6 @@ CREATE INDEX ix_dashboard_configs__fk_fk_dashboard_configs_profile ON public.das
 
 
 --
--- TOC entry 5202 (class 1259 OID 22802)
 -- Name: ix_document_references__fk_fk_document_references_document; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28392,7 +33046,6 @@ CREATE INDEX ix_document_references__fk_fk_document_references_document ON publi
 
 
 --
--- TOC entry 5206 (class 1259 OID 22803)
 -- Name: ix_documents__fk_fk_documents_uploaded_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28400,7 +33053,6 @@ CREATE INDEX ix_documents__fk_fk_documents_uploaded_by ON public.documents USING
 
 
 --
--- TOC entry 5209 (class 1259 OID 22804)
 -- Name: ix_drawing_versions__fk_fk_drawing_versions_document; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28408,7 +33060,6 @@ CREATE INDEX ix_drawing_versions__fk_fk_drawing_versions_document ON public.draw
 
 
 --
--- TOC entry 5210 (class 1259 OID 22805)
 -- Name: ix_drawing_versions__fk_fk_drawing_versions_uploaded_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28416,7 +33067,6 @@ CREATE INDEX ix_drawing_versions__fk_fk_drawing_versions_uploaded_by ON public.d
 
 
 --
--- TOC entry 5213 (class 1259 OID 22806)
 -- Name: ix_dump_trucks__fk_fk_dump_trucks_organization; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28424,7 +33074,6 @@ CREATE INDEX ix_dump_trucks__fk_fk_dump_trucks_organization ON public.dump_truck
 
 
 --
--- TOC entry 5216 (class 1259 OID 22807)
 -- Name: ix_employees__fk_fk_employees_organization; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28432,7 +33081,6 @@ CREATE INDEX ix_employees__fk_fk_employees_organization ON public.employees USIN
 
 
 --
--- TOC entry 5217 (class 1259 OID 22808)
 -- Name: ix_employees__fk_fk_employees_profile; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28440,7 +33088,6 @@ CREATE INDEX ix_employees__fk_fk_employees_profile ON public.employees USING btr
 
 
 --
--- TOC entry 5220 (class 1259 OID 22809)
 -- Name: ix_equipment__fk_fk_equipment_organization; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28448,7 +33095,6 @@ CREATE INDEX ix_equipment__fk_fk_equipment_organization ON public.equipment USIN
 
 
 --
--- TOC entry 5223 (class 1259 OID 22810)
 -- Name: ix_equipment_assignments__fk_fk_equipment_assignments_assigned_; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28456,7 +33102,6 @@ CREATE INDEX ix_equipment_assignments__fk_fk_equipment_assignments_assigned_ ON 
 
 
 --
--- TOC entry 5224 (class 1259 OID 22811)
 -- Name: ix_equipment_assignments__fk_fk_equipment_assignments_equipment; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28464,7 +33109,6 @@ CREATE INDEX ix_equipment_assignments__fk_fk_equipment_assignments_equipment ON 
 
 
 --
--- TOC entry 5225 (class 1259 OID 22812)
 -- Name: ix_equipment_assignments__fk_fk_equipment_assignments_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28472,7 +33116,6 @@ CREATE INDEX ix_equipment_assignments__fk_fk_equipment_assignments_project ON pu
 
 
 --
--- TOC entry 5228 (class 1259 OID 22813)
 -- Name: ix_equipment_maintenance__fk_fk_equipment_maintenance_equipment; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28480,7 +33123,6 @@ CREATE INDEX ix_equipment_maintenance__fk_fk_equipment_maintenance_equipment ON 
 
 
 --
--- TOC entry 5229 (class 1259 OID 22814)
 -- Name: ix_equipment_maintenance__fk_fk_equipment_maintenance_performed; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28488,7 +33130,6 @@ CREATE INDEX ix_equipment_maintenance__fk_fk_equipment_maintenance_performed ON 
 
 
 --
--- TOC entry 5232 (class 1259 OID 22815)
 -- Name: ix_equipment_usage__fk_fk_equipment_usage_equipment; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28496,7 +33137,6 @@ CREATE INDEX ix_equipment_usage__fk_fk_equipment_usage_equipment ON public.equip
 
 
 --
--- TOC entry 5235 (class 1259 OID 22816)
 -- Name: ix_estimate_line_items__fk_fk_estimate_line_items_cost_code; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28504,7 +33144,6 @@ CREATE INDEX ix_estimate_line_items__fk_fk_estimate_line_items_cost_code ON publ
 
 
 --
--- TOC entry 5236 (class 1259 OID 22817)
 -- Name: ix_estimate_line_items__fk_fk_estimate_line_items_estimate; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28512,7 +33151,6 @@ CREATE INDEX ix_estimate_line_items__fk_fk_estimate_line_items_estimate ON publi
 
 
 --
--- TOC entry 5239 (class 1259 OID 22818)
 -- Name: ix_estimates__fk_fk_estimates_created_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28520,7 +33158,6 @@ CREATE INDEX ix_estimates__fk_fk_estimates_created_by ON public.estimates USING 
 
 
 --
--- TOC entry 5240 (class 1259 OID 22819)
 -- Name: ix_estimates__fk_fk_estimates_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28528,7 +33165,6 @@ CREATE INDEX ix_estimates__fk_fk_estimates_project ON public.estimates USING btr
 
 
 --
--- TOC entry 5243 (class 1259 OID 22820)
 -- Name: ix_financial_documents__fk_fk_financial_documents_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28536,7 +33172,6 @@ CREATE INDEX ix_financial_documents__fk_fk_financial_documents_project ON public
 
 
 --
--- TOC entry 5246 (class 1259 OID 22821)
 -- Name: ix_general_ledger__fk_fk_gl_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28544,7 +33179,6 @@ CREATE INDEX ix_general_ledger__fk_fk_gl_project ON public.general_ledger USING 
 
 
 --
--- TOC entry 5249 (class 1259 OID 22822)
 -- Name: ix_hr_documents__fk_fk_hr_documents_employee; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28552,7 +33186,6 @@ CREATE INDEX ix_hr_documents__fk_fk_hr_documents_employee ON public.hr_documents
 
 
 --
--- TOC entry 5255 (class 1259 OID 22823)
 -- Name: ix_integration_tokens__fk_fk_integration_tokens_profile; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28560,7 +33193,6 @@ CREATE INDEX ix_integration_tokens__fk_fk_integration_tokens_profile ON public.i
 
 
 --
--- TOC entry 5258 (class 1259 OID 22824)
 -- Name: ix_inventory_transactions__fk_fk_inventory_transactions_materia; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28568,7 +33200,6 @@ CREATE INDEX ix_inventory_transactions__fk_fk_inventory_transactions_materia ON 
 
 
 --
--- TOC entry 5262 (class 1259 OID 22825)
 -- Name: ix_issues__fk_fk_issues_reported_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28576,7 +33207,6 @@ CREATE INDEX ix_issues__fk_fk_issues_reported_by ON public.issues USING btree (r
 
 
 --
--- TOC entry 5265 (class 1259 OID 22826)
 -- Name: ix_labor_records__fk_fk_labor_records_line_item; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28584,7 +33214,6 @@ CREATE INDEX ix_labor_records__fk_fk_labor_records_line_item ON public.labor_rec
 
 
 --
--- TOC entry 5268 (class 1259 OID 22827)
 -- Name: ix_line_item_entries__fk_fk_line_item_entries_line_item; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28592,7 +33221,6 @@ CREATE INDEX ix_line_item_entries__fk_fk_line_item_entries_line_item ON public.l
 
 
 --
--- TOC entry 5271 (class 1259 OID 22828)
 -- Name: ix_line_item_templates__fk_fk_line_item_templates_created_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28600,7 +33228,6 @@ CREATE INDEX ix_line_item_templates__fk_fk_line_item_templates_created_by ON pub
 
 
 --
--- TOC entry 5277 (class 1259 OID 22829)
 -- Name: ix_line_items__fk_fk_line_items_cost_code; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28608,7 +33235,6 @@ CREATE INDEX ix_line_items__fk_fk_line_items_cost_code ON public.line_items USIN
 
 
 --
--- TOC entry 5278 (class 1259 OID 22830)
 -- Name: ix_line_items__fk_fk_line_items_template; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28616,7 +33242,6 @@ CREATE INDEX ix_line_items__fk_fk_line_items_template ON public.line_items USING
 
 
 --
--- TOC entry 5285 (class 1259 OID 22831)
 -- Name: ix_material_inventory__fk_fk_material_inventory_material; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28624,7 +33249,6 @@ CREATE INDEX ix_material_inventory__fk_fk_material_inventory_material ON public.
 
 
 --
--- TOC entry 5286 (class 1259 OID 22832)
 -- Name: ix_material_inventory__fk_fk_material_inventory_organization; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28632,7 +33256,6 @@ CREATE INDEX ix_material_inventory__fk_fk_material_inventory_organization ON pub
 
 
 --
--- TOC entry 5289 (class 1259 OID 22833)
 -- Name: ix_material_orders__fk_fk_material_orders_material; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28640,7 +33263,6 @@ CREATE INDEX ix_material_orders__fk_fk_material_orders_material ON public.materi
 
 
 --
--- TOC entry 5290 (class 1259 OID 22834)
 -- Name: ix_material_orders__fk_fk_material_orders_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28648,7 +33270,6 @@ CREATE INDEX ix_material_orders__fk_fk_material_orders_project ON public.materia
 
 
 --
--- TOC entry 5293 (class 1259 OID 22835)
 -- Name: ix_material_receipts__fk_fk_material_receipts_material_order; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28656,7 +33277,6 @@ CREATE INDEX ix_material_receipts__fk_fk_material_receipts_material_order ON pub
 
 
 --
--- TOC entry 5294 (class 1259 OID 22836)
 -- Name: ix_material_receipts__fk_fk_material_receipts_received_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28664,7 +33284,6 @@ CREATE INDEX ix_material_receipts__fk_fk_material_receipts_received_by ON public
 
 
 --
--- TOC entry 5297 (class 1259 OID 22837)
 -- Name: ix_materials__fk_fk_materials_organization; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28672,7 +33291,6 @@ CREATE INDEX ix_materials__fk_fk_materials_organization ON public.materials USIN
 
 
 --
--- TOC entry 5300 (class 1259 OID 22838)
 -- Name: ix_meeting_minutes__fk_fk_meeting_minutes_created_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28680,7 +33298,6 @@ CREATE INDEX ix_meeting_minutes__fk_fk_meeting_minutes_created_by ON public.meet
 
 
 --
--- TOC entry 5301 (class 1259 OID 22839)
 -- Name: ix_meeting_minutes__fk_fk_meeting_minutes_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28688,7 +33305,6 @@ CREATE INDEX ix_meeting_minutes__fk_fk_meeting_minutes_project ON public.meeting
 
 
 --
--- TOC entry 5469 (class 1259 OID 43259)
 -- Name: ix_organization_invites__fk_invited_profile_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28696,7 +33312,6 @@ CREATE INDEX ix_organization_invites__fk_invited_profile_id ON public.organizati
 
 
 --
--- TOC entry 5470 (class 1259 OID 43258)
 -- Name: ix_organization_invites__fk_org_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28704,7 +33319,6 @@ CREATE INDEX ix_organization_invites__fk_org_id ON public.organization_invites U
 
 
 --
--- TOC entry 5471 (class 1259 OID 49040)
 -- Name: ix_organization_invites__fk_organization_invites_requested_job_; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28712,7 +33326,6 @@ CREATE INDEX ix_organization_invites__fk_organization_invites_requested_job_ ON 
 
 
 --
--- TOC entry 5472 (class 1259 OID 49052)
 -- Name: ix_organization_invites__fk_organization_invites_reviewed_job_t; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28720,7 +33333,6 @@ CREATE INDEX ix_organization_invites__fk_organization_invites_reviewed_job_t ON 
 
 
 --
--- TOC entry 5473 (class 1259 OID 47891)
 -- Name: ix_organization_invites__fk_organization_invites_role_fkey; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28728,7 +33340,6 @@ CREATE INDEX ix_organization_invites__fk_organization_invites_role_fkey ON publi
 
 
 --
--- TOC entry 5458 (class 1259 OID 26544)
 -- Name: ix_organization_member_rates__fk_organization_member_rates_memb; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28736,7 +33347,6 @@ CREATE INDEX ix_organization_member_rates__fk_organization_member_rates_memb ON 
 
 
 --
--- TOC entry 5308 (class 1259 OID 22841)
 -- Name: ix_organization_members__fk_fk_org_members_org; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28744,7 +33354,6 @@ CREATE INDEX ix_organization_members__fk_fk_org_members_org ON public.organizati
 
 
 --
--- TOC entry 5309 (class 1259 OID 22842)
 -- Name: ix_organization_members__fk_fk_org_members_profile; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28752,7 +33361,6 @@ CREATE INDEX ix_organization_members__fk_fk_org_members_profile ON public.organi
 
 
 --
--- TOC entry 5310 (class 1259 OID 49034)
 -- Name: ix_organization_members__fk_organization_members_job_title_id_f; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28760,7 +33368,13 @@ CREATE INDEX ix_organization_members__fk_organization_members_job_title_id_f ON 
 
 
 --
--- TOC entry 5316 (class 1259 OID 22843)
+-- Name: ix_organization_notification_settings__fk_organization_notifica; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_organization_notification_settings__fk_organization_notifica ON public.organization_notification_settings USING btree (updated_by);
+
+
+--
 -- Name: ix_organization_projects__fk_fk_org_projects_org; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28768,7 +33382,6 @@ CREATE INDEX ix_organization_projects__fk_fk_org_projects_org ON public.organiza
 
 
 --
--- TOC entry 5317 (class 1259 OID 22844)
 -- Name: ix_organization_projects__fk_fk_org_projects_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28776,7 +33389,6 @@ CREATE INDEX ix_organization_projects__fk_fk_org_projects_project ON public.orga
 
 
 --
--- TOC entry 5324 (class 1259 OID 22845)
 -- Name: ix_payments__fk_fk_payments_commitment; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28784,7 +33396,6 @@ CREATE INDEX ix_payments__fk_fk_payments_commitment ON public.payments USING btr
 
 
 --
--- TOC entry 5325 (class 1259 OID 22846)
 -- Name: ix_payments__fk_fk_payments_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28792,7 +33403,6 @@ CREATE INDEX ix_payments__fk_fk_payments_project ON public.payments USING btree 
 
 
 --
--- TOC entry 5328 (class 1259 OID 22847)
 -- Name: ix_payroll__fk_fk_payroll_employee; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28800,7 +33410,6 @@ CREATE INDEX ix_payroll__fk_fk_payroll_employee ON public.payroll USING btree (e
 
 
 --
--- TOC entry 5331 (class 1259 OID 22848)
 -- Name: ix_photos__fk_fk_photos_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28808,7 +33417,6 @@ CREATE INDEX ix_photos__fk_fk_photos_project ON public.photos USING btree (proje
 
 
 --
--- TOC entry 5332 (class 1259 OID 22849)
 -- Name: ix_photos__fk_fk_photos_uploaded_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28816,7 +33424,6 @@ CREATE INDEX ix_photos__fk_fk_photos_uploaded_by ON public.photos USING btree (u
 
 
 --
--- TOC entry 5335 (class 1259 OID 22850)
 -- Name: ix_prequalifications__fk_fk_prequalifications_reviewed_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28824,7 +33431,6 @@ CREATE INDEX ix_prequalifications__fk_fk_prequalifications_reviewed_by ON public
 
 
 --
--- TOC entry 5336 (class 1259 OID 22851)
 -- Name: ix_prequalifications__fk_fk_prequalifications_vendor; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28832,7 +33438,6 @@ CREATE INDEX ix_prequalifications__fk_fk_prequalifications_vendor ON public.preq
 
 
 --
--- TOC entry 5339 (class 1259 OID 22852)
 -- Name: ix_procurement_workflows__fk_fk_procurement_workflows_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28840,7 +33445,6 @@ CREATE INDEX ix_procurement_workflows__fk_fk_procurement_workflows_project ON pu
 
 
 --
--- TOC entry 5342 (class 1259 OID 26436)
 -- Name: ix_profiles__fk_fk_profiles_avatar_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28848,7 +33452,6 @@ CREATE INDEX ix_profiles__fk_fk_profiles_avatar_id ON public.profiles USING btre
 
 
 --
--- TOC entry 5343 (class 1259 OID 22854)
 -- Name: ix_profiles__fk_fk_profiles_organizations; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28856,7 +33459,6 @@ CREATE INDEX ix_profiles__fk_fk_profiles_organizations ON public.profiles USING 
 
 
 --
--- TOC entry 5348 (class 1259 OID 22855)
 -- Name: ix_progress_billings__fk_fk_progress_billings_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28864,7 +33466,6 @@ CREATE INDEX ix_progress_billings__fk_fk_progress_billings_project ON public.pro
 
 
 --
--- TOC entry 5351 (class 1259 OID 22856)
 -- Name: ix_project_inspectors__fk_project_inspectors_assigned_by_fkey; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28872,7 +33473,6 @@ CREATE INDEX ix_project_inspectors__fk_project_inspectors_assigned_by_fkey ON pu
 
 
 --
--- TOC entry 5352 (class 1259 OID 22857)
 -- Name: ix_project_inspectors__fk_project_inspectors_profile_id_fkey; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28880,7 +33480,6 @@ CREATE INDEX ix_project_inspectors__fk_project_inspectors_profile_id_fkey ON pub
 
 
 --
--- TOC entry 5353 (class 1259 OID 22858)
 -- Name: ix_project_inspectors__fk_project_inspectors_project_id_fkey; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28888,7 +33487,6 @@ CREATE INDEX ix_project_inspectors__fk_project_inspectors_project_id_fkey ON pub
 
 
 --
--- TOC entry 5462 (class 1259 OID 26572)
 -- Name: ix_project_invites__fk_project_invites_invited_by_profile_id_fk; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28896,7 +33494,6 @@ CREATE INDEX ix_project_invites__fk_project_invites_invited_by_profile_id_fk ON 
 
 
 --
--- TOC entry 5361 (class 1259 OID 22859)
 -- Name: ix_punch_lists__fk_fk_punch_lists_assigned_to; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28904,7 +33501,6 @@ CREATE INDEX ix_punch_lists__fk_fk_punch_lists_assigned_to ON public.punch_lists
 
 
 --
--- TOC entry 5362 (class 1259 OID 22860)
 -- Name: ix_punch_lists__fk_fk_punch_lists_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28912,7 +33508,6 @@ CREATE INDEX ix_punch_lists__fk_fk_punch_lists_project ON public.punch_lists USI
 
 
 --
--- TOC entry 5365 (class 1259 OID 22861)
 -- Name: ix_purchase_orders__fk_fk_purchase_orders_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28920,7 +33515,6 @@ CREATE INDEX ix_purchase_orders__fk_fk_purchase_orders_project ON public.purchas
 
 
 --
--- TOC entry 5366 (class 1259 OID 22862)
 -- Name: ix_purchase_orders__fk_fk_purchase_orders_vendor; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28928,7 +33522,6 @@ CREATE INDEX ix_purchase_orders__fk_fk_purchase_orders_vendor ON public.purchase
 
 
 --
--- TOC entry 5369 (class 1259 OID 22863)
 -- Name: ix_quality_reviews__fk_fk_quality_reviews_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28936,7 +33529,6 @@ CREATE INDEX ix_quality_reviews__fk_fk_quality_reviews_project ON public.quality
 
 
 --
--- TOC entry 5370 (class 1259 OID 22864)
 -- Name: ix_quality_reviews__fk_fk_quality_reviews_reviewer; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28944,7 +33536,6 @@ CREATE INDEX ix_quality_reviews__fk_fk_quality_reviews_reviewer ON public.qualit
 
 
 --
--- TOC entry 5373 (class 1259 OID 22865)
 -- Name: ix_regulatory_documents__fk_fk_regulatory_documents_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28952,7 +33543,6 @@ CREATE INDEX ix_regulatory_documents__fk_fk_regulatory_documents_project ON publ
 
 
 --
--- TOC entry 5376 (class 1259 OID 22866)
 -- Name: ix_reports__fk_fk_reports_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28960,7 +33550,6 @@ CREATE INDEX ix_reports__fk_fk_reports_project ON public.reports USING btree (pr
 
 
 --
--- TOC entry 5379 (class 1259 OID 22867)
 -- Name: ix_rfis__fk_fk_rfis_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28968,7 +33557,6 @@ CREATE INDEX ix_rfis__fk_fk_rfis_project ON public.rfis USING btree (project_id)
 
 
 --
--- TOC entry 5380 (class 1259 OID 22868)
 -- Name: ix_rfis__fk_fk_rfis_reviewed_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28976,7 +33564,6 @@ CREATE INDEX ix_rfis__fk_fk_rfis_reviewed_by ON public.rfis USING btree (reviewe
 
 
 --
--- TOC entry 5381 (class 1259 OID 22869)
 -- Name: ix_rfis__fk_fk_rfis_submitted_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28984,7 +33571,6 @@ CREATE INDEX ix_rfis__fk_fk_rfis_submitted_by ON public.rfis USING btree (submit
 
 
 --
--- TOC entry 5384 (class 1259 OID 22870)
 -- Name: ix_safety_incidents__fk_fk_safety_incidents_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28992,7 +33578,6 @@ CREATE INDEX ix_safety_incidents__fk_fk_safety_incidents_project ON public.safet
 
 
 --
--- TOC entry 5385 (class 1259 OID 22871)
 -- Name: ix_safety_incidents__fk_fk_safety_incidents_reported_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29000,7 +33585,6 @@ CREATE INDEX ix_safety_incidents__fk_fk_safety_incidents_reported_by ON public.s
 
 
 --
--- TOC entry 5388 (class 1259 OID 22872)
 -- Name: ix_sensor_data__fk_fk_sensor_data_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29008,7 +33592,6 @@ CREATE INDEX ix_sensor_data__fk_fk_sensor_data_project ON public.sensor_data USI
 
 
 --
--- TOC entry 5391 (class 1259 OID 22873)
 -- Name: ix_subcontractor_agreements__fk_fk_subcontractor_agreements_sub; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29016,7 +33599,6 @@ CREATE INDEX ix_subcontractor_agreements__fk_fk_subcontractor_agreements_sub ON 
 
 
 --
--- TOC entry 5394 (class 1259 OID 22874)
 -- Name: ix_subcontracts__fk_fk_subcontracts_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29024,7 +33606,6 @@ CREATE INDEX ix_subcontracts__fk_fk_subcontracts_project ON public.subcontracts 
 
 
 --
--- TOC entry 5395 (class 1259 OID 22875)
 -- Name: ix_subcontracts__fk_fk_subcontracts_vendor; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29032,7 +33613,6 @@ CREATE INDEX ix_subcontracts__fk_fk_subcontracts_vendor ON public.subcontracts U
 
 
 --
--- TOC entry 5398 (class 1259 OID 22876)
 -- Name: ix_submittals__fk_fk_submittals_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29040,7 +33620,6 @@ CREATE INDEX ix_submittals__fk_fk_submittals_project ON public.submittals USING 
 
 
 --
--- TOC entry 5399 (class 1259 OID 22877)
 -- Name: ix_submittals__fk_fk_submittals_reviewed_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29048,7 +33627,6 @@ CREATE INDEX ix_submittals__fk_fk_submittals_reviewed_by ON public.submittals US
 
 
 --
--- TOC entry 5400 (class 1259 OID 22878)
 -- Name: ix_submittals__fk_fk_submittals_submitted_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29056,7 +33634,6 @@ CREATE INDEX ix_submittals__fk_fk_submittals_submitted_by ON public.submittals U
 
 
 --
--- TOC entry 5403 (class 1259 OID 22879)
 -- Name: ix_tack_rates__fk_fk_tack_rates_project; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29064,7 +33641,6 @@ CREATE INDEX ix_tack_rates__fk_fk_tack_rates_project ON public.tack_rates USING 
 
 
 --
--- TOC entry 5406 (class 1259 OID 22880)
 -- Name: ix_task_dependencies__fk_task_dependencies_depends_on_task_id_f; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29072,7 +33648,6 @@ CREATE INDEX ix_task_dependencies__fk_task_dependencies_depends_on_task_id_f ON 
 
 
 --
--- TOC entry 5407 (class 1259 OID 22881)
 -- Name: ix_task_dependencies__fk_task_dependencies_task_id_fkey; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29080,7 +33655,6 @@ CREATE INDEX ix_task_dependencies__fk_task_dependencies_task_id_fkey ON public.t
 
 
 --
--- TOC entry 5414 (class 1259 OID 22882)
 -- Name: ix_tasks__fk_tasks_project_id_fkey; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29088,7 +33662,6 @@ CREATE INDEX ix_tasks__fk_tasks_project_id_fkey ON public.tasks USING btree (pro
 
 
 --
--- TOC entry 5417 (class 1259 OID 22883)
 -- Name: ix_training_records__fk_fk_training_records_employee; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29096,7 +33669,6 @@ CREATE INDEX ix_training_records__fk_fk_training_records_employee ON public.trai
 
 
 --
--- TOC entry 5426 (class 1259 OID 22884)
 -- Name: ix_vendor_bid_packages__fk_fk_vendor_bid_packages_bid_package; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29104,7 +33676,6 @@ CREATE INDEX ix_vendor_bid_packages__fk_fk_vendor_bid_packages_bid_package ON pu
 
 
 --
--- TOC entry 5427 (class 1259 OID 22885)
 -- Name: ix_vendor_bid_packages__fk_fk_vendor_bid_packages_vendor; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29112,7 +33683,6 @@ CREATE INDEX ix_vendor_bid_packages__fk_fk_vendor_bid_packages_vendor ON public.
 
 
 --
--- TOC entry 5430 (class 1259 OID 22886)
 -- Name: ix_vendor_contacts__fk_fk_vendor_contacts_vendor; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29120,7 +33690,6 @@ CREATE INDEX ix_vendor_contacts__fk_fk_vendor_contacts_vendor ON public.vendor_c
 
 
 --
--- TOC entry 5433 (class 1259 OID 22887)
 -- Name: ix_vendor_documents__fk_fk_vendor_documents_vendor; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29128,7 +33697,6 @@ CREATE INDEX ix_vendor_documents__fk_fk_vendor_documents_vendor ON public.vendor
 
 
 --
--- TOC entry 5436 (class 1259 OID 22888)
 -- Name: ix_vendor_qualifications__fk_fk_vendor_qualifications_vendor; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29136,7 +33704,6 @@ CREATE INDEX ix_vendor_qualifications__fk_fk_vendor_qualifications_vendor ON pub
 
 
 --
--- TOC entry 5439 (class 1259 OID 22889)
 -- Name: ix_vendors__fk_fk_vendors_organization; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29144,7 +33711,6 @@ CREATE INDEX ix_vendors__fk_fk_vendors_organization ON public.vendors USING btre
 
 
 --
--- TOC entry 5474 (class 1259 OID 43260)
 -- Name: organization_invites_org_invited_uq; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29152,7 +33718,6 @@ CREATE UNIQUE INDEX organization_invites_org_invited_uq ON public.organization_i
 
 
 --
--- TOC entry 5459 (class 1259 OID 26545)
 -- Name: organization_member_rates_membership_effective_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29160,7 +33725,6 @@ CREATE INDEX organization_member_rates_membership_effective_idx ON public.organi
 
 
 --
--- TOC entry 5311 (class 1259 OID 26408)
 -- Name: organization_members_org_profile_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29168,7 +33732,6 @@ CREATE INDEX organization_members_org_profile_idx ON public.organization_members
 
 
 --
--- TOC entry 5449 (class 1259 OID 26502)
 -- Name: organization_service_areas_org_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29176,7 +33739,6 @@ CREATE INDEX organization_service_areas_org_id_idx ON public.organization_servic
 
 
 --
--- TOC entry 5450 (class 1259 OID 26501)
 -- Name: organization_service_areas_org_text_uq; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29184,7 +33746,6 @@ CREATE UNIQUE INDEX organization_service_areas_org_text_uq ON public.organizatio
 
 
 --
--- TOC entry 5463 (class 1259 OID 26577)
 -- Name: project_invites_invited_profile_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29192,7 +33753,6 @@ CREATE INDEX project_invites_invited_profile_id_idx ON public.project_invites US
 
 
 --
--- TOC entry 5466 (class 1259 OID 26576)
 -- Name: project_invites_project_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29200,7 +33760,6 @@ CREATE INDEX project_invites_project_id_idx ON public.project_invites USING btre
 
 
 --
--- TOC entry 5467 (class 1259 OID 26575)
 -- Name: project_invites_project_invited_uq; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29208,7 +33767,6 @@ CREATE UNIQUE INDEX project_invites_project_invited_uq ON public.project_invites
 
 
 --
--- TOC entry 5455 (class 1259 OID 26525)
 -- Name: project_service_areas_project_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29216,7 +33774,6 @@ CREATE INDEX project_service_areas_project_id_idx ON public.project_service_area
 
 
 --
--- TOC entry 5456 (class 1259 OID 26524)
 -- Name: project_service_areas_project_service_uq; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29224,7 +33781,6 @@ CREATE UNIQUE INDEX project_service_areas_project_service_uq ON public.project_s
 
 
 --
--- TOC entry 5457 (class 1259 OID 26526)
 -- Name: project_service_areas_service_area_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29232,7 +33788,6 @@ CREATE INDEX project_service_areas_service_area_id_idx ON public.project_service
 
 
 --
--- TOC entry 5716 (class 2620 OID 45484)
 -- Name: notifications notifications_broadcast_trigger; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29240,7 +33795,20 @@ CREATE TRIGGER notifications_broadcast_trigger AFTER INSERT ON public.notificati
 
 
 --
--- TOC entry 5631 (class 2620 OID 22891)
+-- Name: notifications trg_notifications_enforce_delivery_policy; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_notifications_enforce_delivery_policy BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION public.notifications_enforce_delivery_policy();
+
+
+--
+-- Name: bids trg_notify_bid_accepted_on_update; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_notify_bid_accepted_on_update AFTER UPDATE ON public.bids FOR EACH ROW EXECUTE FUNCTION public.notify_bid_accepted_on_update();
+
+
+--
 -- Name: bids trg_notify_new_bid; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29248,7 +33816,6 @@ CREATE TRIGGER trg_notify_new_bid AFTER INSERT ON public.bids FOR EACH ROW EXECU
 
 
 --
--- TOC entry 5615 (class 2620 OID 22892)
 -- Name: accounts_payable trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29256,7 +33823,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.accounts_payable FOR E
 
 
 --
--- TOC entry 5617 (class 2620 OID 22893)
 -- Name: accounts_receivable trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29264,7 +33830,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.accounts_receivable FO
 
 
 --
--- TOC entry 5619 (class 2620 OID 22894)
 -- Name: activity_logs trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29272,7 +33837,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.activity_logs FOR EACH
 
 
 --
--- TOC entry 5621 (class 2620 OID 22895)
 -- Name: asphalt_types trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29280,7 +33844,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.asphalt_types FOR EACH
 
 
 --
--- TOC entry 5623 (class 2620 OID 22896)
 -- Name: audit_logs trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29288,7 +33851,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.audit_logs FOR EACH RO
 
 
 --
--- TOC entry 5625 (class 2620 OID 22897)
 -- Name: avatars trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29296,7 +33858,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.avatars FOR EACH ROW E
 
 
 --
--- TOC entry 5627 (class 2620 OID 22898)
 -- Name: bid_packages trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29304,7 +33865,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.bid_packages FOR EACH 
 
 
 --
--- TOC entry 5629 (class 2620 OID 22899)
 -- Name: bid_vendors trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29312,7 +33872,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.bid_vendors FOR EACH R
 
 
 --
--- TOC entry 5632 (class 2620 OID 22900)
 -- Name: bids trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29320,7 +33879,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.bids FOR EACH ROW EXEC
 
 
 --
--- TOC entry 5634 (class 2620 OID 22901)
 -- Name: bim_models trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29328,7 +33886,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.bim_models FOR EACH RO
 
 
 --
--- TOC entry 5636 (class 2620 OID 22902)
 -- Name: certifications trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29336,7 +33893,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.certifications FOR EAC
 
 
 --
--- TOC entry 5638 (class 2620 OID 22903)
 -- Name: change_orders trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29344,7 +33900,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.change_orders FOR EACH
 
 
 --
--- TOC entry 5640 (class 2620 OID 22904)
 -- Name: commitments trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29352,7 +33907,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.commitments FOR EACH R
 
 
 --
--- TOC entry 5642 (class 2620 OID 22905)
 -- Name: compliance_checks trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29360,7 +33914,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.compliance_checks FOR 
 
 
 --
--- TOC entry 5644 (class 2620 OID 22906)
 -- Name: compliance_tracking trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29368,7 +33921,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.compliance_tracking FO
 
 
 --
--- TOC entry 5646 (class 2620 OID 22907)
 -- Name: cost_codes trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29376,7 +33928,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.cost_codes FOR EACH RO
 
 
 --
--- TOC entry 5648 (class 2620 OID 22908)
 -- Name: crew_assignments trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29384,7 +33935,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.crew_assignments FOR E
 
 
 --
--- TOC entry 5650 (class 2620 OID 22909)
 -- Name: crew_members trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29392,7 +33942,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.crew_members FOR EACH 
 
 
 --
--- TOC entry 5652 (class 2620 OID 22910)
 -- Name: crews trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29400,7 +33949,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.crews FOR EACH ROW EXE
 
 
 --
--- TOC entry 5654 (class 2620 OID 22911)
 -- Name: daily_logs trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29408,7 +33956,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.daily_logs FOR EACH RO
 
 
 --
--- TOC entry 5656 (class 2620 OID 22912)
 -- Name: dashboard_configs trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29416,7 +33963,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.dashboard_configs FOR 
 
 
 --
--- TOC entry 5658 (class 2620 OID 22913)
 -- Name: document_references trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29424,7 +33970,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.document_references FO
 
 
 --
--- TOC entry 5660 (class 2620 OID 22914)
 -- Name: documents trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29432,7 +33977,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.documents FOR EACH ROW
 
 
 --
--- TOC entry 5662 (class 2620 OID 22915)
 -- Name: drawing_versions trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29440,7 +33984,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.drawing_versions FOR E
 
 
 --
--- TOC entry 5664 (class 2620 OID 22916)
 -- Name: dump_trucks trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29448,7 +33991,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.dump_trucks FOR EACH R
 
 
 --
--- TOC entry 5666 (class 2620 OID 22917)
 -- Name: employees trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29456,7 +33998,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.employees FOR EACH ROW
 
 
 --
--- TOC entry 5668 (class 2620 OID 22918)
 -- Name: equipment trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29464,7 +34005,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.equipment FOR EACH ROW
 
 
 --
--- TOC entry 5670 (class 2620 OID 22919)
 -- Name: equipment_assignments trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29472,7 +34012,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.equipment_assignments 
 
 
 --
--- TOC entry 5672 (class 2620 OID 22920)
 -- Name: equipment_maintenance trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29480,7 +34019,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.equipment_maintenance 
 
 
 --
--- TOC entry 5674 (class 2620 OID 22921)
 -- Name: equipment_usage trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29488,7 +34026,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.equipment_usage FOR EA
 
 
 --
--- TOC entry 5676 (class 2620 OID 22922)
 -- Name: estimate_line_items trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29496,7 +34033,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.estimate_line_items FO
 
 
 --
--- TOC entry 5678 (class 2620 OID 22923)
 -- Name: estimates trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29504,7 +34040,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.estimates FOR EACH ROW
 
 
 --
--- TOC entry 5680 (class 2620 OID 22924)
 -- Name: financial_documents trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29512,7 +34047,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.financial_documents FO
 
 
 --
--- TOC entry 5682 (class 2620 OID 22925)
 -- Name: general_ledger trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29520,7 +34054,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.general_ledger FOR EAC
 
 
 --
--- TOC entry 5684 (class 2620 OID 22926)
 -- Name: hr_documents trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29528,7 +34061,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.hr_documents FOR EACH 
 
 
 --
--- TOC entry 5686 (class 2620 OID 22927)
 -- Name: inspections trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29536,7 +34068,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.inspections FOR EACH R
 
 
 --
--- TOC entry 5688 (class 2620 OID 22928)
 -- Name: integration_tokens trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29544,7 +34075,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.integration_tokens FOR
 
 
 --
--- TOC entry 5690 (class 2620 OID 22929)
 -- Name: inventory_transactions trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29552,7 +34082,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.inventory_transactions
 
 
 --
--- TOC entry 5692 (class 2620 OID 22930)
 -- Name: issues trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29560,7 +34089,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.issues FOR EACH ROW EX
 
 
 --
--- TOC entry 5694 (class 2620 OID 22931)
 -- Name: job_titles trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29568,7 +34096,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.job_titles FOR EACH RO
 
 
 --
--- TOC entry 5696 (class 2620 OID 22932)
 -- Name: labor_records trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29576,7 +34103,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.labor_records FOR EACH
 
 
 --
--- TOC entry 5698 (class 2620 OID 22933)
 -- Name: line_item_entries trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29584,7 +34110,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.line_item_entries FOR 
 
 
 --
--- TOC entry 5700 (class 2620 OID 22934)
 -- Name: line_item_templates trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29592,7 +34117,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.line_item_templates FO
 
 
 --
--- TOC entry 5702 (class 2620 OID 22935)
 -- Name: line_items trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29600,7 +34124,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.line_items FOR EACH RO
 
 
 --
--- TOC entry 5704 (class 2620 OID 22936)
 -- Name: maps trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29608,7 +34131,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.maps FOR EACH ROW EXEC
 
 
 --
--- TOC entry 5706 (class 2620 OID 22937)
 -- Name: material_inventory trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29616,7 +34138,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.material_inventory FOR
 
 
 --
--- TOC entry 5708 (class 2620 OID 22938)
 -- Name: material_orders trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29624,7 +34145,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.material_orders FOR EA
 
 
 --
--- TOC entry 5710 (class 2620 OID 22939)
 -- Name: material_receipts trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29632,7 +34152,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.material_receipts FOR 
 
 
 --
--- TOC entry 5712 (class 2620 OID 22940)
 -- Name: materials trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29640,7 +34159,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.materials FOR EACH ROW
 
 
 --
--- TOC entry 5714 (class 2620 OID 22941)
 -- Name: meeting_minutes trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29648,7 +34166,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.meeting_minutes FOR EA
 
 
 --
--- TOC entry 5717 (class 2620 OID 22942)
 -- Name: notifications trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29656,7 +34173,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.notifications FOR EACH
 
 
 --
--- TOC entry 5719 (class 2620 OID 22943)
 -- Name: organization_members trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29664,7 +34180,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.organization_members F
 
 
 --
--- TOC entry 5721 (class 2620 OID 22944)
 -- Name: organization_projects trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29672,7 +34187,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.organization_projects 
 
 
 --
--- TOC entry 5723 (class 2620 OID 22945)
 -- Name: organizations trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29680,7 +34194,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.organizations FOR EACH
 
 
 --
--- TOC entry 5725 (class 2620 OID 22946)
 -- Name: payments trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29688,7 +34201,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.payments FOR EACH ROW 
 
 
 --
--- TOC entry 5727 (class 2620 OID 22947)
 -- Name: payroll trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29696,7 +34208,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.payroll FOR EACH ROW E
 
 
 --
--- TOC entry 5729 (class 2620 OID 22948)
 -- Name: photos trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29704,7 +34215,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.photos FOR EACH ROW EX
 
 
 --
--- TOC entry 5731 (class 2620 OID 22949)
 -- Name: prequalifications trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29712,7 +34222,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.prequalifications FOR 
 
 
 --
--- TOC entry 5733 (class 2620 OID 22950)
 -- Name: procurement_workflows trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29720,7 +34229,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.procurement_workflows 
 
 
 --
--- TOC entry 5735 (class 2620 OID 22951)
 -- Name: profiles trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29728,7 +34236,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW 
 
 
 --
--- TOC entry 5737 (class 2620 OID 22952)
 -- Name: progress_billings trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29736,7 +34243,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.progress_billings FOR 
 
 
 --
--- TOC entry 5739 (class 2620 OID 22953)
 -- Name: projects trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29744,7 +34250,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.projects FOR EACH ROW 
 
 
 --
--- TOC entry 5741 (class 2620 OID 22954)
 -- Name: punch_lists trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29752,7 +34257,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.punch_lists FOR EACH R
 
 
 --
--- TOC entry 5743 (class 2620 OID 22955)
 -- Name: purchase_orders trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29760,7 +34264,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.purchase_orders FOR EA
 
 
 --
--- TOC entry 5745 (class 2620 OID 22956)
 -- Name: quality_reviews trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29768,7 +34271,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.quality_reviews FOR EA
 
 
 --
--- TOC entry 5747 (class 2620 OID 22957)
 -- Name: regulatory_documents trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29776,7 +34278,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.regulatory_documents F
 
 
 --
--- TOC entry 5749 (class 2620 OID 22958)
 -- Name: reports trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29784,7 +34285,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.reports FOR EACH ROW E
 
 
 --
--- TOC entry 5751 (class 2620 OID 22959)
 -- Name: rfis trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29792,7 +34292,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.rfis FOR EACH ROW EXEC
 
 
 --
--- TOC entry 5753 (class 2620 OID 22960)
 -- Name: safety_incidents trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29800,7 +34299,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.safety_incidents FOR E
 
 
 --
--- TOC entry 5755 (class 2620 OID 22961)
 -- Name: sensor_data trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29808,7 +34306,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.sensor_data FOR EACH R
 
 
 --
--- TOC entry 5757 (class 2620 OID 22962)
 -- Name: subcontractor_agreements trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29816,7 +34313,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.subcontractor_agreemen
 
 
 --
--- TOC entry 5759 (class 2620 OID 22963)
 -- Name: subcontracts trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29824,7 +34320,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.subcontracts FOR EACH 
 
 
 --
--- TOC entry 5761 (class 2620 OID 22964)
 -- Name: submittals trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29832,7 +34327,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.submittals FOR EACH RO
 
 
 --
--- TOC entry 5763 (class 2620 OID 22965)
 -- Name: tack_rates trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29840,7 +34334,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.tack_rates FOR EACH RO
 
 
 --
--- TOC entry 5766 (class 2620 OID 22966)
 -- Name: tasks trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29848,7 +34341,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.tasks FOR EACH ROW EXE
 
 
 --
--- TOC entry 5768 (class 2620 OID 22967)
 -- Name: training_records trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29856,7 +34348,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.training_records FOR E
 
 
 --
--- TOC entry 5770 (class 2620 OID 22968)
 -- Name: user_projects trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29864,7 +34355,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.user_projects FOR EACH
 
 
 --
--- TOC entry 5772 (class 2620 OID 22969)
 -- Name: vendor_bid_packages trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29872,7 +34362,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.vendor_bid_packages FO
 
 
 --
--- TOC entry 5774 (class 2620 OID 22970)
 -- Name: vendor_contacts trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29880,7 +34369,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.vendor_contacts FOR EA
 
 
 --
--- TOC entry 5776 (class 2620 OID 22971)
 -- Name: vendor_documents trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29888,7 +34376,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.vendor_documents FOR E
 
 
 --
--- TOC entry 5778 (class 2620 OID 22972)
 -- Name: vendor_qualifications trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29896,7 +34383,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.vendor_qualifications 
 
 
 --
--- TOC entry 5780 (class 2620 OID 22973)
 -- Name: vendors trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29904,7 +34390,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.vendors FOR EACH ROW E
 
 
 --
--- TOC entry 5782 (class 2620 OID 22974)
 -- Name: wbs trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29912,7 +34397,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.wbs FOR EACH ROW EXECU
 
 
 --
--- TOC entry 5613 (class 2620 OID 22975)
 -- Name: workflows trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29920,7 +34404,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.workflows FOR EACH ROW
 
 
 --
--- TOC entry 5616 (class 2620 OID 22976)
 -- Name: accounts_payable trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29928,7 +34411,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.accounts_payable FOR
 
 
 --
--- TOC entry 5618 (class 2620 OID 22977)
 -- Name: accounts_receivable trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29936,7 +34418,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.accounts_receivable 
 
 
 --
--- TOC entry 5620 (class 2620 OID 22978)
 -- Name: activity_logs trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29944,7 +34425,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.activity_logs FOR EA
 
 
 --
--- TOC entry 5622 (class 2620 OID 22979)
 -- Name: asphalt_types trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29952,7 +34432,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.asphalt_types FOR EA
 
 
 --
--- TOC entry 5624 (class 2620 OID 22980)
 -- Name: audit_logs trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29960,7 +34439,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.audit_logs FOR EACH 
 
 
 --
--- TOC entry 5626 (class 2620 OID 22981)
 -- Name: avatars trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29968,7 +34446,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.avatars FOR EACH ROW
 
 
 --
--- TOC entry 5628 (class 2620 OID 22982)
 -- Name: bid_packages trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29976,7 +34453,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.bid_packages FOR EAC
 
 
 --
--- TOC entry 5630 (class 2620 OID 22983)
 -- Name: bid_vendors trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29984,7 +34460,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.bid_vendors FOR EACH
 
 
 --
--- TOC entry 5633 (class 2620 OID 22984)
 -- Name: bids trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -29992,7 +34467,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.bids FOR EACH ROW EX
 
 
 --
--- TOC entry 5635 (class 2620 OID 22985)
 -- Name: bim_models trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30000,7 +34474,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.bim_models FOR EACH 
 
 
 --
--- TOC entry 5637 (class 2620 OID 22986)
 -- Name: certifications trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30008,7 +34481,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.certifications FOR E
 
 
 --
--- TOC entry 5639 (class 2620 OID 22987)
 -- Name: change_orders trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30016,7 +34488,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.change_orders FOR EA
 
 
 --
--- TOC entry 5641 (class 2620 OID 22988)
 -- Name: commitments trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30024,7 +34495,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.commitments FOR EACH
 
 
 --
--- TOC entry 5643 (class 2620 OID 22989)
 -- Name: compliance_checks trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30032,7 +34502,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.compliance_checks FO
 
 
 --
--- TOC entry 5645 (class 2620 OID 22990)
 -- Name: compliance_tracking trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30040,7 +34509,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.compliance_tracking 
 
 
 --
--- TOC entry 5647 (class 2620 OID 22991)
 -- Name: cost_codes trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30048,7 +34516,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.cost_codes FOR EACH 
 
 
 --
--- TOC entry 5649 (class 2620 OID 22992)
 -- Name: crew_assignments trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30056,7 +34523,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.crew_assignments FOR
 
 
 --
--- TOC entry 5651 (class 2620 OID 22993)
 -- Name: crew_members trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30064,7 +34530,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.crew_members FOR EAC
 
 
 --
--- TOC entry 5653 (class 2620 OID 22994)
 -- Name: crews trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30072,7 +34537,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.crews FOR EACH ROW E
 
 
 --
--- TOC entry 5655 (class 2620 OID 22995)
 -- Name: daily_logs trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30080,7 +34544,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.daily_logs FOR EACH 
 
 
 --
--- TOC entry 5657 (class 2620 OID 22996)
 -- Name: dashboard_configs trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30088,7 +34551,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.dashboard_configs FO
 
 
 --
--- TOC entry 5659 (class 2620 OID 22997)
 -- Name: document_references trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30096,7 +34558,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.document_references 
 
 
 --
--- TOC entry 5661 (class 2620 OID 22998)
 -- Name: documents trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30104,7 +34565,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.documents FOR EACH R
 
 
 --
--- TOC entry 5663 (class 2620 OID 22999)
 -- Name: drawing_versions trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30112,7 +34572,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.drawing_versions FOR
 
 
 --
--- TOC entry 5665 (class 2620 OID 23000)
 -- Name: dump_trucks trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30120,7 +34579,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.dump_trucks FOR EACH
 
 
 --
--- TOC entry 5667 (class 2620 OID 23001)
 -- Name: employees trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30128,7 +34586,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.employees FOR EACH R
 
 
 --
--- TOC entry 5669 (class 2620 OID 23002)
 -- Name: equipment trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30136,7 +34593,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.equipment FOR EACH R
 
 
 --
--- TOC entry 5671 (class 2620 OID 23003)
 -- Name: equipment_assignments trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30144,7 +34600,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.equipment_assignment
 
 
 --
--- TOC entry 5673 (class 2620 OID 23004)
 -- Name: equipment_maintenance trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30152,7 +34607,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.equipment_maintenanc
 
 
 --
--- TOC entry 5675 (class 2620 OID 23005)
 -- Name: equipment_usage trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30160,7 +34614,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.equipment_usage FOR 
 
 
 --
--- TOC entry 5677 (class 2620 OID 23006)
 -- Name: estimate_line_items trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30168,7 +34621,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.estimate_line_items 
 
 
 --
--- TOC entry 5679 (class 2620 OID 23007)
 -- Name: estimates trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30176,7 +34628,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.estimates FOR EACH R
 
 
 --
--- TOC entry 5681 (class 2620 OID 23008)
 -- Name: financial_documents trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30184,7 +34635,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.financial_documents 
 
 
 --
--- TOC entry 5683 (class 2620 OID 23009)
 -- Name: general_ledger trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30192,7 +34642,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.general_ledger FOR E
 
 
 --
--- TOC entry 5685 (class 2620 OID 23010)
 -- Name: hr_documents trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30200,7 +34649,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.hr_documents FOR EAC
 
 
 --
--- TOC entry 5687 (class 2620 OID 23011)
 -- Name: inspections trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30208,7 +34656,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.inspections FOR EACH
 
 
 --
--- TOC entry 5689 (class 2620 OID 23012)
 -- Name: integration_tokens trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30216,7 +34663,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.integration_tokens F
 
 
 --
--- TOC entry 5691 (class 2620 OID 23013)
 -- Name: inventory_transactions trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30224,7 +34670,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.inventory_transactio
 
 
 --
--- TOC entry 5693 (class 2620 OID 23014)
 -- Name: issues trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30232,7 +34677,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.issues FOR EACH ROW 
 
 
 --
--- TOC entry 5695 (class 2620 OID 23015)
 -- Name: job_titles trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30240,7 +34684,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.job_titles FOR EACH 
 
 
 --
--- TOC entry 5697 (class 2620 OID 23016)
 -- Name: labor_records trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30248,7 +34691,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.labor_records FOR EA
 
 
 --
--- TOC entry 5699 (class 2620 OID 23017)
 -- Name: line_item_entries trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30256,7 +34698,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.line_item_entries FO
 
 
 --
--- TOC entry 5701 (class 2620 OID 23018)
 -- Name: line_item_templates trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30264,7 +34705,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.line_item_templates 
 
 
 --
--- TOC entry 5703 (class 2620 OID 23019)
 -- Name: line_items trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30272,7 +34712,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.line_items FOR EACH 
 
 
 --
--- TOC entry 5705 (class 2620 OID 23020)
 -- Name: maps trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30280,7 +34719,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.maps FOR EACH ROW EX
 
 
 --
--- TOC entry 5707 (class 2620 OID 23021)
 -- Name: material_inventory trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30288,7 +34726,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.material_inventory F
 
 
 --
--- TOC entry 5709 (class 2620 OID 23022)
 -- Name: material_orders trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30296,7 +34733,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.material_orders FOR 
 
 
 --
--- TOC entry 5711 (class 2620 OID 23023)
 -- Name: material_receipts trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30304,7 +34740,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.material_receipts FO
 
 
 --
--- TOC entry 5713 (class 2620 OID 23024)
 -- Name: materials trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30312,7 +34747,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.materials FOR EACH R
 
 
 --
--- TOC entry 5715 (class 2620 OID 23025)
 -- Name: meeting_minutes trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30320,7 +34754,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.meeting_minutes FOR 
 
 
 --
--- TOC entry 5718 (class 2620 OID 23026)
 -- Name: notifications trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30328,7 +34761,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.notifications FOR EA
 
 
 --
--- TOC entry 5720 (class 2620 OID 23027)
 -- Name: organization_members trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30336,7 +34768,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.organization_members
 
 
 --
--- TOC entry 5722 (class 2620 OID 23028)
 -- Name: organization_projects trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30344,7 +34775,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.organization_project
 
 
 --
--- TOC entry 5724 (class 2620 OID 23029)
 -- Name: organizations trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30352,7 +34782,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.organizations FOR EA
 
 
 --
--- TOC entry 5726 (class 2620 OID 23030)
 -- Name: payments trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30360,7 +34789,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.payments FOR EACH RO
 
 
 --
--- TOC entry 5728 (class 2620 OID 23031)
 -- Name: payroll trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30368,7 +34796,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.payroll FOR EACH ROW
 
 
 --
--- TOC entry 5730 (class 2620 OID 23032)
 -- Name: photos trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30376,7 +34803,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.photos FOR EACH ROW 
 
 
 --
--- TOC entry 5732 (class 2620 OID 23033)
 -- Name: prequalifications trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30384,7 +34810,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.prequalifications FO
 
 
 --
--- TOC entry 5734 (class 2620 OID 23034)
 -- Name: procurement_workflows trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30392,7 +34817,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.procurement_workflow
 
 
 --
--- TOC entry 5736 (class 2620 OID 23035)
 -- Name: profiles trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30400,7 +34824,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.profiles FOR EACH RO
 
 
 --
--- TOC entry 5738 (class 2620 OID 23036)
 -- Name: progress_billings trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30408,7 +34831,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.progress_billings FO
 
 
 --
--- TOC entry 5740 (class 2620 OID 23037)
 -- Name: projects trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30416,7 +34838,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.projects FOR EACH RO
 
 
 --
--- TOC entry 5742 (class 2620 OID 23038)
 -- Name: punch_lists trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30424,7 +34845,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.punch_lists FOR EACH
 
 
 --
--- TOC entry 5744 (class 2620 OID 23039)
 -- Name: purchase_orders trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30432,7 +34852,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.purchase_orders FOR 
 
 
 --
--- TOC entry 5746 (class 2620 OID 23040)
 -- Name: quality_reviews trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30440,7 +34859,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.quality_reviews FOR 
 
 
 --
--- TOC entry 5748 (class 2620 OID 23041)
 -- Name: regulatory_documents trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30448,7 +34866,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.regulatory_documents
 
 
 --
--- TOC entry 5750 (class 2620 OID 23042)
 -- Name: reports trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30456,7 +34873,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.reports FOR EACH ROW
 
 
 --
--- TOC entry 5752 (class 2620 OID 23043)
 -- Name: rfis trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30464,7 +34880,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.rfis FOR EACH ROW EX
 
 
 --
--- TOC entry 5754 (class 2620 OID 23044)
 -- Name: safety_incidents trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30472,7 +34887,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.safety_incidents FOR
 
 
 --
--- TOC entry 5756 (class 2620 OID 23045)
 -- Name: sensor_data trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30480,7 +34894,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.sensor_data FOR EACH
 
 
 --
--- TOC entry 5758 (class 2620 OID 23046)
 -- Name: subcontractor_agreements trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30488,7 +34901,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.subcontractor_agreem
 
 
 --
--- TOC entry 5760 (class 2620 OID 23047)
 -- Name: subcontracts trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30496,7 +34908,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.subcontracts FOR EAC
 
 
 --
--- TOC entry 5762 (class 2620 OID 23048)
 -- Name: submittals trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30504,7 +34915,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.submittals FOR EACH 
 
 
 --
--- TOC entry 5764 (class 2620 OID 23049)
 -- Name: tack_rates trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30512,7 +34922,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.tack_rates FOR EACH 
 
 
 --
--- TOC entry 5765 (class 2620 OID 23050)
 -- Name: task_dependencies trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30520,7 +34929,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.task_dependencies FO
 
 
 --
--- TOC entry 5767 (class 2620 OID 23051)
 -- Name: tasks trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30528,7 +34936,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.tasks FOR EACH ROW E
 
 
 --
--- TOC entry 5769 (class 2620 OID 23052)
 -- Name: training_records trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30536,7 +34943,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.training_records FOR
 
 
 --
--- TOC entry 5771 (class 2620 OID 23053)
 -- Name: user_projects trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30544,7 +34950,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.user_projects FOR EA
 
 
 --
--- TOC entry 5773 (class 2620 OID 23054)
 -- Name: vendor_bid_packages trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30552,7 +34957,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.vendor_bid_packages 
 
 
 --
--- TOC entry 5775 (class 2620 OID 23055)
 -- Name: vendor_contacts trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30560,7 +34964,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.vendor_contacts FOR 
 
 
 --
--- TOC entry 5777 (class 2620 OID 23056)
 -- Name: vendor_documents trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30568,7 +34971,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.vendor_documents FOR
 
 
 --
--- TOC entry 5779 (class 2620 OID 23057)
 -- Name: vendor_qualifications trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30576,7 +34978,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.vendor_qualification
 
 
 --
--- TOC entry 5781 (class 2620 OID 23058)
 -- Name: vendors trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30584,7 +34985,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.vendors FOR EACH ROW
 
 
 --
--- TOC entry 5783 (class 2620 OID 23059)
 -- Name: wbs trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30592,7 +34992,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.wbs FOR EACH ROW EXE
 
 
 --
--- TOC entry 5614 (class 2620 OID 23060)
 -- Name: workflows trg_touch_created_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -30600,7 +34999,6 @@ CREATE TRIGGER trg_touch_created_at BEFORE INSERT ON public.workflows FOR EACH R
 
 
 --
--- TOC entry 5479 (class 2606 OID 23061)
 -- Name: activity_logs fk_activity_logs_profile; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30609,7 +35007,6 @@ ALTER TABLE ONLY public.activity_logs
 
 
 --
--- TOC entry 5477 (class 2606 OID 23066)
 -- Name: accounts_payable fk_ap_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30618,7 +35015,6 @@ ALTER TABLE ONLY public.accounts_payable
 
 
 --
--- TOC entry 5478 (class 2606 OID 23071)
 -- Name: accounts_receivable fk_ar_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30627,7 +35023,6 @@ ALTER TABLE ONLY public.accounts_receivable
 
 
 --
--- TOC entry 5480 (class 2606 OID 23076)
 -- Name: audit_logs fk_audit_logs_performed_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30636,7 +35031,6 @@ ALTER TABLE ONLY public.audit_logs
 
 
 --
--- TOC entry 5481 (class 2606 OID 23081)
 -- Name: audit_logs fk_audit_logs_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30645,7 +35039,6 @@ ALTER TABLE ONLY public.audit_logs
 
 
 --
--- TOC entry 5482 (class 2606 OID 23086)
 -- Name: bid_packages fk_bid_packages_created_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30654,7 +35047,6 @@ ALTER TABLE ONLY public.bid_packages
 
 
 --
--- TOC entry 5483 (class 2606 OID 23091)
 -- Name: bid_packages fk_bid_packages_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30663,7 +35055,6 @@ ALTER TABLE ONLY public.bid_packages
 
 
 --
--- TOC entry 5484 (class 2606 OID 23096)
 -- Name: bid_vendors fk_bid_vendors_bid_package; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30672,7 +35063,6 @@ ALTER TABLE ONLY public.bid_vendors
 
 
 --
--- TOC entry 5485 (class 2606 OID 23101)
 -- Name: bid_vendors fk_bid_vendors_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30681,7 +35071,6 @@ ALTER TABLE ONLY public.bid_vendors
 
 
 --
--- TOC entry 5486 (class 2606 OID 23106)
 -- Name: bids fk_bids_bid_package; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30690,7 +35079,6 @@ ALTER TABLE ONLY public.bids
 
 
 --
--- TOC entry 5487 (class 2606 OID 23111)
 -- Name: bids fk_bids_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30699,7 +35087,6 @@ ALTER TABLE ONLY public.bids
 
 
 --
--- TOC entry 5488 (class 2606 OID 23116)
 -- Name: bim_models fk_bim_models_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30708,7 +35095,6 @@ ALTER TABLE ONLY public.bim_models
 
 
 --
--- TOC entry 5489 (class 2606 OID 23121)
 -- Name: certifications fk_certifications_employee; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30717,7 +35103,6 @@ ALTER TABLE ONLY public.certifications
 
 
 --
--- TOC entry 5490 (class 2606 OID 23126)
 -- Name: change_orders fk_change_orders_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30726,7 +35111,6 @@ ALTER TABLE ONLY public.change_orders
 
 
 --
--- TOC entry 5491 (class 2606 OID 23131)
 -- Name: commitments fk_commitments_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30735,7 +35119,6 @@ ALTER TABLE ONLY public.commitments
 
 
 --
--- TOC entry 5492 (class 2606 OID 23136)
 -- Name: commitments fk_commitments_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30744,7 +35127,6 @@ ALTER TABLE ONLY public.commitments
 
 
 --
--- TOC entry 5493 (class 2606 OID 23141)
 -- Name: compliance_checks fk_compliance_checks_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30753,7 +35135,6 @@ ALTER TABLE ONLY public.compliance_checks
 
 
 --
--- TOC entry 5494 (class 2606 OID 23146)
 -- Name: compliance_tracking fk_compliance_tracking_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30762,7 +35143,6 @@ ALTER TABLE ONLY public.compliance_tracking
 
 
 --
--- TOC entry 5495 (class 2606 OID 23151)
 -- Name: crew_assignments fk_crew_assignments_crew; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30771,7 +35151,6 @@ ALTER TABLE ONLY public.crew_assignments
 
 
 --
--- TOC entry 5496 (class 2606 OID 23156)
 -- Name: crew_assignments fk_crew_assignments_profile; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30780,7 +35159,6 @@ ALTER TABLE ONLY public.crew_assignments
 
 
 --
--- TOC entry 5497 (class 2606 OID 23161)
 -- Name: crew_members fk_crew_members_crew; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30789,7 +35167,6 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5498 (class 2606 OID 23166)
 -- Name: crew_members fk_crew_members_profile; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30798,7 +35175,6 @@ ALTER TABLE ONLY public.crew_members
 
 
 --
--- TOC entry 5499 (class 2606 OID 23171)
 -- Name: crews fk_crews_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30807,7 +35183,6 @@ ALTER TABLE ONLY public.crews
 
 
 --
--- TOC entry 5500 (class 2606 OID 23176)
 -- Name: daily_logs fk_daily_logs_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30816,7 +35191,6 @@ ALTER TABLE ONLY public.daily_logs
 
 
 --
--- TOC entry 5501 (class 2606 OID 23181)
 -- Name: dashboard_configs fk_dashboard_configs_profile; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30825,7 +35199,6 @@ ALTER TABLE ONLY public.dashboard_configs
 
 
 --
--- TOC entry 5502 (class 2606 OID 23186)
 -- Name: document_references fk_document_references_document; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30834,7 +35207,6 @@ ALTER TABLE ONLY public.document_references
 
 
 --
--- TOC entry 5503 (class 2606 OID 23191)
 -- Name: documents fk_documents_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30843,7 +35215,6 @@ ALTER TABLE ONLY public.documents
 
 
 --
--- TOC entry 5504 (class 2606 OID 23196)
 -- Name: documents fk_documents_uploaded_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30852,7 +35223,6 @@ ALTER TABLE ONLY public.documents
 
 
 --
--- TOC entry 5505 (class 2606 OID 23201)
 -- Name: drawing_versions fk_drawing_versions_document; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30861,7 +35231,6 @@ ALTER TABLE ONLY public.drawing_versions
 
 
 --
--- TOC entry 5506 (class 2606 OID 23206)
 -- Name: drawing_versions fk_drawing_versions_uploaded_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30870,7 +35239,6 @@ ALTER TABLE ONLY public.drawing_versions
 
 
 --
--- TOC entry 5507 (class 2606 OID 23211)
 -- Name: dump_trucks fk_dump_trucks_organization; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30879,7 +35247,6 @@ ALTER TABLE ONLY public.dump_trucks
 
 
 --
--- TOC entry 5508 (class 2606 OID 23216)
 -- Name: employees fk_employees_organization; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30888,7 +35255,6 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- TOC entry 5509 (class 2606 OID 23221)
 -- Name: employees fk_employees_profile; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30897,7 +35263,6 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- TOC entry 5511 (class 2606 OID 23226)
 -- Name: equipment_assignments fk_equipment_assignments_assigned_to; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30906,7 +35271,6 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5512 (class 2606 OID 23231)
 -- Name: equipment_assignments fk_equipment_assignments_equipment; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30915,7 +35279,6 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5513 (class 2606 OID 23236)
 -- Name: equipment_assignments fk_equipment_assignments_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30924,7 +35287,6 @@ ALTER TABLE ONLY public.equipment_assignments
 
 
 --
--- TOC entry 5514 (class 2606 OID 23241)
 -- Name: equipment_maintenance fk_equipment_maintenance_equipment; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30933,7 +35295,6 @@ ALTER TABLE ONLY public.equipment_maintenance
 
 
 --
--- TOC entry 5515 (class 2606 OID 23246)
 -- Name: equipment_maintenance fk_equipment_maintenance_performed_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30942,7 +35303,6 @@ ALTER TABLE ONLY public.equipment_maintenance
 
 
 --
--- TOC entry 5510 (class 2606 OID 23251)
 -- Name: equipment fk_equipment_organization; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30951,7 +35311,6 @@ ALTER TABLE ONLY public.equipment
 
 
 --
--- TOC entry 5516 (class 2606 OID 23256)
 -- Name: equipment_usage fk_equipment_usage_equipment; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30960,7 +35319,6 @@ ALTER TABLE ONLY public.equipment_usage
 
 
 --
--- TOC entry 5517 (class 2606 OID 23261)
 -- Name: estimate_line_items fk_estimate_line_items_cost_code; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30969,7 +35327,6 @@ ALTER TABLE ONLY public.estimate_line_items
 
 
 --
--- TOC entry 5518 (class 2606 OID 23266)
 -- Name: estimate_line_items fk_estimate_line_items_estimate; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30978,7 +35335,6 @@ ALTER TABLE ONLY public.estimate_line_items
 
 
 --
--- TOC entry 5519 (class 2606 OID 23271)
 -- Name: estimates fk_estimates_created_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30987,7 +35343,6 @@ ALTER TABLE ONLY public.estimates
 
 
 --
--- TOC entry 5520 (class 2606 OID 23276)
 -- Name: estimates fk_estimates_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -30996,7 +35351,6 @@ ALTER TABLE ONLY public.estimates
 
 
 --
--- TOC entry 5521 (class 2606 OID 23281)
 -- Name: financial_documents fk_financial_documents_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31005,7 +35359,6 @@ ALTER TABLE ONLY public.financial_documents
 
 
 --
--- TOC entry 5522 (class 2606 OID 23286)
 -- Name: general_ledger fk_gl_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31014,7 +35367,6 @@ ALTER TABLE ONLY public.general_ledger
 
 
 --
--- TOC entry 5523 (class 2606 OID 23291)
 -- Name: hr_documents fk_hr_documents_employee; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31023,7 +35375,6 @@ ALTER TABLE ONLY public.hr_documents
 
 
 --
--- TOC entry 5524 (class 2606 OID 23296)
 -- Name: inspections fk_inspections_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31032,7 +35383,6 @@ ALTER TABLE ONLY public.inspections
 
 
 --
--- TOC entry 5525 (class 2606 OID 23301)
 -- Name: integration_tokens fk_integration_tokens_profile; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31041,7 +35391,6 @@ ALTER TABLE ONLY public.integration_tokens
 
 
 --
--- TOC entry 5526 (class 2606 OID 23306)
 -- Name: inventory_transactions fk_inventory_transactions_material; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31050,7 +35399,6 @@ ALTER TABLE ONLY public.inventory_transactions
 
 
 --
--- TOC entry 5527 (class 2606 OID 23311)
 -- Name: issues fk_issues_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31059,7 +35407,6 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5528 (class 2606 OID 23316)
 -- Name: issues fk_issues_reported_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31068,7 +35415,6 @@ ALTER TABLE ONLY public.issues
 
 
 --
--- TOC entry 5529 (class 2606 OID 23321)
 -- Name: labor_records fk_labor_records_line_item; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31077,7 +35423,6 @@ ALTER TABLE ONLY public.labor_records
 
 
 --
--- TOC entry 5530 (class 2606 OID 23326)
 -- Name: line_item_entries fk_line_item_entries_line_item; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31086,7 +35431,6 @@ ALTER TABLE ONLY public.line_item_entries
 
 
 --
--- TOC entry 5531 (class 2606 OID 23331)
 -- Name: line_item_templates fk_line_item_templates_created_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31095,7 +35439,6 @@ ALTER TABLE ONLY public.line_item_templates
 
 
 --
--- TOC entry 5532 (class 2606 OID 23336)
 -- Name: line_items fk_line_items_cost_code; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31104,7 +35447,6 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5533 (class 2606 OID 23341)
 -- Name: line_items fk_line_items_map; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31113,7 +35455,6 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5534 (class 2606 OID 23346)
 -- Name: line_items fk_line_items_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31122,7 +35463,6 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5535 (class 2606 OID 23351)
 -- Name: line_items fk_line_items_template; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31131,7 +35471,6 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5536 (class 2606 OID 23356)
 -- Name: line_items fk_line_items_wbs; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31140,7 +35479,6 @@ ALTER TABLE ONLY public.line_items
 
 
 --
--- TOC entry 5537 (class 2606 OID 23361)
 -- Name: maps fk_maps_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31149,7 +35487,6 @@ ALTER TABLE ONLY public.maps
 
 
 --
--- TOC entry 5538 (class 2606 OID 23366)
 -- Name: maps fk_maps_wbs; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31158,7 +35495,6 @@ ALTER TABLE ONLY public.maps
 
 
 --
--- TOC entry 5539 (class 2606 OID 23371)
 -- Name: material_inventory fk_material_inventory_material; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31167,7 +35503,6 @@ ALTER TABLE ONLY public.material_inventory
 
 
 --
--- TOC entry 5540 (class 2606 OID 23376)
 -- Name: material_inventory fk_material_inventory_organization; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31176,7 +35511,6 @@ ALTER TABLE ONLY public.material_inventory
 
 
 --
--- TOC entry 5541 (class 2606 OID 23381)
 -- Name: material_orders fk_material_orders_material; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31185,7 +35519,6 @@ ALTER TABLE ONLY public.material_orders
 
 
 --
--- TOC entry 5542 (class 2606 OID 23386)
 -- Name: material_orders fk_material_orders_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31194,7 +35527,6 @@ ALTER TABLE ONLY public.material_orders
 
 
 --
--- TOC entry 5543 (class 2606 OID 23391)
 -- Name: material_receipts fk_material_receipts_material_order; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31203,7 +35535,6 @@ ALTER TABLE ONLY public.material_receipts
 
 
 --
--- TOC entry 5544 (class 2606 OID 23396)
 -- Name: material_receipts fk_material_receipts_received_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31212,7 +35543,6 @@ ALTER TABLE ONLY public.material_receipts
 
 
 --
--- TOC entry 5545 (class 2606 OID 23401)
 -- Name: materials fk_materials_organization; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31221,7 +35551,6 @@ ALTER TABLE ONLY public.materials
 
 
 --
--- TOC entry 5546 (class 2606 OID 23406)
 -- Name: meeting_minutes fk_meeting_minutes_created_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31230,7 +35559,6 @@ ALTER TABLE ONLY public.meeting_minutes
 
 
 --
--- TOC entry 5547 (class 2606 OID 23411)
 -- Name: meeting_minutes fk_meeting_minutes_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31239,7 +35567,6 @@ ALTER TABLE ONLY public.meeting_minutes
 
 
 --
--- TOC entry 5549 (class 2606 OID 23416)
 -- Name: organization_members fk_org_members_org; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31248,7 +35575,6 @@ ALTER TABLE ONLY public.organization_members
 
 
 --
--- TOC entry 5550 (class 2606 OID 23421)
 -- Name: organization_members fk_org_members_profile; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31257,7 +35583,6 @@ ALTER TABLE ONLY public.organization_members
 
 
 --
--- TOC entry 5552 (class 2606 OID 23426)
 -- Name: organization_projects fk_org_projects_org; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31266,7 +35591,6 @@ ALTER TABLE ONLY public.organization_projects
 
 
 --
--- TOC entry 5553 (class 2606 OID 23431)
 -- Name: organization_projects fk_org_projects_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31275,7 +35599,6 @@ ALTER TABLE ONLY public.organization_projects
 
 
 --
--- TOC entry 5554 (class 2606 OID 23436)
 -- Name: payments fk_payments_commitment; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31284,7 +35607,6 @@ ALTER TABLE ONLY public.payments
 
 
 --
--- TOC entry 5555 (class 2606 OID 23441)
 -- Name: payments fk_payments_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31293,7 +35615,6 @@ ALTER TABLE ONLY public.payments
 
 
 --
--- TOC entry 5556 (class 2606 OID 23446)
 -- Name: payroll fk_payroll_employee; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31302,7 +35623,6 @@ ALTER TABLE ONLY public.payroll
 
 
 --
--- TOC entry 5557 (class 2606 OID 23451)
 -- Name: photos fk_photos_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31311,7 +35631,6 @@ ALTER TABLE ONLY public.photos
 
 
 --
--- TOC entry 5558 (class 2606 OID 23456)
 -- Name: photos fk_photos_uploaded_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31320,7 +35639,6 @@ ALTER TABLE ONLY public.photos
 
 
 --
--- TOC entry 5559 (class 2606 OID 23461)
 -- Name: prequalifications fk_prequalifications_reviewed_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31329,7 +35647,6 @@ ALTER TABLE ONLY public.prequalifications
 
 
 --
--- TOC entry 5560 (class 2606 OID 23466)
 -- Name: prequalifications fk_prequalifications_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31338,7 +35655,6 @@ ALTER TABLE ONLY public.prequalifications
 
 
 --
--- TOC entry 5561 (class 2606 OID 23471)
 -- Name: procurement_workflows fk_procurement_workflows_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31347,7 +35663,6 @@ ALTER TABLE ONLY public.procurement_workflows
 
 
 --
--- TOC entry 5562 (class 2606 OID 26431)
 -- Name: profiles fk_profiles_avatar_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31356,7 +35671,6 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5563 (class 2606 OID 23481)
 -- Name: profiles fk_profiles_organizations; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31365,7 +35679,6 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5564 (class 2606 OID 23486)
 -- Name: progress_billings fk_progress_billings_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31374,7 +35687,6 @@ ALTER TABLE ONLY public.progress_billings
 
 
 --
--- TOC entry 5568 (class 2606 OID 23491)
 -- Name: projects fk_projects_organizations; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31383,7 +35695,6 @@ ALTER TABLE ONLY public.projects
 
 
 --
--- TOC entry 5569 (class 2606 OID 23496)
 -- Name: punch_lists fk_punch_lists_assigned_to; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31392,7 +35703,6 @@ ALTER TABLE ONLY public.punch_lists
 
 
 --
--- TOC entry 5570 (class 2606 OID 23501)
 -- Name: punch_lists fk_punch_lists_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31401,7 +35711,6 @@ ALTER TABLE ONLY public.punch_lists
 
 
 --
--- TOC entry 5571 (class 2606 OID 23506)
 -- Name: purchase_orders fk_purchase_orders_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31410,7 +35719,6 @@ ALTER TABLE ONLY public.purchase_orders
 
 
 --
--- TOC entry 5572 (class 2606 OID 23511)
 -- Name: purchase_orders fk_purchase_orders_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31419,7 +35727,6 @@ ALTER TABLE ONLY public.purchase_orders
 
 
 --
--- TOC entry 5573 (class 2606 OID 23516)
 -- Name: quality_reviews fk_quality_reviews_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31428,7 +35735,6 @@ ALTER TABLE ONLY public.quality_reviews
 
 
 --
--- TOC entry 5574 (class 2606 OID 23521)
 -- Name: quality_reviews fk_quality_reviews_reviewer; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31437,7 +35743,6 @@ ALTER TABLE ONLY public.quality_reviews
 
 
 --
--- TOC entry 5575 (class 2606 OID 23526)
 -- Name: regulatory_documents fk_regulatory_documents_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31446,7 +35751,6 @@ ALTER TABLE ONLY public.regulatory_documents
 
 
 --
--- TOC entry 5576 (class 2606 OID 23531)
 -- Name: reports fk_reports_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31455,7 +35759,6 @@ ALTER TABLE ONLY public.reports
 
 
 --
--- TOC entry 5577 (class 2606 OID 23536)
 -- Name: rfis fk_rfis_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31464,7 +35767,6 @@ ALTER TABLE ONLY public.rfis
 
 
 --
--- TOC entry 5578 (class 2606 OID 23541)
 -- Name: rfis fk_rfis_reviewed_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31473,7 +35775,6 @@ ALTER TABLE ONLY public.rfis
 
 
 --
--- TOC entry 5579 (class 2606 OID 23546)
 -- Name: rfis fk_rfis_submitted_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31482,7 +35783,6 @@ ALTER TABLE ONLY public.rfis
 
 
 --
--- TOC entry 5580 (class 2606 OID 23551)
 -- Name: safety_incidents fk_safety_incidents_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31491,7 +35791,6 @@ ALTER TABLE ONLY public.safety_incidents
 
 
 --
--- TOC entry 5581 (class 2606 OID 23556)
 -- Name: safety_incidents fk_safety_incidents_reported_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31500,7 +35799,6 @@ ALTER TABLE ONLY public.safety_incidents
 
 
 --
--- TOC entry 5582 (class 2606 OID 23561)
 -- Name: sensor_data fk_sensor_data_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31509,7 +35807,6 @@ ALTER TABLE ONLY public.sensor_data
 
 
 --
--- TOC entry 5583 (class 2606 OID 23566)
 -- Name: subcontractor_agreements fk_subcontractor_agreements_subcontract; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31518,7 +35815,6 @@ ALTER TABLE ONLY public.subcontractor_agreements
 
 
 --
--- TOC entry 5584 (class 2606 OID 23571)
 -- Name: subcontracts fk_subcontracts_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31527,7 +35823,6 @@ ALTER TABLE ONLY public.subcontracts
 
 
 --
--- TOC entry 5585 (class 2606 OID 23576)
 -- Name: subcontracts fk_subcontracts_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31536,7 +35831,6 @@ ALTER TABLE ONLY public.subcontracts
 
 
 --
--- TOC entry 5586 (class 2606 OID 23581)
 -- Name: submittals fk_submittals_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31545,7 +35839,6 @@ ALTER TABLE ONLY public.submittals
 
 
 --
--- TOC entry 5587 (class 2606 OID 23586)
 -- Name: submittals fk_submittals_reviewed_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31554,7 +35847,6 @@ ALTER TABLE ONLY public.submittals
 
 
 --
--- TOC entry 5588 (class 2606 OID 23591)
 -- Name: submittals fk_submittals_submitted_by; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31563,7 +35855,6 @@ ALTER TABLE ONLY public.submittals
 
 
 --
--- TOC entry 5589 (class 2606 OID 23596)
 -- Name: tack_rates fk_tack_rates_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31572,7 +35863,6 @@ ALTER TABLE ONLY public.tack_rates
 
 
 --
--- TOC entry 5593 (class 2606 OID 23601)
 -- Name: training_records fk_training_records_employee; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31581,7 +35871,6 @@ ALTER TABLE ONLY public.training_records
 
 
 --
--- TOC entry 5594 (class 2606 OID 23606)
 -- Name: user_projects fk_user_projects_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31590,7 +35879,6 @@ ALTER TABLE ONLY public.user_projects
 
 
 --
--- TOC entry 5595 (class 2606 OID 23611)
 -- Name: user_projects fk_user_projects_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31599,7 +35887,6 @@ ALTER TABLE ONLY public.user_projects
 
 
 --
--- TOC entry 5596 (class 2606 OID 23616)
 -- Name: vendor_bid_packages fk_vendor_bid_packages_bid_package; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31608,7 +35895,6 @@ ALTER TABLE ONLY public.vendor_bid_packages
 
 
 --
--- TOC entry 5597 (class 2606 OID 23621)
 -- Name: vendor_bid_packages fk_vendor_bid_packages_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31617,7 +35903,6 @@ ALTER TABLE ONLY public.vendor_bid_packages
 
 
 --
--- TOC entry 5598 (class 2606 OID 23626)
 -- Name: vendor_contacts fk_vendor_contacts_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31626,7 +35911,6 @@ ALTER TABLE ONLY public.vendor_contacts
 
 
 --
--- TOC entry 5599 (class 2606 OID 23631)
 -- Name: vendor_documents fk_vendor_documents_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31635,7 +35919,6 @@ ALTER TABLE ONLY public.vendor_documents
 
 
 --
--- TOC entry 5600 (class 2606 OID 23636)
 -- Name: vendor_qualifications fk_vendor_qualifications_vendor; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31644,7 +35927,6 @@ ALTER TABLE ONLY public.vendor_qualifications
 
 
 --
--- TOC entry 5601 (class 2606 OID 23641)
 -- Name: vendors fk_vendors_organization; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31653,7 +35935,6 @@ ALTER TABLE ONLY public.vendors
 
 
 --
--- TOC entry 5602 (class 2606 OID 23646)
 -- Name: wbs fk_wbs_project; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31662,7 +35943,6 @@ ALTER TABLE ONLY public.wbs
 
 
 --
--- TOC entry 5548 (class 2606 OID 23651)
 -- Name: notifications notifications_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31671,7 +35951,6 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- TOC entry 5610 (class 2606 OID 49035)
 -- Name: organization_invites organization_invites_requested_job_title_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31680,7 +35959,6 @@ ALTER TABLE ONLY public.organization_invites
 
 
 --
--- TOC entry 5611 (class 2606 OID 49047)
 -- Name: organization_invites organization_invites_reviewed_job_title_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31689,7 +35967,6 @@ ALTER TABLE ONLY public.organization_invites
 
 
 --
--- TOC entry 5612 (class 2606 OID 47886)
 -- Name: organization_invites organization_invites_role_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31698,7 +35975,6 @@ ALTER TABLE ONLY public.organization_invites
 
 
 --
--- TOC entry 5606 (class 2606 OID 26539)
 -- Name: organization_member_rates organization_member_rates_membership_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31707,7 +35983,6 @@ ALTER TABLE ONLY public.organization_member_rates
 
 
 --
--- TOC entry 5551 (class 2606 OID 49029)
 -- Name: organization_members organization_members_job_title_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31716,7 +35991,22 @@ ALTER TABLE ONLY public.organization_members
 
 
 --
--- TOC entry 5603 (class 2606 OID 26495)
+-- Name: organization_notification_settings organization_notification_settings_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organization_notification_settings
+    ADD CONSTRAINT organization_notification_settings_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+
+--
+-- Name: organization_notification_settings organization_notification_settings_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organization_notification_settings
+    ADD CONSTRAINT organization_notification_settings_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.profiles(id);
+
+
+--
 -- Name: organization_service_areas organization_service_areas_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31725,7 +36015,6 @@ ALTER TABLE ONLY public.organization_service_areas
 
 
 --
--- TOC entry 5565 (class 2606 OID 23656)
 -- Name: project_inspectors project_inspectors_assigned_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31734,7 +36023,6 @@ ALTER TABLE ONLY public.project_inspectors
 
 
 --
--- TOC entry 5566 (class 2606 OID 23661)
 -- Name: project_inspectors project_inspectors_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31743,7 +36031,6 @@ ALTER TABLE ONLY public.project_inspectors
 
 
 --
--- TOC entry 5567 (class 2606 OID 23666)
 -- Name: project_inspectors project_inspectors_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31752,7 +36039,6 @@ ALTER TABLE ONLY public.project_inspectors
 
 
 --
--- TOC entry 5607 (class 2606 OID 26567)
 -- Name: project_invites project_invites_invited_by_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31761,7 +36047,6 @@ ALTER TABLE ONLY public.project_invites
 
 
 --
--- TOC entry 5608 (class 2606 OID 26562)
 -- Name: project_invites project_invites_invited_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31770,7 +36055,6 @@ ALTER TABLE ONLY public.project_invites
 
 
 --
--- TOC entry 5609 (class 2606 OID 26557)
 -- Name: project_invites project_invites_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31779,7 +36063,6 @@ ALTER TABLE ONLY public.project_invites
 
 
 --
--- TOC entry 5604 (class 2606 OID 26512)
 -- Name: project_service_areas project_service_areas_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31788,7 +36071,6 @@ ALTER TABLE ONLY public.project_service_areas
 
 
 --
--- TOC entry 5605 (class 2606 OID 26517)
 -- Name: project_service_areas project_service_areas_service_area_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31797,7 +36079,6 @@ ALTER TABLE ONLY public.project_service_areas
 
 
 --
--- TOC entry 5590 (class 2606 OID 23671)
 -- Name: task_dependencies task_dependencies_depends_on_task_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31806,7 +36087,6 @@ ALTER TABLE ONLY public.task_dependencies
 
 
 --
--- TOC entry 5591 (class 2606 OID 23676)
 -- Name: task_dependencies task_dependencies_task_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31815,7 +36095,6 @@ ALTER TABLE ONLY public.task_dependencies
 
 
 --
--- TOC entry 5592 (class 2606 OID 23681)
 -- Name: tasks tasks_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31824,471 +36103,382 @@ ALTER TABLE ONLY public.tasks
 
 
 --
--- TOC entry 6024 (class 0 OID 21143)
--- Dependencies: 360
+-- Name: user_notification_settings user_notification_settings_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_notification_settings
+    ADD CONSTRAINT user_notification_settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
 -- Name: accounts_payable; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.accounts_payable ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6025 (class 0 OID 21153)
--- Dependencies: 361
 -- Name: accounts_receivable; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.accounts_receivable ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6026 (class 0 OID 21163)
--- Dependencies: 362
 -- Name: activity_logs; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6027 (class 0 OID 21174)
--- Dependencies: 363
 -- Name: asphalt_types; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.asphalt_types ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6110 (class 0 OID 22221)
--- Dependencies: 450
 -- Name: audit_log; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.audit_log ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6028 (class 0 OID 21184)
--- Dependencies: 364
 -- Name: audit_logs; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6029 (class 0 OID 21195)
--- Dependencies: 365
 -- Name: avatars; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.avatars ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6030 (class 0 OID 21205)
--- Dependencies: 366
 -- Name: bid_packages; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.bid_packages ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6031 (class 0 OID 21215)
--- Dependencies: 367
 -- Name: bid_vendors; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.bid_vendors ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6032 (class 0 OID 21224)
--- Dependencies: 368
 -- Name: bids; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.bids ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6033 (class 0 OID 21235)
--- Dependencies: 369
 -- Name: bim_models; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.bim_models ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6034 (class 0 OID 21246)
--- Dependencies: 370
 -- Name: certifications; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.certifications ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6035 (class 0 OID 21256)
--- Dependencies: 371
 -- Name: change_orders; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.change_orders ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6036 (class 0 OID 21266)
--- Dependencies: 372
 -- Name: commitments; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.commitments ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6037 (class 0 OID 21276)
--- Dependencies: 373
 -- Name: compliance_checks; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.compliance_checks ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6038 (class 0 OID 21286)
--- Dependencies: 374
 -- Name: compliance_tracking; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.compliance_tracking ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6039 (class 0 OID 21296)
--- Dependencies: 375
 -- Name: cost_codes; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.cost_codes ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6040 (class 0 OID 21306)
--- Dependencies: 376
 -- Name: crew_assignments; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.crew_assignments ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6041 (class 0 OID 21314)
--- Dependencies: 377
 -- Name: crew_members; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.crew_members ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6042 (class 0 OID 21329)
--- Dependencies: 378
 -- Name: crews; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.crews ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6043 (class 0 OID 21339)
--- Dependencies: 379
 -- Name: daily_logs; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.daily_logs ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6044 (class 0 OID 21349)
--- Dependencies: 380
 -- Name: dashboard_configs; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.dashboard_configs ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6045 (class 0 OID 21359)
--- Dependencies: 381
 -- Name: document_references; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.document_references ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6046 (class 0 OID 21369)
--- Dependencies: 382
 -- Name: documents; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6047 (class 0 OID 21380)
--- Dependencies: 383
 -- Name: drawing_versions; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.drawing_versions ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6048 (class 0 OID 21391)
--- Dependencies: 384
 -- Name: dump_trucks; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.dump_trucks ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6049 (class 0 OID 21401)
--- Dependencies: 385
 -- Name: employees; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6050 (class 0 OID 21411)
--- Dependencies: 386
 -- Name: equipment; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.equipment ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6051 (class 0 OID 21421)
--- Dependencies: 387
 -- Name: equipment_assignments; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.equipment_assignments ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6052 (class 0 OID 21431)
--- Dependencies: 388
 -- Name: equipment_maintenance; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.equipment_maintenance ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6053 (class 0 OID 21441)
--- Dependencies: 389
 -- Name: equipment_usage; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.equipment_usage ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6054 (class 0 OID 21451)
--- Dependencies: 390
 -- Name: estimate_line_items; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.estimate_line_items ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6055 (class 0 OID 21461)
--- Dependencies: 391
 -- Name: estimates; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.estimates ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6056 (class 0 OID 21471)
--- Dependencies: 392
 -- Name: financial_documents; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.financial_documents ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6057 (class 0 OID 21482)
--- Dependencies: 393
 -- Name: general_ledger; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.general_ledger ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6058 (class 0 OID 21492)
--- Dependencies: 394
 -- Name: hr_documents; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.hr_documents ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6059 (class 0 OID 21503)
--- Dependencies: 395
 -- Name: inspections; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.inspections ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6060 (class 0 OID 21513)
--- Dependencies: 396
 -- Name: integration_tokens; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.integration_tokens ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6061 (class 0 OID 21523)
--- Dependencies: 397
 -- Name: inventory_transactions; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.inventory_transactions ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6062 (class 0 OID 21533)
--- Dependencies: 398
 -- Name: issues; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.issues ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6063 (class 0 OID 21544)
--- Dependencies: 399
 -- Name: job_titles; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.job_titles ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6064 (class 0 OID 21554)
--- Dependencies: 400
 -- Name: labor_records; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.labor_records ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6065 (class 0 OID 21564)
--- Dependencies: 401
 -- Name: line_item_entries; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.line_item_entries ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6066 (class 0 OID 21574)
--- Dependencies: 402
 -- Name: line_item_templates; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.line_item_templates ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6067 (class 0 OID 21584)
--- Dependencies: 403
 -- Name: line_items; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.line_items ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6068 (class 0 OID 21594)
--- Dependencies: 404
 -- Name: maps; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.maps ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6069 (class 0 OID 21603)
--- Dependencies: 405
 -- Name: material_inventory; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.material_inventory ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6070 (class 0 OID 21614)
--- Dependencies: 406
 -- Name: material_orders; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.material_orders ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6071 (class 0 OID 21624)
--- Dependencies: 407
 -- Name: material_receipts; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.material_receipts ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6072 (class 0 OID 21634)
--- Dependencies: 408
 -- Name: materials; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6073 (class 0 OID 21644)
--- Dependencies: 409
 -- Name: meeting_minutes; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.meeting_minutes ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6074 (class 0 OID 21654)
--- Dependencies: 410
 -- Name: notifications; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6115 (class 0 OID 43246)
--- Dependencies: 538
+-- Name: organization_notification_settings org_notification_settings_select; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY org_notification_settings_select ON public.organization_notification_settings FOR SELECT USING (public.check_access_bool('select'::text, 'organizations'::text, NULL::uuid, organization_id));
+
+
+--
+-- Name: organization_notification_settings org_notification_settings_upsert; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY org_notification_settings_upsert ON public.organization_notification_settings USING (public.can_edit_org_notification_settings(organization_id)) WITH CHECK (public.can_edit_org_notification_settings(organization_id));
+
+
+--
 -- Name: organization_invites; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.organization_invites ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6113 (class 0 OID 26528)
--- Dependencies: 536
 -- Name: organization_member_rates; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.organization_member_rates ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6075 (class 0 OID 21667)
--- Dependencies: 411
 -- Name: organization_members; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6076 (class 0 OID 21677)
--- Dependencies: 412
+-- Name: organization_notification_settings; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.organization_notification_settings ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: organization_projects; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.organization_projects ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6111 (class 0 OID 26485)
--- Dependencies: 534
 -- Name: organization_service_areas; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.organization_service_areas ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6077 (class 0 OID 21685)
--- Dependencies: 413
 -- Name: organizations; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6116 (class 3256 OID 23774)
 -- Name: accounts_payable p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32296,7 +36486,6 @@ CREATE POLICY p_check_access_delete ON public.accounts_payable FOR DELETE USING 
 
 
 --
--- TOC entry 6117 (class 3256 OID 23775)
 -- Name: accounts_receivable p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32304,7 +36493,6 @@ CREATE POLICY p_check_access_delete ON public.accounts_receivable FOR DELETE USI
 
 
 --
--- TOC entry 6118 (class 3256 OID 23776)
 -- Name: activity_logs p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32312,7 +36500,6 @@ CREATE POLICY p_check_access_delete ON public.activity_logs FOR DELETE USING (pu
 
 
 --
--- TOC entry 6119 (class 3256 OID 23777)
 -- Name: asphalt_types p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32320,7 +36507,6 @@ CREATE POLICY p_check_access_delete ON public.asphalt_types FOR DELETE USING (pu
 
 
 --
--- TOC entry 6120 (class 3256 OID 23778)
 -- Name: audit_log p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32328,7 +36514,6 @@ CREATE POLICY p_check_access_delete ON public.audit_log FOR DELETE USING (public
 
 
 --
--- TOC entry 6121 (class 3256 OID 23779)
 -- Name: audit_logs p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32336,7 +36521,6 @@ CREATE POLICY p_check_access_delete ON public.audit_logs FOR DELETE USING (publi
 
 
 --
--- TOC entry 6122 (class 3256 OID 23780)
 -- Name: avatars p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32344,7 +36528,6 @@ CREATE POLICY p_check_access_delete ON public.avatars FOR DELETE USING (public.c
 
 
 --
--- TOC entry 6123 (class 3256 OID 23781)
 -- Name: bid_packages p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32352,7 +36535,6 @@ CREATE POLICY p_check_access_delete ON public.bid_packages FOR DELETE USING (pub
 
 
 --
--- TOC entry 6124 (class 3256 OID 23782)
 -- Name: bid_vendors p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32360,7 +36542,6 @@ CREATE POLICY p_check_access_delete ON public.bid_vendors FOR DELETE USING (publ
 
 
 --
--- TOC entry 6125 (class 3256 OID 23783)
 -- Name: bids p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32368,7 +36549,6 @@ CREATE POLICY p_check_access_delete ON public.bids FOR DELETE USING (public.chec
 
 
 --
--- TOC entry 6126 (class 3256 OID 23784)
 -- Name: bim_models p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32376,7 +36556,6 @@ CREATE POLICY p_check_access_delete ON public.bim_models FOR DELETE USING (publi
 
 
 --
--- TOC entry 6127 (class 3256 OID 23785)
 -- Name: certifications p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32384,7 +36563,6 @@ CREATE POLICY p_check_access_delete ON public.certifications FOR DELETE USING (p
 
 
 --
--- TOC entry 6128 (class 3256 OID 23786)
 -- Name: change_orders p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32392,7 +36570,6 @@ CREATE POLICY p_check_access_delete ON public.change_orders FOR DELETE USING (pu
 
 
 --
--- TOC entry 6129 (class 3256 OID 23787)
 -- Name: commitments p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32400,7 +36577,6 @@ CREATE POLICY p_check_access_delete ON public.commitments FOR DELETE USING (publ
 
 
 --
--- TOC entry 6130 (class 3256 OID 23788)
 -- Name: compliance_checks p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32408,7 +36584,6 @@ CREATE POLICY p_check_access_delete ON public.compliance_checks FOR DELETE USING
 
 
 --
--- TOC entry 6131 (class 3256 OID 23789)
 -- Name: compliance_tracking p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32416,7 +36591,6 @@ CREATE POLICY p_check_access_delete ON public.compliance_tracking FOR DELETE USI
 
 
 --
--- TOC entry 6132 (class 3256 OID 23790)
 -- Name: cost_codes p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32424,7 +36598,6 @@ CREATE POLICY p_check_access_delete ON public.cost_codes FOR DELETE USING (publi
 
 
 --
--- TOC entry 6133 (class 3256 OID 23791)
 -- Name: crew_assignments p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32432,7 +36605,6 @@ CREATE POLICY p_check_access_delete ON public.crew_assignments FOR DELETE USING 
 
 
 --
--- TOC entry 6134 (class 3256 OID 23792)
 -- Name: crew_members p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32440,7 +36612,6 @@ CREATE POLICY p_check_access_delete ON public.crew_members FOR DELETE USING (pub
 
 
 --
--- TOC entry 6135 (class 3256 OID 23793)
 -- Name: crews p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32448,7 +36619,6 @@ CREATE POLICY p_check_access_delete ON public.crews FOR DELETE USING (public.che
 
 
 --
--- TOC entry 6136 (class 3256 OID 23794)
 -- Name: daily_logs p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32456,7 +36626,6 @@ CREATE POLICY p_check_access_delete ON public.daily_logs FOR DELETE USING (publi
 
 
 --
--- TOC entry 6137 (class 3256 OID 23795)
 -- Name: dashboard_configs p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32464,7 +36633,6 @@ CREATE POLICY p_check_access_delete ON public.dashboard_configs FOR DELETE USING
 
 
 --
--- TOC entry 6138 (class 3256 OID 23796)
 -- Name: document_references p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32472,7 +36640,6 @@ CREATE POLICY p_check_access_delete ON public.document_references FOR DELETE USI
 
 
 --
--- TOC entry 6139 (class 3256 OID 23797)
 -- Name: documents p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32480,7 +36647,6 @@ CREATE POLICY p_check_access_delete ON public.documents FOR DELETE USING (public
 
 
 --
--- TOC entry 6140 (class 3256 OID 23798)
 -- Name: drawing_versions p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32488,7 +36654,6 @@ CREATE POLICY p_check_access_delete ON public.drawing_versions FOR DELETE USING 
 
 
 --
--- TOC entry 6141 (class 3256 OID 23799)
 -- Name: dump_trucks p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32496,7 +36661,6 @@ CREATE POLICY p_check_access_delete ON public.dump_trucks FOR DELETE USING (publ
 
 
 --
--- TOC entry 6142 (class 3256 OID 23800)
 -- Name: employees p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32504,7 +36668,6 @@ CREATE POLICY p_check_access_delete ON public.employees FOR DELETE USING (public
 
 
 --
--- TOC entry 6143 (class 3256 OID 23801)
 -- Name: equipment p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32512,7 +36675,6 @@ CREATE POLICY p_check_access_delete ON public.equipment FOR DELETE USING (public
 
 
 --
--- TOC entry 6144 (class 3256 OID 23802)
 -- Name: equipment_assignments p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32520,7 +36682,6 @@ CREATE POLICY p_check_access_delete ON public.equipment_assignments FOR DELETE U
 
 
 --
--- TOC entry 6145 (class 3256 OID 23803)
 -- Name: equipment_maintenance p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32528,7 +36689,6 @@ CREATE POLICY p_check_access_delete ON public.equipment_maintenance FOR DELETE U
 
 
 --
--- TOC entry 6146 (class 3256 OID 23804)
 -- Name: equipment_usage p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32536,7 +36696,6 @@ CREATE POLICY p_check_access_delete ON public.equipment_usage FOR DELETE USING (
 
 
 --
--- TOC entry 6147 (class 3256 OID 23805)
 -- Name: estimate_line_items p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32544,7 +36703,6 @@ CREATE POLICY p_check_access_delete ON public.estimate_line_items FOR DELETE USI
 
 
 --
--- TOC entry 6148 (class 3256 OID 23806)
 -- Name: estimates p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32552,7 +36710,6 @@ CREATE POLICY p_check_access_delete ON public.estimates FOR DELETE USING (public
 
 
 --
--- TOC entry 6149 (class 3256 OID 23807)
 -- Name: financial_documents p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32560,7 +36717,6 @@ CREATE POLICY p_check_access_delete ON public.financial_documents FOR DELETE USI
 
 
 --
--- TOC entry 6150 (class 3256 OID 23808)
 -- Name: general_ledger p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32568,7 +36724,6 @@ CREATE POLICY p_check_access_delete ON public.general_ledger FOR DELETE USING (p
 
 
 --
--- TOC entry 6151 (class 3256 OID 23809)
 -- Name: hr_documents p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32576,7 +36731,6 @@ CREATE POLICY p_check_access_delete ON public.hr_documents FOR DELETE USING (pub
 
 
 --
--- TOC entry 6152 (class 3256 OID 23810)
 -- Name: inspections p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32584,7 +36738,6 @@ CREATE POLICY p_check_access_delete ON public.inspections FOR DELETE USING (publ
 
 
 --
--- TOC entry 6153 (class 3256 OID 23811)
 -- Name: integration_tokens p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32592,7 +36745,6 @@ CREATE POLICY p_check_access_delete ON public.integration_tokens FOR DELETE USIN
 
 
 --
--- TOC entry 6154 (class 3256 OID 23812)
 -- Name: inventory_transactions p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32600,7 +36752,6 @@ CREATE POLICY p_check_access_delete ON public.inventory_transactions FOR DELETE 
 
 
 --
--- TOC entry 6155 (class 3256 OID 23813)
 -- Name: issues p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32608,7 +36759,6 @@ CREATE POLICY p_check_access_delete ON public.issues FOR DELETE USING (public.ch
 
 
 --
--- TOC entry 6156 (class 3256 OID 23814)
 -- Name: job_titles p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32616,7 +36766,6 @@ CREATE POLICY p_check_access_delete ON public.job_titles FOR DELETE USING (publi
 
 
 --
--- TOC entry 6157 (class 3256 OID 23815)
 -- Name: labor_records p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32624,7 +36773,6 @@ CREATE POLICY p_check_access_delete ON public.labor_records FOR DELETE USING (pu
 
 
 --
--- TOC entry 6158 (class 3256 OID 23816)
 -- Name: line_item_entries p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32632,7 +36780,6 @@ CREATE POLICY p_check_access_delete ON public.line_item_entries FOR DELETE USING
 
 
 --
--- TOC entry 6159 (class 3256 OID 23817)
 -- Name: line_item_templates p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32640,7 +36787,6 @@ CREATE POLICY p_check_access_delete ON public.line_item_templates FOR DELETE USI
 
 
 --
--- TOC entry 6160 (class 3256 OID 23818)
 -- Name: line_items p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32648,7 +36794,6 @@ CREATE POLICY p_check_access_delete ON public.line_items FOR DELETE USING (publi
 
 
 --
--- TOC entry 6161 (class 3256 OID 23819)
 -- Name: maps p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32656,7 +36801,6 @@ CREATE POLICY p_check_access_delete ON public.maps FOR DELETE USING (public.chec
 
 
 --
--- TOC entry 6162 (class 3256 OID 23820)
 -- Name: material_inventory p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32664,7 +36808,6 @@ CREATE POLICY p_check_access_delete ON public.material_inventory FOR DELETE USIN
 
 
 --
--- TOC entry 6163 (class 3256 OID 23821)
 -- Name: material_orders p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32672,7 +36815,6 @@ CREATE POLICY p_check_access_delete ON public.material_orders FOR DELETE USING (
 
 
 --
--- TOC entry 6164 (class 3256 OID 23822)
 -- Name: material_receipts p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32680,7 +36822,6 @@ CREATE POLICY p_check_access_delete ON public.material_receipts FOR DELETE USING
 
 
 --
--- TOC entry 6165 (class 3256 OID 23823)
 -- Name: materials p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32688,7 +36829,6 @@ CREATE POLICY p_check_access_delete ON public.materials FOR DELETE USING (public
 
 
 --
--- TOC entry 6166 (class 3256 OID 23824)
 -- Name: meeting_minutes p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32696,15 +36836,13 @@ CREATE POLICY p_check_access_delete ON public.meeting_minutes FOR DELETE USING (
 
 
 --
--- TOC entry 6167 (class 3256 OID 23825)
 -- Name: notifications p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY p_check_access_delete ON public.notifications FOR DELETE USING (public.check_access_bool('delete'::text, 'notifications'::text, NULL::uuid, NULL::uuid));
+CREATE POLICY p_check_access_delete ON public.notifications FOR DELETE USING ((user_id = auth.uid()));
 
 
 --
--- TOC entry 6469 (class 3256 OID 43265)
 -- Name: organization_invites p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32712,7 +36850,6 @@ CREATE POLICY p_check_access_delete ON public.organization_invites FOR DELETE US
 
 
 --
--- TOC entry 6168 (class 3256 OID 23826)
 -- Name: organization_members p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32720,7 +36857,6 @@ CREATE POLICY p_check_access_delete ON public.organization_members FOR DELETE US
 
 
 --
--- TOC entry 6169 (class 3256 OID 23827)
 -- Name: organization_projects p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32728,7 +36864,6 @@ CREATE POLICY p_check_access_delete ON public.organization_projects FOR DELETE U
 
 
 --
--- TOC entry 6462 (class 3256 OID 28854)
 -- Name: organizations p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32736,7 +36871,6 @@ CREATE POLICY p_check_access_delete ON public.organizations FOR DELETE USING (pu
 
 
 --
--- TOC entry 6170 (class 3256 OID 23829)
 -- Name: payments p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32744,7 +36878,6 @@ CREATE POLICY p_check_access_delete ON public.payments FOR DELETE USING (public.
 
 
 --
--- TOC entry 6171 (class 3256 OID 23830)
 -- Name: payroll p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32752,7 +36885,6 @@ CREATE POLICY p_check_access_delete ON public.payroll FOR DELETE USING (public.c
 
 
 --
--- TOC entry 6172 (class 3256 OID 23831)
 -- Name: photos p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32760,7 +36892,6 @@ CREATE POLICY p_check_access_delete ON public.photos FOR DELETE USING (public.ch
 
 
 --
--- TOC entry 6173 (class 3256 OID 23832)
 -- Name: prequalifications p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32768,7 +36899,6 @@ CREATE POLICY p_check_access_delete ON public.prequalifications FOR DELETE USING
 
 
 --
--- TOC entry 6174 (class 3256 OID 23833)
 -- Name: procurement_workflows p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32776,7 +36906,6 @@ CREATE POLICY p_check_access_delete ON public.procurement_workflows FOR DELETE U
 
 
 --
--- TOC entry 6473 (class 3256 OID 45500)
 -- Name: profiles p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32784,7 +36913,6 @@ CREATE POLICY p_check_access_delete ON public.profiles AS RESTRICTIVE FOR DELETE
 
 
 --
--- TOC entry 6175 (class 3256 OID 23835)
 -- Name: progress_billings p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32792,7 +36920,6 @@ CREATE POLICY p_check_access_delete ON public.progress_billings FOR DELETE USING
 
 
 --
--- TOC entry 6176 (class 3256 OID 23836)
 -- Name: project_inspectors p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32800,7 +36927,6 @@ CREATE POLICY p_check_access_delete ON public.project_inspectors FOR DELETE USIN
 
 
 --
--- TOC entry 6177 (class 3256 OID 23837)
 -- Name: projects p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32808,7 +36934,6 @@ CREATE POLICY p_check_access_delete ON public.projects FOR DELETE USING (public.
 
 
 --
--- TOC entry 6178 (class 3256 OID 23838)
 -- Name: punch_lists p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32816,7 +36941,6 @@ CREATE POLICY p_check_access_delete ON public.punch_lists FOR DELETE USING (publ
 
 
 --
--- TOC entry 6179 (class 3256 OID 23839)
 -- Name: purchase_orders p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32824,7 +36948,6 @@ CREATE POLICY p_check_access_delete ON public.purchase_orders FOR DELETE USING (
 
 
 --
--- TOC entry 6180 (class 3256 OID 23840)
 -- Name: quality_reviews p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32832,7 +36955,6 @@ CREATE POLICY p_check_access_delete ON public.quality_reviews FOR DELETE USING (
 
 
 --
--- TOC entry 6181 (class 3256 OID 23841)
 -- Name: regulatory_documents p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32840,7 +36962,6 @@ CREATE POLICY p_check_access_delete ON public.regulatory_documents FOR DELETE US
 
 
 --
--- TOC entry 6182 (class 3256 OID 23842)
 -- Name: reports p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32848,7 +36969,6 @@ CREATE POLICY p_check_access_delete ON public.reports FOR DELETE USING (public.c
 
 
 --
--- TOC entry 6183 (class 3256 OID 23843)
 -- Name: rfis p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32856,7 +36976,6 @@ CREATE POLICY p_check_access_delete ON public.rfis FOR DELETE USING (public.chec
 
 
 --
--- TOC entry 6184 (class 3256 OID 23844)
 -- Name: safety_incidents p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32864,7 +36983,6 @@ CREATE POLICY p_check_access_delete ON public.safety_incidents FOR DELETE USING 
 
 
 --
--- TOC entry 6185 (class 3256 OID 23845)
 -- Name: sensor_data p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32872,7 +36990,6 @@ CREATE POLICY p_check_access_delete ON public.sensor_data FOR DELETE USING (publ
 
 
 --
--- TOC entry 6186 (class 3256 OID 23846)
 -- Name: subcontractor_agreements p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32880,7 +36997,6 @@ CREATE POLICY p_check_access_delete ON public.subcontractor_agreements FOR DELET
 
 
 --
--- TOC entry 6187 (class 3256 OID 23847)
 -- Name: subcontracts p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32888,7 +37004,6 @@ CREATE POLICY p_check_access_delete ON public.subcontracts FOR DELETE USING (pub
 
 
 --
--- TOC entry 6188 (class 3256 OID 23848)
 -- Name: submittals p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32896,7 +37011,6 @@ CREATE POLICY p_check_access_delete ON public.submittals FOR DELETE USING (publi
 
 
 --
--- TOC entry 6189 (class 3256 OID 23849)
 -- Name: tack_rates p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32904,7 +37018,6 @@ CREATE POLICY p_check_access_delete ON public.tack_rates FOR DELETE USING (publi
 
 
 --
--- TOC entry 6190 (class 3256 OID 23850)
 -- Name: task_dependencies p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32912,7 +37025,6 @@ CREATE POLICY p_check_access_delete ON public.task_dependencies FOR DELETE USING
 
 
 --
--- TOC entry 6191 (class 3256 OID 23851)
 -- Name: task_status_logs p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32920,7 +37032,6 @@ CREATE POLICY p_check_access_delete ON public.task_status_logs FOR DELETE USING 
 
 
 --
--- TOC entry 6192 (class 3256 OID 23852)
 -- Name: tasks p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32928,7 +37039,6 @@ CREATE POLICY p_check_access_delete ON public.tasks FOR DELETE USING (public.che
 
 
 --
--- TOC entry 6193 (class 3256 OID 23853)
 -- Name: training_records p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32936,7 +37046,6 @@ CREATE POLICY p_check_access_delete ON public.training_records FOR DELETE USING 
 
 
 --
--- TOC entry 6194 (class 3256 OID 23854)
 -- Name: user_projects p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32944,7 +37053,6 @@ CREATE POLICY p_check_access_delete ON public.user_projects FOR DELETE USING (pu
 
 
 --
--- TOC entry 6195 (class 3256 OID 23855)
 -- Name: vendor_bid_packages p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32952,7 +37060,6 @@ CREATE POLICY p_check_access_delete ON public.vendor_bid_packages FOR DELETE USI
 
 
 --
--- TOC entry 6196 (class 3256 OID 23856)
 -- Name: vendor_contacts p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32960,7 +37067,6 @@ CREATE POLICY p_check_access_delete ON public.vendor_contacts FOR DELETE USING (
 
 
 --
--- TOC entry 6197 (class 3256 OID 23857)
 -- Name: vendor_documents p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32968,7 +37074,6 @@ CREATE POLICY p_check_access_delete ON public.vendor_documents FOR DELETE USING 
 
 
 --
--- TOC entry 6198 (class 3256 OID 23858)
 -- Name: vendor_qualifications p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32976,7 +37081,6 @@ CREATE POLICY p_check_access_delete ON public.vendor_qualifications FOR DELETE U
 
 
 --
--- TOC entry 6199 (class 3256 OID 23859)
 -- Name: vendors p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32984,7 +37088,6 @@ CREATE POLICY p_check_access_delete ON public.vendors FOR DELETE USING (public.c
 
 
 --
--- TOC entry 6200 (class 3256 OID 23860)
 -- Name: wbs p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -32992,7 +37095,6 @@ CREATE POLICY p_check_access_delete ON public.wbs FOR DELETE USING (public.check
 
 
 --
--- TOC entry 6201 (class 3256 OID 23861)
 -- Name: workflows p_check_access_delete; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33000,7 +37102,6 @@ CREATE POLICY p_check_access_delete ON public.workflows FOR DELETE USING (public
 
 
 --
--- TOC entry 6202 (class 3256 OID 23862)
 -- Name: accounts_payable p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33008,7 +37109,6 @@ CREATE POLICY p_check_access_insert ON public.accounts_payable FOR INSERT WITH C
 
 
 --
--- TOC entry 6203 (class 3256 OID 23863)
 -- Name: accounts_receivable p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33016,7 +37116,6 @@ CREATE POLICY p_check_access_insert ON public.accounts_receivable FOR INSERT WIT
 
 
 --
--- TOC entry 6204 (class 3256 OID 23864)
 -- Name: activity_logs p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33024,7 +37123,6 @@ CREATE POLICY p_check_access_insert ON public.activity_logs FOR INSERT WITH CHEC
 
 
 --
--- TOC entry 6205 (class 3256 OID 23865)
 -- Name: asphalt_types p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33032,7 +37130,6 @@ CREATE POLICY p_check_access_insert ON public.asphalt_types FOR INSERT WITH CHEC
 
 
 --
--- TOC entry 6206 (class 3256 OID 23866)
 -- Name: audit_log p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33040,7 +37137,6 @@ CREATE POLICY p_check_access_insert ON public.audit_log FOR INSERT WITH CHECK (p
 
 
 --
--- TOC entry 6207 (class 3256 OID 23867)
 -- Name: audit_logs p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33048,7 +37144,6 @@ CREATE POLICY p_check_access_insert ON public.audit_logs FOR INSERT WITH CHECK (
 
 
 --
--- TOC entry 6208 (class 3256 OID 23868)
 -- Name: avatars p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33056,7 +37151,6 @@ CREATE POLICY p_check_access_insert ON public.avatars FOR INSERT WITH CHECK (pub
 
 
 --
--- TOC entry 6209 (class 3256 OID 23869)
 -- Name: bid_packages p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33064,7 +37158,6 @@ CREATE POLICY p_check_access_insert ON public.bid_packages FOR INSERT WITH CHECK
 
 
 --
--- TOC entry 6210 (class 3256 OID 23870)
 -- Name: bid_vendors p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33072,7 +37165,6 @@ CREATE POLICY p_check_access_insert ON public.bid_vendors FOR INSERT WITH CHECK 
 
 
 --
--- TOC entry 6211 (class 3256 OID 23871)
 -- Name: bids p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33080,7 +37172,6 @@ CREATE POLICY p_check_access_insert ON public.bids FOR INSERT WITH CHECK (public
 
 
 --
--- TOC entry 6212 (class 3256 OID 23872)
 -- Name: bim_models p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33088,7 +37179,6 @@ CREATE POLICY p_check_access_insert ON public.bim_models FOR INSERT WITH CHECK (
 
 
 --
--- TOC entry 6213 (class 3256 OID 23873)
 -- Name: certifications p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33096,7 +37186,6 @@ CREATE POLICY p_check_access_insert ON public.certifications FOR INSERT WITH CHE
 
 
 --
--- TOC entry 6214 (class 3256 OID 23874)
 -- Name: change_orders p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33104,7 +37193,6 @@ CREATE POLICY p_check_access_insert ON public.change_orders FOR INSERT WITH CHEC
 
 
 --
--- TOC entry 6215 (class 3256 OID 23875)
 -- Name: commitments p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33112,7 +37200,6 @@ CREATE POLICY p_check_access_insert ON public.commitments FOR INSERT WITH CHECK 
 
 
 --
--- TOC entry 6216 (class 3256 OID 23876)
 -- Name: compliance_checks p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33120,7 +37207,6 @@ CREATE POLICY p_check_access_insert ON public.compliance_checks FOR INSERT WITH 
 
 
 --
--- TOC entry 6217 (class 3256 OID 23877)
 -- Name: compliance_tracking p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33128,7 +37214,6 @@ CREATE POLICY p_check_access_insert ON public.compliance_tracking FOR INSERT WIT
 
 
 --
--- TOC entry 6218 (class 3256 OID 23878)
 -- Name: cost_codes p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33136,7 +37221,6 @@ CREATE POLICY p_check_access_insert ON public.cost_codes FOR INSERT WITH CHECK (
 
 
 --
--- TOC entry 6219 (class 3256 OID 23879)
 -- Name: crew_assignments p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33144,7 +37228,6 @@ CREATE POLICY p_check_access_insert ON public.crew_assignments FOR INSERT WITH C
 
 
 --
--- TOC entry 6220 (class 3256 OID 23880)
 -- Name: crew_members p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33152,7 +37235,6 @@ CREATE POLICY p_check_access_insert ON public.crew_members FOR INSERT WITH CHECK
 
 
 --
--- TOC entry 6221 (class 3256 OID 23881)
 -- Name: crews p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33160,7 +37242,6 @@ CREATE POLICY p_check_access_insert ON public.crews FOR INSERT WITH CHECK (publi
 
 
 --
--- TOC entry 6222 (class 3256 OID 23882)
 -- Name: daily_logs p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33168,7 +37249,6 @@ CREATE POLICY p_check_access_insert ON public.daily_logs FOR INSERT WITH CHECK (
 
 
 --
--- TOC entry 6223 (class 3256 OID 23883)
 -- Name: dashboard_configs p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33176,7 +37256,6 @@ CREATE POLICY p_check_access_insert ON public.dashboard_configs FOR INSERT WITH 
 
 
 --
--- TOC entry 6224 (class 3256 OID 23884)
 -- Name: document_references p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33184,7 +37263,6 @@ CREATE POLICY p_check_access_insert ON public.document_references FOR INSERT WIT
 
 
 --
--- TOC entry 6225 (class 3256 OID 23885)
 -- Name: documents p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33192,7 +37270,6 @@ CREATE POLICY p_check_access_insert ON public.documents FOR INSERT WITH CHECK (p
 
 
 --
--- TOC entry 6226 (class 3256 OID 23886)
 -- Name: drawing_versions p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33200,7 +37277,6 @@ CREATE POLICY p_check_access_insert ON public.drawing_versions FOR INSERT WITH C
 
 
 --
--- TOC entry 6227 (class 3256 OID 23887)
 -- Name: dump_trucks p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33208,7 +37284,6 @@ CREATE POLICY p_check_access_insert ON public.dump_trucks FOR INSERT WITH CHECK 
 
 
 --
--- TOC entry 6228 (class 3256 OID 23888)
 -- Name: employees p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33216,7 +37291,6 @@ CREATE POLICY p_check_access_insert ON public.employees FOR INSERT WITH CHECK (p
 
 
 --
--- TOC entry 6229 (class 3256 OID 23889)
 -- Name: equipment p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33224,7 +37298,6 @@ CREATE POLICY p_check_access_insert ON public.equipment FOR INSERT WITH CHECK (p
 
 
 --
--- TOC entry 6230 (class 3256 OID 23890)
 -- Name: equipment_assignments p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33232,7 +37305,6 @@ CREATE POLICY p_check_access_insert ON public.equipment_assignments FOR INSERT W
 
 
 --
--- TOC entry 6231 (class 3256 OID 23891)
 -- Name: equipment_maintenance p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33240,7 +37312,6 @@ CREATE POLICY p_check_access_insert ON public.equipment_maintenance FOR INSERT W
 
 
 --
--- TOC entry 6232 (class 3256 OID 23892)
 -- Name: equipment_usage p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33248,7 +37319,6 @@ CREATE POLICY p_check_access_insert ON public.equipment_usage FOR INSERT WITH CH
 
 
 --
--- TOC entry 6233 (class 3256 OID 23893)
 -- Name: estimate_line_items p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33256,7 +37326,6 @@ CREATE POLICY p_check_access_insert ON public.estimate_line_items FOR INSERT WIT
 
 
 --
--- TOC entry 6234 (class 3256 OID 23894)
 -- Name: estimates p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33264,7 +37333,6 @@ CREATE POLICY p_check_access_insert ON public.estimates FOR INSERT WITH CHECK (p
 
 
 --
--- TOC entry 6235 (class 3256 OID 23895)
 -- Name: financial_documents p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33272,7 +37340,6 @@ CREATE POLICY p_check_access_insert ON public.financial_documents FOR INSERT WIT
 
 
 --
--- TOC entry 6236 (class 3256 OID 23896)
 -- Name: general_ledger p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33280,7 +37347,6 @@ CREATE POLICY p_check_access_insert ON public.general_ledger FOR INSERT WITH CHE
 
 
 --
--- TOC entry 6237 (class 3256 OID 23897)
 -- Name: hr_documents p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33288,7 +37354,6 @@ CREATE POLICY p_check_access_insert ON public.hr_documents FOR INSERT WITH CHECK
 
 
 --
--- TOC entry 6238 (class 3256 OID 23898)
 -- Name: inspections p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33296,7 +37361,6 @@ CREATE POLICY p_check_access_insert ON public.inspections FOR INSERT WITH CHECK 
 
 
 --
--- TOC entry 6239 (class 3256 OID 23899)
 -- Name: integration_tokens p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33304,7 +37368,6 @@ CREATE POLICY p_check_access_insert ON public.integration_tokens FOR INSERT WITH
 
 
 --
--- TOC entry 6240 (class 3256 OID 23900)
 -- Name: inventory_transactions p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33312,7 +37375,6 @@ CREATE POLICY p_check_access_insert ON public.inventory_transactions FOR INSERT 
 
 
 --
--- TOC entry 6241 (class 3256 OID 23901)
 -- Name: issues p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33320,7 +37382,6 @@ CREATE POLICY p_check_access_insert ON public.issues FOR INSERT WITH CHECK (publ
 
 
 --
--- TOC entry 6242 (class 3256 OID 23902)
 -- Name: job_titles p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33328,7 +37389,6 @@ CREATE POLICY p_check_access_insert ON public.job_titles FOR INSERT WITH CHECK (
 
 
 --
--- TOC entry 6243 (class 3256 OID 23903)
 -- Name: labor_records p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33336,7 +37396,6 @@ CREATE POLICY p_check_access_insert ON public.labor_records FOR INSERT WITH CHEC
 
 
 --
--- TOC entry 6244 (class 3256 OID 23904)
 -- Name: line_item_entries p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33344,7 +37403,6 @@ CREATE POLICY p_check_access_insert ON public.line_item_entries FOR INSERT WITH 
 
 
 --
--- TOC entry 6245 (class 3256 OID 23905)
 -- Name: line_item_templates p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33352,7 +37410,6 @@ CREATE POLICY p_check_access_insert ON public.line_item_templates FOR INSERT WIT
 
 
 --
--- TOC entry 6246 (class 3256 OID 23906)
 -- Name: line_items p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33360,7 +37417,6 @@ CREATE POLICY p_check_access_insert ON public.line_items FOR INSERT WITH CHECK (
 
 
 --
--- TOC entry 6247 (class 3256 OID 23907)
 -- Name: maps p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33368,7 +37424,6 @@ CREATE POLICY p_check_access_insert ON public.maps FOR INSERT WITH CHECK (public
 
 
 --
--- TOC entry 6248 (class 3256 OID 23908)
 -- Name: material_inventory p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33376,7 +37431,6 @@ CREATE POLICY p_check_access_insert ON public.material_inventory FOR INSERT WITH
 
 
 --
--- TOC entry 6249 (class 3256 OID 23909)
 -- Name: material_orders p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33384,7 +37438,6 @@ CREATE POLICY p_check_access_insert ON public.material_orders FOR INSERT WITH CH
 
 
 --
--- TOC entry 6250 (class 3256 OID 23910)
 -- Name: material_receipts p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33392,7 +37445,6 @@ CREATE POLICY p_check_access_insert ON public.material_receipts FOR INSERT WITH 
 
 
 --
--- TOC entry 6251 (class 3256 OID 23911)
 -- Name: materials p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33400,7 +37452,6 @@ CREATE POLICY p_check_access_insert ON public.materials FOR INSERT WITH CHECK (p
 
 
 --
--- TOC entry 6252 (class 3256 OID 23912)
 -- Name: meeting_minutes p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33408,15 +37459,13 @@ CREATE POLICY p_check_access_insert ON public.meeting_minutes FOR INSERT WITH CH
 
 
 --
--- TOC entry 6253 (class 3256 OID 23913)
 -- Name: notifications p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY p_check_access_insert ON public.notifications FOR INSERT WITH CHECK (public.check_access_bool('insert'::text, 'notifications'::text, NULL::uuid, NULL::uuid));
+CREATE POLICY p_check_access_insert ON public.notifications FOR INSERT WITH CHECK (public.check_access_bool('insert'::text, 'notifications'::text, NULL::uuid, public.try_parse_uuid((payload ->> 'organization_id'::text))));
 
 
 --
--- TOC entry 6466 (class 3256 OID 43262)
 -- Name: organization_invites p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33424,7 +37473,6 @@ CREATE POLICY p_check_access_insert ON public.organization_invites FOR INSERT WI
 
 
 --
--- TOC entry 6254 (class 3256 OID 23914)
 -- Name: organization_members p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33432,7 +37480,6 @@ CREATE POLICY p_check_access_insert ON public.organization_members FOR INSERT WI
 
 
 --
--- TOC entry 6255 (class 3256 OID 23915)
 -- Name: organization_projects p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33440,7 +37487,6 @@ CREATE POLICY p_check_access_insert ON public.organization_projects FOR INSERT W
 
 
 --
--- TOC entry 6463 (class 3256 OID 28855)
 -- Name: organizations p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33448,7 +37494,6 @@ CREATE POLICY p_check_access_insert ON public.organizations FOR INSERT WITH CHEC
 
 
 --
--- TOC entry 6256 (class 3256 OID 23917)
 -- Name: payments p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33456,7 +37501,6 @@ CREATE POLICY p_check_access_insert ON public.payments FOR INSERT WITH CHECK (pu
 
 
 --
--- TOC entry 6257 (class 3256 OID 23918)
 -- Name: payroll p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33464,7 +37508,6 @@ CREATE POLICY p_check_access_insert ON public.payroll FOR INSERT WITH CHECK (pub
 
 
 --
--- TOC entry 6258 (class 3256 OID 23919)
 -- Name: photos p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33472,7 +37515,6 @@ CREATE POLICY p_check_access_insert ON public.photos FOR INSERT WITH CHECK (publ
 
 
 --
--- TOC entry 6259 (class 3256 OID 23920)
 -- Name: prequalifications p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33480,7 +37522,6 @@ CREATE POLICY p_check_access_insert ON public.prequalifications FOR INSERT WITH 
 
 
 --
--- TOC entry 6260 (class 3256 OID 23921)
 -- Name: procurement_workflows p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33488,7 +37529,6 @@ CREATE POLICY p_check_access_insert ON public.procurement_workflows FOR INSERT W
 
 
 --
--- TOC entry 6472 (class 3256 OID 45497)
 -- Name: profiles p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33496,7 +37536,6 @@ CREATE POLICY p_check_access_insert ON public.profiles AS RESTRICTIVE FOR INSERT
 
 
 --
--- TOC entry 6261 (class 3256 OID 23923)
 -- Name: progress_billings p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33504,7 +37543,6 @@ CREATE POLICY p_check_access_insert ON public.progress_billings FOR INSERT WITH 
 
 
 --
--- TOC entry 6262 (class 3256 OID 23924)
 -- Name: project_inspectors p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33512,7 +37550,6 @@ CREATE POLICY p_check_access_insert ON public.project_inspectors FOR INSERT WITH
 
 
 --
--- TOC entry 6263 (class 3256 OID 23925)
 -- Name: projects p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33520,7 +37557,6 @@ CREATE POLICY p_check_access_insert ON public.projects FOR INSERT WITH CHECK (pu
 
 
 --
--- TOC entry 6264 (class 3256 OID 23926)
 -- Name: punch_lists p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33528,7 +37564,6 @@ CREATE POLICY p_check_access_insert ON public.punch_lists FOR INSERT WITH CHECK 
 
 
 --
--- TOC entry 6265 (class 3256 OID 23927)
 -- Name: purchase_orders p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33536,7 +37571,6 @@ CREATE POLICY p_check_access_insert ON public.purchase_orders FOR INSERT WITH CH
 
 
 --
--- TOC entry 6266 (class 3256 OID 23928)
 -- Name: quality_reviews p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33544,7 +37578,6 @@ CREATE POLICY p_check_access_insert ON public.quality_reviews FOR INSERT WITH CH
 
 
 --
--- TOC entry 6267 (class 3256 OID 23929)
 -- Name: regulatory_documents p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33552,7 +37585,6 @@ CREATE POLICY p_check_access_insert ON public.regulatory_documents FOR INSERT WI
 
 
 --
--- TOC entry 6268 (class 3256 OID 23930)
 -- Name: reports p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33560,7 +37592,6 @@ CREATE POLICY p_check_access_insert ON public.reports FOR INSERT WITH CHECK (pub
 
 
 --
--- TOC entry 6269 (class 3256 OID 23931)
 -- Name: rfis p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33568,7 +37599,6 @@ CREATE POLICY p_check_access_insert ON public.rfis FOR INSERT WITH CHECK (public
 
 
 --
--- TOC entry 6270 (class 3256 OID 23932)
 -- Name: safety_incidents p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33576,7 +37606,6 @@ CREATE POLICY p_check_access_insert ON public.safety_incidents FOR INSERT WITH C
 
 
 --
--- TOC entry 6271 (class 3256 OID 23933)
 -- Name: sensor_data p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33584,7 +37613,6 @@ CREATE POLICY p_check_access_insert ON public.sensor_data FOR INSERT WITH CHECK 
 
 
 --
--- TOC entry 6272 (class 3256 OID 23934)
 -- Name: subcontractor_agreements p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33592,7 +37620,6 @@ CREATE POLICY p_check_access_insert ON public.subcontractor_agreements FOR INSER
 
 
 --
--- TOC entry 6273 (class 3256 OID 23935)
 -- Name: subcontracts p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33600,7 +37627,6 @@ CREATE POLICY p_check_access_insert ON public.subcontracts FOR INSERT WITH CHECK
 
 
 --
--- TOC entry 6274 (class 3256 OID 23936)
 -- Name: submittals p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33608,7 +37634,6 @@ CREATE POLICY p_check_access_insert ON public.submittals FOR INSERT WITH CHECK (
 
 
 --
--- TOC entry 6275 (class 3256 OID 23937)
 -- Name: tack_rates p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33616,7 +37641,6 @@ CREATE POLICY p_check_access_insert ON public.tack_rates FOR INSERT WITH CHECK (
 
 
 --
--- TOC entry 6276 (class 3256 OID 23938)
 -- Name: task_dependencies p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33624,7 +37648,6 @@ CREATE POLICY p_check_access_insert ON public.task_dependencies FOR INSERT WITH 
 
 
 --
--- TOC entry 6277 (class 3256 OID 23939)
 -- Name: task_status_logs p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33632,7 +37655,6 @@ CREATE POLICY p_check_access_insert ON public.task_status_logs FOR INSERT WITH C
 
 
 --
--- TOC entry 6278 (class 3256 OID 23940)
 -- Name: tasks p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33640,7 +37662,6 @@ CREATE POLICY p_check_access_insert ON public.tasks FOR INSERT WITH CHECK (publi
 
 
 --
--- TOC entry 6279 (class 3256 OID 23941)
 -- Name: training_records p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33648,7 +37669,6 @@ CREATE POLICY p_check_access_insert ON public.training_records FOR INSERT WITH C
 
 
 --
--- TOC entry 6280 (class 3256 OID 23942)
 -- Name: user_projects p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33656,7 +37676,6 @@ CREATE POLICY p_check_access_insert ON public.user_projects FOR INSERT WITH CHEC
 
 
 --
--- TOC entry 6281 (class 3256 OID 23943)
 -- Name: vendor_bid_packages p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33664,7 +37683,6 @@ CREATE POLICY p_check_access_insert ON public.vendor_bid_packages FOR INSERT WIT
 
 
 --
--- TOC entry 6282 (class 3256 OID 23944)
 -- Name: vendor_contacts p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33672,7 +37690,6 @@ CREATE POLICY p_check_access_insert ON public.vendor_contacts FOR INSERT WITH CH
 
 
 --
--- TOC entry 6283 (class 3256 OID 23945)
 -- Name: vendor_documents p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33680,7 +37697,6 @@ CREATE POLICY p_check_access_insert ON public.vendor_documents FOR INSERT WITH C
 
 
 --
--- TOC entry 6284 (class 3256 OID 23946)
 -- Name: vendor_qualifications p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33688,7 +37704,6 @@ CREATE POLICY p_check_access_insert ON public.vendor_qualifications FOR INSERT W
 
 
 --
--- TOC entry 6285 (class 3256 OID 23947)
 -- Name: vendors p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33696,7 +37711,6 @@ CREATE POLICY p_check_access_insert ON public.vendors FOR INSERT WITH CHECK (pub
 
 
 --
--- TOC entry 6286 (class 3256 OID 23948)
 -- Name: wbs p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33704,7 +37718,6 @@ CREATE POLICY p_check_access_insert ON public.wbs FOR INSERT WITH CHECK (public.
 
 
 --
--- TOC entry 6287 (class 3256 OID 23949)
 -- Name: workflows p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33712,7 +37725,6 @@ CREATE POLICY p_check_access_insert ON public.workflows FOR INSERT WITH CHECK (p
 
 
 --
--- TOC entry 6288 (class 3256 OID 23950)
 -- Name: accounts_payable p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33720,7 +37732,6 @@ CREATE POLICY p_check_access_select ON public.accounts_payable FOR SELECT USING 
 
 
 --
--- TOC entry 6289 (class 3256 OID 23951)
 -- Name: accounts_receivable p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33728,7 +37739,6 @@ CREATE POLICY p_check_access_select ON public.accounts_receivable FOR SELECT USI
 
 
 --
--- TOC entry 6290 (class 3256 OID 23952)
 -- Name: activity_logs p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33736,7 +37746,6 @@ CREATE POLICY p_check_access_select ON public.activity_logs FOR SELECT USING (pu
 
 
 --
--- TOC entry 6291 (class 3256 OID 23953)
 -- Name: asphalt_types p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33744,7 +37753,6 @@ CREATE POLICY p_check_access_select ON public.asphalt_types FOR SELECT USING (pu
 
 
 --
--- TOC entry 6292 (class 3256 OID 23954)
 -- Name: audit_log p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33752,7 +37760,6 @@ CREATE POLICY p_check_access_select ON public.audit_log FOR SELECT USING (public
 
 
 --
--- TOC entry 6293 (class 3256 OID 23955)
 -- Name: audit_logs p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33760,7 +37767,6 @@ CREATE POLICY p_check_access_select ON public.audit_logs FOR SELECT USING (publi
 
 
 --
--- TOC entry 6294 (class 3256 OID 23956)
 -- Name: avatars p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33768,7 +37774,6 @@ CREATE POLICY p_check_access_select ON public.avatars FOR SELECT USING (public.c
 
 
 --
--- TOC entry 6295 (class 3256 OID 23957)
 -- Name: bid_packages p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33776,7 +37781,6 @@ CREATE POLICY p_check_access_select ON public.bid_packages FOR SELECT USING (pub
 
 
 --
--- TOC entry 6296 (class 3256 OID 23958)
 -- Name: bid_vendors p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33784,7 +37788,6 @@ CREATE POLICY p_check_access_select ON public.bid_vendors FOR SELECT USING (publ
 
 
 --
--- TOC entry 6297 (class 3256 OID 23959)
 -- Name: bids p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33792,7 +37795,6 @@ CREATE POLICY p_check_access_select ON public.bids FOR SELECT USING (public.chec
 
 
 --
--- TOC entry 6298 (class 3256 OID 23960)
 -- Name: bim_models p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33800,7 +37802,6 @@ CREATE POLICY p_check_access_select ON public.bim_models FOR SELECT USING (publi
 
 
 --
--- TOC entry 6299 (class 3256 OID 23961)
 -- Name: certifications p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33808,7 +37809,6 @@ CREATE POLICY p_check_access_select ON public.certifications FOR SELECT USING (p
 
 
 --
--- TOC entry 6300 (class 3256 OID 23962)
 -- Name: change_orders p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33816,7 +37816,6 @@ CREATE POLICY p_check_access_select ON public.change_orders FOR SELECT USING (pu
 
 
 --
--- TOC entry 6301 (class 3256 OID 23963)
 -- Name: commitments p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33824,7 +37823,6 @@ CREATE POLICY p_check_access_select ON public.commitments FOR SELECT USING (publ
 
 
 --
--- TOC entry 6302 (class 3256 OID 23964)
 -- Name: compliance_checks p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33832,7 +37830,6 @@ CREATE POLICY p_check_access_select ON public.compliance_checks FOR SELECT USING
 
 
 --
--- TOC entry 6303 (class 3256 OID 23965)
 -- Name: compliance_tracking p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33840,7 +37837,6 @@ CREATE POLICY p_check_access_select ON public.compliance_tracking FOR SELECT USI
 
 
 --
--- TOC entry 6304 (class 3256 OID 23966)
 -- Name: cost_codes p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33848,7 +37844,6 @@ CREATE POLICY p_check_access_select ON public.cost_codes FOR SELECT USING (publi
 
 
 --
--- TOC entry 6305 (class 3256 OID 23967)
 -- Name: crew_assignments p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33856,7 +37851,6 @@ CREATE POLICY p_check_access_select ON public.crew_assignments FOR SELECT USING 
 
 
 --
--- TOC entry 6306 (class 3256 OID 23968)
 -- Name: crew_members p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33864,7 +37858,6 @@ CREATE POLICY p_check_access_select ON public.crew_members FOR SELECT USING (pub
 
 
 --
--- TOC entry 6307 (class 3256 OID 23969)
 -- Name: crews p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33872,7 +37865,6 @@ CREATE POLICY p_check_access_select ON public.crews FOR SELECT USING (public.che
 
 
 --
--- TOC entry 6308 (class 3256 OID 23970)
 -- Name: daily_logs p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33880,7 +37872,6 @@ CREATE POLICY p_check_access_select ON public.daily_logs FOR SELECT USING (publi
 
 
 --
--- TOC entry 6309 (class 3256 OID 23971)
 -- Name: dashboard_configs p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33888,7 +37879,6 @@ CREATE POLICY p_check_access_select ON public.dashboard_configs FOR SELECT USING
 
 
 --
--- TOC entry 6310 (class 3256 OID 23972)
 -- Name: document_references p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33896,7 +37886,6 @@ CREATE POLICY p_check_access_select ON public.document_references FOR SELECT USI
 
 
 --
--- TOC entry 6311 (class 3256 OID 23973)
 -- Name: documents p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33904,7 +37893,6 @@ CREATE POLICY p_check_access_select ON public.documents FOR SELECT USING (public
 
 
 --
--- TOC entry 6312 (class 3256 OID 23974)
 -- Name: drawing_versions p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33912,7 +37900,6 @@ CREATE POLICY p_check_access_select ON public.drawing_versions FOR SELECT USING 
 
 
 --
--- TOC entry 6313 (class 3256 OID 23975)
 -- Name: dump_trucks p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33920,7 +37907,6 @@ CREATE POLICY p_check_access_select ON public.dump_trucks FOR SELECT USING (publ
 
 
 --
--- TOC entry 6314 (class 3256 OID 23976)
 -- Name: employees p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33928,7 +37914,6 @@ CREATE POLICY p_check_access_select ON public.employees FOR SELECT USING (public
 
 
 --
--- TOC entry 6315 (class 3256 OID 23977)
 -- Name: equipment p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33936,7 +37921,6 @@ CREATE POLICY p_check_access_select ON public.equipment FOR SELECT USING (public
 
 
 --
--- TOC entry 6316 (class 3256 OID 23978)
 -- Name: equipment_assignments p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33944,7 +37928,6 @@ CREATE POLICY p_check_access_select ON public.equipment_assignments FOR SELECT U
 
 
 --
--- TOC entry 6317 (class 3256 OID 23979)
 -- Name: equipment_maintenance p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33952,7 +37935,6 @@ CREATE POLICY p_check_access_select ON public.equipment_maintenance FOR SELECT U
 
 
 --
--- TOC entry 6318 (class 3256 OID 23980)
 -- Name: equipment_usage p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33960,7 +37942,6 @@ CREATE POLICY p_check_access_select ON public.equipment_usage FOR SELECT USING (
 
 
 --
--- TOC entry 6319 (class 3256 OID 23981)
 -- Name: estimate_line_items p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33968,7 +37949,6 @@ CREATE POLICY p_check_access_select ON public.estimate_line_items FOR SELECT USI
 
 
 --
--- TOC entry 6320 (class 3256 OID 23982)
 -- Name: estimates p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33976,7 +37956,6 @@ CREATE POLICY p_check_access_select ON public.estimates FOR SELECT USING (public
 
 
 --
--- TOC entry 6321 (class 3256 OID 23983)
 -- Name: financial_documents p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33984,7 +37963,6 @@ CREATE POLICY p_check_access_select ON public.financial_documents FOR SELECT USI
 
 
 --
--- TOC entry 6322 (class 3256 OID 23984)
 -- Name: general_ledger p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -33992,7 +37970,6 @@ CREATE POLICY p_check_access_select ON public.general_ledger FOR SELECT USING (p
 
 
 --
--- TOC entry 6323 (class 3256 OID 23985)
 -- Name: hr_documents p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34000,7 +37977,6 @@ CREATE POLICY p_check_access_select ON public.hr_documents FOR SELECT USING (pub
 
 
 --
--- TOC entry 6324 (class 3256 OID 23986)
 -- Name: inspections p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34008,7 +37984,6 @@ CREATE POLICY p_check_access_select ON public.inspections FOR SELECT USING (publ
 
 
 --
--- TOC entry 6325 (class 3256 OID 23987)
 -- Name: integration_tokens p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34016,7 +37991,6 @@ CREATE POLICY p_check_access_select ON public.integration_tokens FOR SELECT USIN
 
 
 --
--- TOC entry 6326 (class 3256 OID 23988)
 -- Name: inventory_transactions p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34024,7 +37998,6 @@ CREATE POLICY p_check_access_select ON public.inventory_transactions FOR SELECT 
 
 
 --
--- TOC entry 6327 (class 3256 OID 23989)
 -- Name: issues p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34032,7 +38005,6 @@ CREATE POLICY p_check_access_select ON public.issues FOR SELECT USING (public.ch
 
 
 --
--- TOC entry 6328 (class 3256 OID 23990)
 -- Name: job_titles p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34040,7 +38012,6 @@ CREATE POLICY p_check_access_select ON public.job_titles FOR SELECT USING (publi
 
 
 --
--- TOC entry 6329 (class 3256 OID 23991)
 -- Name: labor_records p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34048,7 +38019,6 @@ CREATE POLICY p_check_access_select ON public.labor_records FOR SELECT USING (pu
 
 
 --
--- TOC entry 6330 (class 3256 OID 23992)
 -- Name: line_item_entries p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34056,7 +38026,6 @@ CREATE POLICY p_check_access_select ON public.line_item_entries FOR SELECT USING
 
 
 --
--- TOC entry 6331 (class 3256 OID 23993)
 -- Name: line_item_templates p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34064,7 +38033,6 @@ CREATE POLICY p_check_access_select ON public.line_item_templates FOR SELECT USI
 
 
 --
--- TOC entry 6332 (class 3256 OID 23994)
 -- Name: line_items p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34072,7 +38040,6 @@ CREATE POLICY p_check_access_select ON public.line_items FOR SELECT USING (publi
 
 
 --
--- TOC entry 6333 (class 3256 OID 23995)
 -- Name: maps p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34080,7 +38047,6 @@ CREATE POLICY p_check_access_select ON public.maps FOR SELECT USING (public.chec
 
 
 --
--- TOC entry 6334 (class 3256 OID 23996)
 -- Name: material_inventory p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34088,7 +38054,6 @@ CREATE POLICY p_check_access_select ON public.material_inventory FOR SELECT USIN
 
 
 --
--- TOC entry 6335 (class 3256 OID 23997)
 -- Name: material_orders p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34096,7 +38061,6 @@ CREATE POLICY p_check_access_select ON public.material_orders FOR SELECT USING (
 
 
 --
--- TOC entry 6336 (class 3256 OID 23998)
 -- Name: material_receipts p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34104,7 +38068,6 @@ CREATE POLICY p_check_access_select ON public.material_receipts FOR SELECT USING
 
 
 --
--- TOC entry 6337 (class 3256 OID 23999)
 -- Name: materials p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34112,7 +38075,6 @@ CREATE POLICY p_check_access_select ON public.materials FOR SELECT USING (public
 
 
 --
--- TOC entry 6338 (class 3256 OID 24000)
 -- Name: meeting_minutes p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34120,15 +38082,13 @@ CREATE POLICY p_check_access_select ON public.meeting_minutes FOR SELECT USING (
 
 
 --
--- TOC entry 6339 (class 3256 OID 24001)
 -- Name: notifications p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY p_check_access_select ON public.notifications FOR SELECT USING (public.check_access_bool('select'::text, 'notifications'::text, NULL::uuid, NULL::uuid));
+CREATE POLICY p_check_access_select ON public.notifications FOR SELECT USING (((user_id = auth.uid()) OR ((COALESCE((payload ->> 'scope'::text), 'personal'::text) = 'org_wide'::text) AND public.check_access_bool('select'::text, 'notifications'::text, NULL::uuid, public.try_parse_uuid((payload ->> 'organization_id'::text))))));
 
 
 --
--- TOC entry 6467 (class 3256 OID 43263)
 -- Name: organization_invites p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34136,7 +38096,6 @@ CREATE POLICY p_check_access_select ON public.organization_invites FOR SELECT US
 
 
 --
--- TOC entry 6340 (class 3256 OID 24002)
 -- Name: organization_members p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34144,7 +38103,6 @@ CREATE POLICY p_check_access_select ON public.organization_members FOR SELECT US
 
 
 --
--- TOC entry 6341 (class 3256 OID 24003)
 -- Name: organization_projects p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34152,7 +38110,6 @@ CREATE POLICY p_check_access_select ON public.organization_projects FOR SELECT U
 
 
 --
--- TOC entry 6464 (class 3256 OID 28856)
 -- Name: organizations p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34160,7 +38117,6 @@ CREATE POLICY p_check_access_select ON public.organizations FOR SELECT USING (pu
 
 
 --
--- TOC entry 6342 (class 3256 OID 24005)
 -- Name: payments p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34168,7 +38124,6 @@ CREATE POLICY p_check_access_select ON public.payments FOR SELECT USING (public.
 
 
 --
--- TOC entry 6343 (class 3256 OID 24006)
 -- Name: payroll p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34176,7 +38131,6 @@ CREATE POLICY p_check_access_select ON public.payroll FOR SELECT USING (public.c
 
 
 --
--- TOC entry 6344 (class 3256 OID 24007)
 -- Name: photos p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34184,7 +38138,6 @@ CREATE POLICY p_check_access_select ON public.photos FOR SELECT USING (public.ch
 
 
 --
--- TOC entry 6345 (class 3256 OID 24008)
 -- Name: prequalifications p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34192,7 +38145,6 @@ CREATE POLICY p_check_access_select ON public.prequalifications FOR SELECT USING
 
 
 --
--- TOC entry 6346 (class 3256 OID 24009)
 -- Name: procurement_workflows p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34200,7 +38152,6 @@ CREATE POLICY p_check_access_select ON public.procurement_workflows FOR SELECT U
 
 
 --
--- TOC entry 6470 (class 3256 OID 45495)
 -- Name: profiles p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34208,7 +38159,6 @@ CREATE POLICY p_check_access_select ON public.profiles AS RESTRICTIVE FOR SELECT
 
 
 --
--- TOC entry 6347 (class 3256 OID 24011)
 -- Name: progress_billings p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34216,7 +38166,6 @@ CREATE POLICY p_check_access_select ON public.progress_billings FOR SELECT USING
 
 
 --
--- TOC entry 6348 (class 3256 OID 24012)
 -- Name: project_inspectors p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34224,7 +38173,6 @@ CREATE POLICY p_check_access_select ON public.project_inspectors FOR SELECT USIN
 
 
 --
--- TOC entry 6349 (class 3256 OID 24013)
 -- Name: projects p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34232,7 +38180,6 @@ CREATE POLICY p_check_access_select ON public.projects FOR SELECT USING (public.
 
 
 --
--- TOC entry 6350 (class 3256 OID 24014)
 -- Name: punch_lists p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34240,7 +38187,6 @@ CREATE POLICY p_check_access_select ON public.punch_lists FOR SELECT USING (publ
 
 
 --
--- TOC entry 6351 (class 3256 OID 24015)
 -- Name: purchase_orders p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34248,7 +38194,6 @@ CREATE POLICY p_check_access_select ON public.purchase_orders FOR SELECT USING (
 
 
 --
--- TOC entry 6352 (class 3256 OID 24016)
 -- Name: quality_reviews p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34256,7 +38201,6 @@ CREATE POLICY p_check_access_select ON public.quality_reviews FOR SELECT USING (
 
 
 --
--- TOC entry 6353 (class 3256 OID 24017)
 -- Name: regulatory_documents p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34264,7 +38208,6 @@ CREATE POLICY p_check_access_select ON public.regulatory_documents FOR SELECT US
 
 
 --
--- TOC entry 6354 (class 3256 OID 24018)
 -- Name: reports p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34272,7 +38215,6 @@ CREATE POLICY p_check_access_select ON public.reports FOR SELECT USING (public.c
 
 
 --
--- TOC entry 6355 (class 3256 OID 24019)
 -- Name: rfis p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34280,7 +38222,6 @@ CREATE POLICY p_check_access_select ON public.rfis FOR SELECT USING (public.chec
 
 
 --
--- TOC entry 6356 (class 3256 OID 24020)
 -- Name: safety_incidents p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34288,7 +38229,6 @@ CREATE POLICY p_check_access_select ON public.safety_incidents FOR SELECT USING 
 
 
 --
--- TOC entry 6357 (class 3256 OID 24021)
 -- Name: sensor_data p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34296,7 +38236,6 @@ CREATE POLICY p_check_access_select ON public.sensor_data FOR SELECT USING (publ
 
 
 --
--- TOC entry 6358 (class 3256 OID 24022)
 -- Name: subcontractor_agreements p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34304,7 +38243,6 @@ CREATE POLICY p_check_access_select ON public.subcontractor_agreements FOR SELEC
 
 
 --
--- TOC entry 6359 (class 3256 OID 24023)
 -- Name: subcontracts p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34312,7 +38250,6 @@ CREATE POLICY p_check_access_select ON public.subcontracts FOR SELECT USING (pub
 
 
 --
--- TOC entry 6360 (class 3256 OID 24024)
 -- Name: submittals p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34320,7 +38257,6 @@ CREATE POLICY p_check_access_select ON public.submittals FOR SELECT USING (publi
 
 
 --
--- TOC entry 6361 (class 3256 OID 24025)
 -- Name: tack_rates p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34328,7 +38264,6 @@ CREATE POLICY p_check_access_select ON public.tack_rates FOR SELECT USING (publi
 
 
 --
--- TOC entry 6362 (class 3256 OID 24026)
 -- Name: task_dependencies p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34336,7 +38271,6 @@ CREATE POLICY p_check_access_select ON public.task_dependencies FOR SELECT USING
 
 
 --
--- TOC entry 6363 (class 3256 OID 24027)
 -- Name: task_status_logs p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34344,7 +38278,6 @@ CREATE POLICY p_check_access_select ON public.task_status_logs FOR SELECT USING 
 
 
 --
--- TOC entry 6364 (class 3256 OID 24028)
 -- Name: tasks p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34352,7 +38285,6 @@ CREATE POLICY p_check_access_select ON public.tasks FOR SELECT USING (public.che
 
 
 --
--- TOC entry 6365 (class 3256 OID 24029)
 -- Name: training_records p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34360,7 +38292,6 @@ CREATE POLICY p_check_access_select ON public.training_records FOR SELECT USING 
 
 
 --
--- TOC entry 6366 (class 3256 OID 24030)
 -- Name: user_projects p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34368,7 +38299,6 @@ CREATE POLICY p_check_access_select ON public.user_projects FOR SELECT USING (pu
 
 
 --
--- TOC entry 6367 (class 3256 OID 24031)
 -- Name: vendor_bid_packages p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34376,7 +38306,6 @@ CREATE POLICY p_check_access_select ON public.vendor_bid_packages FOR SELECT USI
 
 
 --
--- TOC entry 6368 (class 3256 OID 24032)
 -- Name: vendor_contacts p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34384,7 +38313,6 @@ CREATE POLICY p_check_access_select ON public.vendor_contacts FOR SELECT USING (
 
 
 --
--- TOC entry 6369 (class 3256 OID 24035)
 -- Name: vendor_documents p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34392,7 +38320,6 @@ CREATE POLICY p_check_access_select ON public.vendor_documents FOR SELECT USING 
 
 
 --
--- TOC entry 6370 (class 3256 OID 24036)
 -- Name: vendor_qualifications p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34400,7 +38327,6 @@ CREATE POLICY p_check_access_select ON public.vendor_qualifications FOR SELECT U
 
 
 --
--- TOC entry 6371 (class 3256 OID 24037)
 -- Name: vendors p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34408,7 +38334,6 @@ CREATE POLICY p_check_access_select ON public.vendors FOR SELECT USING (public.c
 
 
 --
--- TOC entry 6372 (class 3256 OID 24038)
 -- Name: wbs p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34416,7 +38341,6 @@ CREATE POLICY p_check_access_select ON public.wbs FOR SELECT USING (public.check
 
 
 --
--- TOC entry 6373 (class 3256 OID 24039)
 -- Name: workflows p_check_access_select; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34424,7 +38348,6 @@ CREATE POLICY p_check_access_select ON public.workflows FOR SELECT USING (public
 
 
 --
--- TOC entry 6374 (class 3256 OID 24040)
 -- Name: accounts_payable p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34432,7 +38355,6 @@ CREATE POLICY p_check_access_update ON public.accounts_payable FOR UPDATE USING 
 
 
 --
--- TOC entry 6375 (class 3256 OID 24041)
 -- Name: accounts_receivable p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34440,7 +38362,6 @@ CREATE POLICY p_check_access_update ON public.accounts_receivable FOR UPDATE USI
 
 
 --
--- TOC entry 6376 (class 3256 OID 24042)
 -- Name: activity_logs p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34448,7 +38369,6 @@ CREATE POLICY p_check_access_update ON public.activity_logs FOR UPDATE USING (pu
 
 
 --
--- TOC entry 6377 (class 3256 OID 24043)
 -- Name: asphalt_types p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34456,7 +38376,6 @@ CREATE POLICY p_check_access_update ON public.asphalt_types FOR UPDATE USING (pu
 
 
 --
--- TOC entry 6378 (class 3256 OID 24044)
 -- Name: audit_log p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34464,7 +38383,6 @@ CREATE POLICY p_check_access_update ON public.audit_log FOR UPDATE USING (public
 
 
 --
--- TOC entry 6379 (class 3256 OID 24045)
 -- Name: audit_logs p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34472,7 +38390,6 @@ CREATE POLICY p_check_access_update ON public.audit_logs FOR UPDATE USING (publi
 
 
 --
--- TOC entry 6380 (class 3256 OID 24046)
 -- Name: avatars p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34480,7 +38397,6 @@ CREATE POLICY p_check_access_update ON public.avatars FOR UPDATE USING (public.c
 
 
 --
--- TOC entry 6381 (class 3256 OID 24047)
 -- Name: bid_packages p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34488,7 +38404,6 @@ CREATE POLICY p_check_access_update ON public.bid_packages FOR UPDATE USING (pub
 
 
 --
--- TOC entry 6382 (class 3256 OID 24048)
 -- Name: bid_vendors p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34496,7 +38411,6 @@ CREATE POLICY p_check_access_update ON public.bid_vendors FOR UPDATE USING (publ
 
 
 --
--- TOC entry 6383 (class 3256 OID 24049)
 -- Name: bids p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34504,7 +38418,6 @@ CREATE POLICY p_check_access_update ON public.bids FOR UPDATE USING (public.chec
 
 
 --
--- TOC entry 6384 (class 3256 OID 24050)
 -- Name: bim_models p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34512,7 +38425,6 @@ CREATE POLICY p_check_access_update ON public.bim_models FOR UPDATE USING (publi
 
 
 --
--- TOC entry 6385 (class 3256 OID 24051)
 -- Name: certifications p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34520,7 +38432,6 @@ CREATE POLICY p_check_access_update ON public.certifications FOR UPDATE USING (p
 
 
 --
--- TOC entry 6386 (class 3256 OID 24052)
 -- Name: change_orders p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34528,7 +38439,6 @@ CREATE POLICY p_check_access_update ON public.change_orders FOR UPDATE USING (pu
 
 
 --
--- TOC entry 6387 (class 3256 OID 24053)
 -- Name: commitments p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34536,7 +38446,6 @@ CREATE POLICY p_check_access_update ON public.commitments FOR UPDATE USING (publ
 
 
 --
--- TOC entry 6388 (class 3256 OID 24054)
 -- Name: compliance_checks p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34544,7 +38453,6 @@ CREATE POLICY p_check_access_update ON public.compliance_checks FOR UPDATE USING
 
 
 --
--- TOC entry 6389 (class 3256 OID 24055)
 -- Name: compliance_tracking p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34552,7 +38460,6 @@ CREATE POLICY p_check_access_update ON public.compliance_tracking FOR UPDATE USI
 
 
 --
--- TOC entry 6390 (class 3256 OID 24056)
 -- Name: cost_codes p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34560,7 +38467,6 @@ CREATE POLICY p_check_access_update ON public.cost_codes FOR UPDATE USING (publi
 
 
 --
--- TOC entry 6391 (class 3256 OID 24057)
 -- Name: crew_assignments p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34568,7 +38474,6 @@ CREATE POLICY p_check_access_update ON public.crew_assignments FOR UPDATE USING 
 
 
 --
--- TOC entry 6392 (class 3256 OID 24058)
 -- Name: crew_members p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34576,7 +38481,6 @@ CREATE POLICY p_check_access_update ON public.crew_members FOR UPDATE USING (pub
 
 
 --
--- TOC entry 6393 (class 3256 OID 24059)
 -- Name: crews p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34584,7 +38488,6 @@ CREATE POLICY p_check_access_update ON public.crews FOR UPDATE USING (public.che
 
 
 --
--- TOC entry 6394 (class 3256 OID 24060)
 -- Name: daily_logs p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34592,7 +38495,6 @@ CREATE POLICY p_check_access_update ON public.daily_logs FOR UPDATE USING (publi
 
 
 --
--- TOC entry 6395 (class 3256 OID 24061)
 -- Name: dashboard_configs p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34600,7 +38502,6 @@ CREATE POLICY p_check_access_update ON public.dashboard_configs FOR UPDATE USING
 
 
 --
--- TOC entry 6396 (class 3256 OID 24062)
 -- Name: document_references p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34608,7 +38509,6 @@ CREATE POLICY p_check_access_update ON public.document_references FOR UPDATE USI
 
 
 --
--- TOC entry 6397 (class 3256 OID 24063)
 -- Name: documents p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34616,7 +38516,6 @@ CREATE POLICY p_check_access_update ON public.documents FOR UPDATE USING (public
 
 
 --
--- TOC entry 6398 (class 3256 OID 24064)
 -- Name: drawing_versions p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34624,7 +38523,6 @@ CREATE POLICY p_check_access_update ON public.drawing_versions FOR UPDATE USING 
 
 
 --
--- TOC entry 6399 (class 3256 OID 24065)
 -- Name: dump_trucks p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34632,7 +38530,6 @@ CREATE POLICY p_check_access_update ON public.dump_trucks FOR UPDATE USING (publ
 
 
 --
--- TOC entry 6400 (class 3256 OID 24066)
 -- Name: employees p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34640,7 +38537,6 @@ CREATE POLICY p_check_access_update ON public.employees FOR UPDATE USING (public
 
 
 --
--- TOC entry 6401 (class 3256 OID 24067)
 -- Name: equipment p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34648,7 +38544,6 @@ CREATE POLICY p_check_access_update ON public.equipment FOR UPDATE USING (public
 
 
 --
--- TOC entry 6402 (class 3256 OID 24068)
 -- Name: equipment_assignments p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34656,7 +38551,6 @@ CREATE POLICY p_check_access_update ON public.equipment_assignments FOR UPDATE U
 
 
 --
--- TOC entry 6403 (class 3256 OID 24069)
 -- Name: equipment_maintenance p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34664,7 +38558,6 @@ CREATE POLICY p_check_access_update ON public.equipment_maintenance FOR UPDATE U
 
 
 --
--- TOC entry 6404 (class 3256 OID 24070)
 -- Name: equipment_usage p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34672,7 +38565,6 @@ CREATE POLICY p_check_access_update ON public.equipment_usage FOR UPDATE USING (
 
 
 --
--- TOC entry 6405 (class 3256 OID 24071)
 -- Name: estimate_line_items p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34680,7 +38572,6 @@ CREATE POLICY p_check_access_update ON public.estimate_line_items FOR UPDATE USI
 
 
 --
--- TOC entry 6406 (class 3256 OID 24072)
 -- Name: estimates p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34688,7 +38579,6 @@ CREATE POLICY p_check_access_update ON public.estimates FOR UPDATE USING (public
 
 
 --
--- TOC entry 6407 (class 3256 OID 24073)
 -- Name: financial_documents p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34696,7 +38586,6 @@ CREATE POLICY p_check_access_update ON public.financial_documents FOR UPDATE USI
 
 
 --
--- TOC entry 6408 (class 3256 OID 24074)
 -- Name: general_ledger p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34704,7 +38593,6 @@ CREATE POLICY p_check_access_update ON public.general_ledger FOR UPDATE USING (p
 
 
 --
--- TOC entry 6409 (class 3256 OID 24075)
 -- Name: hr_documents p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34712,7 +38600,6 @@ CREATE POLICY p_check_access_update ON public.hr_documents FOR UPDATE USING (pub
 
 
 --
--- TOC entry 6410 (class 3256 OID 24076)
 -- Name: inspections p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34720,7 +38607,6 @@ CREATE POLICY p_check_access_update ON public.inspections FOR UPDATE USING (publ
 
 
 --
--- TOC entry 6411 (class 3256 OID 24077)
 -- Name: integration_tokens p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34728,7 +38614,6 @@ CREATE POLICY p_check_access_update ON public.integration_tokens FOR UPDATE USIN
 
 
 --
--- TOC entry 6412 (class 3256 OID 24078)
 -- Name: inventory_transactions p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34736,7 +38621,6 @@ CREATE POLICY p_check_access_update ON public.inventory_transactions FOR UPDATE 
 
 
 --
--- TOC entry 6413 (class 3256 OID 24079)
 -- Name: issues p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34744,7 +38628,6 @@ CREATE POLICY p_check_access_update ON public.issues FOR UPDATE USING (public.ch
 
 
 --
--- TOC entry 6414 (class 3256 OID 24080)
 -- Name: job_titles p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34752,7 +38635,6 @@ CREATE POLICY p_check_access_update ON public.job_titles FOR UPDATE USING (publi
 
 
 --
--- TOC entry 6415 (class 3256 OID 24081)
 -- Name: labor_records p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34760,7 +38642,6 @@ CREATE POLICY p_check_access_update ON public.labor_records FOR UPDATE USING (pu
 
 
 --
--- TOC entry 6416 (class 3256 OID 24082)
 -- Name: line_item_entries p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34768,7 +38649,6 @@ CREATE POLICY p_check_access_update ON public.line_item_entries FOR UPDATE USING
 
 
 --
--- TOC entry 6417 (class 3256 OID 24083)
 -- Name: line_item_templates p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34776,7 +38656,6 @@ CREATE POLICY p_check_access_update ON public.line_item_templates FOR UPDATE USI
 
 
 --
--- TOC entry 6418 (class 3256 OID 24084)
 -- Name: line_items p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34784,7 +38663,6 @@ CREATE POLICY p_check_access_update ON public.line_items FOR UPDATE USING (publi
 
 
 --
--- TOC entry 6419 (class 3256 OID 24085)
 -- Name: maps p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34792,7 +38670,6 @@ CREATE POLICY p_check_access_update ON public.maps FOR UPDATE USING (public.chec
 
 
 --
--- TOC entry 6420 (class 3256 OID 24086)
 -- Name: material_inventory p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34800,7 +38677,6 @@ CREATE POLICY p_check_access_update ON public.material_inventory FOR UPDATE USIN
 
 
 --
--- TOC entry 6421 (class 3256 OID 24087)
 -- Name: material_orders p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34808,7 +38684,6 @@ CREATE POLICY p_check_access_update ON public.material_orders FOR UPDATE USING (
 
 
 --
--- TOC entry 6422 (class 3256 OID 24088)
 -- Name: material_receipts p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34816,7 +38691,6 @@ CREATE POLICY p_check_access_update ON public.material_receipts FOR UPDATE USING
 
 
 --
--- TOC entry 6423 (class 3256 OID 24089)
 -- Name: materials p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34824,7 +38698,6 @@ CREATE POLICY p_check_access_update ON public.materials FOR UPDATE USING (public
 
 
 --
--- TOC entry 6424 (class 3256 OID 24090)
 -- Name: meeting_minutes p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34832,15 +38705,13 @@ CREATE POLICY p_check_access_update ON public.meeting_minutes FOR UPDATE USING (
 
 
 --
--- TOC entry 6425 (class 3256 OID 24091)
 -- Name: notifications p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY p_check_access_update ON public.notifications FOR UPDATE USING (public.check_access_bool('update'::text, 'notifications'::text, NULL::uuid, NULL::uuid));
+CREATE POLICY p_check_access_update ON public.notifications FOR UPDATE USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
 
 
 --
--- TOC entry 6468 (class 3256 OID 43264)
 -- Name: organization_invites p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34848,7 +38719,6 @@ CREATE POLICY p_check_access_update ON public.organization_invites FOR UPDATE US
 
 
 --
--- TOC entry 6426 (class 3256 OID 24092)
 -- Name: organization_members p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34856,7 +38726,6 @@ CREATE POLICY p_check_access_update ON public.organization_members FOR UPDATE US
 
 
 --
--- TOC entry 6427 (class 3256 OID 24093)
 -- Name: organization_projects p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34864,7 +38733,6 @@ CREATE POLICY p_check_access_update ON public.organization_projects FOR UPDATE U
 
 
 --
--- TOC entry 6465 (class 3256 OID 28857)
 -- Name: organizations p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34872,7 +38740,6 @@ CREATE POLICY p_check_access_update ON public.organizations FOR UPDATE USING (pu
 
 
 --
--- TOC entry 6428 (class 3256 OID 24095)
 -- Name: payments p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34880,7 +38747,6 @@ CREATE POLICY p_check_access_update ON public.payments FOR UPDATE USING (public.
 
 
 --
--- TOC entry 6429 (class 3256 OID 24096)
 -- Name: payroll p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34888,7 +38754,6 @@ CREATE POLICY p_check_access_update ON public.payroll FOR UPDATE USING (public.c
 
 
 --
--- TOC entry 6430 (class 3256 OID 24097)
 -- Name: photos p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34896,7 +38761,6 @@ CREATE POLICY p_check_access_update ON public.photos FOR UPDATE USING (public.ch
 
 
 --
--- TOC entry 6431 (class 3256 OID 24098)
 -- Name: prequalifications p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34904,7 +38768,6 @@ CREATE POLICY p_check_access_update ON public.prequalifications FOR UPDATE USING
 
 
 --
--- TOC entry 6432 (class 3256 OID 24099)
 -- Name: procurement_workflows p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34912,7 +38775,6 @@ CREATE POLICY p_check_access_update ON public.procurement_workflows FOR UPDATE U
 
 
 --
--- TOC entry 6471 (class 3256 OID 45496)
 -- Name: profiles p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34920,7 +38782,6 @@ CREATE POLICY p_check_access_update ON public.profiles AS RESTRICTIVE FOR UPDATE
 
 
 --
--- TOC entry 6433 (class 3256 OID 24101)
 -- Name: progress_billings p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34928,7 +38789,6 @@ CREATE POLICY p_check_access_update ON public.progress_billings FOR UPDATE USING
 
 
 --
--- TOC entry 6434 (class 3256 OID 24102)
 -- Name: project_inspectors p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34936,7 +38796,6 @@ CREATE POLICY p_check_access_update ON public.project_inspectors FOR UPDATE USIN
 
 
 --
--- TOC entry 6435 (class 3256 OID 24103)
 -- Name: projects p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34944,7 +38803,6 @@ CREATE POLICY p_check_access_update ON public.projects FOR UPDATE USING (public.
 
 
 --
--- TOC entry 6436 (class 3256 OID 24104)
 -- Name: punch_lists p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34952,7 +38810,6 @@ CREATE POLICY p_check_access_update ON public.punch_lists FOR UPDATE USING (publ
 
 
 --
--- TOC entry 6437 (class 3256 OID 24105)
 -- Name: purchase_orders p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34960,7 +38817,6 @@ CREATE POLICY p_check_access_update ON public.purchase_orders FOR UPDATE USING (
 
 
 --
--- TOC entry 6438 (class 3256 OID 24106)
 -- Name: quality_reviews p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34968,7 +38824,6 @@ CREATE POLICY p_check_access_update ON public.quality_reviews FOR UPDATE USING (
 
 
 --
--- TOC entry 6439 (class 3256 OID 24107)
 -- Name: regulatory_documents p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34976,7 +38831,6 @@ CREATE POLICY p_check_access_update ON public.regulatory_documents FOR UPDATE US
 
 
 --
--- TOC entry 6440 (class 3256 OID 24108)
 -- Name: reports p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34984,7 +38838,6 @@ CREATE POLICY p_check_access_update ON public.reports FOR UPDATE USING (public.c
 
 
 --
--- TOC entry 6441 (class 3256 OID 24109)
 -- Name: rfis p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -34992,7 +38845,6 @@ CREATE POLICY p_check_access_update ON public.rfis FOR UPDATE USING (public.chec
 
 
 --
--- TOC entry 6442 (class 3256 OID 24110)
 -- Name: safety_incidents p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35000,7 +38852,6 @@ CREATE POLICY p_check_access_update ON public.safety_incidents FOR UPDATE USING 
 
 
 --
--- TOC entry 6443 (class 3256 OID 24111)
 -- Name: sensor_data p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35008,7 +38859,6 @@ CREATE POLICY p_check_access_update ON public.sensor_data FOR UPDATE USING (publ
 
 
 --
--- TOC entry 6444 (class 3256 OID 24112)
 -- Name: subcontractor_agreements p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35016,7 +38866,6 @@ CREATE POLICY p_check_access_update ON public.subcontractor_agreements FOR UPDAT
 
 
 --
--- TOC entry 6445 (class 3256 OID 24113)
 -- Name: subcontracts p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35024,7 +38873,6 @@ CREATE POLICY p_check_access_update ON public.subcontracts FOR UPDATE USING (pub
 
 
 --
--- TOC entry 6446 (class 3256 OID 24114)
 -- Name: submittals p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35032,7 +38880,6 @@ CREATE POLICY p_check_access_update ON public.submittals FOR UPDATE USING (publi
 
 
 --
--- TOC entry 6447 (class 3256 OID 24115)
 -- Name: tack_rates p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35040,7 +38887,6 @@ CREATE POLICY p_check_access_update ON public.tack_rates FOR UPDATE USING (publi
 
 
 --
--- TOC entry 6448 (class 3256 OID 24116)
 -- Name: task_dependencies p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35048,7 +38894,6 @@ CREATE POLICY p_check_access_update ON public.task_dependencies FOR UPDATE USING
 
 
 --
--- TOC entry 6449 (class 3256 OID 24117)
 -- Name: task_status_logs p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35056,7 +38901,6 @@ CREATE POLICY p_check_access_update ON public.task_status_logs FOR UPDATE USING 
 
 
 --
--- TOC entry 6450 (class 3256 OID 24118)
 -- Name: tasks p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35064,7 +38908,6 @@ CREATE POLICY p_check_access_update ON public.tasks FOR UPDATE USING (public.che
 
 
 --
--- TOC entry 6451 (class 3256 OID 24119)
 -- Name: training_records p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35072,7 +38915,6 @@ CREATE POLICY p_check_access_update ON public.training_records FOR UPDATE USING 
 
 
 --
--- TOC entry 6452 (class 3256 OID 24120)
 -- Name: user_projects p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35080,7 +38922,6 @@ CREATE POLICY p_check_access_update ON public.user_projects FOR UPDATE USING (pu
 
 
 --
--- TOC entry 6453 (class 3256 OID 24121)
 -- Name: vendor_bid_packages p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35088,7 +38929,6 @@ CREATE POLICY p_check_access_update ON public.vendor_bid_packages FOR UPDATE USI
 
 
 --
--- TOC entry 6454 (class 3256 OID 24122)
 -- Name: vendor_contacts p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35096,7 +38936,6 @@ CREATE POLICY p_check_access_update ON public.vendor_contacts FOR UPDATE USING (
 
 
 --
--- TOC entry 6455 (class 3256 OID 24123)
 -- Name: vendor_documents p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35104,7 +38943,6 @@ CREATE POLICY p_check_access_update ON public.vendor_documents FOR UPDATE USING 
 
 
 --
--- TOC entry 6456 (class 3256 OID 24124)
 -- Name: vendor_qualifications p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35112,7 +38950,6 @@ CREATE POLICY p_check_access_update ON public.vendor_qualifications FOR UPDATE U
 
 
 --
--- TOC entry 6457 (class 3256 OID 24125)
 -- Name: vendors p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35120,7 +38957,6 @@ CREATE POLICY p_check_access_update ON public.vendors FOR UPDATE USING (public.c
 
 
 --
--- TOC entry 6458 (class 3256 OID 24126)
 -- Name: wbs p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35128,7 +38964,6 @@ CREATE POLICY p_check_access_update ON public.wbs FOR UPDATE USING (public.check
 
 
 --
--- TOC entry 6459 (class 3256 OID 24127)
 -- Name: workflows p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35136,55 +38971,70 @@ CREATE POLICY p_check_access_update ON public.workflows FOR UPDATE USING (public
 
 
 --
--- TOC entry 6078 (class 0 OID 21694)
--- Dependencies: 414
+-- Name: organization_notification_settings p_org_notification_settings_select; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY p_org_notification_settings_select ON public.organization_notification_settings FOR SELECT USING (public.check_access_bool('select'::text, 'organizations'::text, NULL::uuid, organization_id));
+
+
+--
+-- Name: organization_notification_settings p_org_notification_settings_write; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY p_org_notification_settings_write ON public.organization_notification_settings USING (public.can_edit_org_notification_settings(organization_id)) WITH CHECK (public.can_edit_org_notification_settings(organization_id));
+
+
+--
+-- Name: user_notification_settings p_user_notification_settings_select; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY p_user_notification_settings_select ON public.user_notification_settings FOR SELECT USING ((user_id = auth.uid()));
+
+
+--
+-- Name: user_notification_settings p_user_notification_settings_write; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY p_user_notification_settings_write ON public.user_notification_settings USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+
+
+--
 -- Name: payments; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6079 (class 0 OID 21704)
--- Dependencies: 415
 -- Name: payroll; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.payroll ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6080 (class 0 OID 21714)
--- Dependencies: 416
 -- Name: photos; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.photos ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6081 (class 0 OID 21725)
--- Dependencies: 417
 -- Name: prequalifications; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.prequalifications ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6082 (class 0 OID 21735)
--- Dependencies: 418
 -- Name: procurement_workflows; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.procurement_workflows ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6083 (class 0 OID 21745)
--- Dependencies: 419
 -- Name: profiles; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6474 (class 3256 OID 45502)
 -- Name: profiles profiles_insert_authenticated; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35194,7 +39044,6 @@ CREATE POLICY profiles_insert_authenticated ON public.profiles FOR INSERT TO aut
 
 
 --
--- TOC entry 6460 (class 3256 OID 25268)
 -- Name: profiles profiles_select_own; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35202,7 +39051,6 @@ CREATE POLICY profiles_select_own ON public.profiles FOR SELECT TO authenticated
 
 
 --
--- TOC entry 6461 (class 3256 OID 25270)
 -- Name: profiles profiles_update_own; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -35210,238 +39058,198 @@ CREATE POLICY profiles_update_own ON public.profiles FOR UPDATE TO authenticated
 
 
 --
--- TOC entry 6084 (class 0 OID 21755)
--- Dependencies: 420
 -- Name: progress_billings; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.progress_billings ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6085 (class 0 OID 21765)
--- Dependencies: 421
 -- Name: project_inspectors; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.project_inspectors ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6114 (class 0 OID 26547)
--- Dependencies: 537
 -- Name: project_invites; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.project_invites ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6112 (class 0 OID 26504)
--- Dependencies: 535
 -- Name: project_service_areas; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.project_service_areas ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6086 (class 0 OID 21771)
--- Dependencies: 422
 -- Name: projects; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6087 (class 0 OID 21783)
--- Dependencies: 423
 -- Name: punch_lists; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.punch_lists ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6088 (class 0 OID 21793)
--- Dependencies: 424
 -- Name: purchase_orders; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.purchase_orders ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6089 (class 0 OID 21803)
--- Dependencies: 425
 -- Name: quality_reviews; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.quality_reviews ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6090 (class 0 OID 21813)
--- Dependencies: 426
 -- Name: regulatory_documents; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.regulatory_documents ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6091 (class 0 OID 21824)
--- Dependencies: 427
 -- Name: reports; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6092 (class 0 OID 21835)
--- Dependencies: 428
 -- Name: rfis; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.rfis ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6093 (class 0 OID 21845)
--- Dependencies: 429
 -- Name: safety_incidents; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.safety_incidents ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6094 (class 0 OID 21856)
--- Dependencies: 430
 -- Name: sensor_data; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.sensor_data ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6095 (class 0 OID 21867)
--- Dependencies: 431
 -- Name: subcontractor_agreements; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.subcontractor_agreements ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6096 (class 0 OID 21877)
--- Dependencies: 432
 -- Name: subcontracts; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.subcontracts ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6097 (class 0 OID 21887)
--- Dependencies: 433
 -- Name: submittals; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.submittals ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6098 (class 0 OID 21898)
--- Dependencies: 434
 -- Name: tack_rates; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.tack_rates ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6099 (class 0 OID 21908)
--- Dependencies: 435
 -- Name: task_dependencies; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.task_dependencies ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6100 (class 0 OID 21915)
--- Dependencies: 436
 -- Name: task_status_logs; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.task_status_logs ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6101 (class 0 OID 21921)
--- Dependencies: 437
 -- Name: tasks; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6102 (class 0 OID 21932)
--- Dependencies: 438
 -- Name: training_records; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.training_records ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6103 (class 0 OID 21942)
--- Dependencies: 439
+-- Name: user_notification_settings; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.user_notification_settings ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: user_notification_settings user_notification_settings_select; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY user_notification_settings_select ON public.user_notification_settings FOR SELECT USING ((user_id = auth.uid()));
+
+
+--
+-- Name: user_notification_settings user_notification_settings_upsert; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY user_notification_settings_upsert ON public.user_notification_settings USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+
+
+--
 -- Name: user_projects; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.user_projects ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6104 (class 0 OID 21952)
--- Dependencies: 440
 -- Name: vendor_bid_packages; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.vendor_bid_packages ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6105 (class 0 OID 21960)
--- Dependencies: 441
 -- Name: vendor_contacts; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.vendor_contacts ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6106 (class 0 OID 21970)
--- Dependencies: 442
 -- Name: vendor_documents; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.vendor_documents ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6107 (class 0 OID 21981)
--- Dependencies: 443
 -- Name: vendor_qualifications; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.vendor_qualifications ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6108 (class 0 OID 21991)
--- Dependencies: 444
 -- Name: vendors; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.vendors ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6109 (class 0 OID 22001)
--- Dependencies: 445
 -- Name: wbs; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.wbs ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 6023 (class 0 OID 21041)
--- Dependencies: 359
 -- Name: workflows; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.workflows ENABLE ROW LEVEL SECURITY;
-
--- Completed on 2026-02-25 02:00:35
 
 --
 -- PostgreSQL database dump complete
