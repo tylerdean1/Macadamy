@@ -1,6 +1,7 @@
 import { rpcClient } from '@/lib/rpc.client';
 import type { Database } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
+import { logBackendError } from '@/lib/backendErrors';
 import {
   fetchMyNotificationSettingsSnapshot,
   fetchOrgNotificationSettingsSnapshot,
@@ -14,6 +15,10 @@ type NotificationOrderBy = 'created_at' | 'updated_at' | 'id';
 
 const ORDER_BY_FALLBACKS: NotificationOrderBy[] = ['created_at', 'updated_at', 'id'];
 const ORG_WIDE_EVENT_SET = new Set<string>(ORG_WIDE_EVENT_OPTIONS.map((item) => item.key));
+const ACTIVE_ORG_CACHE_TTL_MS = 30_000;
+
+const activeMembershipOrgCache = new Map<string, { orgIds: Set<string>; fetchedAt: number }>();
+const deniedOrgSettingsByUser = new Map<string, Set<string>>();
 
 const NOTIFICATIONS_TABLE = 'notifications';
 
@@ -56,10 +61,39 @@ function getNotificationOrganizationId(notification: NotificationRow): string | 
   return typeof organizationId === 'string' && organizationId.trim() !== '' ? organizationId : null;
 }
 
-async function applyNotificationSettingsFilters(rows: NotificationRow[]): Promise<NotificationRow[]> {
+async function getActiveMembershipOrgIds(userId: string): Promise<Set<string>> {
+  const cached = activeMembershipOrgCache.get(userId);
+  if (cached && Date.now() - cached.fetchedAt <= ACTIVE_ORG_CACHE_TTL_MS) {
+    return cached.orgIds;
+  }
+
+  const memberships = await rpcClient.get_my_member_organizations();
+  const orgIds = new Set<string>(
+    Array.isArray(memberships)
+      ? memberships
+        .map((membership) => membership?.id)
+        .filter((id): id is string => typeof id === 'string' && id.trim() !== '')
+      : []
+  );
+
+  activeMembershipOrgCache.set(userId, { orgIds, fetchedAt: Date.now() });
+  return orgIds;
+}
+
+function isAccessDeniedError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const maybeError = error as { code?: string; message?: string | null };
+  return maybeError.code === '42501'
+    || (typeof maybeError.message === 'string' && maybeError.message.toLowerCase().includes('not an active member of organization'));
+}
+
+async function applyNotificationSettingsFilters(rows: NotificationRow[], userId: string): Promise<NotificationRow[]> {
   if (rows.length === 0) return rows;
 
   const userSnapshot = await fetchMyNotificationSettingsSnapshot();
+  const activeOrgIds = await getActiveMembershipOrgIds(userId);
+  const deniedOrgIds = deniedOrgSettingsByUser.get(userId) ?? new Set<string>();
+  deniedOrgSettingsByUser.set(userId, deniedOrgIds);
   const silencedCategorySet = new Set(userSnapshot.silencedCategories);
   const silencedEventSet = new Set<string>(userSnapshot.silencedEvents);
   const orgSettingsCache = new Map<string, {
@@ -81,14 +115,41 @@ async function applyNotificationSettingsFilters(rows: NotificationRow[]): Promis
     if (eventName && ORG_WIDE_EVENT_SET.has(eventName)) {
       const organizationId = getNotificationOrganizationId(notification);
       if (organizationId) {
+        if (!activeOrgIds.has(organizationId)) {
+          continue;
+        }
+
+        if (deniedOrgIds.has(organizationId)) {
+          continue;
+        }
+
         let orgSettings = orgSettingsCache.get(organizationId);
         if (!orgSettings) {
-          const snapshot = await fetchOrgNotificationSettingsSnapshot(organizationId);
-          orgSettings = {
-            enabledCategorySet: new Set(snapshot.enabledCategories),
-            enabledEventSet: new Set<string>(snapshot.enabledEvents),
-          };
-          orgSettingsCache.set(organizationId, orgSettings);
+          try {
+            const snapshot = await fetchOrgNotificationSettingsSnapshot(organizationId);
+            orgSettings = {
+              enabledCategorySet: new Set(snapshot.enabledCategories),
+              enabledEventSet: new Set<string>(snapshot.enabledEvents),
+            };
+            orgSettingsCache.set(organizationId, orgSettings);
+          } catch (error) {
+            if (isAccessDeniedError(error)) {
+              deniedOrgIds.add(organizationId);
+              logBackendError({
+                module: 'NotificationsData',
+                operation: 'load org notification settings in filter pipeline',
+                trigger: 'background',
+                error,
+                ids: {
+                  userId,
+                  organizationId,
+                },
+              });
+              continue;
+            }
+
+            throw error;
+          }
         }
 
         const eventKey = eventName as NotificationEventKey;
@@ -126,7 +187,7 @@ export async function fetchNotificationsForUser(
       }
 
       const sortedRows = sortNotifications(rows);
-      return await applyNotificationSettingsFilters(sortedRows);
+      return await applyNotificationSettingsFilters(sortedRows, userId);
     } catch (error) {
       lastError = error;
       if (!isUnknownOrderByError(error)) {

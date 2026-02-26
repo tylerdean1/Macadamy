@@ -5,6 +5,7 @@ import { Page, PageContainer } from '@/components/Layout';
 import { toBackendErrorToastMessage } from '@/lib/backendErrors';
 import { useAuthStore } from '@/lib/store';
 import { useMyOrganizations } from '@/hooks/useMyOrganizations';
+import { useValidatedSelectedOrganization } from '@/hooks/useValidatedSelectedOrganization';
 import {
     CATEGORY_OPTIONS,
     type OrgNotificationSettings,
@@ -19,15 +20,18 @@ function formatCategoryLabel(category: string): string {
 }
 
 export default function OrganizationNotificationSettings(): JSX.Element {
-    const { profile, selectedOrganizationId } = useAuthStore();
-    const activeOrganizationId = selectedOrganizationId ?? profile?.organization_id ?? null;
+    const { profile } = useAuthStore();
     const { orgs } = useMyOrganizations(profile?.id);
-    const activeOrg = orgs.find((item) => item.id === activeOrganizationId) ?? null;
+    const { activeOrgIds, validatedSelectedOrganizationId } = useValidatedSelectedOrganization(orgs.map((item) => item.id));
+    const activeOrganizationId = validatedSelectedOrganizationId
+        ?? (profile?.organization_id && activeOrgIds.has(profile.organization_id) ? profile.organization_id : null);
+    const activeOrg = activeOrganizationId ? orgs.find((item) => item.id === activeOrganizationId) ?? null : null;
 
     const permissionRole = (activeOrg?.permissionRole ?? '').toLowerCase();
     const canViewPage = ORG_SETTINGS_UI_ROLES.has(permissionRole);
+    const settingsOrganizationId = canViewPage ? activeOrganizationId : null;
 
-    const { settings, loading, saving, error, save } = useOrgNotificationSettings(activeOrganizationId);
+    const { settings, loading, saving, error, save } = useOrgNotificationSettings(settingsOrganizationId);
     const [draftSettings, setDraftSettings] = useState<OrgNotificationSettings>(settings);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -82,7 +86,7 @@ export default function OrganizationNotificationSettings(): JSX.Element {
                 trigger: 'user',
                 error: err,
                 ids: {
-                    organizationId: activeOrganizationId,
+                    organizationId: settingsOrganizationId,
                 },
             }));
         }

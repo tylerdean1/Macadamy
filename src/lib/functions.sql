@@ -16630,7 +16630,7 @@ BEGIN
     om.organization_id,
     o.name AS organization_name,
     om.deleted_at AS membership_deleted_at,
-    COALESCE(om.permission_role::text, NULLIF(om.role::text, '')) AS role_last_known
+    om.permission_role::text AS role_last_known
   FROM public.organization_members om
   JOIN public.organizations o
     ON o.id = om.organization_id

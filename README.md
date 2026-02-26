@@ -390,6 +390,8 @@ wbs                       workflows
 
 - Notification fetches now apply personal silencing filters (category + event) before rendering in navbar and `/notifications`
 
+- Org-wide notification settings fetches in navbar/`/notifications` now gate by active membership org IDs (`get_my_member_organizations`) before calling `get_org_notification_settings`, and denied org IDs are suppressed for the session to prevent repeated background 403 loops after membership changes
+
 - Org-wide policy filters are applied client-side for known org-wide events while backend RPCs are pending; once backend settings RPCs are installed, these filters enforce org category/event toggles per organization
 
 - `/notifications` syncs filter/search in the URL query string (`?filter=unread&q=...`) for shareable/bookmarkable views
