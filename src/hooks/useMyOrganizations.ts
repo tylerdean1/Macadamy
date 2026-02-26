@@ -11,6 +11,18 @@ type OrgItem = {
     roleLabel: string | null;
 };
 
+function isActiveMembershipRow(item: {
+    role: string | null;
+    permissionRole: string | null;
+    jobTitleLabel: string | null;
+    roleLabel: string | null;
+}): boolean {
+    return item.role !== null
+        || item.permissionRole !== null
+        || item.jobTitleLabel !== null
+        || item.roleLabel !== null;
+}
+
 const ORG_CACHE_TTL_MS = 30_000;
 const orgCache = new Map<string, { items: OrgItem[]; fetchedAt: number }>();
 const orgInFlight = new Map<string, Promise<OrgItem[]>>();
@@ -129,6 +141,7 @@ async function fetchOrganizations(cacheKey: string): Promise<OrgItem[]> {
                     })(),
                 }))
                 .filter((item) => item.id !== '' && item.name !== '')
+                .filter((item) => isActiveMembershipRow(item))
             : [];
 
         orgCache.set(cacheKey, { items, fetchedAt: Date.now() });

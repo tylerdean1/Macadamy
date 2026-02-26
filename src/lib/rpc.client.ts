@@ -50,6 +50,27 @@ function shouldForceRpcFailure(rpcName: string): boolean {
   return forced.has('*') || forced.has(rpcName);
 }
 
+type RpcArgs = Record<string, unknown> | undefined;
+
+async function executeRpc<TReturn>(rpcName: string, args?: RpcArgs): Promise<TReturn> {
+  if (shouldForceRpcFailure(rpcName)) {
+    const forcedError = new Error(`[dev-force-fail] Forced RPC failure for ${rpcName}`);
+    console.error(`[rpcClient] ${rpcName} error:`, forcedError);
+    throw forcedError;
+  }
+
+  const { data, error } = args === undefined
+    // @ts-expect-error dynamic RPC name provided at runtime
+    ? await supabase.rpc(rpcName)
+    // @ts-expect-error dynamic RPC name provided at runtime
+    : await supabase.rpc(rpcName, args);
+  if (error) {
+    console.error(`[rpcClient] ${rpcName} error:`, error);
+    throw error;
+  }
+  return data as TReturn;
+}
+
 export const rpcClient: RpcClient = new Proxy({} as RpcClient, {
   get: (_target, prop: string) => {
     return async (args?: Record<string, unknown>) => {
@@ -57,22 +78,7 @@ export const rpcClient: RpcClient = new Proxy({} as RpcClient, {
         throw new Error(`[rpcClient] Unknown RPC: ${prop}`);
       }
 
-      if (shouldForceRpcFailure(prop)) {
-        const forcedError = new Error(`[dev-force-fail] Forced RPC failure for ${prop}`);
-        console.error(`[rpcClient] ${prop} error:`, forcedError);
-        throw forcedError;
-      }
-
-      const { data, error } = args === undefined
-        // @ts-expect-error dynamic RPC name provided at runtime
-        ? await supabase.rpc(prop)
-        // @ts-expect-error dynamic RPC name provided at runtime
-        : await supabase.rpc(prop, args);
-      if (error) {
-        console.error(`[rpcClient] ${prop} error:`, error);
-        throw error;
-      }
-      return data as unknown;
+      return executeRpc<unknown>(prop, args);
     };
   }
 });

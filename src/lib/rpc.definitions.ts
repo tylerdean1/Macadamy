@@ -219,6 +219,7 @@ export const RPC_NAMES = [
   'get_avatar_storage_paths',
   'get_contract_with_wkt',
   'get_job_titles_public',
+  'get_my_inactive_member_organizations',
   'get_my_member_organizations',
   'get_my_notification_settings',
   'get_my_org_profiles_minimal',

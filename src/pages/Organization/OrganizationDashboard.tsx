@@ -17,7 +17,9 @@ import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import ImageCropper from '@/pages/StandardPages/StandardPageComponents/ImageCropper';
 import { useRequireProfile } from '@/hooks/useRequireProfile';
-import { useMyOrganizations } from '@/hooks/useMyOrganizations';
+import { invalidateMyOrganizationsCache, useMyOrganizations } from '@/hooks/useMyOrganizations';
+import { invalidateMyInactiveOrganizationsCache } from '@/hooks/useMyInactiveOrganizations';
+import { useValidatedSelectedOrganization } from '@/hooks/useValidatedSelectedOrganization';
 import { rpcClient } from '@/lib/rpc.client';
 import { getStoragePublicUrl, uploadStorageFile } from '@/lib/storageClient';
 import { useAuthStore } from '@/lib/store';
@@ -248,7 +250,7 @@ function normalizePendingInviteRows(raw: unknown): PendingInviteItem[] {
 export default function OrganizationDashboard(): JSX.Element {
   useRequireProfile();
 
-  const { profile, setProfile } = useAuthStore();
+  const { profile, setProfile, setSelectedOrganizationId } = useAuthStore();
   const [payload, setPayload] = useState<OrgDashboardPayload | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | string | null>(null);
@@ -303,7 +305,12 @@ export default function OrganizationDashboard(): JSX.Element {
   const [changeRolePermissionRole, setChangeRolePermissionRole] = useState<OrgRoleType | ''>('');
   const [leaveOrganizationDialogOpen, setLeaveOrganizationDialogOpen] = useState(false);
   const [memberActionBusyKey, setMemberActionBusyKey] = useState<string | null>(null);
-  const { orgs: myOrganizations } = useMyOrganizations(profile?.id);
+  const { orgs: myOrganizations, loading: myOrganizationsLoading } = useMyOrganizations(profile?.id);
+  useValidatedSelectedOrganization(myOrganizations.map((org) => org.id));
+  const activeOrganizationIds = useMemo(() => new Set(myOrganizations.map((org) => org.id)), [myOrganizations]);
+  const hasActivePrimaryOrganization = Boolean(
+    profile?.organization_id && activeOrganizationIds.has(profile.organization_id)
+  );
   const safePayload = payload ?? emptyPayload;
   const canManagePendingInvites = profile?.role === 'system_admin' || profile?.role === 'org_admin';
 
@@ -823,10 +830,13 @@ export default function OrganizationDashboard(): JSX.Element {
         ...profile,
         organization_id: null,
       });
+      setSelectedOrganizationId(null);
+      invalidateMyOrganizationsCache(profile.id);
+      invalidateMyInactiveOrganizationsCache(profile.id);
 
       setLeaveOrganizationDialogOpen(false);
       toast.success(ORG_DASHBOARD_TOAST_MESSAGES.leaveOrganizationSuccess);
-      navigate('/organizations');
+      navigate('/dashboard');
     } catch (err) {
       console.error('[OrganizationDashboard] leave organization', err);
       toast.error(resolveOrgMemberActionErrorMessage(err, ORG_DASHBOARD_TOAST_MESSAGES.leaveOrganizationFailed));
@@ -879,7 +889,7 @@ export default function OrganizationDashboard(): JSX.Element {
   };
 
   const loadDashboard = useCallback(async () => {
-    if (!profile?.organization_id) {
+    if (!profile?.organization_id || !hasActivePrimaryOrganization) {
       setPayload(null);
       setIsLoading(false);
       return;
@@ -900,7 +910,17 @@ export default function OrganizationDashboard(): JSX.Element {
     } finally {
       setIsLoading(false);
     }
-  }, [page, profile?.organization_id]);
+  }, [hasActivePrimaryOrganization, page, profile?.organization_id]);
+
+  useEffect(() => {
+    if (!profile?.id || myOrganizationsLoading) {
+      return;
+    }
+
+    if (!hasActivePrimaryOrganization) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [hasActivePrimaryOrganization, myOrganizationsLoading, navigate, profile?.id]);
 
   const uploadLogoBlob = useCallback(async (blob: Blob): Promise<string> => {
     if (!safePayload.organization.id) {

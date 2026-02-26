@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useRequireProfile } from '@/hooks/useRequireProfile';
 import { useProfileDashboardPayload } from '@/hooks/useProfileDashboardPayload';
-import { useAuthStore } from '@/lib/store';
 import { useMyOrganizations } from '@/hooks/useMyOrganizations';
+import { useValidatedSelectedOrganization } from '@/hooks/useValidatedSelectedOrganization';
 
 import { Page } from '@/components/Layout';
 import { PageContainer } from '@/components/Layout';
@@ -14,14 +14,14 @@ export default function Dashboard() {
   useRequireProfile(); // Ensures user is logged in and profile exists
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { profile, projects, metrics, loading, error: dashboardError } = useProfileDashboardPayload();
-  const { selectedOrganizationId } = useAuthStore();
   const { orgs: myOrgs } = useMyOrganizations(profile?.id);
+  const { validatedSelectedOrganizationId } = useValidatedSelectedOrganization(myOrgs.map((org) => org.id));
 
   // derive override display values for ProfileSection when a dashboard org filter is active
-  const selectedMembership = selectedOrganizationId ? myOrgs.find(o => o.id === selectedOrganizationId) ?? null : null;
-  const overrideOrgName = selectedOrganizationId ? (selectedMembership?.name ?? null) : null;
-  const overrideOrgRole = selectedOrganizationId ? (selectedMembership?.roleLabel ?? null) : null;
-  const overrideOrgRoleLines = selectedOrganizationId
+  const selectedMembership = validatedSelectedOrganizationId ? myOrgs.find(o => o.id === validatedSelectedOrganizationId) ?? null : null;
+  const overrideOrgName = validatedSelectedOrganizationId ? (selectedMembership?.name ?? null) : null;
+  const overrideOrgRole = validatedSelectedOrganizationId ? (selectedMembership?.roleLabel ?? null) : null;
+  const overrideOrgRoleLines = validatedSelectedOrganizationId
     ? []
     : myOrgs
       .filter((org) => typeof org.roleLabel === 'string' && org.roleLabel.trim() !== '')

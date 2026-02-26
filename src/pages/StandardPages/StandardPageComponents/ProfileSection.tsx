@@ -5,7 +5,7 @@ import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import type { EnrichedProfile } from '@/lib/store';
 import { formatPhoneUS } from '@/lib/utils/formatters';
 import { useMyOrganizations } from '@/hooks/useMyOrganizations';
-import { useAuthStore } from '@/lib/store';
+import { useValidatedSelectedOrganization } from '@/hooks/useValidatedSelectedOrganization';
 import { usePrimaryOrganizationSwitch } from '@/hooks/usePrimaryOrganizationSwitch';
 
 export interface ProfileSectionProps {
@@ -20,8 +20,7 @@ export interface ProfileSectionProps {
 export function ProfileSection({ profile, onEdit, overrideOrgName = null, overrideOrgRole = null, overrideOrgRoleLines = [] }: ProfileSectionProps) {
   // Load organizations for the current profile to support org-switcher UI
   const { orgs, loading: orgsLoading } = useMyOrganizations(profile.id);
-  const authStore = useAuthStore();
-  const selectedOrganizationId = authStore.selectedOrganizationId;
+  const { validatedSelectedOrganizationId } = useValidatedSelectedOrganization(orgs.map((org) => org.id));
   const { isSwitching: isOrgSwitching, switchPrimaryOrganization } = usePrimaryOrganizationSwitch();
 
   const handleOrganizationSwitch = async (organizationId: string) => {
@@ -87,7 +86,7 @@ export function ProfileSection({ profile, onEdit, overrideOrgName = null, overri
               </p>
             ) : Array.isArray(orgs) && orgs.length > 1 ? (
               (() => {
-                const selectedId = selectedOrganizationId ?? profile.organization_id ?? orgs[0].id;
+                const selectedId = validatedSelectedOrganizationId ?? profile.organization_id ?? orgs[0].id;
                 const selected = orgs.find(o => o.id === selectedId) ?? orgs[0];
                 return (
                   <div className="flex items-center gap-3">

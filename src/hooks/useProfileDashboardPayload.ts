@@ -3,6 +3,7 @@ import { rpcClient } from '@/lib/rpc.client';
 import { logBackendError } from '@/lib/backendErrors';
 import { useAuthStore, type EnrichedProfile } from '@/lib/store';
 import type { EnrichedUserContract } from '@/lib/types';
+import { resolveSelectedOrganizationValidation } from '@/hooks/useValidatedSelectedOrganization';
 
 interface DashboardMetricsData {
     activeContracts: number;
@@ -76,7 +77,7 @@ const dedupeProjects = (items: EnrichedUserContract[]): EnrichedUserContract[] =
 };
 
 export function useProfileDashboardPayload(): DashboardPayloadResult {
-    const { user, profile, loading: authLoading, setProfile, selectedOrganizationId } = useAuthStore();
+    const { user, profile, loading: authLoading, setProfile, selectedOrganizationId, setSelectedOrganizationId } = useAuthStore();
     const [projects, setProjects] = useState<EnrichedUserContract[]>([]);
     const [metrics, setMetrics] = useState<DashboardMetricsData>({
         activeContracts: 0,
@@ -85,6 +86,7 @@ export function useProfileDashboardPayload(): DashboardPayloadResult {
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [validatedSelectedOrganizationId, setValidatedSelectedOrganizationId] = useState<string | null>(null);
     const requestSeq = useRef(0);
     const isMountedRef = useRef(true);
 
@@ -169,14 +171,25 @@ export function useProfileDashboardPayload(): DashboardPayloadResult {
                     .filter((row) => row.id !== '' && row.name !== '')
                 : [];
 
-            if (selectedOrganizationId) {
-                const scoped = await loadOrgScopedDashboard(selectedOrganizationId);
+            const activeOrgIds = new Set<string>(memberships.map((item) => item.id));
+            const selectionValidation = resolveSelectedOrganizationValidation(selectedOrganizationId, activeOrgIds);
+            if (selectionValidation.shouldClearSelection) {
+                setSelectedOrganizationId(null);
+            }
+
+            const activeSelectedOrganizationId = selectionValidation.validatedSelectedOrganizationId;
+            if (canUpdate()) {
+                setValidatedSelectedOrganizationId(activeSelectedOrganizationId);
+            }
+
+            if (activeSelectedOrganizationId) {
+                const scoped = await loadOrgScopedDashboard(activeSelectedOrganizationId);
                 if (canUpdate()) {
                     setProjects(sortProjectsByUpdatedDesc(scoped.projects));
                     setMetrics(scoped.metrics);
                 }
 
-                const selectedMembership = memberships.find((item) => item.id === selectedOrganizationId) ?? null;
+                const selectedMembership = memberships.find((item) => item.id === activeSelectedOrganizationId) ?? null;
                 const selectedOrgName = selectedMembership?.name ?? null;
                 const shouldUpdateProfile = profile.organization_name !== selectedOrgName;
                 if (shouldUpdateProfile) {
@@ -228,6 +241,10 @@ export function useProfileDashboardPayload(): DashboardPayloadResult {
                 }
 
                 return;
+            }
+
+            if (canUpdate()) {
+                setValidatedSelectedOrganizationId(null);
             }
 
             // Fallback for users with no active memberships: use profile-scoped payload
@@ -298,25 +315,26 @@ export function useProfileDashboardPayload(): DashboardPayloadResult {
                 setError(message);
                 setProjects([]);
                 setMetrics({ activeContracts: 0, openIssues: 0, pendingInspections: 0 });
+                setValidatedSelectedOrganizationId(null);
             }
         } finally {
             if (canUpdate()) {
                 setLoading(false);
             }
         }
-    }, [authLoading.initialization, authLoading.profile, authLoading.auth, profile, setProfile, user?.id, selectedOrganizationId, loadOrgScopedDashboard]);
+    }, [authLoading.initialization, authLoading.profile, authLoading.auth, profile, setProfile, setSelectedOrganizationId, user?.id, selectedOrganizationId, loadOrgScopedDashboard]);
 
     useEffect(() => {
         void loadPayload();
     }, [loadPayload]);
 
-    const displayedProjects = selectedOrganizationId
-        ? projects.filter((p) => p.organization_id === selectedOrganizationId)
+    const displayedProjects = validatedSelectedOrganizationId
+        ? projects.filter((p) => p.organization_id === validatedSelectedOrganizationId)
         : projects;
 
     return {
         profile,
-        projects: useMemo(() => displayedProjects, [projects, selectedOrganizationId]),
+        projects: useMemo(() => displayedProjects, [projects, validatedSelectedOrganizationId]),
         metrics,
         loading,
         error,

@@ -16609,6 +16609,40 @@ $$;
 
 
 --
+-- Name: get_my_inactive_member_organizations(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_my_inactive_member_organizations() RETURNS TABLE(organization_id uuid, organization_name text, membership_deleted_at timestamp with time zone, role_last_known text)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+DECLARE
+  v_user_id uuid;
+BEGIN
+  v_user_id := auth.uid();
+
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  RETURN QUERY
+  SELECT DISTINCT ON (om.organization_id)
+    om.organization_id,
+    o.name AS organization_name,
+    om.deleted_at AS membership_deleted_at,
+    COALESCE(om.permission_role::text, NULLIF(om.role::text, '')) AS role_last_known
+  FROM public.organization_members om
+  JOIN public.organizations o
+    ON o.id = om.organization_id
+  WHERE om.profile_id = v_user_id
+    AND om.deleted_at IS NOT NULL
+    AND o.deleted_at IS NULL
+  ORDER BY om.organization_id, om.deleted_at DESC;
+END;
+$$;
+
+
+--
 -- Name: get_my_member_organizations(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16626,47 +16660,17 @@ BEGIN
   END IF;
 
   RETURN QUERY
-  WITH my_profile AS (
-    SELECT p.id, p.organization_id
-    FROM public.profiles p
-    WHERE p.id = v_user_id
-      AND p.deleted_at IS NULL
-  ),
-  membership_orgs AS (
-    SELECT
-      o.id,
-      o.name,
-      COALESCE(om.permission_role::text, 'worker') AS role
-    FROM public.organization_members om
-    JOIN public.organizations o
-      ON o.id = om.organization_id
-    WHERE om.profile_id = v_user_id
-      AND om.deleted_at IS NULL
-      AND o.deleted_at IS NULL
-  ),
-  primary_org_fallback AS (
-    SELECT
-      o.id,
-      o.name,
-      NULL::text AS role
-    FROM my_profile p
-    JOIN public.organizations o
-      ON o.id = p.organization_id
-    LEFT JOIN public.organization_members om
-      ON om.organization_id = p.organization_id
-     AND om.profile_id = p.id
-     AND om.deleted_at IS NULL
-    WHERE p.organization_id IS NOT NULL
-      AND o.deleted_at IS NULL
-      AND om.id IS NULL
-  )
-  SELECT DISTINCT r.id, r.name, r.role
-  FROM (
-    SELECT * FROM membership_orgs
-    UNION ALL
-    SELECT * FROM primary_org_fallback
-  ) r
-  ORDER BY r.name ASC;
+  SELECT
+    o.id,
+    o.name,
+    COALESCE(om.permission_role::text, 'worker') AS role
+  FROM public.organization_members om
+  JOIN public.organizations o
+    ON o.id = om.organization_id
+  WHERE om.profile_id = v_user_id
+    AND om.deleted_at IS NULL
+    AND o.deleted_at IS NULL
+  ORDER BY o.name ASC;
 END;
 $$;
 

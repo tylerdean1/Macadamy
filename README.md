@@ -232,7 +232,7 @@ wbs                       workflows
 
 - Organization membership lists are loaded from `get_my_member_organizations()` (backed by `organization_members` + `organizations`) so navbar/profile org selectors show all active org memberships for the signed-in user
 
-- `get_my_member_organizations()` also falls back to the profile’s primary `organization_id` when legacy data is missing a membership row, preventing empty org dropdowns for existing users
+- Org selectors now defensively exclude rows that do not contain membership role/title data, preventing legacy fallback-only entries from appearing as active memberships
 
 - `useMyOrganizations` deduplicates in-flight requests and uses a short TTL cache so repeated org selectors across the same view do not trigger duplicate RPC calls
 
@@ -310,9 +310,17 @@ wbs                       workflows
 
 - Self-leave now uses dedicated backend RPC `leave_my_organization` (instead of member-removal RPC) so regular members can always leave without hitting admin/HR/owner removal guards
 
+- `selectedOrganizationId` is now treated as untrusted UI state and validated against active memberships through shared guard `useValidatedSelectedOrganization`; stale IDs are auto-cleared to `null` to prevent refresh/deeplink/multi-tab drift
+
+- Dashboard org-scoped payload calls are now gated by validated active membership; when no valid selected org exists the app falls back to profile-safe payload mode and avoids unauthorized org-scoped RPC calls
+
+- Successful self-leave now clears dashboard org selection, invalidates active/inactive membership caches, and routes to profile dashboard to avoid stale org-context calls
+
 - When a member leaves, `remove_org_member_with_reason` emits `workflow_update` notifications to org admins (`event: member_left_organization`), and notification rendering now formats this event in navbar + `/notifications`
 
 - Organization dropdown now includes a dedicated `↺ Rejoin Organization` action that routes to `/organizations/onboarding?mode=rejoin`, where users can submit a rejoin request through the existing invite workflow
+
+- Rejoin mode now uses card-only UX backed by dedicated inactive-membership data source (`useMyInactiveOrganizations` via RPC `get_my_inactive_member_organizations`), separated from active membership lists to avoid mixed contract semantics
 
 - Notification rendering now supports org-wide rejoin event payloads (`event: member_rejoined_organization`) so navbar + `/notifications` show explicit rejoin wording when a former member is approved back into an org
 

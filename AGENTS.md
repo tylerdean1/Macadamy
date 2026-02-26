@@ -49,7 +49,7 @@ Deliver migration SQL and then regenerate outputs with `npm run fulldb`.
 
 For this project, prefer delivering migration SQL directly in chat by default.
 
-- Default behavior: provide SQL snippets in chat for the user to apply manually.
+- Default behavior: provide SQL snippets in chat code boxes for the user to apply manually.
 - Only create files in `supabase/migrations/` when the user explicitly asks for a file.
 - When SQL is delivered in chat, clearly label it as a migration and include a short purpose line.
 - If the user sends an error report back from the query, resend a fully corrected SQL query, not just the fixed snippet.

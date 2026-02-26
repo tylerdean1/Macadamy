@@ -4,6 +4,7 @@ import { LogOut, Home, Building2, Bell, ChevronDown } from 'lucide-react'; // Ic
 import { useAuthStore } from '@/lib/store'; // Auth store for user management
 import { useAuthContext } from '@/context/AuthContext';
 import { useMyOrganizations } from '@/hooks/useMyOrganizations';
+import { useValidatedSelectedOrganization } from '@/hooks/useValidatedSelectedOrganization';
 import { usePrimaryOrganizationSwitch } from '@/hooks/usePrimaryOrganizationSwitch';
 import { fetchNotificationsForUser, getNotificationTimestamp, markNotificationAsRead, subscribeToNotifications } from '@/hooks/useNotificationsData';
 import { getNotificationDisplayMessage } from '@/lib/utils/notificationMessages';
@@ -17,9 +18,12 @@ type NotificationRow = Database['public']['Functions']['filter_notifications']['
 // Navigation bar component
 export function Navbar() {
   const navigate = useNavigate(); // Use hook for navigation
-  const { user, profile, selectedOrganizationId, setSelectedOrganizationId } = useAuthStore();
+  const { user, profile, setSelectedOrganizationId } = useAuthStore();
   const { logout } = useAuthContext();
   const { orgs: myOrgs, loading: myOrgsLoading } = useMyOrganizations(profile?.id);
+  const {
+    validatedSelectedOrganizationId,
+  } = useValidatedSelectedOrganization(myOrgs.map((org) => org.id));
   const { isSwitching: isOrgSwitching, switchPrimaryOrganization } = usePrimaryOrganizationSwitch();
 
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
@@ -241,7 +245,7 @@ export function Navbar() {
                   <button
                     role="menuitem"
                     type="button"
-                    className={`w-full text-left px-4 py-2 text-sm ${selectedOrganizationId === null ? 'text-white bg-background' : 'text-gray-300 hover:bg-background'}`}
+                    className={`w-full text-left px-4 py-2 text-sm ${validatedSelectedOrganizationId === null ? 'text-white bg-background' : 'text-gray-300 hover:bg-background'}`}
                     onClick={() => { setSelectedOrganizationId(null); setIsDashboardOpen(false); }}
                   >
                     All organizations
@@ -252,7 +256,7 @@ export function Navbar() {
                         key={o.id}
                         role="menuitem"
                         type="button"
-                        className={`w-full text-left px-4 py-2 text-sm ${selectedOrganizationId === o.id ? 'text-white bg-background' : 'text-gray-300 hover:bg-background'}`}
+                        className={`w-full text-left px-4 py-2 text-sm ${validatedSelectedOrganizationId === o.id ? 'text-white bg-background' : 'text-gray-300 hover:bg-background'}`}
                         onClick={() => { setSelectedOrganizationId(o.id); setIsDashboardOpen(false); }}
                       >
                         {o.name}{o.roleLabel ? ` — ${o.roleLabel}` : ''}

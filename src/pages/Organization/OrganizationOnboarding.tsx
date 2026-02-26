@@ -7,6 +7,7 @@ import { rpcClient } from '@/lib/rpc.client';
 import { useAuthStore } from '@/lib/store';
 import { resolveInviteRequestErrorMessage } from '@/lib/utils/inviteErrorMessages';
 import { invalidateMyOrganizationsCache } from '@/hooks/useMyOrganizations';
+import { invalidateMyInactiveOrganizationsCache, useMyInactiveOrganizations } from '@/hooks/useMyInactiveOrganizations';
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 
@@ -30,6 +31,11 @@ export default function OrganizationOnboarding(): JSX.Element {
     const [isSearching, setIsSearching] = useState(false);
     const [joinModalOpen, setJoinModalOpen] = useState(false);
     const [orgToJoin, setOrgToJoin] = useState<{ id: string; name: string } | null>(null);
+    const {
+        orgs: inactiveMemberships,
+        loading: inactiveMembershipsLoading,
+        error: inactiveMembershipsError,
+    } = useMyInactiveOrganizations(profile?.id ?? null);
 
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
@@ -45,6 +51,9 @@ export default function OrganizationOnboarding(): JSX.Element {
 
     useEffect(() => {
         let cancelled = false;
+        if (isRejoinFlow) {
+            return;
+        }
         const q = orgName.trim();
         if (q.length < 2) {
             setSearchResults([]);
@@ -86,6 +95,8 @@ export default function OrganizationOnboarding(): JSX.Element {
 
             // refresh profile & UI
             await useAuthStore.getState().loadProfile(profile.id);
+            invalidateMyOrganizationsCache(profile.id);
+            invalidateMyInactiveOrganizationsCache(profile.id);
             toast.success(isRejoinFlow
                 ? 'Rejoin request submitted — org admins were notified'
                 : 'Membership request submitted — org admins were notified');
@@ -123,14 +134,92 @@ export default function OrganizationOnboarding(): JSX.Element {
                 p_logo_url: logoUrl ?? undefined,
             });
             invalidateMyOrganizationsCache(profile?.id ?? null);
+            invalidateMyInactiveOrganizationsCache(profile?.id ?? null);
             toast.success('Organization created!');
             navigate('/dashboard');
-        } catch {
+        } catch (err) {
+            console.error('[OrganizationOnboarding] create_my_organization error', err);
             toast.error('Error creating organization');
         } finally {
             setIsBusy(false);
         }
     };
+
+    if (isRejoinFlow) {
+        return (
+            <div className="max-w-2xl mx-auto mt-16 p-6 bg-background-light rounded shadow border border-background-lighter">
+                <h1 className="text-2xl font-bold mb-2 text-white">Rejoin an Organization</h1>
+                <p className="text-sm text-gray-300 mb-6">
+                    Choose an organization you previously left and submit a rejoin request.
+                </p>
+
+                {inactiveMembershipsError && (
+                    <div className="rounded border border-red-700 bg-red-900/20 p-3 text-sm text-red-300 mb-4">
+                        {inactiveMembershipsError}
+                    </div>
+                )}
+
+                {inactiveMembershipsLoading ? (
+                    <p className="text-sm text-gray-400">Loading previous organizations…</p>
+                ) : inactiveMemberships.length === 0 ? (
+                    <div className="rounded border border-background-lighter bg-background p-4 text-sm text-gray-300">
+                        No inactive memberships found.
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {inactiveMemberships.map((membership) => (
+                            <div
+                                key={`${membership.organizationId}:${membership.membershipDeletedAt}`}
+                                className="rounded border border-background-lighter bg-background p-4"
+                            >
+                                <p className="text-white font-semibold">{membership.organizationName}</p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    Left on {new Date(membership.membershipDeletedAt).toLocaleDateString()}
+                                    {membership.roleLastKnown ? ` • Last role: ${membership.roleLastKnown}` : ''}
+                                </p>
+                                <div className="mt-3">
+                                    <Button
+                                        onClick={() => {
+                                            setOrgToJoin({
+                                                id: membership.organizationId,
+                                                name: membership.organizationName,
+                                            });
+                                            setJoinModalOpen(true);
+                                        }}
+                                        isLoading={isBusy && orgToJoin?.id === membership.organizationId}
+                                        disabled={isBusy}
+                                    >
+                                        Request Rejoin
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                <div className="flex justify-end mt-6">
+                    <Button variant="outline" onClick={() => navigate('/dashboard')} disabled={isBusy}>Back</Button>
+                </div>
+
+                <Dialog open={joinModalOpen} onOpenChange={setJoinModalOpen}>
+                    <DialogContent className="max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="text-white">Request to rejoin</DialogTitle>
+                            <DialogDescription className="text-sm text-gray-400">
+                                {`Request to rejoin "${orgToJoin?.name ?? ''}"`}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <div className="flex justify-end gap-2 mt-4">
+                                <Button variant="outline" onClick={() => setJoinModalOpen(false)} disabled={isBusy}>Cancel</Button>
+                                <Button onClick={async () => { await handleRequestMembership(); }} isLoading={isBusy}>Request Rejoin</Button>
+                            </div>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-xl mx-auto mt-16 p-6 bg-background-light rounded shadow border border-background-lighter">

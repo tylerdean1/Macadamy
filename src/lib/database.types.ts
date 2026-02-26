@@ -14587,6 +14587,15 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_my_inactive_member_organizations: {
+        Args: never
+        Returns: {
+          membership_deleted_at: string
+          organization_id: string
+          organization_name: string
+          role_last_known: string
+        }[]
+      }
       get_my_member_organizations: {
         Args: never
         Returns: {
