@@ -14671,6 +14671,7 @@ export type Database = {
           id: string
           invited_by_profile_id: string
           invited_profile_id: string
+          is_rejoin: boolean
           organization_id: string
           requested_job_title_id: string
           requested_job_title_name: string
@@ -16621,6 +16622,34 @@ export type Database = {
       remove_profile_from_contract: {
         Args: { p_contract_id: string; p_profile_id: string }
         Returns: undefined
+      }
+      request_my_organization_membership: {
+        Args: { p_comment?: string; p_organization_id: string }
+        Returns: {
+          comment: string | null
+          created_at: string
+          id: string
+          invited_by_profile_id: string
+          invited_profile_id: string
+          organization_id: string
+          requested_job_title_id: string | null
+          requested_permission_role:
+            | Database["public"]["Enums"]["org_role"]
+            | null
+          responded_at: string | null
+          reviewed_job_title_id: string | null
+          reviewed_permission_role:
+            | Database["public"]["Enums"]["org_role"]
+            | null
+          role: string | null
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_invites"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       review_organization_invite: {
         Args: {

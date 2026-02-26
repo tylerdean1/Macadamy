@@ -334,6 +334,7 @@ export const RPC_NAMES = [
   'refresh_project_cost_summary',
   'remove_org_member_with_reason',
   'remove_profile_from_contract',
+  'request_my_organization_membership',
   'review_organization_invite',
   'rpc_calculator_template_payload',
   'rpc_calculators_payload',

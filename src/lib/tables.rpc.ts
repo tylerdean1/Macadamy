@@ -3818,6 +3818,7 @@ export type TableRpcMap = {
         id: string
         invited_by_profile_id: string
         invited_profile_id: string
+        is_rejoin: boolean
         organization_id: string
         requested_job_title_id: string
         requested_job_title_name: string
@@ -4595,6 +4596,7 @@ export type TableRpcMap = {
         id: string
         invited_by_profile_id: string
         invited_profile_id: string
+        is_rejoin: boolean
         organization_id: string
         requested_job_title_id: string
         requested_job_title_name: string

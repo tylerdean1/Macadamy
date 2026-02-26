@@ -94,6 +94,7 @@ const ORG_DASHBOARD_TOAST_MESSAGES = {
   addJobTitleSuccess: 'Job title added',
   addJobTitleFailed: 'Unable to add job title',
   membershipApproved: 'Membership approved',
+  memberReadmitted: 'Member re-admitted',
   membershipDeclined: 'Membership declined',
   cannotRemoveSelf: 'You cannot remove your own membership.',
   provideRemovalReason: 'Please provide a removal reason.',
@@ -215,6 +216,7 @@ type PendingInviteItem = Database['public']['Tables']['organization_invites']['R
   requester_avatar_url: string | null;
   requester_avatar_id: string | null;
   requested_job_title_name?: string | null;
+  is_rejoin?: boolean;
 };
 
 function normalizePendingInviteRows(raw: unknown): PendingInviteItem[] {
@@ -243,6 +245,7 @@ function normalizePendingInviteRows(raw: unknown): PendingInviteItem[] {
       requester_avatar_url: typeof item.requester_avatar_url === 'string' ? item.requester_avatar_url : null,
       requester_avatar_id: typeof item.requester_avatar_id === 'string' ? item.requester_avatar_id : null,
       requested_job_title_name: typeof item.requested_job_title_name === 'string' ? item.requested_job_title_name : null,
+      is_rejoin: typeof item.is_rejoin === 'boolean' ? item.is_rejoin : false,
     }))
     .filter((item) => item.id !== '' && item.organization_id !== '' && item.invited_profile_id !== '');
 }
@@ -683,7 +686,7 @@ export default function OrganizationDashboard(): JSX.Element {
       });
 
       toast.success(decision === 'accepted'
-        ? ORG_DASHBOARD_TOAST_MESSAGES.membershipApproved
+        ? (invite.is_rejoin ? ORG_DASHBOARD_TOAST_MESSAGES.memberReadmitted : ORG_DASHBOARD_TOAST_MESSAGES.membershipApproved)
         : ORG_DASHBOARD_TOAST_MESSAGES.membershipDeclined);
       await Promise.all([
         loadDashboard(),
@@ -1406,7 +1409,14 @@ export default function OrganizationDashboard(): JSX.Element {
                                 )}
                               </div>
                               <div>
-                                <p className="text-sm font-medium text-white">{inv.requester_full_name ?? inv.invited_profile_id}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium text-white">{inv.requester_full_name ?? inv.invited_profile_id}</p>
+                                  {inv.is_rejoin && (
+                                    <span className="rounded border border-blue-500/50 bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-300">
+                                      Rejoin Request
+                                    </span>
+                                  )}
+                                </div>
                                 {inv.requester_email && <p className="text-xs text-gray-400">{inv.requester_email}</p>}
                                 {inv.requester_phone && <p className="text-xs text-gray-400">{formatPhoneUS(inv.requester_phone)}</p>}
                                 {inv.requester_location && <p className="text-xs text-gray-400">{inv.requester_location}</p>}
@@ -1529,14 +1539,14 @@ export default function OrganizationDashboard(): JSX.Element {
                                     || !approvePermissionRoleByInviteId[inv.id]
                                   }
                                 >
-                                  {inviteActionId === inv.id ? 'Updating…' : 'Approve'}
+                                  {inviteActionId === inv.id ? 'Updating…' : (inv.is_rejoin ? 'Re-admit User' : 'Approve')}
                                 </button>
                                 <button
                                   className="px-3 py-1 rounded bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                                   onClick={() => { void handleReviewInvite(inv, 'declined'); }}
                                   disabled={inviteActionId != null}
                                 >
-                                  {inviteActionId === inv.id ? 'Updating…' : 'Decline'}
+                                  {inviteActionId === inv.id ? 'Updating…' : 'Deny'}
                                 </button>
                               </div>
                             </div>

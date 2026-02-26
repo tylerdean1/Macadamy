@@ -322,6 +322,10 @@ wbs                       workflows
 
 - Rejoin mode now uses card-only UX backed by dedicated inactive-membership data source (`useMyInactiveOrganizations` via RPC `get_my_inactive_member_organizations`), separated from active membership lists to avoid mixed contract semantics
 
+- Rejoin requests now use dedicated self-service RPC `request_my_organization_membership(...)`, so request auth context is derived from `auth.uid()` instead of client-supplied invite actor/profile ids
+
+- Pending membership requests remain in a single list, but rejoin entries are labeled with a `Rejoin Request` badge and action copy changes to `Re-admit User` / `Deny`
+
 - Notification rendering now supports org-wide rejoin event payloads (`event: member_rejoined_organization`) so navbar + `/notifications` show explicit rejoin wording when a former member is approved back into an org
 
 - Member title updates now support org-wide broadcast notifications (`event: member_job_title_changed_broadcast`) rendered as `<name>'s title was just changed from <previous> to <current>!`

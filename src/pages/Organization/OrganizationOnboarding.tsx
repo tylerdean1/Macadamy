@@ -84,11 +84,9 @@ export default function OrganizationOnboarding(): JSX.Element {
         setIsBusy(true);
         try {
             // create a membership request/rejoin request (server will notify org admins)
-            await rpcClient.insert_organization_invites({
-                _input: {
-                    organization_id: orgToJoin.id,
-                    status: 'pending'
-                }
+            await rpcClient.request_my_organization_membership({
+                p_organization_id: orgToJoin.id,
+                p_comment: null,
             });
 
             // refresh profile & UI
@@ -103,7 +101,7 @@ export default function OrganizationOnboarding(): JSX.Element {
             setSearchResults([]);
             setOrgName('');
         } catch (err) {
-            console.error('[OrganizationOnboarding] insert_organization_invites error', err);
+            console.error('[OrganizationOnboarding] request organization membership error', err);
             toast.error(resolveInviteRequestErrorMessage(err));
         } finally {
             setIsBusy(false);

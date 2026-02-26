@@ -16887,56 +16887,53 @@ $$;
 -- Name: get_pending_organization_invites_with_profiles(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_pending_organization_invites_with_profiles(p_organization_id uuid) RETURNS TABLE(id uuid, organization_id uuid, invited_profile_id uuid, invited_by_profile_id uuid, status text, role text, comment text, created_at timestamp with time zone, responded_at timestamp with time zone, requester_full_name text, requester_email text, requester_phone text, requester_location text, requester_avatar_url text, requester_avatar_id uuid, requested_permission_role public.org_role, requested_job_title_id uuid, requested_job_title_name text, reviewed_permission_role public.org_role, reviewed_job_title_id uuid)
+CREATE FUNCTION public.get_pending_organization_invites_with_profiles(p_organization_id uuid) RETURNS TABLE(id uuid, organization_id uuid, invited_profile_id uuid, invited_by_profile_id uuid, status text, role text, comment text, created_at timestamp with time zone, responded_at timestamp with time zone, requester_full_name text, requester_email text, requester_phone text, requester_location text, requester_avatar_url text, requester_avatar_id uuid, requested_permission_role public.org_role, requested_job_title_id uuid, requested_job_title_name text, reviewed_permission_role public.org_role, reviewed_job_title_id uuid, is_rejoin boolean)
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
-declare
+DECLARE
   v_user_id uuid := auth.uid();
   v_global_role public.user_role_type;
   v_is_member boolean := false;
-begin
-  if v_user_id is null then
-    raise exception 'Not authenticated';
-  end if;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
 
-  if p_organization_id is null then
-    raise exception 'organization_id is required';
-  end if;
+  IF p_organization_id IS NULL THEN
+    RAISE EXCEPTION 'organization_id is required';
+  END IF;
 
-  select p.role
-    into v_global_role
-  from public.profiles p
-  where p.id = v_user_id
-    and p.deleted_at is null;
+  SELECT p.role
+    INTO v_global_role
+  FROM public.profiles p
+  WHERE p.id = v_user_id
+    AND p.deleted_at IS NULL;
 
-  if v_global_role is null then
-    raise exception 'Access denied'
-      using errcode = '42501';
-  end if;
+  IF v_global_role IS NULL THEN
+    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+  END IF;
 
-  if v_global_role <> 'system_admin' then
-    select exists (
-      select 1
-      from public.organization_members om
-      where om.organization_id = p_organization_id
-        and om.profile_id = v_user_id
-        and om.deleted_at is null
-    ) into v_is_member;
+  IF v_global_role <> 'system_admin' THEN
+    SELECT EXISTS (
+      SELECT 1
+      FROM public.organization_members om
+      WHERE om.organization_id = p_organization_id
+        AND om.profile_id = v_user_id
+        AND om.deleted_at IS NULL
+    ) INTO v_is_member;
 
-    if not v_is_member then
-      raise exception 'Access denied'
-        using errcode = '42501';
-    end if;
-  end if;
+    IF NOT v_is_member THEN
+      RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+    END IF;
+  END IF;
 
-  if v_global_role::text not in ('system_admin', 'org_admin') then
-    raise exception 'Access denied'
-      using errcode = '42501';
-  end if;
+  IF v_global_role::text NOT IN ('system_admin', 'org_admin') THEN
+    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+  END IF;
 
-  return query
-  select
+  RETURN QUERY
+  SELECT
     oi.id,
     oi.organization_id,
     oi.invited_profile_id,
@@ -16946,31 +16943,38 @@ begin
     oi.comment,
     oi.created_at,
     oi.responded_at,
-    pr.full_name as requester_full_name,
-    pr.email as requester_email,
-    pr.phone as requester_phone,
-    pr.location as requester_location,
-    av.url as requester_avatar_url,
-    pr.avatar_id as requester_avatar_id,
+    pr.full_name AS requester_full_name,
+    pr.email AS requester_email,
+    pr.phone AS requester_phone,
+    pr.location AS requester_location,
+    av.url AS requester_avatar_url,
+    pr.avatar_id AS requester_avatar_id,
     oi.requested_permission_role,
     oi.requested_job_title_id,
-    jt_requested.name as requested_job_title_name,
+    jt_requested.name AS requested_job_title_name,
     oi.reviewed_permission_role,
-    oi.reviewed_job_title_id
-  from public.organization_invites oi
-  left join public.profiles pr
-    on pr.id = oi.invited_profile_id
-   and pr.deleted_at is null
-  left join public.avatars av
-    on av.id = pr.avatar_id
-   and av.deleted_at is null
-  left join public.job_titles jt_requested
-    on jt_requested.id = oi.requested_job_title_id
-   and jt_requested.deleted_at is null
-  where oi.organization_id = p_organization_id
-    and oi.status = 'pending'
-  order by oi.created_at asc;
-end;
+    oi.reviewed_job_title_id,
+    EXISTS (
+      SELECT 1
+      FROM public.organization_members om_prev
+      WHERE om_prev.organization_id = oi.organization_id
+        AND om_prev.profile_id = oi.invited_profile_id
+        AND om_prev.deleted_at IS NOT NULL
+    ) AS is_rejoin
+  FROM public.organization_invites oi
+  LEFT JOIN public.profiles pr
+    ON pr.id = oi.invited_profile_id
+   AND pr.deleted_at IS NULL
+  LEFT JOIN public.avatars av
+    ON av.id = pr.avatar_id
+   AND av.deleted_at IS NULL
+  LEFT JOIN public.job_titles jt_requested
+    ON jt_requested.id = oi.requested_job_title_id
+   AND jt_requested.deleted_at IS NULL
+  WHERE oi.organization_id = p_organization_id
+    AND oi.status = 'pending'
+  ORDER BY oi.created_at ASC;
+END;
 $$;
 
 
@@ -25184,6 +25188,127 @@ begin
     and user_id = p_profile_id
     and deleted_at is null;
 end;
+$$;
+
+
+--
+-- Name: request_my_organization_membership(uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.request_my_organization_membership(p_organization_id uuid, p_comment text DEFAULT NULL::text) RETURNS SETOF public.organization_invites
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_actor_id uuid := auth.uid();
+  v_org_exists boolean := false;
+  v_active_member_exists boolean := false;
+  v_invite public.organization_invites;
+  v_admin record;
+  v_actor_name text;
+  v_org_name text;
+BEGIN
+  IF v_actor_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  IF p_organization_id IS NULL THEN
+    RAISE EXCEPTION 'organization_id is required';
+  END IF;
+
+  SELECT o.name
+  INTO v_org_name
+  FROM public.organizations o
+  WHERE o.id = p_organization_id
+    AND o.deleted_at IS NULL;
+
+  v_org_exists := v_org_name IS NOT NULL;
+
+  IF NOT v_org_exists THEN
+    RAISE EXCEPTION 'Organization not found';
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.profile_id = v_actor_id
+      AND om.deleted_at IS NULL
+  ) INTO v_active_member_exists;
+
+  IF v_active_member_exists THEN
+    RAISE EXCEPTION 'membership exists: already a member of this organization';
+  END IF;
+
+  SELECT p.full_name
+  INTO v_actor_name
+  FROM public.profiles p
+  WHERE p.id = v_actor_id;
+
+  INSERT INTO public.organization_invites (
+    organization_id,
+    invited_profile_id,
+    invited_by_profile_id,
+    status,
+    comment,
+    created_at,
+    responded_at,
+    reviewed_permission_role,
+    reviewed_job_title_id
+  )
+  VALUES (
+    p_organization_id,
+    v_actor_id,
+    v_actor_id,
+    'pending',
+    NULLIF(TRIM(p_comment), ''),
+    now(),
+    NULL,
+    NULL,
+    NULL
+  )
+  ON CONFLICT (organization_id, invited_profile_id) DO UPDATE
+  SET
+    invited_by_profile_id = EXCLUDED.invited_by_profile_id,
+    status = 'pending',
+    comment = EXCLUDED.comment,
+    created_at = now(),
+    responded_at = NULL,
+    reviewed_permission_role = NULL,
+    reviewed_job_title_id = NULL
+  RETURNING * INTO v_invite;
+
+  FOR v_admin IN
+    SELECT om.profile_id
+    FROM public.organization_members om
+    JOIN public.profiles p ON p.id = om.profile_id
+    WHERE om.organization_id = p_organization_id
+      AND om.deleted_at IS NULL
+      AND p.deleted_at IS NULL
+      AND om.permission_role IN ('owner', 'admin', 'hr')
+  LOOP
+    PERFORM public.insert_notifications(
+      jsonb_build_object(
+        'user_id', v_admin.profile_id,
+        'organization_id', p_organization_id,
+        'category', 'general',
+        'message', COALESCE(v_actor_name, 'A user') || ' is requesting to rejoin ' || COALESCE(v_org_name, 'the organization') || '.',
+        'payload', jsonb_build_object(
+          'event', 'membership_request_submitted',
+          'organization_id', p_organization_id,
+          'organization_name', v_org_name,
+          'invite_id', v_invite.id,
+          'invited_profile_id', v_actor_id,
+          'invited_profile_name', v_actor_name,
+          'requested_at', now(),
+          'is_rejoin_request', true
+        )
+      )
+    );
+  END LOOP;
+
+  RETURN NEXT v_invite;
+END;
 $$;
 
 
