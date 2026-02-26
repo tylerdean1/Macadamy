@@ -106,6 +106,22 @@ function resolveMemberLeftOrganizationMessage(payloadObj: Record<string, unknown
     return `${memberName} left ${organizationName}.`;
 }
 
+function resolveMemberRejoinedOrganizationMessage(payloadObj: Record<string, unknown>): string | null {
+    const organizationName = asNonEmptyString(payloadObj.organization_name);
+    const memberName = asNonEmptyString(payloadObj.affected_profile_name);
+    const actorName = asNonEmptyString(payloadObj.actor_name);
+
+    if (!organizationName || !memberName) {
+        return null;
+    }
+
+    if (actorName && actorName !== memberName) {
+        return `${memberName} rejoined ${organizationName}. Processed by ${actorName}.`;
+    }
+
+    return `${memberName} rejoined ${organizationName}.`;
+}
+
 function resolveMemberJobTitleChangedBroadcastMessage(payloadObj: Record<string, unknown>): string | null {
     const memberName = asNonEmptyString(payloadObj.affected_profile_name);
     const previousTitle = asNonEmptyString(payloadObj.previous_job_title_name) ?? 'Unassigned';
@@ -118,28 +134,28 @@ function resolveMemberJobTitleChangedBroadcastMessage(payloadObj: Record<string,
     return `${memberName}'s title was just changed from ${previousTitle} to ${currentTitle}!`;
 }
 
-    function resolveMemberRoleChangedMessage(payloadObj: Record<string, unknown>): string | null {
-        const organizationName = asNonEmptyString(payloadObj.organization_name);
-        if (!organizationName) return null;
+function resolveMemberRoleChangedMessage(payloadObj: Record<string, unknown>): string | null {
+    const organizationName = asNonEmptyString(payloadObj.organization_name);
+    if (!organizationName) return null;
 
-        const updatedRole = asNonEmptyString(payloadObj.updated_permission_role)
-            ?? asNonEmptyString(payloadObj.selected_permission_role)
-            ?? asNonEmptyString(payloadObj.permission_role);
-        const previousRole = asNonEmptyString(payloadObj.previous_permission_role);
+    const updatedRole = asNonEmptyString(payloadObj.updated_permission_role)
+        ?? asNonEmptyString(payloadObj.selected_permission_role)
+        ?? asNonEmptyString(payloadObj.permission_role);
+    const previousRole = asNonEmptyString(payloadObj.previous_permission_role);
 
-        const updatedRoleLabel = updatedRole ? roleToLabel(updatedRole) : null;
-        const previousRoleLabel = previousRole ? roleToLabel(previousRole) : null;
+    const updatedRoleLabel = updatedRole ? roleToLabel(updatedRole) : null;
+    const previousRoleLabel = previousRole ? roleToLabel(previousRole) : null;
 
-        if (updatedRoleLabel && previousRoleLabel) {
-            return `Your role in ${organizationName} has been changed from ${previousRoleLabel} to ${updatedRoleLabel}.`;
-        }
-
-        if (updatedRoleLabel) {
-            return `Your role in ${organizationName} has been changed to ${updatedRoleLabel}.`;
-        }
-
-        return `Your role in ${organizationName} has been changed.`;
+    if (updatedRoleLabel && previousRoleLabel) {
+        return `Your role in ${organizationName} has been changed from ${previousRoleLabel} to ${updatedRoleLabel}.`;
     }
+
+    if (updatedRoleLabel) {
+        return `Your role in ${organizationName} has been changed to ${updatedRoleLabel}.`;
+    }
+
+    return `Your role in ${organizationName} has been changed.`;
+}
 
 export function getNotificationDisplayMessage(notification: NotificationDisplayInput): string {
     const payloadObj = asObject(notification.payload);
@@ -148,7 +164,7 @@ export function getNotificationDisplayMessage(notification: NotificationDisplayI
     }
 
     const eventName = asNonEmptyString(payloadObj.event);
-    if (eventName !== 'membership_request_reviewed' && eventName !== 'member_removed' && eventName !== 'member_job_title_changed' && eventName !== 'member_left_organization' && eventName !== 'member_job_title_changed_broadcast' && eventName !== 'member_permission_role_changed' && notification.category !== 'workflow_update') {
+    if (eventName !== 'membership_request_reviewed' && eventName !== 'member_removed' && eventName !== 'member_job_title_changed' && eventName !== 'member_left_organization' && eventName !== 'member_rejoined_organization' && eventName !== 'member_job_title_changed_broadcast' && eventName !== 'member_permission_role_changed' && notification.category !== 'workflow_update') {
         return notification.message;
     }
 
@@ -162,6 +178,10 @@ export function getNotificationDisplayMessage(notification: NotificationDisplayI
 
     if (eventName === 'member_left_organization') {
         return resolveMemberLeftOrganizationMessage(payloadObj) ?? notification.message;
+    }
+
+    if (eventName === 'member_rejoined_organization') {
+        return resolveMemberRejoinedOrganizationMessage(payloadObj) ?? notification.message;
     }
 
     if (eventName === 'member_job_title_changed_broadcast') {

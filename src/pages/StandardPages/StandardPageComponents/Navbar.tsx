@@ -325,6 +325,14 @@ export function Navbar() {
                     >
                       + Add Organization
                     </Link>
+                    <Link
+                      role="menuitem"
+                      to="/organizations/onboarding?mode=rejoin"
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-background"
+                      onClick={() => { setIsOrgMenuOpen(false); }}
+                    >
+                      ↺ Rejoin Organization
+                    </Link>
                   </div>
                 </div>
               )}

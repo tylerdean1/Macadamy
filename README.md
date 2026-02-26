@@ -310,6 +310,10 @@ wbs                       workflows
 
 - When a member leaves, `remove_org_member_with_reason` emits `workflow_update` notifications to org admins (`event: member_left_organization`), and notification rendering now formats this event in navbar + `/notifications`
 
+- Organization dropdown now includes a dedicated `↺ Rejoin Organization` action that routes to `/organizations/onboarding?mode=rejoin`, where users can submit a rejoin request through the existing invite workflow
+
+- Notification rendering now supports org-wide rejoin event payloads (`event: member_rejoined_organization`) so navbar + `/notifications` show explicit rejoin wording when a former member is approved back into an org
+
 - Member title updates now support org-wide broadcast notifications (`event: member_job_title_changed_broadcast`) rendered as `<name>'s title was just changed from <previous> to <current>!`
 
 - Notification formatter now also supports member-role change payloads (`event: member_permission_role_changed`) so navbar + `/notifications` render explicit before/after role wording

@@ -2217,21 +2217,22 @@ CREATE FUNCTION public.delete_organization_members(_id uuid) RETURNS void
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
     AS $$
-        DECLARE
-          _row public.organization_members;
-        BEGIN
-          SELECT * INTO _row FROM public.organization_members WHERE id = _id;
-          IF _row IS NULL THEN
-            RAISE EXCEPTION 'row not found' USING DETAIL = jsonb_build_object('id', _id);
-          END IF;
+DECLARE
+  _row public.organization_members;
+BEGIN
+  SELECT * INTO _row FROM public.organization_members WHERE id = _id;
+  IF _row IS NULL THEN
+    RAISE EXCEPTION 'row not found' USING DETAIL = jsonb_build_object('id', _id);
+  END IF;
 
-          PERFORM check_access('delete','organization_members', _row.project_id, _row.organization_id);
+  -- organization_members is org-scoped (no project_id column)
+  PERFORM check_access('delete','organization_members', NULL, _row.organization_id);
 
-          UPDATE public.organization_members
-             SET deleted_at = now()
-           WHERE id = _id;
-        END;
-        $$;
+  UPDATE public.organization_members
+     SET deleted_at = now()
+   WHERE id = _id;
+END;
+$$;
 
 
 --
@@ -21228,12 +21229,26 @@ BEGIN
 
   INSERT INTO public.organization_invites (
     id, organization_id, invited_profile_id, invited_by_profile_id, status, comment,
-    created_at, responded_at, requested_permission_role, requested_job_title_id, role
+    created_at, responded_at, requested_permission_role, requested_job_title_id, role,
+    reviewed_permission_role, reviewed_job_title_id
   )
   VALUES (
-    v_id, v_organization_id, v_invited_profile_id, v_invited_by_profile_id, v_status, v_comment,
-    v_created_at, v_responded_at, v_requested_permission_role, v_requested_job_title_id, v_legacy_role_uuid
+    v_id, v_organization_id, v_invited_profile_id, v_invited_by_profile_id, 'pending', v_comment,
+    v_created_at, NULL, v_requested_permission_role, v_requested_job_title_id, v_legacy_role_uuid,
+    NULL, NULL
   )
+  ON CONFLICT (organization_id, invited_profile_id) DO UPDATE
+  SET
+    invited_by_profile_id = EXCLUDED.invited_by_profile_id,
+    status = 'pending',
+    comment = EXCLUDED.comment,
+    created_at = now(),
+    responded_at = NULL,
+    requested_permission_role = COALESCE(EXCLUDED.requested_permission_role, public.organization_invites.requested_permission_role),
+    requested_job_title_id = COALESCE(EXCLUDED.requested_job_title_id, public.organization_invites.requested_job_title_id),
+    role = COALESCE(EXCLUDED.role, public.organization_invites.role),
+    reviewed_permission_role = NULL,
+    reviewed_job_title_id = NULL
   RETURNING * INTO _new_row;
 
   FOR _admin IN
@@ -24895,16 +24910,19 @@ BEGIN
   IF v_actor_id IS NULL THEN
     RAISE EXCEPTION 'Not authenticated';
   END IF;
+
   IF p_org_id IS NULL OR p_profile_id IS NULL THEN
     RAISE EXCEPTION 'Missing required inputs';
   END IF;
+
   IF COALESCE(TRIM(p_reason), '') = '' THEN
     RAISE EXCEPTION 'Reason is required';
   END IF;
 
-  v_is_self_leave := p_profile_id = v_actor_id;
+  v_is_self_leave := (p_profile_id = v_actor_id);
 
-  SELECT p.role INTO v_actor_role
+  SELECT p.role
+  INTO v_actor_role
   FROM public.profiles p
   WHERE p.id = v_actor_id
     AND p.deleted_at IS NULL;
@@ -24913,35 +24931,37 @@ BEGIN
     RAISE EXCEPTION 'Access denied' USING errcode = '42501';
   END IF;
 
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.organization_members om
-    WHERE om.organization_id = p_org_id
-      AND om.profile_id = v_actor_id
-      AND om.deleted_at IS NULL
-  ) INTO v_actor_is_member;
+  -- Safeguards for removing OTHER members only.
+  IF NOT v_is_self_leave THEN
+    SELECT EXISTS (
+      SELECT 1
+      FROM public.organization_members om
+      WHERE om.organization_id = p_org_id
+        AND om.profile_id = v_actor_id
+        AND om.deleted_at IS NULL
+    ) INTO v_actor_is_member;
 
-  IF NOT v_actor_is_member AND v_actor_role <> 'system_admin' THEN
-    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
-  END IF;
+    IF NOT v_actor_is_member AND v_actor_role <> 'system_admin' THEN
+      RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+    END IF;
 
-  IF v_actor_is_member THEN
-    SELECT om.permission_role
-    INTO v_actor_permission_role
-    FROM public.organization_members om
-    WHERE om.organization_id = p_org_id
-      AND om.profile_id = v_actor_id
-      AND om.deleted_at IS NULL
-    ORDER BY om.created_at DESC
-    LIMIT 1;
-  END IF;
+    IF v_actor_is_member THEN
+      SELECT om.permission_role
+      INTO v_actor_permission_role
+      FROM public.organization_members om
+      WHERE om.organization_id = p_org_id
+        AND om.profile_id = v_actor_id
+        AND om.deleted_at IS NULL
+      ORDER BY om.created_at DESC
+      LIMIT 1;
+    END IF;
 
-  IF NOT (
-    v_is_self_leave
-    OR v_actor_role = 'system_admin'
-    OR COALESCE(v_actor_permission_role::text, '') IN ('admin', 'hr', 'owner')
-  ) THEN
-    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+    IF NOT (
+      v_actor_role = 'system_admin'
+      OR COALESCE(v_actor_permission_role::text, '') IN ('admin', 'hr', 'owner')
+    ) THEN
+      RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+    END IF;
   END IF;
 
   SELECT om.permission_role
@@ -24953,7 +24973,17 @@ BEGIN
   ORDER BY om.created_at DESC
   LIMIT 1;
 
+  -- Self-leave is idempotent: if membership already absent, just clear profile org pointer and exit.
   IF v_target_permission_role IS NULL THEN
+    IF v_is_self_leave THEN
+      UPDATE public.profiles
+      SET organization_id = NULL,
+          updated_at = now()
+      WHERE id = v_actor_id
+        AND organization_id = p_org_id;
+      RETURN;
+    END IF;
+
     RAISE EXCEPTION 'Target is not an active member of this organization' USING errcode = 'P0001';
   END IF;
 
@@ -24974,10 +25004,33 @@ BEGIN
   LIMIT 1;
 
   IF v_membership_id IS NULL THEN
+    IF v_is_self_leave THEN
+      UPDATE public.profiles
+      SET organization_id = NULL,
+          updated_at = now()
+      WHERE id = v_actor_id
+        AND organization_id = p_org_id;
+      RETURN;
+    END IF;
+
     RAISE EXCEPTION 'Target is not an active member of this organization' USING errcode = 'P0001';
   END IF;
 
-  PERFORM public.delete_organization_members(v_membership_id);
+  -- Do NOT call delete_organization_members here; self-leave must bypass generic member-management gate.
+  UPDATE public.organization_members
+  SET deleted_at = now(),
+      updated_at = now()
+  WHERE id = v_membership_id
+    AND deleted_at IS NULL;
+
+  -- Keep profile pointer consistent for self-leave.
+  IF v_is_self_leave THEN
+    UPDATE public.profiles
+    SET organization_id = NULL,
+        updated_at = now()
+    WHERE id = p_profile_id
+      AND organization_id = p_org_id;
+  END IF;
 
   SELECT p.full_name INTO v_actor_name FROM public.profiles p WHERE p.id = v_actor_id;
   SELECT p.full_name INTO v_target_name FROM public.profiles p WHERE p.id = p_profile_id;
@@ -25084,6 +25137,10 @@ DECLARE
   _organization_name text;
   _selected_job_title_name text;
   _decision_word text;
+  _existing_membership_id uuid;
+  _existing_membership_deleted_at timestamptz;
+  _was_rejoin boolean := false;
+  _member record;
 BEGIN
   IF p_decision NOT IN ('accepted', 'declined') THEN
     RAISE EXCEPTION 'invalid decision' USING detail = jsonb_build_object('decision', p_decision);
@@ -25155,13 +25212,14 @@ BEGIN
       'worker'::public.org_role
     );
 
-    IF NOT EXISTS (
-      SELECT 1
-      FROM public.organization_members m
-      WHERE m.organization_id = _new_row.organization_id
-        AND m.profile_id = _new_row.invited_profile_id
-        AND m.deleted_at IS NULL
-    ) THEN
+    SELECT m.id, m.deleted_at
+    INTO _existing_membership_id, _existing_membership_deleted_at
+    FROM public.organization_members m
+    WHERE m.organization_id = _new_row.organization_id
+      AND m.profile_id = _new_row.invited_profile_id
+    LIMIT 1;
+
+    IF _existing_membership_id IS NULL THEN
       INSERT INTO public.organization_members (
         organization_id, profile_id, permission_role, job_title_id, created_at, updated_at
       )
@@ -25173,6 +25231,18 @@ BEGIN
         now(),
         now()
       );
+    ELSIF _existing_membership_deleted_at IS NOT NULL THEN
+      _was_rejoin := true;
+      UPDATE public.organization_members m
+      SET deleted_at = NULL,
+          permission_role = COALESCE(_selected_permission_role, m.permission_role),
+          job_title_id = COALESCE(
+            p_selected_job_title_id,
+            _new_row.requested_job_title_id,
+            m.job_title_id
+          ),
+          updated_at = now()
+      WHERE m.id = _existing_membership_id;
     ELSE
       UPDATE public.organization_members m
       SET permission_role = COALESCE(_selected_permission_role, m.permission_role),
@@ -25182,15 +25252,47 @@ BEGIN
             m.job_title_id
           ),
           updated_at = now()
-      WHERE m.organization_id = _new_row.organization_id
-        AND m.profile_id = _new_row.invited_profile_id
-        AND m.deleted_at IS NULL;
+      WHERE m.id = _existing_membership_id;
     END IF;
 
     UPDATE public.profiles
     SET organization_id = _new_row.organization_id,
         updated_at = now()
     WHERE id = _new_row.invited_profile_id;
+
+    -- Notify org members when this is specifically a rejoin
+    IF _was_rejoin THEN
+      SELECT o.name INTO _organization_name
+      FROM public.organizations o
+      WHERE o.id = _new_row.organization_id;
+
+      FOR _member IN
+        SELECT om.profile_id
+        FROM public.organization_members om
+        WHERE om.organization_id = _new_row.organization_id
+          AND om.deleted_at IS NULL
+          AND om.profile_id <> _new_row.invited_profile_id
+      LOOP
+        PERFORM public.insert_notifications(
+          jsonb_build_object(
+            'user_id', _member.profile_id,
+            'organization_id', _new_row.organization_id,
+            'category', 'workflow_update',
+            'message', 'A team member rejoined ' || COALESCE(_organization_name, 'the organization') || '.',
+            'payload', jsonb_build_object(
+              'event', 'member_rejoined_organization',
+              'organization_id', _new_row.organization_id,
+              'organization_name', _organization_name,
+              'affected_profile_id', _new_row.invited_profile_id,
+              'affected_profile_name', (SELECT p.full_name FROM public.profiles p WHERE p.id = _new_row.invited_profile_id),
+              'actor_profile_id', _reviewer_id,
+              'actor_name', (SELECT p.full_name FROM public.profiles p WHERE p.id = _reviewer_id),
+              'occurred_at', now()
+            )
+          )
+        );
+      END LOOP;
+    END IF;
   END IF;
 
   SELECT o.name INTO _organization_name FROM public.organizations o WHERE o.id = _new_row.organization_id;
@@ -26699,7 +26801,7 @@ $$;
 -- Name: set_org_notification_settings(uuid, public.notification_category[], text[]); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.set_org_notification_settings(p_organization_id uuid, p_enabled_categories public.notification_category[] DEFAULT ARRAY['workflow_update'::public.notification_category, 'approval_needed'::public.notification_category, 'bid_received'::public.notification_category], p_enabled_events text[] DEFAULT ARRAY['member_added'::text, 'member_removed'::text, 'member_left_organization'::text, 'contract_completed'::text, 'bid_accepted'::text, 'new_project_created'::text, 'member_job_title_changed'::text, 'member_job_title_changed_broadcast'::text, 'member_permission_role_changed'::text]) RETURNS SETOF public.organization_notification_settings
+CREATE FUNCTION public.set_org_notification_settings(p_organization_id uuid, p_enabled_categories public.notification_category[] DEFAULT ARRAY['workflow_update'::public.notification_category, 'approval_needed'::public.notification_category, 'bid_received'::public.notification_category], p_enabled_events text[] DEFAULT ARRAY['member_added'::text, 'member_removed'::text, 'member_left_organization'::text, 'member_rejoined_organization'::text, 'contract_completed'::text, 'bid_accepted'::text, 'new_project_created'::text, 'member_job_title_changed'::text, 'member_job_title_changed_broadcast'::text, 'member_permission_role_changed'::text]) RETURNS SETOF public.organization_notification_settings
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
@@ -28686,9 +28788,13 @@ DECLARE
   _old_row public.organization_invites;
   _new_row public.organization_invites;
   _row public.organization_invites := (jsonb_populate_record(NULL::public.organization_invites, COALESCE(_input, '{}'::jsonb)));
+  _existing_membership_id uuid;
+  _existing_membership_deleted_at timestamptz;
 BEGIN
   SELECT * INTO _old_row FROM public.organization_invites WHERE id = _id;
-  IF _old_row IS NULL THEN RAISE EXCEPTION 'row not found' USING DETAIL = jsonb_build_object('id', _id); END IF;
+  IF _old_row IS NULL THEN
+    RAISE EXCEPTION 'row not found' USING DETAIL = jsonb_build_object('id', _id);
+  END IF;
 
   PERFORM check_access('update','organization_invites', NULL, _old_row.organization_id);
 
@@ -28704,13 +28810,14 @@ BEGIN
    RETURNING * INTO _new_row;
 
   IF _new_row.status = 'accepted' THEN
-    IF NOT EXISTS (
-      SELECT 1
-      FROM public.organization_members
-      WHERE organization_id = _new_row.organization_id
-        AND profile_id = _new_row.invited_profile_id
-        AND deleted_at IS NULL
-    ) THEN
+    SELECT m.id, m.deleted_at
+    INTO _existing_membership_id, _existing_membership_deleted_at
+    FROM public.organization_members m
+    WHERE m.organization_id = _new_row.organization_id
+      AND m.profile_id = _new_row.invited_profile_id
+    LIMIT 1;
+
+    IF _existing_membership_id IS NULL THEN
       INSERT INTO public.organization_members (
         organization_id, profile_id, permission_role, job_title_id, created_at, updated_at
       )
@@ -28721,11 +28828,24 @@ BEGIN
         COALESCE(_new_row.reviewed_job_title_id, _new_row.requested_job_title_id, _new_row.role),
         now(), now()
       );
-
-      UPDATE public.profiles
-      SET organization_id = _new_row.organization_id, updated_at = now()
-      WHERE id = _new_row.invited_profile_id;
+    ELSIF _existing_membership_deleted_at IS NOT NULL THEN
+      UPDATE public.organization_members m
+      SET deleted_at = NULL,
+          permission_role = COALESCE(COALESCE(_new_row.reviewed_permission_role, _new_row.requested_permission_role, 'worker'::public.org_role), m.permission_role),
+          job_title_id = COALESCE(_new_row.reviewed_job_title_id, _new_row.requested_job_title_id, _new_row.role, m.job_title_id),
+          updated_at = now()
+      WHERE m.id = _existing_membership_id;
+    ELSE
+      UPDATE public.organization_members m
+      SET permission_role = COALESCE(COALESCE(_new_row.reviewed_permission_role, _new_row.requested_permission_role, 'worker'::public.org_role), m.permission_role),
+          job_title_id = COALESCE(_new_row.reviewed_job_title_id, _new_row.requested_job_title_id, _new_row.role, m.job_title_id),
+          updated_at = now()
+      WHERE m.id = _existing_membership_id;
     END IF;
+
+    UPDATE public.profiles
+    SET organization_id = _new_row.organization_id, updated_at = now()
+    WHERE id = _new_row.invited_profile_id;
 
     PERFORM public.insert_notifications(
       jsonb_build_object(
@@ -28740,7 +28860,6 @@ BEGIN
         )
       )
     );
-
   ELSIF _new_row.status = 'declined' THEN
     PERFORM public.insert_notifications(
       jsonb_build_object(
@@ -28811,28 +28930,29 @@ CREATE FUNCTION public.update_organization_members(_id uuid, _input jsonb) RETUR
     LANGUAGE plpgsql
     SET search_path TO 'public', 'pg_temp'
     AS $$
-  DECLARE
-    _old_row public.organization_members;
-    _new_row public.organization_members;
-    _row     public.organization_members := (jsonb_populate_record(NULL::public.organization_members, COALESCE(_input, '{}'::jsonb)));
-  BEGIN
-    SELECT * INTO _old_row FROM public.organization_members WHERE id = _id;
-    IF _old_row IS NULL THEN
-      RAISE EXCEPTION 'row not found' USING DETAIL = jsonb_build_object('id', _id);
-    END IF;
+DECLARE
+  _old_row public.organization_members;
+  _new_row public.organization_members;
+  _row     public.organization_members := (jsonb_populate_record(NULL::public.organization_members, COALESCE(_input, '{}'::jsonb)));
+BEGIN
+  SELECT * INTO _old_row FROM public.organization_members WHERE id = _id;
+  IF _old_row IS NULL THEN
+    RAISE EXCEPTION 'row not found' USING DETAIL = jsonb_build_object('id', _id);
+  END IF;
 
-    PERFORM check_access('update','organization_members', _old_row.project_id, _old_row.organization_id);
+  -- organization_members is org-scoped (no project_id column)
+  PERFORM check_access('update','organization_members', NULL, _old_row.organization_id);
 
-    UPDATE public.organization_members
-       SET profile_id = COALESCE(_row.profile_id, profile_id),
-           permission_role = COALESCE(_row.permission_role, permission_role),
-           job_title_id = COALESCE(_row.job_title_id, job_title_id),
-           updated_at = now()
-     WHERE id = _id
-     RETURNING * INTO _new_row;
+  UPDATE public.organization_members
+     SET profile_id = COALESCE(_row.profile_id, profile_id),
+         permission_role = COALESCE(_row.permission_role, permission_role),
+         job_title_id = COALESCE(_row.job_title_id, job_title_id),
+         updated_at = now()
+   WHERE id = _id
+   RETURNING * INTO _new_row;
 
-    RETURN NEXT _new_row;
-  END;
+  RETURN NEXT _new_row;
+END;
 $$;
 
 
@@ -38722,7 +38842,7 @@ CREATE POLICY p_check_access_update ON public.organization_invites FOR UPDATE US
 -- Name: organization_members p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY p_check_access_update ON public.organization_members FOR UPDATE USING (public.check_access_bool('update'::text, 'organization_members'::text, NULL::uuid, organization_id));
+CREATE POLICY p_check_access_update ON public.organization_members FOR UPDATE TO authenticated USING ((public.check_access_bool('update'::text, 'organization_members'::text, NULL::uuid, organization_id) OR ((profile_id = auth.uid()) AND (deleted_at IS NULL)))) WITH CHECK ((public.check_access_bool('update'::text, 'organization_members'::text, NULL::uuid, organization_id) OR ((profile_id = auth.uid()) AND (deleted_at IS NOT NULL))));
 
 
 --

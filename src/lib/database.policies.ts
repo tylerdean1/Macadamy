@@ -2314,16 +2314,6 @@ export const POLICIES: Policy[] = [
   },
   {
     schemaname: 'public',
-    tablename: 'organization_members',
-    policyname: 'p_check_access_update',
-    permissive: true,
-    roles: [],
-    cmd: 'UPDATE',
-    qual: "public.check_access_bool('update'::text, 'organization_members'::text, NULL::uuid, organization_id)",
-    with_check: null,
-  },
-  {
-    schemaname: 'public',
     tablename: 'organization_projects',
     policyname: 'p_check_access_update',
     permissive: true,

@@ -1,7 +1,7 @@
 
 
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { rpcClient } from '@/lib/rpc.client';
 import { useAuthStore } from '@/lib/store';
@@ -12,7 +12,9 @@ import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 
 export default function OrganizationOnboarding(): JSX.Element {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { profile } = useAuthStore();
+    const isRejoinFlow = searchParams.get('mode') === 'rejoin';
     const [step, setStep] = useState(1);
     const [orgName, setOrgName] = useState('');
     const [orgDescription, setOrgDescription] = useState('');
@@ -72,7 +74,7 @@ export default function OrganizationOnboarding(): JSX.Element {
         if (!orgToJoin || !profile || isBusy) return;
         setIsBusy(true);
         try {
-            // create a membership *request* (server will notify org_admins)
+            // create a membership request/rejoin request (server will notify org admins)
             await rpcClient.insert_organization_invites({
                 _input: {
                     organization_id: orgToJoin.id,
@@ -84,7 +86,9 @@ export default function OrganizationOnboarding(): JSX.Element {
 
             // refresh profile & UI
             await useAuthStore.getState().loadProfile(profile.id);
-            toast.success('Membership request submitted — org admins were notified');
+            toast.success(isRejoinFlow
+                ? 'Rejoin request submitted — org admins were notified'
+                : 'Membership request submitted — org admins were notified');
             setJoinModalOpen(false);
             setOrgToJoin(null);
             setSearchResults([]);
@@ -130,7 +134,7 @@ export default function OrganizationOnboarding(): JSX.Element {
 
     return (
         <div className="max-w-xl mx-auto mt-16 p-6 bg-background-light rounded shadow border border-background-lighter">
-            <h1 className="text-2xl font-bold mb-6 text-white">Set up your Organization</h1>
+            <h1 className="text-2xl font-bold mb-6 text-white">{isRejoinFlow ? 'Rejoin an Organization' : 'Set up your Organization'}</h1>
             <div className="flex items-center mb-8 gap-2">
                 {[1, 2, 3].map((s) => (
                     <div key={s} className={`h-2 w-2 rounded-full ${step === s ? 'bg-primary' : 'bg-gray-600'}`} />
@@ -143,6 +147,11 @@ export default function OrganizationOnboarding(): JSX.Element {
             </div>
             {step === 1 && (
                 <div className="space-y-4">
+                    {isRejoinFlow && (
+                        <p className="text-sm text-gray-300">
+                            Search for your previous organization and submit a rejoin request.
+                        </p>
+                    )}
                     <div>
                         <label className="text-sm text-gray-300">Organization name</label>
                         <input
@@ -311,13 +320,17 @@ export default function OrganizationOnboarding(): JSX.Element {
             <Dialog open={joinModalOpen} onOpenChange={setJoinModalOpen}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="text-white">Request membership</DialogTitle>
-                        <DialogDescription className="text-sm text-gray-400">Request to join "{orgToJoin?.name ?? ''}"</DialogDescription>
+                        <DialogTitle className="text-white">{isRejoinFlow ? 'Request to rejoin' : 'Request membership'}</DialogTitle>
+                        <DialogDescription className="text-sm text-gray-400">
+                            {isRejoinFlow
+                                ? `Request to rejoin "${orgToJoin?.name ?? ''}"`
+                                : `Request to join "${orgToJoin?.name ?? ''}"`}
+                        </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
                         <div className="flex justify-end gap-2 mt-4">
                             <Button variant="outline" onClick={() => setJoinModalOpen(false)} disabled={isBusy}>Cancel</Button>
-                            <Button onClick={async () => { await handleRequestMembership(); }} isLoading={isBusy}>Request Membership</Button>
+                            <Button onClick={async () => { await handleRequestMembership(); }} isLoading={isBusy}>{isRejoinFlow ? 'Request Rejoin' : 'Request Membership'}</Button>
                         </div>
                     </DialogFooter>
                 </DialogContent>

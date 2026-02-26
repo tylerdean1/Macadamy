@@ -101,6 +101,36 @@ describe('notificationMessages', () => {
         expect(message).toBe('Tyler Jones left Acme Builders. Reported by System Bot.');
     });
 
+    it('formats member-rejoined notifications for org members', () => {
+        const message = getNotificationDisplayMessage({
+            message: 'fallback',
+            category: 'workflow_update',
+            payload: {
+                event: 'member_rejoined_organization',
+                organization_name: 'Acme Builders',
+                affected_profile_name: 'Tyler Jones',
+                actor_name: 'Tyler Jones',
+            },
+        });
+
+        expect(message).toBe('Tyler Jones rejoined Acme Builders.');
+    });
+
+    it('formats member-rejoined notifications with distinct actor context when present', () => {
+        const message = getNotificationDisplayMessage({
+            message: 'fallback',
+            category: 'workflow_update',
+            payload: {
+                event: 'member_rejoined_organization',
+                organization_name: 'Acme Builders',
+                affected_profile_name: 'Tyler Jones',
+                actor_name: 'Org Admin',
+            },
+        });
+
+        expect(message).toBe('Tyler Jones rejoined Acme Builders. Processed by Org Admin.');
+    });
+
     it('formats org-wide member title change broadcast with previous and current title', () => {
         const message = getNotificationDisplayMessage({
             message: 'fallback',
