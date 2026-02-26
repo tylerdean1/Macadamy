@@ -2309,7 +2309,7 @@ export const POLICIES: Policy[] = [
     permissive: true,
     roles: [],
     cmd: 'UPDATE',
-    qual: "public.check_access_bool('update'::text, 'organization_invites'::text, NULL::uuid, organization_id)",
+    qual: "(public.check_access_bool('update'::text, 'organization_invites'::text, NULL::uuid, organization_id) OR (invited_profile_id = auth.uid()))) WITH CHECK ((public.check_access_bool('update'::text, 'organization_invites'::text, NULL::uuid, organization_id) OR ((invited_profile_id = auth.uid()) AND (invited_by_profile_id = auth.uid()) AND (status = 'pending'::text)))",
     with_check: null,
   },
   {

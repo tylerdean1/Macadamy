@@ -21216,21 +21216,41 @@ CREATE FUNCTION public.insert_organization_invites(_input jsonb) RETURNS SETOF p
     SET search_path TO 'public', 'pg_temp'
     AS $_$
 DECLARE
+  v_actor_id uuid := auth.uid();
   v_id uuid := COALESCE(NULLIF(_input->>'id', '')::uuid, gen_random_uuid());
   v_organization_id uuid := NULLIF(_input->>'organization_id', '')::uuid;
   v_invited_profile_id uuid := NULLIF(_input->>'invited_profile_id', '')::uuid;
   v_invited_by_profile_id uuid := NULLIF(_input->>'invited_by_profile_id', '')::uuid;
-  v_status text := COALESCE(NULLIF(_input->>'status', ''), 'pending');
   v_comment text := NULLIF(_input->>'comment', '');
   v_created_at timestamptz := COALESCE(NULLIF(_input->>'created_at', '')::timestamptz, now());
-  v_responded_at timestamptz := NULLIF(_input->>'responded_at', '')::timestamptz;
   v_requested_permission_role public.org_role := NULLIF(_input->>'requested_permission_role', '')::public.org_role;
   v_requested_job_title_id uuid := NULLIF(_input->>'requested_job_title_id', '')::uuid;
   v_legacy_role_text text := NULLIF(TRIM(_input->>'role'), '');
   v_legacy_role_uuid uuid := NULL;
+  v_is_self_request boolean := false;
+  v_org_exists boolean := false;
+  v_active_member_exists boolean := false;
   _new_row public.organization_invites;
   _admin record;
 BEGIN
+  IF v_actor_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  IF v_organization_id IS NULL THEN
+    RAISE EXCEPTION 'organization_id is required';
+  END IF;
+
+  IF v_invited_profile_id IS NULL THEN
+    v_invited_profile_id := v_actor_id;
+  END IF;
+
+  IF v_invited_by_profile_id IS NULL THEN
+    v_invited_by_profile_id := v_actor_id;
+  END IF;
+
+  v_is_self_request := (v_invited_profile_id = v_actor_id AND v_invited_by_profile_id = v_actor_id);
+
   IF v_legacy_role_text IS NOT NULL THEN
     IF v_requested_permission_role IS NULL
        AND v_legacy_role_text IN ('admin','manager','superintendent','foreman','worker','viewer','accountant','hr','estimator','guest','owner') THEN
@@ -21245,7 +21265,32 @@ BEGIN
 
   v_legacy_role_uuid := v_requested_job_title_id;
 
-  PERFORM check_access('insert','organization_invites', NULL, v_organization_id);
+  IF v_is_self_request THEN
+    SELECT EXISTS (
+      SELECT 1
+      FROM public.organizations o
+      WHERE o.id = v_organization_id
+        AND o.deleted_at IS NULL
+    ) INTO v_org_exists;
+
+    IF NOT v_org_exists THEN
+      RAISE EXCEPTION 'Organization not found';
+    END IF;
+
+    SELECT EXISTS (
+      SELECT 1
+      FROM public.organization_members om
+      WHERE om.organization_id = v_organization_id
+        AND om.profile_id = v_actor_id
+        AND om.deleted_at IS NULL
+    ) INTO v_active_member_exists;
+
+    IF v_active_member_exists THEN
+      RAISE EXCEPTION 'membership exists: already a member of this organization';
+    END IF;
+  ELSE
+    PERFORM check_access('insert','organization_invites', NULL, v_organization_id);
+  END IF;
 
   INSERT INTO public.organization_invites (
     id, organization_id, invited_profile_id, invited_by_profile_id, status, comment,
@@ -37612,7 +37657,7 @@ CREATE POLICY p_check_access_insert ON public.notifications FOR INSERT WITH CHEC
 -- Name: organization_invites p_check_access_insert; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY p_check_access_insert ON public.organization_invites FOR INSERT WITH CHECK (public.check_access_bool('insert'::text, 'organization_invites'::text, NULL::uuid, organization_id));
+CREATE POLICY p_check_access_insert ON public.organization_invites FOR INSERT WITH CHECK ((public.check_access_bool('insert'::text, 'organization_invites'::text, NULL::uuid, organization_id) OR ((invited_profile_id = auth.uid()) AND (invited_by_profile_id = auth.uid()) AND (status = 'pending'::text))));
 
 
 --
@@ -38858,7 +38903,7 @@ CREATE POLICY p_check_access_update ON public.notifications FOR UPDATE USING ((u
 -- Name: organization_invites p_check_access_update; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY p_check_access_update ON public.organization_invites FOR UPDATE USING (public.check_access_bool('update'::text, 'organization_invites'::text, NULL::uuid, organization_id));
+CREATE POLICY p_check_access_update ON public.organization_invites FOR UPDATE USING ((public.check_access_bool('update'::text, 'organization_invites'::text, NULL::uuid, organization_id) OR (invited_profile_id = auth.uid()))) WITH CHECK ((public.check_access_bool('update'::text, 'organization_invites'::text, NULL::uuid, organization_id) OR ((invited_profile_id = auth.uid()) AND (invited_by_profile_id = auth.uid()) AND (status = 'pending'::text))));
 
 
 --

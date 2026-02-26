@@ -87,8 +87,6 @@ export default function OrganizationOnboarding(): JSX.Element {
             await rpcClient.insert_organization_invites({
                 _input: {
                     organization_id: orgToJoin.id,
-                    invited_profile_id: profile.id,
-                    invited_by_profile_id: profile.id,
                     status: 'pending'
                 }
             });
