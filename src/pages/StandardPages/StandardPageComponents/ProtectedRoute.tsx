@@ -53,7 +53,7 @@ export function ProtectedRoute({
   const debugAuth = isAuthDebugEnabled();
 
   /* ── 1 ▪ initial auth bootstrap ─────────────────────────────── */
-  if (authLoading || loading.initialization) {
+  if (authLoading || loading.initialization || loading.auth || loading.profile) {
     if (debugAuth) {
       console.log('[ProtectedRoute] waiting for auth bootstrap…');
     }

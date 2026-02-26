@@ -322,6 +322,8 @@ wbs                       workflows
 
 - Frontend auth now includes a dedicated `AuthProvider` context (`src/context/AuthContext.tsx`) that tracks Supabase `session` + `user` via `getSession` and `onAuthStateChange`, plus shared `signInWithGoogle`/`logout` helpers used by `GoogleSignInButton`, `ProtectedRoute`, and navbar logout
 
+- Sign-in routing now waits for profile-loading completion before onboarding checks (`useBootstrapAuth` + `ProtectedRoute`), preventing a brief `/onboarding/profile` flash for existing users and keeping onboarding redirects limited to genuinely incomplete first-time profiles
+
 - Google OAuth browser flow now starts from `GoogleSignInButton` using `supabase.auth.signInWithOAuth` with redirect target `window.location.origin + '/auth/callback'`, and route `/auth/callback` finalizes session handoff before redirecting to `/dashboard` (or `/login` with toast on failure)
 
 - Dependency hardening updated the lint toolchain to `eslint@10` + `typescript-eslint@8.56` and removed unused React ESLint plugins (`eslint-plugin-react`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`)

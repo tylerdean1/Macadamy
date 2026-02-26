@@ -284,7 +284,7 @@ export function useBootstrapAuth(): boolean {
 
   /* ── THIRD EFFECT ▪ onboarding redirect ─────────────────────── */
   useEffect(() => {
-    if (loading.initialization || !user) return;
+    if (loading.initialization || loading.auth || loading.profile || !user) return;
     const isProfileComplete = Boolean(profile?.profile_completed_at);
     if (isProfileComplete) return;
 
@@ -297,7 +297,7 @@ export function useBootstrapAuth(): boolean {
     if (path === '/onboarding') {
       navigate('/onboarding/profile');
     }
-  }, [loading.initialization, user, profile, navigate]);
+  }, [loading.initialization, loading.auth, loading.profile, user, profile, navigate]);
 
   /* ── FOURTH EFFECT ▪ (removed) automatic org onboarding redirect ───────── */
   // Previous behavior redirected users to /organizations/onboarding when their
