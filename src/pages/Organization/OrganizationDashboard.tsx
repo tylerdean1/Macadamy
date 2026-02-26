@@ -337,11 +337,12 @@ export default function OrganizationDashboard(): JSX.Element {
       return fromOrgMembership;
     }
 
-    if (!profile.id) {
+    const profileId = profile?.id;
+    if (!profileId) {
       return null;
     }
 
-    const selfMember = safePayload.members.items.find((member) => member.profile_id === profile.id);
+    const selfMember = safePayload.members.items.find((member) => member.profile_id === profileId);
     return asOrgRole(selfMember?.membership_permission_role ?? null);
   }, [activeOrganizationId, myOrganizations, profile?.id, safePayload.members.items]);
 
@@ -734,7 +735,12 @@ export default function OrganizationDashboard(): JSX.Element {
       return;
     }
 
-    if (memberToRemove.profile_id === profile.id) {
+    const profileId = profile?.id;
+    if (!profileId) {
+      return;
+    }
+
+    if (memberToRemove.profile_id === profileId) {
       toast.error(ORG_DASHBOARD_TOAST_MESSAGES.cannotRemoveSelf);
       return;
     }

@@ -86,7 +86,7 @@ export default function OrganizationOnboarding(): JSX.Element {
             // create a membership request/rejoin request (server will notify org admins)
             await rpcClient.request_my_organization_membership({
                 p_organization_id: orgToJoin.id,
-                p_comment: null,
+                p_comment: undefined,
             });
 
             // refresh profile & UI
