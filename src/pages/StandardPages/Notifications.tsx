@@ -35,7 +35,7 @@ export default function Notifications(): JSX.Element {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const searchParamsKey = searchParams.toString();
-    const { profile } = useAuthStore();
+    const { profile, setSelectedOrganizationId } = useAuthStore();
 
     const [items, setItems] = useState<NotificationRow[]>([]);
     const [loading, setLoading] = useState(true);
@@ -123,6 +123,17 @@ export default function Notifications(): JSX.Element {
             if (!item.is_read) {
                 await markNotificationAsRead(item.id);
                 setItems((prev) => prev.map((p) => p.id === item.id ? { ...p, is_read: true } : p));
+            }
+
+            const payload = item.payload;
+            const payloadObj = payload && typeof payload === 'object' && !Array.isArray(payload)
+                ? payload as Record<string, unknown>
+                : null;
+            const payloadOrganizationId = payloadObj && typeof payloadObj.organization_id === 'string'
+                ? payloadObj.organization_id
+                : null;
+            if (payloadOrganizationId) {
+                setSelectedOrganizationId(payloadOrganizationId);
             }
 
             navigate(resolveNotificationRoute(item));

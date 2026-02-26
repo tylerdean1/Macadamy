@@ -308,6 +308,7 @@ export default function OrganizationDashboard(): JSX.Element {
   const [changeRolePermissionRole, setChangeRolePermissionRole] = useState<OrgRoleType | ''>('');
   const [leaveOrganizationDialogOpen, setLeaveOrganizationDialogOpen] = useState(false);
   const [memberActionBusyKey, setMemberActionBusyKey] = useState<string | null>(null);
+  const hasStartedOrganizationsLoadRef = useRef(false);
   const { orgs: myOrganizations, loading: myOrganizationsLoading } = useMyOrganizations(profile?.id);
   const {
     activeOrgIds: activeOrganizationIds,
@@ -318,6 +319,12 @@ export default function OrganizationDashboard(): JSX.Element {
     ?? (myOrganizations[0]?.id ?? null);
   const safePayload = payload ?? emptyPayload;
   const canManagePendingInvites = profile?.role === 'system_admin' || profile?.role === 'org_admin';
+
+  useEffect(() => {
+    if (myOrganizationsLoading || myOrganizations.length > 0 || profile?.id == null) {
+      hasStartedOrganizationsLoadRef.current = true;
+    }
+  }, [myOrganizations.length, myOrganizationsLoading, profile?.id]);
 
   const actorOrgRole = useMemo<OrgRoleType | null>(() => {
     if (!activeOrganizationId) {
@@ -919,6 +926,10 @@ export default function OrganizationDashboard(): JSX.Element {
 
   useEffect(() => {
     if (!profile?.id || myOrganizationsLoading) {
+      return;
+    }
+
+    if (!hasStartedOrganizationsLoadRef.current) {
       return;
     }
 

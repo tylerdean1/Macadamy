@@ -182,6 +182,18 @@ export function Navbar() {
       if (!notification.is_read) {
         setUnreadCount((prev) => Math.max(0, prev - 1));
       }
+
+      const payload = notification.payload;
+      const payloadObj = payload && typeof payload === 'object' && !Array.isArray(payload)
+        ? payload as Record<string, unknown>
+        : null;
+      const payloadOrganizationId = payloadObj && typeof payloadObj.organization_id === 'string'
+        ? payloadObj.organization_id
+        : null;
+      if (payloadOrganizationId) {
+        setSelectedOrganizationId(payloadOrganizationId);
+      }
+
       setIsNotificationsOpen(false);
       navigate(resolveNotificationRoute(notification));
     } catch (err) {
