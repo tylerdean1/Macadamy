@@ -100,6 +100,9 @@ export default function OrganizationOnboarding(): JSX.Element {
             setOrgToJoin(null);
             setSearchResults([]);
             setOrgName('');
+            if (isRejoinFlow) {
+                navigate('/dashboard');
+            }
         } catch (err) {
             console.error('[OrganizationOnboarding] request organization membership error', err);
             toast.error(resolveInviteRequestErrorMessage(err));

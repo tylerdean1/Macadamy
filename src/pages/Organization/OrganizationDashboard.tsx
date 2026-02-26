@@ -309,20 +309,22 @@ export default function OrganizationDashboard(): JSX.Element {
   const [leaveOrganizationDialogOpen, setLeaveOrganizationDialogOpen] = useState(false);
   const [memberActionBusyKey, setMemberActionBusyKey] = useState<string | null>(null);
   const { orgs: myOrganizations, loading: myOrganizationsLoading } = useMyOrganizations(profile?.id);
-  useValidatedSelectedOrganization(myOrganizations.map((org) => org.id));
-  const activeOrganizationIds = useMemo(() => new Set(myOrganizations.map((org) => org.id)), [myOrganizations]);
-  const hasActivePrimaryOrganization = Boolean(
-    profile?.organization_id && activeOrganizationIds.has(profile.organization_id)
-  );
+  const {
+    activeOrgIds: activeOrganizationIds,
+    validatedSelectedOrganizationId,
+  } = useValidatedSelectedOrganization(myOrganizations.map((org) => org.id));
+  const activeOrganizationId = validatedSelectedOrganizationId
+    ?? (profile?.organization_id && activeOrganizationIds.has(profile.organization_id) ? profile.organization_id : null)
+    ?? (myOrganizations[0]?.id ?? null);
   const safePayload = payload ?? emptyPayload;
   const canManagePendingInvites = profile?.role === 'system_admin' || profile?.role === 'org_admin';
 
   const actorOrgRole = useMemo<OrgRoleType | null>(() => {
-    if (!profile?.organization_id) {
+    if (!activeOrganizationId) {
       return null;
     }
 
-    const orgMembership = myOrganizations.find((org) => org.id === profile.organization_id);
+    const orgMembership = myOrganizations.find((org) => org.id === activeOrganizationId);
     const fromOrgMembership = asOrgRole(orgMembership?.permissionRole ?? orgMembership?.role ?? null);
     if (fromOrgMembership) {
       return fromOrgMembership;
@@ -334,7 +336,7 @@ export default function OrganizationDashboard(): JSX.Element {
 
     const selfMember = safePayload.members.items.find((member) => member.profile_id === profile.id);
     return asOrgRole(selfMember?.membership_permission_role ?? null);
-  }, [myOrganizations, profile?.id, profile?.organization_id, safePayload.members.items]);
+  }, [activeOrganizationId, myOrganizations, profile?.id, safePayload.members.items]);
 
   const canManageMemberActions = actorOrgRole === 'admin' || actorOrgRole === 'hr' || actorOrgRole === 'owner';
 
@@ -463,11 +465,11 @@ export default function OrganizationDashboard(): JSX.Element {
 
   useEffect(() => {
     setPage(1);
-  }, [profile?.organization_id]);
+  }, [activeOrganizationId]);
 
   useEffect(() => {
     const fetchProjects = async () => {
-      if (!profile?.organization_id) {
+      if (!activeOrganizationId) {
         setProjects([]);
         return;
       }
@@ -475,7 +477,7 @@ export default function OrganizationDashboard(): JSX.Element {
       setProjectsLoading(true);
       try {
         const data = await rpcClient.filter_projects({
-          _filters: { organization_id: profile.organization_id },
+          _filters: { organization_id: activeOrganizationId },
           _limit: 5, // Show only first 5 projects
           _order_by: 'created_at',
           _direction: 'desc'
@@ -490,7 +492,7 @@ export default function OrganizationDashboard(): JSX.Element {
     };
 
     void fetchProjects();
-  }, [profile?.organization_id]);
+  }, [activeOrganizationId]);
 
   useEffect(() => {
     if (!isEditOpen) return;
@@ -539,7 +541,7 @@ export default function OrganizationDashboard(): JSX.Element {
   }, [canManageMemberActions, canManagePendingInvites]);
 
   const loadPendingInvites = useCallback(async () => {
-    if (!profile?.organization_id || !canManagePendingInvites) {
+    if (!activeOrganizationId || !canManagePendingInvites) {
       setPendingInvites([]);
       setPendingInvitesLoading(false);
       return;
@@ -548,7 +550,7 @@ export default function OrganizationDashboard(): JSX.Element {
     setPendingInvitesLoading(true);
     try {
       const richData = await rpcClient.get_pending_organization_invites_with_profiles({
-        p_organization_id: profile.organization_id,
+        p_organization_id: activeOrganizationId,
       });
 
       setPendingInvites(normalizePendingInviteRows(richData));
@@ -558,7 +560,7 @@ export default function OrganizationDashboard(): JSX.Element {
     } finally {
       setPendingInvitesLoading(false);
     }
-  }, [canManagePendingInvites, profile?.organization_id]);
+  }, [activeOrganizationId, canManagePendingInvites]);
 
   useEffect(() => {
     if (pendingInvites.length === 0) {
@@ -721,7 +723,7 @@ export default function OrganizationDashboard(): JSX.Element {
   };
 
   const handleRemoveMember = async (): Promise<void> => {
-    if (!profile?.organization_id || !memberToRemove) {
+    if (!activeOrganizationId || !memberToRemove) {
       return;
     }
 
@@ -739,7 +741,7 @@ export default function OrganizationDashboard(): JSX.Element {
     setMemberActionBusyKey(`remove:${memberToRemove.profile_id}`);
     try {
       await rpcClient.remove_org_member_with_reason({
-        p_org_id: profile.organization_id,
+        p_org_id: activeOrganizationId,
         p_profile_id: memberToRemove.profile_id,
         p_reason: reason,
       });
@@ -758,7 +760,7 @@ export default function OrganizationDashboard(): JSX.Element {
   };
 
   const handleChangeMemberJobTitle = async (): Promise<void> => {
-    if (!profile?.organization_id || !memberToRetitle) {
+    if (!activeOrganizationId || !memberToRetitle) {
       return;
     }
 
@@ -792,7 +794,7 @@ export default function OrganizationDashboard(): JSX.Element {
     setMemberActionBusyKey(`title:${memberToRetitle.profile_id}`);
     try {
       await rpcClient.change_org_member_job_title_with_reason({
-        p_org_id: profile.organization_id,
+        p_org_id: activeOrganizationId,
         p_profile_id: memberToRetitle.profile_id,
         p_job_title_id: selectedTitle.id,
         p_reason: reason,
@@ -813,7 +815,7 @@ export default function OrganizationDashboard(): JSX.Element {
   };
 
   const handleLeaveOrganization = async (): Promise<void> => {
-    if (!profile?.id || !profile.organization_id) {
+    if (!profile?.id || !activeOrganizationId) {
       return;
     }
 
@@ -825,13 +827,13 @@ export default function OrganizationDashboard(): JSX.Element {
       }
 
       await leaveOrganizationRpc({
-        p_org_id: profile.organization_id,
+        p_org_id: activeOrganizationId,
         p_reason: ORG_DASHBOARD_TOAST_MESSAGES.leaveOrganizationReason,
       });
 
       setProfile({
         ...profile,
-        organization_id: null,
+        organization_id: profile.organization_id === activeOrganizationId ? null : profile.organization_id,
       });
       setSelectedOrganizationId(null);
       invalidateMyOrganizationsCache(profile.id);
@@ -849,7 +851,7 @@ export default function OrganizationDashboard(): JSX.Element {
   };
 
   const handleChangeMemberPermissionRole = async (): Promise<void> => {
-    if (!profile?.organization_id || !memberToReRole) {
+    if (!activeOrganizationId || !memberToReRole) {
       return;
     }
 
@@ -873,7 +875,7 @@ export default function OrganizationDashboard(): JSX.Element {
     setMemberActionBusyKey(`role:${memberToReRole.profile_id}`);
     try {
       await rpcClient.set_org_member_role({
-        p_org_id: profile.organization_id,
+        p_org_id: activeOrganizationId,
         p_profile_id: memberToReRole.profile_id,
         p_role: selectedRole,
       });
@@ -892,7 +894,7 @@ export default function OrganizationDashboard(): JSX.Element {
   };
 
   const loadDashboard = useCallback(async () => {
-    if (!profile?.organization_id || !hasActivePrimaryOrganization) {
+    if (!activeOrganizationId) {
       setPayload(null);
       setIsLoading(false);
       return;
@@ -903,7 +905,7 @@ export default function OrganizationDashboard(): JSX.Element {
 
     try {
       const data = await rpcClient.rpc_org_dashboard_payload({
-        p_organization_id: profile.organization_id,
+        p_organization_id: activeOrganizationId,
         p_members_page: page,
         p_page_size: pageSize,
       });
@@ -913,17 +915,17 @@ export default function OrganizationDashboard(): JSX.Element {
     } finally {
       setIsLoading(false);
     }
-  }, [hasActivePrimaryOrganization, page, profile?.organization_id]);
+  }, [activeOrganizationId, page]);
 
   useEffect(() => {
     if (!profile?.id || myOrganizationsLoading) {
       return;
     }
 
-    if (!hasActivePrimaryOrganization) {
+    if (!activeOrganizationId) {
       navigate('/dashboard', { replace: true });
     }
-  }, [hasActivePrimaryOrganization, myOrganizationsLoading, navigate, profile?.id]);
+  }, [activeOrganizationId, myOrganizationsLoading, navigate, profile?.id]);
 
   const uploadLogoBlob = useCallback(async (blob: Blob): Promise<string> => {
     if (!safePayload.organization.id) {
