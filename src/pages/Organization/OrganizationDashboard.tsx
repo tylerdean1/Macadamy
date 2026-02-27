@@ -320,6 +320,9 @@ export default function OrganizationDashboard(): JSX.Element {
   const [memberToRetitle, setMemberToRetitle] = useState<MemberListItem | null>(null);
   const [changeTitleReason, setChangeTitleReason] = useState('');
   const [changeTitleJobTitleId, setChangeTitleJobTitleId] = useState('');
+  const [changeTitleJobTitleQuery, setChangeTitleJobTitleQuery] = useState('');
+  const [changeTitleJobTitleOpen, setChangeTitleJobTitleOpen] = useState(false);
+  const [isAddingChangeTitleJobTitle, setIsAddingChangeTitleJobTitle] = useState(false);
   const [changeRoleDialogOpen, setChangeRoleDialogOpen] = useState(false);
   const [memberToReRole, setMemberToReRole] = useState<MemberListItem | null>(null);
   const [changeRolePermissionRole, setChangeRolePermissionRole] = useState<OrgRoleType | ''>('');
@@ -877,7 +880,37 @@ export default function OrganizationDashboard(): JSX.Element {
     setMemberToRetitle(member);
     setChangeTitleReason('');
     setChangeTitleJobTitleId('');
+    setChangeTitleJobTitleQuery('');
+    setChangeTitleJobTitleOpen(false);
     setChangeTitleDialogOpen(true);
+  };
+
+  const handleAddChangeTitleJobTitle = async (): Promise<void> => {
+    const nextTitleName = changeTitleJobTitleQuery.trim();
+    if (!nextTitleName) {
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.enterJobTitle);
+      return;
+    }
+
+    setIsAddingChangeTitleJobTitle(true);
+    try {
+      const newJobTitle = await rpcClient.insert_job_title_public({ p_name: nextTitleName });
+      if (!newJobTitle) {
+        throw new Error('No job title returned');
+      }
+
+      setJobTitles((prev) => [newJobTitle, ...prev]);
+      cachedJobTitles = [newJobTitle, ...(cachedJobTitles ?? [])];
+      setChangeTitleJobTitleId(newJobTitle.id);
+      setChangeTitleJobTitleQuery(newJobTitle.name);
+      setChangeTitleJobTitleOpen(false);
+      toast.success(ORG_DASHBOARD_TOAST_MESSAGES.addJobTitleSuccess);
+    } catch (error) {
+      console.error('[OrganizationDashboard] add custom change-title job title', error);
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.addJobTitleFailed);
+    } finally {
+      setIsAddingChangeTitleJobTitle(false);
+    }
   };
 
   const openChangeRoleDialog = (member: MemberListItem): void => {
@@ -1759,7 +1792,7 @@ export default function OrganizationDashboard(): JSX.Element {
                     <div className="space-y-3">
                       {organizationEmailInvites.map((invite) => {
                         const isBusy = inviteActionBusyId === invite.id;
-                        const canAct = invite.status !== 'accepted';
+                        const canAct = invite.status !== 'accepted' && invite.status !== 'declined';
                         return (
                           <div key={invite.id} className="rounded-lg border border-background-lighter p-3">
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -1774,24 +1807,26 @@ export default function OrganizationDashboard(): JSX.Element {
                                   <p className="text-xs text-red-300 mt-1">Deny reason: {invite.deny_reason}</p>
                                 )}
                               </div>
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => { void handleResendInvite(invite.id); }}
-                                  disabled={isBusy || !canAct}
-                                >
-                                  {isBusy ? 'Working…' : 'Resend'}
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => { void handleCancelInvite(invite.id); }}
-                                  disabled={isBusy || !canAct}
-                                >
-                                  {isBusy ? 'Working…' : 'Cancel'}
-                                </Button>
-                              </div>
+                              {canAct && (
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => { void handleResendInvite(invite.id); }}
+                                    disabled={isBusy}
+                                  >
+                                    {isBusy ? 'Working…' : 'Resend'}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => { void handleCancelInvite(invite.id); }}
+                                    disabled={isBusy}
+                                  >
+                                    {isBusy ? 'Working…' : 'Cancel'}
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
@@ -1961,17 +1996,77 @@ export default function OrganizationDashboard(): JSX.Element {
           <div className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="change-member-title" className="text-sm text-gray-300">Job title</label>
-              <select
-                id="change-member-title"
-                className="w-full rounded border border-background-lighter bg-background px-3 py-2 text-sm text-white"
-                value={changeTitleJobTitleId}
-                onChange={(event) => setChangeTitleJobTitleId(event.target.value)}
-              >
-                <option value="">Select a job title</option>
-                {jobTitles.map((title) => (
-                  <option key={title.id} value={title.id}>{title.name}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <input
+                  id="change-member-title"
+                  type="text"
+                  className="w-full rounded border border-background-lighter bg-background px-3 py-2 text-sm text-white"
+                  placeholder="Search or add job title"
+                  value={changeTitleJobTitleQuery}
+                  onChange={(event) => {
+                    const nextQuery = event.target.value;
+                    setChangeTitleJobTitleQuery(nextQuery);
+                    setChangeTitleJobTitleOpen(true);
+                    const normalizedQuery = nextQuery.trim().toLowerCase();
+                    const matchedTitle = jobTitles.find((title) => title.name.toLowerCase() === normalizedQuery);
+                    setChangeTitleJobTitleId(matchedTitle?.id ?? '');
+                  }}
+                  onFocus={() => setChangeTitleJobTitleOpen(true)}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      setChangeTitleJobTitleOpen(false);
+                    }, 100);
+                  }}
+                />
+
+                {changeTitleJobTitleOpen && (
+                  <div className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-md border border-background-lighter bg-background">
+                    {jobTitles
+                      .filter((title) => {
+                        const normalizedQuery = changeTitleJobTitleQuery.trim().toLowerCase();
+                        if (!normalizedQuery) {
+                          return true;
+                        }
+                        return title.name.toLowerCase().includes(normalizedQuery);
+                      })
+                      .map((title) => (
+                        <button
+                          key={title.id}
+                          type="button"
+                          className={`w-full px-3 py-2 text-left text-sm hover:bg-background-light ${changeTitleJobTitleId === title.id ? 'text-white' : 'text-gray-300'}`}
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            setChangeTitleJobTitleId(title.id);
+                            setChangeTitleJobTitleQuery(title.name);
+                            setChangeTitleJobTitleOpen(false);
+                          }}
+                        >
+                          {title.name}
+                        </button>
+                      ))}
+
+                    {jobTitles.filter((title) => {
+                      const normalizedQuery = changeTitleJobTitleQuery.trim().toLowerCase();
+                      if (!normalizedQuery) {
+                        return true;
+                      }
+                      return title.name.toLowerCase().includes(normalizedQuery);
+                    }).length === 0 && (
+                        <button
+                          type="button"
+                          className="w-full px-3 py-2 text-left text-sm text-primary hover:bg-background-light"
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            void handleAddChangeTitleJobTitle();
+                          }}
+                          disabled={isAddingChangeTitleJobTitle || changeTitleJobTitleQuery.trim().length === 0}
+                        >
+                          {isAddingChangeTitleJobTitle ? 'Adding…' : `Add "${changeTitleJobTitleQuery.trim()}"`}
+                        </button>
+                      )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -1996,6 +2091,8 @@ export default function OrganizationDashboard(): JSX.Element {
                 setMemberToRetitle(null);
                 setChangeTitleReason('');
                 setChangeTitleJobTitleId('');
+                setChangeTitleJobTitleQuery('');
+                setChangeTitleJobTitleOpen(false);
               }}
               disabled={memberActionBusyKey != null}
             >

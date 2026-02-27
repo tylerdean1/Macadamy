@@ -256,6 +256,8 @@ wbs                       workflows
 
 - On `/dashboard`, navbar invite handling now auto-opens `OrganizationInviteActionDialog` for unread org-invite notifications once per invite per signed-in session; dismissing the dialog keeps the notification available for later action
 
+- After an org invite has been opened/read, clicking that same notification routes to the organization dashboard instead of reopening invite action modal state
+
 - Run `npm run test:unit` to execute targeted unit tests, including invite error classification (`src/lib/utils/inviteErrorMessages.test.ts`), shared profile error message constants (`src/lib/utils/profileErrorMessages.test.ts`), and primary-org switch lock behavior (`src/hooks/usePrimaryOrganizationSwitch.test.ts`)
 
 - Supabase audit performance CSV exports now exclude migration/DDL/session-control statements (for example `ALTER`, `CREATE`, `DROP`, `BEGIN/COMMIT`, `SET`, and `supabase_migrations` queries) so hotspot reports focus on application workload
@@ -297,6 +299,8 @@ wbs                       workflows
 - Membership-review notifications are rendered through shared formatter `src/lib/utils/notificationMessages.ts` so navbar dropdown and `/notifications` display/search use consistent wording like "Your request to join `<org>` has been `<approved/denied>` for the position of `<job title>`."
 
 - Org admins can now manage existing members directly in the member roster: remove member (required reason) and change member job title (required reason); each action sends a `workflow_update` notification to the affected user with reason + actor metadata in payload
+
+- `Change Title` in organization member management now supports searchable free-text entry; when no existing title matches, admins can create and immediately select a new `job_titles` record inline from the dialog
 
 - Member roster action visibility now keys off the signed-in user’s organization permission role (`admin`, `hr`, or `owner`) for `Change Title` and `Edit Permission Role`; non-privileged members only see self `Leave Organization`
 
@@ -383,6 +387,8 @@ wbs                       workflows
 - Notification settings are enforced in-feed via `get_my_notification_settings` and `get_org_notification_settings`; there is no client fallback path for missing settings RPCs
 
 - Notification dropdown includes a `View all notifications` footer action that routes to `/notifications`
+
+- Notification dropdown and `/notifications` now include both per-item `Mark as read` checkboxes and a `Mark all as read` action
 
 - `/notifications` includes `All` and `Unread` tabs plus a text search to quickly filter notification entries
 

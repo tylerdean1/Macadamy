@@ -32,6 +32,7 @@ backend.snapshot.sql
 *.sw?
 
 # Logs
+networkErrors/*
 logs
 *.log
 *.har

@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Page, PageContainer } from '@/components/Layout';
 import { useAuthStore } from '@/lib/store';
 import { useRequireProfile } from '@/hooks/useRequireProfile';
-import { fetchNotificationsForUser, getNotificationTimestamp, markNotificationAsRead, subscribeToNotifications } from '@/hooks/useNotificationsData';
+import { fetchNotificationsForUser, getNotificationTimestamp, markNotificationAsRead, markNotificationsAsRead, subscribeToNotifications } from '@/hooks/useNotificationsData';
 import { getNotificationDisplayMessage } from '@/lib/utils/notificationMessages';
 import { getBackendErrorMessage, logBackendError, toBackendErrorToastMessage, type BackendTriggerType } from '@/lib/backendErrors';
 import type { Database } from '@/lib/database.types';
@@ -171,7 +171,7 @@ export default function Notifications(): JSX.Element {
                 setSelectedOrganizationId(payloadOrganizationId);
             }
 
-            const inviteAction = getInviteActionContext(item);
+            const inviteAction = !item.is_read ? getInviteActionContext(item) : null;
             if (inviteAction) {
                 setSelectedInviteAction(inviteAction);
                 setInviteActionDialogOpen(true);
@@ -211,6 +211,58 @@ export default function Notifications(): JSX.Element {
     });
 
     const unreadTotal = items.reduce((count, item) => count + (item.is_read ? 0 : 1), 0);
+
+    const handleMarkOneRead = async (item: NotificationRow): Promise<void> => {
+        if (item.is_read) {
+            return;
+        }
+
+        try {
+            await markNotificationAsRead(item.id);
+            setItems((prev) => prev.map((candidate) => (
+                candidate.id === item.id
+                    ? { ...candidate, is_read: true }
+                    : candidate
+            )));
+        } catch (err) {
+            const context = {
+                module: 'Notifications',
+                operation: 'mark notification as read checkbox',
+                trigger: 'user' as const,
+                error: err,
+                ids: {
+                    notificationId: item.id,
+                    profileId: profile?.id ?? null,
+                },
+            };
+            logBackendError(context);
+            toast.error(toBackendErrorToastMessage(context));
+        }
+    };
+
+    const handleMarkAllRead = async (): Promise<void> => {
+        const unreadIds = items.filter((item) => !item.is_read).map((item) => item.id);
+        if (unreadIds.length === 0) {
+            return;
+        }
+
+        try {
+            await markNotificationsAsRead(unreadIds);
+            setItems((prev) => prev.map((item) => ({ ...item, is_read: true })));
+        } catch (err) {
+            const context = {
+                module: 'Notifications',
+                operation: 'mark all notifications as read',
+                trigger: 'user' as const,
+                error: err,
+                ids: {
+                    profileId: profile?.id ?? null,
+                },
+            };
+            logBackendError(context);
+            toast.error(toBackendErrorToastMessage(context));
+        }
+    };
 
     return (
         <Page>
@@ -260,6 +312,17 @@ export default function Notifications(): JSX.Element {
                         />
                     </div>
 
+                    <div className="mb-4 flex items-center justify-end">
+                        <button
+                            type="button"
+                            onClick={() => { void handleMarkAllRead(); }}
+                            disabled={unreadTotal === 0}
+                            className="rounded border border-background-lighter bg-background px-3 py-2 text-sm text-gray-200 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            Mark all as read
+                        </button>
+                    </div>
+
                     {loading ? (
                         <p className="text-gray-400">Loading notifications…</p>
                     ) : loadError ? (
@@ -280,18 +343,31 @@ export default function Notifications(): JSX.Element {
                     ) : (
                         <div className="rounded border border-background-lighter overflow-hidden">
                             {filteredItems.map((item) => (
-                                <button
+                                <div
                                     key={item.id}
-                                    type="button"
-                                    className={`w-full text-left px-4 py-3 border-b border-background-lighter last:border-b-0 hover:bg-background-light ${item.is_read ? 'text-gray-300' : 'text-white'}`}
-                                    onClick={() => { void handleOpenNotification(item); }}
+                                    className={`px-4 py-3 border-b border-background-lighter last:border-b-0 ${item.is_read ? 'text-gray-300' : 'text-white'}`}
                                 >
-                                    <div className="flex items-start justify-between gap-3">
-                                        <p className="text-sm leading-5">{getNotificationDisplayMessage(item)}</p>
-                                        {!item.is_read && <span className="mt-1 w-2 h-2 rounded-full bg-red-500 shrink-0" />}
+                                    <div className="flex items-start gap-3">
+                                        <input
+                                            type="checkbox"
+                                            checked={item.is_read}
+                                            onChange={() => { void handleMarkOneRead(item); }}
+                                            className="mt-0.5 h-4 w-4 rounded border-background-lighter bg-background"
+                                            aria-label={`Mark notification as read: ${getNotificationDisplayMessage(item)}`}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="w-full text-left hover:text-white"
+                                            onClick={() => { void handleOpenNotification(item); }}
+                                        >
+                                            <div className="flex items-start justify-between gap-3">
+                                                <p className="text-sm leading-5">{getNotificationDisplayMessage(item)}</p>
+                                                {!item.is_read && <span className="mt-1 w-2 h-2 rounded-full bg-red-500 shrink-0" />}
+                                            </div>
+                                            <p className="mt-1 text-xs text-gray-400">{new Date(getNotificationTimestamp(item)).toLocaleString()}</p>
+                                        </button>
                                     </div>
-                                    <p className="mt-1 text-xs text-gray-400">{new Date(getNotificationTimestamp(item)).toLocaleString()}</p>
-                                </button>
+                                </div>
                             ))}
                         </div>
                     )}

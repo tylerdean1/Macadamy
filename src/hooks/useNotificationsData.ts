@@ -217,6 +217,17 @@ export async function markNotificationAsRead(id: string): Promise<void> {
   await rpcClient.update_notifications({ _id: id, _input: { is_read: true } });
 }
 
+export async function markNotificationsAsRead(ids: string[]): Promise<void> {
+  const uniqueIds = [...new Set(ids.filter((id) => id.trim().length > 0))];
+  if (uniqueIds.length === 0) {
+    return;
+  }
+
+  await Promise.all(uniqueIds.map(async (id) => {
+    await markNotificationAsRead(id);
+  }));
+}
+
 export function getNotificationTimestamp(notification: NotificationRow): string {
   const asRecord = notification as unknown as Record<string, unknown>;
   const createdAt = typeof asRecord.created_at === 'string' ? asRecord.created_at : null;

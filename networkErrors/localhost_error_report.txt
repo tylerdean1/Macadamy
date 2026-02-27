@@ -1,16 +1,16 @@
 LOCALHOST ERROR REPORT
 ======================
-Generated: 2026-02-27T03:50:24.264Z
+Generated: 2026-02-27T04:41:24.223Z
 Project: glfyzsomweonudscklob
-Window: last 5 minute(s) (2026-02-27T03:45:13.537Z -> 2026-02-27T03:50:13.536Z)
+Window: last 5 minute(s) (2026-02-27T04:36:13.998Z -> 2026-02-27T04:41:13.997Z)
 Severity mode: warn
 
 1) Summary
 ----------
-- Sources scanned: 7
-- Successful source queries: 7
+- Sources scanned: 3
+- Successful source queries: 3
 - Failed source queries: 0
-- Matched warning/error rows: 224
+- Matched warning/error rows: 43
 
 2) Where errors are coming from
 -------------------------------
@@ -18,93 +18,42 @@ Severity mode: warn
 
 3) Why these errors are likely happening
 ----------------------------------------
-- [2] Server-side failure; inspect upstream service logs around same timestamp and trace/request identifiers.
-- [2] Edge Function involvement detected; correlate with function runtime logs and deployment version.
-- [1] Database query/constraint issue; inspect SQL, constraints, and RPC argument mapping.
+- [1] Edge Function involvement detected; correlate with function runtime logs and deployment version.
 
 4) Most impacted RPC/path buckets
 ---------------------------------
-- [1] https://glfyzsomweonudscklob.supabase.co/functions/v1/send-org-invite-email | status=409 | errorCodes=n/a
-- [1] unknown | status=500 | errorCodes=n/a
-- [1] /auth/v1/invite | status=500 | errorCodes=n/a
+- No recurring RPC/path failure bucket was identified.
 
 5) Source-by-source evidence
 ----------------------------
-Source: auth_logs
+Source: function_logs
 - Query status: ok (HTTP 200)
-- Matched entries: 12
-- Severity counts: error=2, warning=0, info=10
-- HTTP buckets in matched entries: 4xx=0, 5xx=0, unknown=12
-- Top signatures:
-  - [10] {"<value>":"api","<value>":<n>,"<value>":"<value>","<value>":"get","msg":"<value>","<value>":"<value>","<value>":"<value>","<value>":"<value>","<value>":"<value>","<value>":<n>,"<value>":"<value>"}
-  - [1] {"<value>":"api","<value>":<n>,"<value>":"<value>","<value>":"<value>","<value>":"<value>","msg":"<value>","<value>":"<value>","<value>":"<value>","<value>":"<value>","<value>":"<value>","<value>":<n>,"<value>":"<value>"
-  - [1] {"<value>":"api","<value>":"<value>"profiles_email_key\"<value>","<value>":"<value>","<value>":"<value>","msg":"<value>","<value>":"<value>","<value>":"<value>","<value>":"<value>","<value>":"<value>","<value>":"<value>"
-
-Source: edge_logs
-- Query status: ok (HTTP 200)
-- Matched entries: 151
-- Severity counts: error=1, warning=0, info=150
-- HTTP buckets in matched entries: 4xx=0, 5xx=1, unknown=0
-- Top signatures:
-  - [1] post | <n> | <n>.26.48.31 | 9d44b6a359187af9 | https://glfyzsomweonudscklob.supabase.co/auth/v1/invite | deno/2.1.4 (variant; supabaseedgeruntime/1.70.3)
-  - [1] post | <n> | <n>.26.48.31 | 9d44b6a25d5f7af9 | https://glfyzsomweonudscklob.supabase.co/rest/v1/rpc/org_invite_list_for_org | deno/2.1.4 (variant; supabaseedgeruntime/1.70.3)
-  - [1] get | <n> | <n>.26.48.31 | 9d44b69f6b347af9 | https://glfyzsomweonudscklob.supabase.co/auth/v1/user | deno/2.1.4 (variant; supabaseedgeruntime/1.70.3)
-  - [1] post | <n> | 76.<n>.<n>.12 | 9d44b69d9f6a68ca | https://glfyzsomweonudscklob.supabase.co/rest/v1/rpc/org_invite_resend | mozilla/5.0 (windows nt 10.0; win64; x64) applewebkit/<n>.36 (khtml, like gecko) chrome/<n>.0.0.0 s
-  - [1] post | <n> | 76.<n>.<n>.12 | 9d44b68e4f8168ca | https://glfyzsomweonudscklob.supabase.co/rest/v1/rpc/get_org_notification_settings | mozilla/5.0 (windows nt 10.0; win64; x64) applewebkit/<n>.36 (khtml, like gecko) chrome
-- Top cause hints:
-  - [1] Server-side failure; inspect upstream service logs around same timestamp and trace/request identifiers.
+- Matched entries: 0
+- Severity counts: error=0, warning=0, info=0
+- HTTP buckets in matched entries: 4xx=0, 5xx=0, unknown=0
 
 Source: function_edge_logs
 - Query status: ok (HTTP 200)
 - Matched entries: 1
-- Severity counts: error=0, warning=1, info=0
-- HTTP buckets in matched entries: 4xx=1, 5xx=0, unknown=0
+- Severity counts: error=0, warning=0, info=1
+- HTTP buckets in matched entries: 4xx=0, 5xx=0, unknown=0
 - Top signatures:
   - [1] post | <n> | https://glfyzsomweonudscklob.supabase.co/functions/v1/send-org-invite-email
 - Top cause hints:
   - [1] Edge Function involvement detected; correlate with function runtime logs and deployment version.
 
-Source: function_logs
+Source: auth_logs
 - Query status: ok (HTTP 200)
-- Matched entries: 1
-- Severity counts: error=1, warning=0, info=0
-- HTTP buckets in matched entries: 4xx=0, 5xx=1, unknown=0
+- Matched entries: 42
+- Severity counts: error=4, warning=2, info=36
+- HTTP buckets in matched entries: 4xx=0, 5xx=0, unknown=42
 - Top signatures:
-  - [1] [send-org-invite-email] inviteuserbyemail failed. {
-  inviteerror: authapierror: database error saving new user
-    at tt (https://esm.sh/@supabase/auth-js@2.98.0/es2022/auth-js.mjs:3:<n>)
-    at eventlooptick (ext:core/
-- Top cause hints:
-  - [1] Server-side failure; inspect upstream service logs around same timestamp and trace/request identifiers.
-  - [1] Edge Function involvement detected; correlate with function runtime logs and deployment version.
-
-Source: postgres_logs
-- Query status: ok (HTTP 200)
-- Matched entries: 59
-- Severity counts: error=0, warning=0, info=59
-- HTTP buckets in matched entries: 4xx=0, 5xx=0, unknown=59
-- Top signatures:
-  - [23] connection authenticated: user="<value>" method=trust (/etc/postgresql/pg_hba.conf:85)
-  - [18] connection authorized: user=authenticator database=postgres application_name=postgrest ssl enabled (protocol=tlsv1.3, cipher=tls_aes_256_gcm_sha384, bits=<n>)
-  - [6] connection received: host=::1 port=<n>
-  - [5] connection authorized: user=supabase_admin database=postgres application_name=postgres_exporter
-  - [1] current transaction is aborted, commands ignored until end of transaction block
-- Top cause hints:
-  - [1] Database query/constraint issue; inspect SQL, constraints, and RPC argument mapping.
-
-Source: realtime_logs
-- Query status: ok (HTTP 200)
-- Matched entries: 0
-- Severity counts: error=0, warning=0, info=0
-- HTTP buckets in matched entries: 4xx=0, 5xx=0, unknown=0
-
-Source: storage_logs
-- Query status: ok (HTTP 200)
-- Matched entries: 0
-- Severity counts: error=0, warning=0, info=0
-- HTTP buckets in matched entries: 4xx=0, 5xx=0, unknown=0
+  - [16] {"<value>":"api","<value>":<n>,"<value>":"<value>","<value>":"get","msg":"<value>","<value>":"<value>","<value>":"<value>","<value>":"<value>","<value>":"<value>","<value>":<n>,"<value>":"<value>"}
+  - [8] {"<value>":"<value>","<value>":"<value>","msg":"<value>","<value>":"<value>","<value>":"<value>"}
+  - [3] {"<value>":"<value>","msg":"<value>","<value>":"<value>"}
+  - [2] {"<value>":"api","<value>":"<value>","msg":"<value>"s gotrue, will be removed soon","<value>":"<value>"}
+  - [1] {"<value>":0,"<value>":"<value>","msg":"<value>","<value>":"<value>"}
 
 6) Action checklist
 -------------------
-- 5xx errors detected. Prioritize server-side traces and correlate request IDs/timestamps across affected sources.
-- 4xx errors detected. Review auth, permissions, request paths, and payload schema contracts.
+- Focused run active; some root causes may be outside selected sources.

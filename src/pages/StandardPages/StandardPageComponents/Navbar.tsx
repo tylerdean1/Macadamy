@@ -6,7 +6,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { useMyOrganizations } from '@/hooks/useMyOrganizations';
 import { useValidatedSelectedOrganization } from '@/hooks/useValidatedSelectedOrganization';
 import { usePrimaryOrganizationSwitch } from '@/hooks/usePrimaryOrganizationSwitch';
-import { fetchNotificationsForUser, getNotificationTimestamp, markNotificationAsRead, subscribeToNotifications } from '@/hooks/useNotificationsData';
+import { fetchNotificationsForUser, getNotificationTimestamp, markNotificationAsRead, markNotificationsAsRead, subscribeToNotifications } from '@/hooks/useNotificationsData';
 import { getNotificationDisplayMessage } from '@/lib/utils/notificationMessages';
 import { logBackendError, toBackendErrorToastMessage } from '@/lib/backendErrors';
 import type { Database } from '@/lib/database.types';
@@ -279,7 +279,7 @@ export function Navbar() {
         setSelectedOrganizationId(payloadOrganizationId);
       }
 
-      const inviteAction = getInviteActionContext(notification);
+      const inviteAction = !notification.is_read ? getInviteActionContext(notification) : null;
       if (inviteAction) {
         setSelectedInviteAction(inviteAction);
         setInviteActionDialogOpen(true);
@@ -296,6 +296,93 @@ export function Navbar() {
         error: err,
         ids: {
           notificationId: notification.id,
+          profileId: profile?.id ?? null,
+        },
+      };
+      logBackendError(context);
+      toast.error(toBackendErrorToastMessage(context));
+    } finally {
+      setIsNotifBusy(false);
+    }
+  };
+
+  const handleMarkOneRead = async (notification: NotificationRow): Promise<void> => {
+    if (isNotifBusy || notification.is_read) {
+      return;
+    }
+
+    setIsNotifBusy(true);
+    try {
+      await markNotificationAsRead(notification.id);
+      setNotifications((prev) => prev.map((item) => (
+        item.id === notification.id
+          ? { ...item, is_read: true }
+          : item
+      )));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (err) {
+      const context = {
+        module: 'Navbar',
+        operation: 'mark notification as read checkbox',
+        trigger: 'user' as const,
+        error: err,
+        ids: {
+          notificationId: notification.id,
+          profileId: profile?.id ?? null,
+        },
+      };
+      logBackendError(context);
+      toast.error(toBackendErrorToastMessage(context));
+    } finally {
+      setIsNotifBusy(false);
+    }
+  };
+
+  const handleMarkAllRead = async (): Promise<void> => {
+    if (isNotifBusy) {
+      return;
+    }
+
+    if (!profile?.id) {
+      return;
+    }
+
+    const latestUnread = await fetchNotificationsForUser(profile.id, { limit: 100, unreadOnly: true }).catch((error: unknown) => {
+      const context = {
+        module: 'Navbar',
+        operation: 'load unread notifications before mark-all',
+        trigger: 'user' as const,
+        error,
+        ids: {
+          profileId: profile.id,
+        },
+      };
+      logBackendError(context);
+      toast.error(toBackendErrorToastMessage(context));
+      return null;
+    });
+
+    if (!latestUnread) {
+      return;
+    }
+
+    const unreadIds = latestUnread.map((notification) => notification.id);
+    if (unreadIds.length === 0) {
+      return;
+    }
+
+    setIsNotifBusy(true);
+    try {
+      await markNotificationsAsRead(unreadIds);
+      setNotifications((prev) => prev.map((notification) => ({ ...notification, is_read: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      const context = {
+        module: 'Navbar',
+        operation: 'mark all notifications as read',
+        trigger: 'user' as const,
+        error: err,
+        ids: {
           profileId: profile?.id ?? null,
         },
       };
@@ -469,32 +556,54 @@ export function Navbar() {
                 </button>
 
                 {isNotificationsOpen && (
-                  <div id="notifications-menu" role="menu" className="absolute right-0 mt-2 w-80 bg-background-lighter rounded shadow-lg z-50 border border-background">
-                    <div className="px-3 py-2 border-b border-background text-sm text-gray-300 font-medium">Notifications</div>
+                  <div id="notifications-menu" className="absolute right-0 mt-2 w-80 bg-background-lighter rounded shadow-lg z-50 border border-background">
+                    <div className="px-3 py-2 border-b border-background text-sm text-gray-300 font-medium flex items-center justify-between">
+                      <span>Notifications</span>
+                      <button
+                        type="button"
+                        className="text-xs text-gray-300 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                        onClick={() => { void handleMarkAllRead(); }}
+                        disabled={isNotifBusy || unreadCount === 0}
+                      >
+                        Mark all as read
+                      </button>
+                    </div>
                     <div className="max-h-80 overflow-y-auto">
                       {notifications.length === 0 ? (
                         <div className="px-3 py-3 text-sm text-gray-400">No notifications</div>
                       ) : notifications.map((notification) => (
-                        <button
+                        <div
                           key={notification.id}
-                          role="menuitem"
-                          type="button"
-                          className={`w-full text-left px-3 py-3 border-b border-background last:border-b-0 hover:bg-background transition-colors ${notification.is_read ? 'text-gray-300' : 'text-white'}`}
-                          onClick={() => { void handleNotificationClick(notification); }}
-                          disabled={isNotifBusy}
+                          className={`px-3 py-3 border-b border-background last:border-b-0 ${notification.is_read ? 'text-gray-300' : 'text-white'}`}
                         >
-                          <div className="flex items-start justify-between gap-3">
-                            <p className="text-sm leading-5">{getNotificationDisplayMessage(notification)}</p>
-                            {!notification.is_read && <span className="mt-1 w-2 h-2 rounded-full bg-red-500 shrink-0" />}
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              checked={notification.is_read}
+                              onChange={() => { void handleMarkOneRead(notification); }}
+                              className="mt-0.5 h-4 w-4 rounded border-background-lighter bg-background"
+                              aria-label={`Mark notification as read: ${getNotificationDisplayMessage(notification)}`}
+                              disabled={isNotifBusy}
+                            />
+                            <button
+                              type="button"
+                              className="w-full text-left hover:text-white"
+                              onClick={() => { void handleNotificationClick(notification); }}
+                              disabled={isNotifBusy}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <p className="text-sm leading-5">{getNotificationDisplayMessage(notification)}</p>
+                                {!notification.is_read && <span className="mt-1 w-2 h-2 rounded-full bg-red-500 shrink-0" />}
+                              </div>
+                              <p className="mt-1 text-xs text-gray-400">{new Date(getNotificationTimestamp(notification)).toLocaleString()}</p>
+                            </button>
                           </div>
-                          <p className="mt-1 text-xs text-gray-400">{new Date(getNotificationTimestamp(notification)).toLocaleString()}</p>
-                        </button>
+                        </div>
                       ))}
                     </div>
                     <div className="border-t border-background p-1">
                       <button
                         type="button"
-                        role="menuitem"
                         className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-background"
                         onClick={() => {
                           setIsNotificationsOpen(false);

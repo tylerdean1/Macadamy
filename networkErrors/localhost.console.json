@@ -1,6 +1,6 @@
 [
   {
-    "ts": "2026-02-27T03:50:14.308Z",
+    "ts": "2026-02-27T04:41:15.023Z",
     "type": "debug",
     "text": "[vite] connecting...",
     "args": [
@@ -13,7 +13,7 @@
     }
   },
   {
-    "ts": "2026-02-27T03:50:14.341Z",
+    "ts": "2026-02-27T04:41:15.035Z",
     "type": "debug",
     "text": "[vite] connected.",
     "args": [
@@ -26,7 +26,7 @@
     }
   },
   {
-    "ts": "2026-02-27T03:50:16.066Z",
+    "ts": "2026-02-27T04:41:17.657Z",
     "type": "info",
     "text": "%cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold",
     "args": [
@@ -40,7 +40,7 @@
     }
   },
   {
-    "ts": "2026-02-27T03:50:16.087Z",
+    "ts": "2026-02-27T04:41:17.694Z",
     "type": "log",
     "text": "[auth] getSession {session: null} null",
     "args": [
@@ -49,13 +49,13 @@
       "null"
     ],
     "location": {
-      "url": "http://localhost:5173/src/hooks/useBootstrapAuth.ts?t=1772164166310",
+      "url": "http://localhost:5173/src/hooks/useBootstrapAuth.ts",
       "lineNumber": 59,
       "columnNumber": 16
     }
   },
   {
-    "ts": "2026-02-27T03:50:16.088Z",
+    "ts": "2026-02-27T04:41:17.695Z",
     "type": "log",
     "text": "[auth] getSession {session: null} null",
     "args": [
@@ -64,13 +64,13 @@
       "null"
     ],
     "location": {
-      "url": "http://localhost:5173/src/hooks/useBootstrapAuth.ts?t=1772164166310",
+      "url": "http://localhost:5173/src/hooks/useBootstrapAuth.ts",
       "lineNumber": 59,
       "columnNumber": 16
     }
   },
   {
-    "ts": "2026-02-27T03:50:16.090Z",
+    "ts": "2026-02-27T04:41:17.705Z",
     "type": "log",
     "text": "[auth] INITIAL_SESSION false undefined",
     "args": [
@@ -80,13 +80,13 @@
       "undefined"
     ],
     "location": {
-      "url": "http://localhost:5173/src/hooks/useBootstrapAuth.ts?t=1772164166310",
+      "url": "http://localhost:5173/src/hooks/useBootstrapAuth.ts",
       "lineNumber": 156,
       "columnNumber": 16
     }
   },
   {
-    "ts": "2026-02-27T03:50:16.097Z",
+    "ts": "2026-02-27T04:41:17.705Z",
     "type": "log",
     "text": "%c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit",
     "args": [
@@ -101,14 +101,14 @@
     }
   },
   {
-    "ts": "2026-02-27T03:50:16.097Z",
+    "ts": "2026-02-27T04:41:17.705Z",
     "type": "log",
-    "text": "%c[Vercel Web Analytics]%c [view] http://localhost:5173/ color: rgb(120, 120, 120) color: inherit {o: http://localhost:5173/, sv: 0.1.3, sdkn: @vercel/analytics/react, sdkv: 1.5.0, ts: 1772164215833} /_vercel/insights/view",
+    "text": "%c[Vercel Web Analytics]%c [view] http://localhost:5173/ color: rgb(120, 120, 120) color: inherit {o: http://localhost:5173/, sv: 0.1.3, sdkn: @vercel/analytics/react, sdkv: 1.5.0, ts: 1772167277002} /_vercel/insights/view",
     "args": [
       "%c[Vercel Web Analytics]%c [view] http://localhost:5173/",
       "color: rgb(120, 120, 120)",
       "color: inherit",
-      "{o: http://localhost:5173/, sv: 0.1.3, sdkn: @vercel/analytics/react, sdkv: 1.5.0, ts: 1772164215833}",
+      "{o: http://localhost:5173/, sv: 0.1.3, sdkn: @vercel/analytics/react, sdkv: 1.5.0, ts: 1772167277002}",
       "/_vercel/insights/view"
     ],
     "location": {
