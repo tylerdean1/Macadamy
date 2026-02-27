@@ -1,0 +1,120 @@
+[
+  {
+    "ts": "2026-02-27T03:50:14.308Z",
+    "type": "debug",
+    "text": "[vite] connecting...",
+    "args": [
+      "[vite] connecting..."
+    ],
+    "location": {
+      "url": "http://localhost:5173/@vite/client",
+      "lineNumber": 788,
+      "columnNumber": 8
+    }
+  },
+  {
+    "ts": "2026-02-27T03:50:14.341Z",
+    "type": "debug",
+    "text": "[vite] connected.",
+    "args": [
+      "[vite] connected."
+    ],
+    "location": {
+      "url": "http://localhost:5173/@vite/client",
+      "lineNumber": 911,
+      "columnNumber": 14
+    }
+  },
+  {
+    "ts": "2026-02-27T03:50:16.066Z",
+    "type": "info",
+    "text": "%cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold",
+    "args": [
+      "%cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools",
+      "font-weight:bold"
+    ],
+    "location": {
+      "url": "http://localhost:5173/node_modules/.vite/deps/chunk-TH7NCS4R.js?v=291b64ac",
+      "lineNumber": 21608,
+      "columnNumber": 24
+    }
+  },
+  {
+    "ts": "2026-02-27T03:50:16.087Z",
+    "type": "log",
+    "text": "[auth] getSession {session: null} null",
+    "args": [
+      "[auth] getSession",
+      "{session: null}",
+      "null"
+    ],
+    "location": {
+      "url": "http://localhost:5173/src/hooks/useBootstrapAuth.ts?t=1772164166310",
+      "lineNumber": 59,
+      "columnNumber": 16
+    }
+  },
+  {
+    "ts": "2026-02-27T03:50:16.088Z",
+    "type": "log",
+    "text": "[auth] getSession {session: null} null",
+    "args": [
+      "[auth] getSession",
+      "{session: null}",
+      "null"
+    ],
+    "location": {
+      "url": "http://localhost:5173/src/hooks/useBootstrapAuth.ts?t=1772164166310",
+      "lineNumber": 59,
+      "columnNumber": 16
+    }
+  },
+  {
+    "ts": "2026-02-27T03:50:16.090Z",
+    "type": "log",
+    "text": "[auth] INITIAL_SESSION false undefined",
+    "args": [
+      "[auth]",
+      "INITIAL_SESSION",
+      "false",
+      "undefined"
+    ],
+    "location": {
+      "url": "http://localhost:5173/src/hooks/useBootstrapAuth.ts?t=1772164166310",
+      "lineNumber": 156,
+      "columnNumber": 16
+    }
+  },
+  {
+    "ts": "2026-02-27T03:50:16.097Z",
+    "type": "log",
+    "text": "%c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit",
+    "args": [
+      "%c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server.",
+      "color: rgb(120, 120, 120)",
+      "color: inherit"
+    ],
+    "location": {
+      "url": "https://va.vercel-scripts.com/v1/script.debug.js",
+      "lineNumber": 0,
+      "columnNumber": 614
+    }
+  },
+  {
+    "ts": "2026-02-27T03:50:16.097Z",
+    "type": "log",
+    "text": "%c[Vercel Web Analytics]%c [view] http://localhost:5173/ color: rgb(120, 120, 120) color: inherit {o: http://localhost:5173/, sv: 0.1.3, sdkn: @vercel/analytics/react, sdkv: 1.5.0, ts: 1772164215833} /_vercel/insights/view",
+    "args": [
+      "%c[Vercel Web Analytics]%c [view] http://localhost:5173/",
+      "color: rgb(120, 120, 120)",
+      "color: inherit",
+      "{o: http://localhost:5173/, sv: 0.1.3, sdkn: @vercel/analytics/react, sdkv: 1.5.0, ts: 1772164215833}",
+      "/_vercel/insights/view"
+    ],
+    "location": {
+      "url": "https://va.vercel-scripts.com/v1/script.debug.js",
+      "lineNumber": 0,
+      "columnNumber": 614
+    }
+  }
+]

@@ -70,6 +70,102 @@ type InviteMutationRow = Database['public']['Functions']['org_invite_send_by_ema
 type InviteListRow = Database['public']['Functions']['org_invite_list_for_org']['Returns'][number];
 type InviteCurrentUserListRow = Database['public']['Functions']['org_invite_list_for_current_user']['Returns'][number];
 
+type FunctionInvokeErrorContext = {
+    status?: number;
+    json?: () => Promise<unknown>;
+    text?: () => Promise<string>;
+};
+
+type FunctionInvokeErrorLike = {
+    message?: string;
+    context?: FunctionInvokeErrorContext;
+};
+
+type FunctionErrorPayload = {
+    error?: string;
+    detail?: string;
+    code?: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+}
+
+function asOptionalString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim() !== '' ? value : undefined;
+}
+
+async function readFunctionErrorPayload(context: FunctionInvokeErrorContext): Promise<FunctionErrorPayload | null> {
+    if (typeof context.json === 'function') {
+        try {
+            const parsed = await context.json();
+            if (isRecord(parsed)) {
+                return {
+                    error: asOptionalString(parsed.error),
+                    detail: asOptionalString(parsed.detail),
+                    code: asOptionalString(parsed.code),
+                };
+            }
+        } catch (parseError) {
+            void parseError;
+        }
+    }
+
+    if (typeof context.text === 'function') {
+        try {
+            const textBody = await context.text();
+            const trimmedBody = textBody.trim();
+            if (trimmedBody.length === 0) {
+                return null;
+            }
+
+            try {
+                const parsed = JSON.parse(trimmedBody) as unknown;
+                if (isRecord(parsed)) {
+                    return {
+                        error: asOptionalString(parsed.error),
+                        detail: asOptionalString(parsed.detail),
+                        code: asOptionalString(parsed.code),
+                    };
+                }
+            } catch (parseError) {
+                void parseError;
+                return { error: trimmedBody };
+            }
+        } catch (readError) {
+            void readError;
+        }
+    }
+
+    return null;
+}
+
+async function buildInviteEmailError(error: unknown): Promise<Error> {
+    const errorLike = isRecord(error) ? (error as FunctionInvokeErrorLike) : {};
+    const context = errorLike.context;
+    const fallbackMessage = asOptionalString(errorLike.message) ?? 'send-org-invite-email failed.';
+
+    if (!context) {
+        return new Error(fallbackMessage);
+    }
+
+    const payload = await readFunctionErrorPayload(context);
+    if (!payload) {
+        return new Error(fallbackMessage);
+    }
+
+    if (payload.code === 'profile_email_conflict') {
+        return new Error(payload.error ?? 'Invite delivery blocked because this email already maps to an existing profile.');
+    }
+
+    const payloadMessage = payload.error ?? payload.detail;
+    if (payloadMessage) {
+        return new Error(payloadMessage);
+    }
+
+    return new Error(fallbackMessage);
+}
+
 function asNullableString(value: string | null | undefined): string | null {
     if (typeof value !== 'string') {
         return null;
@@ -138,13 +234,15 @@ export async function sendOrganizationInviteEmail(args: SendOrganizationInviteEm
     });
 
     if (error) {
+        const parsedError = await buildInviteEmailError(error);
         console.error('[inviteRpc] send-org-invite-email', {
             error,
+            parsedError,
             organizationId: args.organizationId,
             inviteId: args.inviteId,
             email: args.email,
         });
-        throw error;
+        throw parsedError;
     }
 }
 

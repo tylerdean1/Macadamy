@@ -30,7 +30,14 @@
     "audit:supabase:queries": "node scripts/supabase_audit.mjs --in audits/supabase --out audits/supabase/supabase_audit.md --only queries --top 20 --format both",
     "audit:supabase:collect": "node scripts/supabase_collect.mjs",
     "audit:all": "npm run audit:deps && npm run audit:supabase:collect && npm run audit:supabase",
-    "avatars:purge": "node scripts/purge-orphaned-avatars.mjs"
+    "avatars:purge": "node scripts/purge-orphaned-avatars.mjs",
+    "log5": "node scripts/supabase_logs.mjs",
+    "log5:invite": "node scripts/supabase_logs.mjs --invite",
+    "log5:error": "node scripts/supabase_logs.mjs --severity=error",
+    "log5:full": "node scripts/supabase_logs.mjs --severity=all",
+    "log5:postgres": "node scripts/supabase_logs.mjs postgres_logs",
+    "log5:setup": "node scripts/setup_supabase_logs.mjs",
+    "supabaselogs": "node scripts/supabase_logs.mjs"
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^2.0.2",
@@ -68,15 +75,20 @@
     "@types/uuid": "^9.0.8",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.18",
+    "commander": "^12.1.0",
     "dotenv": "^16.5.0",
     "eslint": "^10.0.1",
+    "find-up": "^7.0.0",
     "globals": "^15.15.0",
+    "picocolors": "^1.1.1",
+    "playwright": "^1.58.2",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.56.0",
     "vite": "^6.4.1",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "zod": "^4.1.12"
   },
   "overrides": {
     "minimatch": "10.2.1"

@@ -25305,9 +25305,12 @@ BEGIN
     RAISE EXCEPTION 'Access denied' USING errcode = '42501';
   END IF;
 
+  -- IMPORTANT: only treat as existing account when profile is backed by auth.users.
   SELECT p.id
   INTO v_existing_profile_id
   FROM public.profiles p
+  JOIN auth.users au
+    ON au.id = p.id
   WHERE lower(btrim(p.email)) = v_invite.invitee_email_norm
     AND p.deleted_at IS NULL
   ORDER BY p.created_at ASC
@@ -25335,7 +25338,7 @@ BEGIN
       updated_at = v_now,
       responded_at = NULL,
       cancelled_at = NULL,
-      claimed_profile_id = COALESCE(v_existing_profile_id, claimed_profile_id)
+      claimed_profile_id = v_existing_profile_id
   WHERE id = p_invite_id
   RETURNING * INTO v_invite;
 
@@ -25609,9 +25612,12 @@ BEGIN
     RAISE EXCEPTION 'Access denied' USING errcode = '42501';
   END IF;
 
+  -- Only treat as an existing account if the profile has a corresponding auth.users row.
   SELECT p.id
   INTO v_existing_profile_id
   FROM public.profiles p
+  JOIN auth.users au
+    ON au.id = p.id
   WHERE lower(btrim(p.email)) = v_email_norm
     AND p.deleted_at IS NULL
   ORDER BY p.created_at ASC
@@ -25689,7 +25695,7 @@ BEGIN
         updated_at = v_now,
         responded_at = NULL,
         cancelled_at = NULL,
-        claimed_profile_id = COALESCE(v_existing_profile_id, claimed_profile_id)
+        claimed_profile_id = v_existing_profile_id
     WHERE id = v_invite.id
     RETURNING * INTO v_invite;
   END IF;

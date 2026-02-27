@@ -23,6 +23,7 @@ import { useValidatedSelectedOrganization } from '@/hooks/useValidatedSelectedOr
 import { rpcClient } from '@/lib/rpc.client';
 import { getStoragePublicUrl, uploadStorageFile } from '@/lib/storageClient';
 import { useAuthStore } from '@/lib/store';
+import { getBackendErrorMessage } from '@/lib/backendErrors';
 import { resolveInviteReviewErrorMessage, resolveOrgMemberActionErrorMessage } from '@/lib/utils/inviteErrorMessages';
 import { formatPhoneUS } from '@/lib/utils/formatters';
 import {
@@ -753,7 +754,7 @@ export default function OrganizationDashboard(): JSX.Element {
       await loadOrganizationEmailInvites();
     } catch (error) {
       console.error('[OrganizationDashboard] send organization invite', error);
-      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.inviteSendFailed);
+      toast.error(`${ORG_DASHBOARD_TOAST_MESSAGES.inviteSendFailed} ${getBackendErrorMessage(error)}`);
     } finally {
       setInviteSubmitting(false);
     }
@@ -784,7 +785,7 @@ export default function OrganizationDashboard(): JSX.Element {
       await loadOrganizationEmailInvites();
     } catch (error) {
       console.error('[OrganizationDashboard] resend invite', error);
-      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.inviteResendFailed);
+      toast.error(`${ORG_DASHBOARD_TOAST_MESSAGES.inviteResendFailed} ${getBackendErrorMessage(error)}`);
     } finally {
       setInviteActionBusyId(null);
     }

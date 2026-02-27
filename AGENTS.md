@@ -21,6 +21,8 @@ These guidelines merge repository instructions and AI contribution expectations 
 - Add comments to code explaining the purpose of major code blocks and reasoning where appropriate.
 - Network access to external resources is already granted in the environment settings.
 - Supabase CLI is installed and used via Scoop in this environment; use direct `supabase ...` commands.
+- For quick Supabase diagnostics, agents should run `npm run log5` to retrieve warning/error logs for the last 5 minutes across all available sources.
+- If `npm run log5` output is too long for the terminal, the script writes results to `networkErrors/supabase_logs.json`.
 
 ---
 

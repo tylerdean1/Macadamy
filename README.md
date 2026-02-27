@@ -424,6 +424,45 @@ wbs                       workflows
 
 - `npm run avatars:purge` cleans up orphaned avatar rows and unreferenced files in the `avatars-personal` bucket (requires `SUPABASE_SERVICE_ROLE_KEY`)
 
+- `npm run log5` pulls Supabase logs for the last 5 minutes with in-depth diagnostics (status buckets, top failure signatures, root-cause hints, and `atGlance` checks), prints in terminal when short, and writes long output to `networkErrors/supabase_logs.json` (requires `SUPABASE_ACCESS_TOKEN`; `npm run supabaselogs` remains as an alias)
+- CLI argument parsing now uses Commander + Zod, including generated `--help` output and stricter validation errors for invalid options
+- Focus specific sources with `npm run log5 -- postgres_logs` (or comma-separated: `npm run log5 -- edge_logs,function_logs`); use `--invite` for invite triage (`function_logs,function_edge_logs,auth_logs`)
+- To support new/experimental Supabase log categories without patching code, set `SUPABASE_LOG_SOURCES` (CSV) and optional `SUPABASE_INVITE_LOG_SOURCES` (CSV)
+- Severity controls: `--severity=warn` (default), `--severity=error`, or `--severity=all`; add `--raw` to print full source error bodies when present
+- Automatic localhost HAR capture is attempted by default (`http://localhost:5173`) and included in `harCorrelation` when successful; override with `--app-url`, disable with `--no-auto-har`, or provide an explicit HAR via `--har`
+- Automatic HAR capture requires the target app URL to be running/reachable (for default URL, start your local app first)
+- Browser console output from the same Playwright capture pass is written to `networkErrors/localhost.console.json`
+- A full human-readable diagnostic report is always written to `networkErrors/localhost_error_report.txt`, including where errors come from, likely causes, impacted RPC/path buckets, and source-by-source evidence
+- Shortcut scripts: `npm run log5:invite`, `npm run log5:error`, `npm run log5:full`, and `npm run log5:postgres`
+
+### Log5 setup for a new project (portable bootstrap)
+
+When moving `scripts/supabase_logs.mjs` to another repo, run:
+
+- `npm run log5:setup`
+
+What it does automatically:
+
+- Verifies Node version (requires Node 18+)
+- Ensures required npm scripts exist (`log5`, aliases, and `log5:setup`)
+- Installs missing dev dependencies used by the log tool (`commander`, `find-up`, `picocolors`, `zod`, `playwright`)
+- Checks whether Supabase CLI is available in PATH
+- Checks env vars in this order: `.env`, `.env.local`, `.env.development`, `.env.production`
+- If required values are missing, generates `.env.log5.example` and reports exactly what is still needed
+- Audits whether required env values are present
+
+How to find required Supabase values:
+
+- `SUPABASE_ACCESS_TOKEN` (or `SUPABASE_MANAGEMENT_TOKEN`): Supabase Dashboard → Account → Access Tokens
+  - Direct URL: `https://supabase.com/dashboard/account/tokens`
+- `SUPABASE_PROJECT_REF` (required): Supabase Dashboard → Project Settings → General → Reference ID
+
+Optional setup flags:
+
+- `npm run log5:setup -- --skip-install`
+- `npm run log5:setup -- --skip-cli-check`
+- `npm run log5:setup -- --skip-env-template`
+
 - Shared profile/onboarding error toast strings are centralized in `src/lib/utils/profileErrorMessages.ts` and reused by both `ProfileOnboarding` and `EditProfileModal` to keep user-facing messaging consistent
 
 ---
