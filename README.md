@@ -252,6 +252,10 @@ wbs                       workflows
 
 - Invite error messaging is centralized in `src/lib/utils/inviteErrorMessages.ts` so request/review flows stay consistent over time
 
+- Supabase invite email copy now explicitly instructs recipients to sign up/sign in with the invited address, complete first-time profile setup, then accept/deny org invites from Notifications
+
+- On `/dashboard`, navbar invite handling now auto-opens `OrganizationInviteActionDialog` for unread org-invite notifications once per invite per signed-in session; dismissing the dialog keeps the notification available for later action
+
 - Run `npm run test:unit` to execute targeted unit tests, including invite error classification (`src/lib/utils/inviteErrorMessages.test.ts`), shared profile error message constants (`src/lib/utils/profileErrorMessages.test.ts`), and primary-org switch lock behavior (`src/hooks/usePrimaryOrganizationSwitch.test.ts`)
 
 - Supabase audit performance CSV exports now exclude migration/DDL/session-control statements (for example `ALTER`, `CREATE`, `DROP`, `BEGIN/COMMIT`, `SET`, and `supabase_migrations` queries) so hotspot reports focus on application workload

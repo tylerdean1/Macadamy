@@ -45,7 +45,6 @@ async function fetchInactiveOrganizations(cacheKey: string): Promise<InactiveOrg
         const rows = await rpcClient.get_my_inactive_member_organizations();
         const items: InactiveOrganizationItem[] = Array.isArray(rows)
             ? rows
-                .filter((row): row is Record<string, unknown> => row != null && typeof row === 'object')
                 .map((row) => ({
                     organizationId: typeof row.organization_id === 'string' ? row.organization_id : '',
                     organizationName: typeof row.organization_name === 'string' ? row.organization_name : '',

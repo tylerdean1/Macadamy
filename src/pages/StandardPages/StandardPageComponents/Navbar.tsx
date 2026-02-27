@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; // Hooks for routing
+import { useNavigate, Link, useLocation } from 'react-router-dom'; // Hooks for routing
 import { LogOut, Home, Building2, Bell, ChevronDown } from 'lucide-react'; // Icons for logout and home
 import { useAuthStore } from '@/lib/store'; // Auth store for user management
 import { useAuthContext } from '@/context/AuthContext';
@@ -51,6 +51,7 @@ function getInviteActionContext(notification: NotificationRow): OrganizationInvi
 // Navigation bar component
 export function Navbar() {
   const navigate = useNavigate(); // Use hook for navigation
+  const location = useLocation();
   const { user, profile, setSelectedOrganizationId } = useAuthStore();
   const { logout } = useAuthContext();
   const { orgs: myOrgs, loading: myOrgsLoading } = useMyOrganizations(profile?.id);
@@ -71,9 +72,14 @@ export function Navbar() {
   const dashboardMenuRef = useRef<HTMLDivElement | null>(null);
   const orgMenuRef = useRef<HTMLDivElement | null>(null);
   const notificationsMenuRef = useRef<HTMLDivElement | null>(null);
+  const autoPromptedInviteIdsRef = useRef<Set<string>>(new Set());
   const dashboardToggleRef = useRef<HTMLButtonElement | null>(null);
   const orgToggleRef = useRef<HTMLButtonElement | null>(null);
   const notificationsToggleRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    autoPromptedInviteIdsRef.current.clear();
+  }, [profile?.id]);
 
   // Close menus on outside click
   useEffect(() => {
@@ -203,6 +209,50 @@ export function Navbar() {
       unsubscribe();
     };
   }, [user, profile?.id, loadNotifications]);
+
+  useEffect(() => {
+    if (!user || !profile?.id) {
+      return;
+    }
+
+    const onDashboard = location.pathname === '/dashboard';
+    if (!onDashboard || inviteActionDialogOpen || isNotifBusy) {
+      return;
+    }
+
+    const nextInvite = notifications.find((notification) => {
+      if (notification.is_read) {
+        return false;
+      }
+
+      const context = getInviteActionContext(notification);
+      if (!context) {
+        return false;
+      }
+
+      return !autoPromptedInviteIdsRef.current.has(context.inviteId);
+    });
+
+    if (!nextInvite) {
+      return;
+    }
+
+    const inviteContext = getInviteActionContext(nextInvite);
+    if (!inviteContext) {
+      return;
+    }
+
+    autoPromptedInviteIdsRef.current.add(inviteContext.inviteId);
+    setSelectedInviteAction(inviteContext);
+    setInviteActionDialogOpen(true);
+  }, [
+    inviteActionDialogOpen,
+    isNotifBusy,
+    location.pathname,
+    notifications,
+    profile?.id,
+    user,
+  ]);
 
   const handleNotificationClick = async (notification: NotificationRow) => {
     if (isNotifBusy) return;

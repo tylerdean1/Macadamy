@@ -167,6 +167,7 @@ Deno.serve(async (request: Request) => {
             : [];
         const inviteLookup =
             inviteRows.find((row) => row.id === inviteId) as InviteLookupRow | undefined;
+
         if (!inviteLookup) {
             return jsonResponse(404, { error: 'Invite not found' }, origin);
         }
@@ -202,6 +203,13 @@ Deno.serve(async (request: Request) => {
                 invited_by_name: string;
                 invite_id: string;
                 organization_id: string;
+                organizationName: string;
+                requestedRole: string;
+                requestedJobTitleName: string;
+                messageNote: string;
+                invitedByName: string;
+                inviteId: string;
+                organizationId: string;
             };
         } = {
             data: {
@@ -212,6 +220,13 @@ Deno.serve(async (request: Request) => {
                 invited_by_name: payload.invitedByName?.trim() ?? '',
                 invite_id: inviteId,
                 organization_id: organizationId,
+                organizationName,
+                requestedRole,
+                requestedJobTitleName: payload.requestedJobTitleName?.trim() ?? '',
+                messageNote: payload.messageNote?.trim() ?? '',
+                invitedByName: payload.invitedByName?.trim() ?? '',
+                inviteId,
+                organizationId,
             },
         };
 
