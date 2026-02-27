@@ -15,6 +15,11 @@ type NotificationOrderBy = 'created_at' | 'updated_at' | 'id';
 
 const ORDER_BY_FALLBACKS: NotificationOrderBy[] = ['created_at', 'updated_at', 'id'];
 const ORG_WIDE_EVENT_SET = new Set<string>(ORG_WIDE_EVENT_OPTIONS.map((item) => item.key));
+const ALWAYS_ON_INVITE_EVENTS = new Set<string>([
+  'organization_email_invite',
+  'organization_email_invite_response',
+  'organization_email_invite_cancelled',
+]);
 const ACTIVE_ORG_CACHE_TTL_MS = 30_000;
 
 const activeMembershipOrgCache = new Map<string, { orgIds: Set<string>; fetchedAt: number }>();
@@ -103,11 +108,16 @@ async function applyNotificationSettingsFilters(rows: NotificationRow[], userId:
 
   const filtered: NotificationRow[] = [];
   for (const notification of rows) {
+    const eventName = getNotificationEvent(notification);
+    if (eventName && ALWAYS_ON_INVITE_EVENTS.has(eventName)) {
+      filtered.push(notification);
+      continue;
+    }
+
     if (silencedCategorySet.has(notification.category)) {
       continue;
     }
 
-    const eventName = getNotificationEvent(notification);
     if (eventName && silencedEventSet.has(eventName)) {
       continue;
     }

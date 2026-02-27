@@ -7,9 +7,42 @@ import { fetchNotificationsForUser, getNotificationTimestamp, markNotificationAs
 import { getNotificationDisplayMessage } from '@/lib/utils/notificationMessages';
 import { getBackendErrorMessage, logBackendError, toBackendErrorToastMessage, type BackendTriggerType } from '@/lib/backendErrors';
 import type { Database } from '@/lib/database.types';
+import { OrganizationInviteActionDialog, type OrganizationInviteActionContext } from '@/components/OrganizationInviteActionDialog';
 import { toast } from 'sonner';
 
 type NotificationRow = Database['public']['Functions']['filter_notifications']['Returns'][number];
+
+function getInviteActionContext(notification: NotificationRow): OrganizationInviteActionContext | null {
+    const payload = notification.payload;
+    const payloadObj = payload && typeof payload === 'object' && !Array.isArray(payload)
+        ? payload as Record<string, unknown>
+        : null;
+
+    if (!payloadObj) {
+        return null;
+    }
+
+    const eventName = typeof payloadObj.event === 'string' ? payloadObj.event : null;
+    const inviteId = typeof payloadObj.invite_id === 'string' ? payloadObj.invite_id : null;
+    if (!inviteId) {
+        return null;
+    }
+
+    const isInviteEvent = eventName === 'organization_email_invite'
+        || eventName === 'organization_invite_pending';
+    if (!isInviteEvent) {
+        return null;
+    }
+
+    return {
+        inviteId,
+        organizationId: typeof payloadObj.organization_id === 'string' ? payloadObj.organization_id : null,
+        organizationName: typeof payloadObj.organization_name === 'string' ? payloadObj.organization_name : 'Organization',
+        requestedRole: typeof payloadObj.requested_role === 'string' ? payloadObj.requested_role : null,
+        requestedJobTitleName: typeof payloadObj.requested_job_title_name === 'string' ? payloadObj.requested_job_title_name : null,
+        messageNote: typeof payloadObj.message_note === 'string' ? payloadObj.message_note : null,
+    };
+}
 
 function resolveNotificationRoute(notification: NotificationRow): string {
     const payload = notification.payload;
@@ -42,6 +75,8 @@ export default function Notifications(): JSX.Element {
     const [loadError, setLoadError] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<'all' | 'unread'>(() => searchParams.get('filter') === 'unread' ? 'unread' : 'all');
     const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') ?? '');
+    const [inviteActionDialogOpen, setInviteActionDialogOpen] = useState(false);
+    const [selectedInviteAction, setSelectedInviteAction] = useState<OrganizationInviteActionContext | null>(null);
 
     useEffect(() => {
         const nextFilter = searchParams.get('filter') === 'unread' ? 'unread' : 'all';
@@ -134,6 +169,13 @@ export default function Notifications(): JSX.Element {
                 : null;
             if (payloadOrganizationId) {
                 setSelectedOrganizationId(payloadOrganizationId);
+            }
+
+            const inviteAction = getInviteActionContext(item);
+            if (inviteAction) {
+                setSelectedInviteAction(inviteAction);
+                setInviteActionDialogOpen(true);
+                return;
             }
 
             navigate(resolveNotificationRoute(item));
@@ -255,6 +297,18 @@ export default function Notifications(): JSX.Element {
                     )}
                 </div>
             </PageContainer>
+
+            <OrganizationInviteActionDialog
+                open={inviteActionDialogOpen}
+                onOpenChange={setInviteActionDialogOpen}
+                invite={selectedInviteAction}
+                onCompleted={async () => {
+                    if (!profile?.id) {
+                        return;
+                    }
+                    await loadNotifications(profile.id, 'user');
+                }}
+            />
         </Page>
     );
 }

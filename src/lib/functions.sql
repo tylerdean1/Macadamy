@@ -24933,6 +24933,804 @@ $$;
 
 
 --
+-- Name: organization_email_invites; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.organization_email_invites (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    organization_id uuid NOT NULL,
+    invitee_email text NOT NULL,
+    invitee_email_norm text NOT NULL,
+    invited_by_profile_id uuid NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    requested_permission_role public.org_role NOT NULL,
+    requested_job_title_id uuid,
+    message_note text,
+    deny_reason text,
+    invite_token text DEFAULT (gen_random_uuid())::text NOT NULL,
+    expires_at timestamp with time zone DEFAULT (now() + '30 days'::interval) NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    responded_at timestamp with time zone,
+    cancelled_at timestamp with time zone,
+    claimed_profile_id uuid,
+    CONSTRAINT organization_email_invites_email_norm_check CHECK ((invitee_email_norm = lower(btrim(invitee_email)))),
+    CONSTRAINT organization_email_invites_email_not_empty_check CHECK ((length(btrim(invitee_email)) > 2)),
+    CONSTRAINT organization_email_invites_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text, 'declined'::text, 'cancelled'::text])))
+);
+
+ALTER TABLE ONLY public.organization_email_invites FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: org_invite_cancel(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.org_invite_cancel(p_invite_id uuid) RETURNS SETOF public.organization_email_invites
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_actor_id uuid := auth.uid();
+  v_actor_permission_role public.org_role;
+  v_now timestamptz := now();
+  v_invite public.organization_email_invites;
+  v_existing_profile_id uuid;
+BEGIN
+  IF v_actor_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  SELECT *
+  INTO v_invite
+  FROM public.organization_email_invites
+  WHERE id = p_invite_id
+  FOR UPDATE;
+
+  IF v_invite.id IS NULL THEN
+    RAISE EXCEPTION 'invite not found';
+  END IF;
+
+  SELECT om.permission_role
+  INTO v_actor_permission_role
+  FROM public.organization_members om
+  WHERE om.organization_id = v_invite.organization_id
+    AND om.profile_id = v_actor_id
+    AND om.deleted_at IS NULL
+  ORDER BY om.created_at DESC
+  LIMIT 1;
+
+  IF v_actor_permission_role IS NULL OR v_actor_permission_role::text NOT IN ('owner', 'admin', 'hr') THEN
+    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+  END IF;
+
+  IF v_invite.status = 'accepted' THEN
+    RAISE EXCEPTION 'accepted invite cannot be cancelled';
+  END IF;
+
+  UPDATE public.organization_email_invites
+  SET status = 'cancelled',
+      updated_at = v_now,
+      responded_at = COALESCE(responded_at, v_now),
+      cancelled_at = v_now
+  WHERE id = p_invite_id
+  RETURNING * INTO v_invite;
+
+  SELECT p.id
+  INTO v_existing_profile_id
+  FROM public.profiles p
+  WHERE lower(btrim(p.email)) = v_invite.invitee_email_norm
+    AND p.deleted_at IS NULL
+  ORDER BY p.created_at ASC
+  LIMIT 1;
+
+  IF v_existing_profile_id IS NOT NULL THEN
+    PERFORM public.insert_notifications(
+      jsonb_build_object(
+        'user_id', v_existing_profile_id,
+        'organization_id', v_invite.organization_id,
+        'category', 'workflow_update',
+        'message', 'An organization invite has been cancelled.',
+        'payload', jsonb_build_object(
+          'event', 'organization_email_invite_cancelled',
+          'invite_id', v_invite.id,
+          'organization_id', v_invite.organization_id,
+          'cancelled_at', v_now
+        )
+      )
+    );
+  END IF;
+
+  RETURN NEXT v_invite;
+END;
+$$;
+
+
+--
+-- Name: org_invite_list_for_current_user(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.org_invite_list_for_current_user() RETURNS TABLE(id uuid, organization_id uuid, invitee_email text, invited_by_profile_id uuid, invited_by_name text, status text, display_status text, requested_permission_role public.org_role, requested_job_title_id uuid, requested_job_title_name text, message_note text, deny_reason text, expires_at timestamp with time zone, created_at timestamp with time zone, updated_at timestamp with time zone, responded_at timestamp with time zone, cancelled_at timestamp with time zone, organization_name text)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_email_norm text;
+  v_row record;
+  v_now timestamptz := now();
+  v_window_start timestamptz := now() - interval '30 days';
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  SELECT lower(btrim(p.email))
+  INTO v_email_norm
+  FROM public.profiles p
+  WHERE p.id = v_user_id
+    AND p.deleted_at IS NULL;
+
+  IF v_email_norm IS NULL OR v_email_norm = '' THEN
+    RAISE EXCEPTION 'profile email is required';
+  END IF;
+
+  FOR v_row IN
+    SELECT
+      oi.id,
+      oi.organization_id,
+      oi.invitee_email,
+      oi.invited_by_profile_id,
+      inviter.full_name AS invited_by_name,
+      oi.status,
+      CASE
+        WHEN oi.status = 'pending' AND oi.expires_at < v_now THEN 'expired'
+        ELSE oi.status
+      END AS display_status,
+      oi.requested_permission_role,
+      oi.requested_job_title_id,
+      jt.name AS requested_job_title_name,
+      oi.message_note,
+      oi.deny_reason,
+      oi.expires_at,
+      oi.created_at,
+      oi.updated_at,
+      oi.responded_at,
+      oi.cancelled_at,
+      org.name AS organization_name
+    FROM public.organization_email_invites oi
+    LEFT JOIN public.profiles inviter
+      ON inviter.id = oi.invited_by_profile_id
+     AND inviter.deleted_at IS NULL
+    LEFT JOIN public.job_titles jt
+      ON jt.id = oi.requested_job_title_id
+     AND jt.deleted_at IS NULL
+    LEFT JOIN public.organizations org
+      ON org.id = oi.organization_id
+     AND org.deleted_at IS NULL
+    WHERE oi.invitee_email_norm = v_email_norm
+      AND oi.updated_at >= v_window_start
+    ORDER BY oi.updated_at DESC, oi.created_at DESC
+  LOOP
+    IF v_row.status = 'pending' THEN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM public.notifications n
+        WHERE n.user_id = v_user_id
+          AND n.deleted_at IS NULL
+          AND n.payload->>'event' = 'organization_email_invite'
+          AND n.payload->>'invite_id' = v_row.id::text
+      ) THEN
+        PERFORM public.insert_notifications(
+          jsonb_build_object(
+            'user_id', v_user_id,
+            'organization_id', v_row.organization_id,
+            'category', 'approval_needed',
+            'message', COALESCE(v_row.organization_name, 'An organization') || ' would like to invite you to join their organization.',
+            'payload', jsonb_build_object(
+              'event', 'organization_email_invite',
+              'invite_id', v_row.id,
+              'organization_id', v_row.organization_id,
+              'organization_name', v_row.organization_name,
+              'invitee_email', v_row.invitee_email,
+              'requested_role', v_row.requested_permission_role::text,
+              'requested_job_title_name', v_row.requested_job_title_name,
+              'message_note', v_row.message_note,
+              'expires_at', v_row.expires_at,
+              'discovered_at', v_now
+            )
+          )
+        );
+      END IF;
+    END IF;
+  END LOOP;
+
+  RETURN QUERY
+  SELECT
+    oi.id,
+    oi.organization_id,
+    oi.invitee_email,
+    oi.invited_by_profile_id,
+    inviter.full_name AS invited_by_name,
+    oi.status,
+    CASE
+      WHEN oi.status = 'pending' AND oi.expires_at < now() THEN 'expired'
+      ELSE oi.status
+    END AS display_status,
+    oi.requested_permission_role,
+    oi.requested_job_title_id,
+    jt.name AS requested_job_title_name,
+    oi.message_note,
+    oi.deny_reason,
+    oi.expires_at,
+    oi.created_at,
+    oi.updated_at,
+    oi.responded_at,
+    oi.cancelled_at,
+    org.name AS organization_name
+  FROM public.organization_email_invites oi
+  LEFT JOIN public.profiles inviter
+    ON inviter.id = oi.invited_by_profile_id
+   AND inviter.deleted_at IS NULL
+  LEFT JOIN public.job_titles jt
+    ON jt.id = oi.requested_job_title_id
+   AND jt.deleted_at IS NULL
+  LEFT JOIN public.organizations org
+    ON org.id = oi.organization_id
+   AND org.deleted_at IS NULL
+  WHERE oi.invitee_email_norm = v_email_norm
+    AND oi.updated_at >= v_window_start
+  ORDER BY oi.updated_at DESC, oi.created_at DESC;
+END;
+$$;
+
+
+--
+-- Name: org_invite_list_for_org(uuid, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.org_invite_list_for_org(p_organization_id uuid, p_include_resolved_within_days integer DEFAULT 30) RETURNS TABLE(id uuid, organization_id uuid, invitee_email text, invited_by_profile_id uuid, invited_by_name text, status text, display_status text, requested_permission_role public.org_role, requested_job_title_id uuid, requested_job_title_name text, message_note text, deny_reason text, expires_at timestamp with time zone, created_at timestamp with time zone, updated_at timestamp with time zone, responded_at timestamp with time zone, cancelled_at timestamp with time zone)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_actor_id uuid := auth.uid();
+  v_actor_permission_role public.org_role;
+  v_days integer := GREATEST(COALESCE(p_include_resolved_within_days, 30), 1);
+  v_window_start timestamptz := now() - make_interval(days => GREATEST(COALESCE(p_include_resolved_within_days, 30), 1));
+BEGIN
+  IF v_actor_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  IF p_organization_id IS NULL THEN
+    RAISE EXCEPTION 'organization_id is required';
+  END IF;
+
+  SELECT om.permission_role
+  INTO v_actor_permission_role
+  FROM public.organization_members om
+  WHERE om.organization_id = p_organization_id
+    AND om.profile_id = v_actor_id
+    AND om.deleted_at IS NULL
+  ORDER BY om.created_at DESC
+  LIMIT 1;
+
+  IF v_actor_permission_role IS NULL OR v_actor_permission_role::text NOT IN ('owner', 'admin', 'hr') THEN
+    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    oi.id,
+    oi.organization_id,
+    oi.invitee_email,
+    oi.invited_by_profile_id,
+    inviter.full_name AS invited_by_name,
+    oi.status,
+    CASE
+      WHEN oi.status = 'pending' AND oi.expires_at < now() THEN 'expired'
+      ELSE oi.status
+    END AS display_status,
+    oi.requested_permission_role,
+    oi.requested_job_title_id,
+    jt.name AS requested_job_title_name,
+    oi.message_note,
+    oi.deny_reason,
+    oi.expires_at,
+    oi.created_at,
+    oi.updated_at,
+    oi.responded_at,
+    oi.cancelled_at
+  FROM public.organization_email_invites oi
+  LEFT JOIN public.profiles inviter
+    ON inviter.id = oi.invited_by_profile_id
+   AND inviter.deleted_at IS NULL
+  LEFT JOIN public.job_titles jt
+    ON jt.id = oi.requested_job_title_id
+   AND jt.deleted_at IS NULL
+  WHERE oi.organization_id = p_organization_id
+    AND (
+      (oi.status = 'pending' AND oi.updated_at >= v_window_start)
+      OR
+      (oi.status <> 'pending' AND COALESCE(oi.responded_at, oi.cancelled_at, oi.updated_at, oi.created_at) >= v_window_start)
+    )
+  ORDER BY oi.updated_at DESC, oi.created_at DESC;
+END;
+$$;
+
+
+--
+-- Name: org_invite_resend(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.org_invite_resend(p_invite_id uuid) RETURNS SETOF public.organization_email_invites
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_actor_id uuid := auth.uid();
+  v_actor_permission_role public.org_role;
+  v_now timestamptz := now();
+  v_invite public.organization_email_invites;
+  v_existing_profile_id uuid;
+  v_existing_member boolean := false;
+  v_org_name text;
+  v_job_title_name text;
+BEGIN
+  IF v_actor_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  SELECT *
+  INTO v_invite
+  FROM public.organization_email_invites
+  WHERE id = p_invite_id
+  FOR UPDATE;
+
+  IF v_invite.id IS NULL THEN
+    RAISE EXCEPTION 'invite not found';
+  END IF;
+
+  SELECT om.permission_role
+  INTO v_actor_permission_role
+  FROM public.organization_members om
+  WHERE om.organization_id = v_invite.organization_id
+    AND om.profile_id = v_actor_id
+    AND om.deleted_at IS NULL
+  ORDER BY om.created_at DESC
+  LIMIT 1;
+
+  IF v_actor_permission_role IS NULL OR v_actor_permission_role::text NOT IN ('owner', 'admin', 'hr') THEN
+    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+  END IF;
+
+  SELECT p.id
+  INTO v_existing_profile_id
+  FROM public.profiles p
+  WHERE lower(btrim(p.email)) = v_invite.invitee_email_norm
+    AND p.deleted_at IS NULL
+  ORDER BY p.created_at ASC
+  LIMIT 1;
+
+  IF v_existing_profile_id IS NOT NULL THEN
+    SELECT EXISTS (
+      SELECT 1
+      FROM public.organization_members om
+      WHERE om.organization_id = v_invite.organization_id
+        AND om.profile_id = v_existing_profile_id
+        AND om.deleted_at IS NULL
+    ) INTO v_existing_member;
+  END IF;
+
+  IF v_invite.status = 'accepted' AND v_existing_member THEN
+    RAISE EXCEPTION 'invite already accepted and user is already an active member';
+  END IF;
+
+  UPDATE public.organization_email_invites
+  SET status = 'pending',
+      deny_reason = NULL,
+      invite_token = gen_random_uuid()::text,
+      expires_at = v_now + interval '30 days',
+      updated_at = v_now,
+      responded_at = NULL,
+      cancelled_at = NULL,
+      claimed_profile_id = COALESCE(v_existing_profile_id, claimed_profile_id)
+  WHERE id = p_invite_id
+  RETURNING * INTO v_invite;
+
+  SELECT o.name
+  INTO v_org_name
+  FROM public.organizations o
+  WHERE o.id = v_invite.organization_id;
+
+  IF v_invite.requested_job_title_id IS NOT NULL THEN
+    SELECT jt.name
+    INTO v_job_title_name
+    FROM public.job_titles jt
+    WHERE jt.id = v_invite.requested_job_title_id
+      AND jt.deleted_at IS NULL;
+  END IF;
+
+  IF v_existing_profile_id IS NOT NULL THEN
+    PERFORM public.insert_notifications(
+      jsonb_build_object(
+        'user_id', v_existing_profile_id,
+        'organization_id', v_invite.organization_id,
+        'category', 'approval_needed',
+        'message', COALESCE(v_org_name, 'An organization') || ' would like to invite you to join their organization.',
+        'payload', jsonb_build_object(
+          'event', 'organization_email_invite',
+          'invite_id', v_invite.id,
+          'organization_id', v_invite.organization_id,
+          'organization_name', v_org_name,
+          'invitee_email', v_invite.invitee_email,
+          'requested_role', v_invite.requested_permission_role::text,
+          'requested_job_title_name', v_job_title_name,
+          'message_note', v_invite.message_note,
+          'expires_at', v_invite.expires_at,
+          'sent_at', v_now
+        )
+      )
+    );
+  END IF;
+
+  RETURN NEXT v_invite;
+END;
+$$;
+
+
+--
+-- Name: org_invite_respond_self(uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.org_invite_respond_self(p_invite_id uuid, p_decision text, p_deny_reason text DEFAULT NULL::text) RETURNS SETOF public.organization_email_invites
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_email_norm text;
+  v_invite public.organization_email_invites;
+  v_now timestamptz := now();
+  v_membership_id uuid;
+  v_membership_deleted_at timestamptz;
+  v_actor_name text;
+  v_org_name text;
+  v_org_member record;
+  v_reason text := NULLIF(btrim(COALESCE(p_deny_reason, '')), '');
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  IF p_decision NOT IN ('accepted', 'declined') THEN
+    RAISE EXCEPTION 'invalid decision';
+  END IF;
+
+  SELECT lower(btrim(p.email))
+  INTO v_email_norm
+  FROM public.profiles p
+  WHERE p.id = v_user_id
+    AND p.deleted_at IS NULL;
+
+  IF v_email_norm IS NULL OR v_email_norm = '' THEN
+    RAISE EXCEPTION 'profile email is required';
+  END IF;
+
+  SELECT *
+  INTO v_invite
+  FROM public.organization_email_invites oi
+  WHERE oi.id = p_invite_id
+    AND oi.invitee_email_norm = v_email_norm
+  FOR UPDATE;
+
+  IF v_invite.id IS NULL THEN
+    RAISE EXCEPTION 'invite not found';
+  END IF;
+
+  IF v_invite.status <> 'pending' THEN
+    RAISE EXCEPTION 'status is not pending';
+  END IF;
+
+  IF v_invite.expires_at < v_now THEN
+    RAISE EXCEPTION 'invite expired';
+  END IF;
+
+  IF p_decision = 'declined' AND v_reason IS NULL THEN
+    RAISE EXCEPTION 'deny reason is required when declining';
+  END IF;
+
+  IF p_decision = 'accepted' THEN
+    SELECT m.id, m.deleted_at
+    INTO v_membership_id, v_membership_deleted_at
+    FROM public.organization_members m
+    WHERE m.organization_id = v_invite.organization_id
+      AND m.profile_id = v_user_id
+    LIMIT 1;
+
+    IF v_membership_id IS NULL THEN
+      INSERT INTO public.organization_members (
+        organization_id,
+        profile_id,
+        permission_role,
+        job_title_id,
+        created_at,
+        updated_at
+      )
+      VALUES (
+        v_invite.organization_id,
+        v_user_id,
+        COALESCE(v_invite.requested_permission_role, 'worker'::public.org_role),
+        v_invite.requested_job_title_id,
+        v_now,
+        v_now
+      );
+    ELSIF v_membership_deleted_at IS NOT NULL THEN
+      UPDATE public.organization_members
+      SET deleted_at = NULL,
+          permission_role = COALESCE(v_invite.requested_permission_role, permission_role),
+          job_title_id = COALESCE(v_invite.requested_job_title_id, job_title_id),
+          updated_at = v_now
+      WHERE id = v_membership_id;
+    ELSE
+      UPDATE public.organization_members
+      SET permission_role = COALESCE(v_invite.requested_permission_role, permission_role),
+          job_title_id = COALESCE(v_invite.requested_job_title_id, job_title_id),
+          updated_at = v_now
+      WHERE id = v_membership_id;
+    END IF;
+
+    UPDATE public.profiles p
+    SET organization_id = v_invite.organization_id,
+        updated_at = v_now
+    WHERE p.id = v_user_id;
+
+    UPDATE public.organization_email_invites
+    SET status = 'accepted',
+        deny_reason = NULL,
+        updated_at = v_now,
+        responded_at = v_now,
+        cancelled_at = NULL,
+        claimed_profile_id = v_user_id
+    WHERE id = p_invite_id
+    RETURNING * INTO v_invite;
+  ELSE
+    UPDATE public.organization_email_invites
+    SET status = 'declined',
+        deny_reason = v_reason,
+        updated_at = v_now,
+        responded_at = v_now,
+        cancelled_at = NULL,
+        claimed_profile_id = v_user_id
+    WHERE id = p_invite_id
+    RETURNING * INTO v_invite;
+  END IF;
+
+  SELECT p.full_name INTO v_actor_name FROM public.profiles p WHERE p.id = v_user_id;
+  SELECT o.name INTO v_org_name FROM public.organizations o WHERE o.id = v_invite.organization_id;
+
+  FOR v_org_member IN
+    SELECT om.profile_id
+    FROM public.organization_members om
+    WHERE om.organization_id = v_invite.organization_id
+      AND om.deleted_at IS NULL
+      AND om.permission_role IN ('owner', 'admin', 'hr')
+  LOOP
+    PERFORM public.insert_notifications(
+      jsonb_build_object(
+        'user_id', v_org_member.profile_id,
+        'organization_id', v_invite.organization_id,
+        'category', 'workflow_update',
+        'message',
+          CASE
+            WHEN p_decision = 'accepted' THEN
+              COALESCE(v_actor_name, v_invite.invitee_email) || ' accepted an organization invite for ' || COALESCE(v_org_name, 'your organization') || '.'
+            ELSE
+              COALESCE(v_actor_name, v_invite.invitee_email) || ' declined an organization invite for ' || COALESCE(v_org_name, 'your organization') || '.'
+          END,
+        'payload', jsonb_build_object(
+          'event', 'organization_email_invite_response',
+          'invite_id', v_invite.id,
+          'organization_id', v_invite.organization_id,
+          'organization_name', v_org_name,
+          'invitee_email', v_invite.invitee_email,
+          'decision', p_decision,
+          'deny_reason', v_invite.deny_reason,
+          'responded_at', v_invite.responded_at,
+          'actor_profile_id', v_user_id,
+          'actor_name', v_actor_name
+        )
+      )
+    );
+  END LOOP;
+
+  RETURN NEXT v_invite;
+END;
+$$;
+
+
+--
+-- Name: org_invite_send_by_email(uuid, text, public.org_role, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.org_invite_send_by_email(p_organization_id uuid, p_email text, p_requested_permission_role public.org_role, p_requested_job_title_id uuid DEFAULT NULL::uuid, p_message_note text DEFAULT NULL::text) RETURNS SETOF public.organization_email_invites
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_actor_id uuid := auth.uid();
+  v_actor_permission_role public.org_role;
+  v_email_norm text;
+  v_now timestamptz := now();
+  v_org_name text;
+  v_existing_profile_id uuid;
+  v_existing_member boolean := false;
+  v_job_title_name text;
+  v_invite public.organization_email_invites;
+BEGIN
+  IF v_actor_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  IF p_organization_id IS NULL THEN
+    RAISE EXCEPTION 'organization_id is required';
+  END IF;
+
+  IF p_requested_permission_role IS NULL THEN
+    RAISE EXCEPTION 'requested_permission_role is required';
+  END IF;
+
+  v_email_norm := lower(btrim(COALESCE(p_email, '')));
+  IF v_email_norm = '' OR position('@' in v_email_norm) = 0 THEN
+    RAISE EXCEPTION 'valid email is required';
+  END IF;
+
+  SELECT o.name
+  INTO v_org_name
+  FROM public.organizations o
+  WHERE o.id = p_organization_id
+    AND o.deleted_at IS NULL;
+
+  IF v_org_name IS NULL THEN
+    RAISE EXCEPTION 'Organization not found';
+  END IF;
+
+  SELECT om.permission_role
+  INTO v_actor_permission_role
+  FROM public.organization_members om
+  WHERE om.organization_id = p_organization_id
+    AND om.profile_id = v_actor_id
+    AND om.deleted_at IS NULL
+  ORDER BY om.created_at DESC
+  LIMIT 1;
+
+  IF v_actor_permission_role IS NULL OR v_actor_permission_role::text NOT IN ('owner', 'admin', 'hr') THEN
+    RAISE EXCEPTION 'Access denied' USING errcode = '42501';
+  END IF;
+
+  SELECT p.id
+  INTO v_existing_profile_id
+  FROM public.profiles p
+  WHERE lower(btrim(p.email)) = v_email_norm
+    AND p.deleted_at IS NULL
+  ORDER BY p.created_at ASC
+  LIMIT 1;
+
+  IF v_existing_profile_id IS NOT NULL THEN
+    SELECT EXISTS (
+      SELECT 1
+      FROM public.organization_members om
+      WHERE om.organization_id = p_organization_id
+        AND om.profile_id = v_existing_profile_id
+        AND om.deleted_at IS NULL
+    ) INTO v_existing_member;
+  END IF;
+
+  SELECT oi.*
+  INTO v_invite
+  FROM public.organization_email_invites oi
+  WHERE oi.organization_id = p_organization_id
+    AND oi.invitee_email_norm = v_email_norm
+  FOR UPDATE;
+
+  IF v_invite.id IS NOT NULL AND v_invite.status = 'accepted' AND v_existing_member THEN
+    RAISE EXCEPTION 'invite already accepted and user is already an active member';
+  END IF;
+
+  IF v_invite.id IS NULL THEN
+    INSERT INTO public.organization_email_invites (
+      organization_id,
+      invitee_email,
+      invitee_email_norm,
+      invited_by_profile_id,
+      status,
+      requested_permission_role,
+      requested_job_title_id,
+      message_note,
+      deny_reason,
+      invite_token,
+      expires_at,
+      created_at,
+      updated_at,
+      responded_at,
+      cancelled_at,
+      claimed_profile_id
+    )
+    VALUES (
+      p_organization_id,
+      v_email_norm,
+      v_email_norm,
+      v_actor_id,
+      'pending',
+      p_requested_permission_role,
+      p_requested_job_title_id,
+      NULLIF(btrim(p_message_note), ''),
+      NULL,
+      gen_random_uuid()::text,
+      v_now + interval '30 days',
+      v_now,
+      v_now,
+      NULL,
+      NULL,
+      v_existing_profile_id
+    )
+    RETURNING * INTO v_invite;
+  ELSE
+    UPDATE public.organization_email_invites
+    SET invited_by_profile_id = v_actor_id,
+        status = 'pending',
+        requested_permission_role = p_requested_permission_role,
+        requested_job_title_id = p_requested_job_title_id,
+        message_note = NULLIF(btrim(p_message_note), ''),
+        deny_reason = NULL,
+        invite_token = gen_random_uuid()::text,
+        expires_at = v_now + interval '30 days',
+        updated_at = v_now,
+        responded_at = NULL,
+        cancelled_at = NULL,
+        claimed_profile_id = COALESCE(v_existing_profile_id, claimed_profile_id)
+    WHERE id = v_invite.id
+    RETURNING * INTO v_invite;
+  END IF;
+
+  IF v_invite.requested_job_title_id IS NOT NULL THEN
+    SELECT jt.name
+    INTO v_job_title_name
+    FROM public.job_titles jt
+    WHERE jt.id = v_invite.requested_job_title_id
+      AND jt.deleted_at IS NULL;
+  END IF;
+
+  IF v_existing_profile_id IS NOT NULL THEN
+    PERFORM public.insert_notifications(
+      jsonb_build_object(
+        'user_id', v_existing_profile_id,
+        'organization_id', p_organization_id,
+        'category', 'approval_needed',
+        'message', COALESCE(v_org_name, 'An organization') || ' would like to invite you to join their organization.',
+        'payload', jsonb_build_object(
+          'event', 'organization_email_invite',
+          'invite_id', v_invite.id,
+          'organization_id', p_organization_id,
+          'organization_name', v_org_name,
+          'invitee_email', v_invite.invitee_email,
+          'requested_role', v_invite.requested_permission_role::text,
+          'requested_job_title_name', v_job_title_name,
+          'message_note', v_invite.message_note,
+          'expires_at', v_invite.expires_at,
+          'sent_at', v_now
+        )
+      )
+    );
+  END IF;
+
+  RETURN NEXT v_invite;
+END;
+$$;
+
+
+--
 -- Name: purge_orphaned_avatars(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -25201,12 +25999,11 @@ CREATE FUNCTION public.request_my_organization_membership(p_organization_id uuid
     AS $$
 DECLARE
   v_actor_id uuid := auth.uid();
-  v_org_exists boolean := false;
+  v_org_name text;
   v_active_member_exists boolean := false;
   v_invite public.organization_invites;
   v_admin record;
   v_actor_name text;
-  v_org_name text;
 BEGIN
   IF v_actor_id IS NULL THEN
     RAISE EXCEPTION 'Not authenticated';
@@ -25217,14 +26014,12 @@ BEGIN
   END IF;
 
   SELECT o.name
-  INTO v_org_name
+    INTO v_org_name
   FROM public.organizations o
   WHERE o.id = p_organization_id
     AND o.deleted_at IS NULL;
 
-  v_org_exists := v_org_name IS NOT NULL;
-
-  IF NOT v_org_exists THEN
+  IF v_org_name IS NULL THEN
     RAISE EXCEPTION 'Organization not found';
   END IF;
 
@@ -25241,7 +26036,7 @@ BEGIN
   END IF;
 
   SELECT p.full_name
-  INTO v_actor_name
+    INTO v_actor_name
   FROM public.profiles p
   WHERE p.id = v_actor_id;
 
@@ -25287,23 +26082,34 @@ BEGIN
       AND p.deleted_at IS NULL
       AND om.permission_role IN ('owner', 'admin', 'hr')
   LOOP
-    PERFORM public.insert_notifications(
+    INSERT INTO public.notifications (
+      user_id,
+      category,
+      message,
+      payload,
+      is_read,
+      created_at,
+      updated_at,
+      deleted_at
+    )
+    VALUES (
+      v_admin.profile_id,
+      'general'::public.notification_category,
+      COALESCE(v_actor_name, 'A user') || ' is requesting to rejoin ' || COALESCE(v_org_name, 'the organization') || '.',
       jsonb_build_object(
-        'user_id', v_admin.profile_id,
+        'event', 'membership_request_submitted',
         'organization_id', p_organization_id,
-        'category', 'general',
-        'message', COALESCE(v_actor_name, 'A user') || ' is requesting to rejoin ' || COALESCE(v_org_name, 'the organization') || '.',
-        'payload', jsonb_build_object(
-          'event', 'membership_request_submitted',
-          'organization_id', p_organization_id,
-          'organization_name', v_org_name,
-          'invite_id', v_invite.id,
-          'invited_profile_id', v_actor_id,
-          'invited_profile_name', v_actor_name,
-          'requested_at', now(),
-          'is_rejoin_request', true
-        )
-      )
+        'organization_name', v_org_name,
+        'invite_id', v_invite.id,
+        'invited_profile_id', v_actor_id,
+        'invited_profile_name', v_actor_name,
+        'requested_at', now(),
+        'is_rejoin_request', true
+      ),
+      false,
+      now(),
+      now(),
+      NULL
     );
   END LOOP;
 
@@ -32636,6 +33442,14 @@ ALTER TABLE ONLY public.notifications
 
 
 --
+-- Name: organization_email_invites organization_email_invites_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organization_email_invites
+    ADD CONSTRAINT organization_email_invites_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: organization_invites organization_invites_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -33618,6 +34432,34 @@ CREATE INDEX ix_meeting_minutes__fk_fk_meeting_minutes_project ON public.meeting
 
 
 --
+-- Name: ix_organization_email_invites__fk_organization_email_invites_cl; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_organization_email_invites__fk_organization_email_invites_cl ON public.organization_email_invites USING btree (claimed_profile_id);
+
+
+--
+-- Name: ix_organization_email_invites__fk_organization_email_invites_in; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_organization_email_invites__fk_organization_email_invites_in ON public.organization_email_invites USING btree (invited_by_profile_id);
+
+
+--
+-- Name: ix_organization_email_invites__fk_organization_email_invites_or; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_organization_email_invites__fk_organization_email_invites_or ON public.organization_email_invites USING btree (organization_id);
+
+
+--
+-- Name: ix_organization_email_invites__fk_organization_email_invites_re; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_organization_email_invites__fk_organization_email_invites_re ON public.organization_email_invites USING btree (requested_job_title_id);
+
+
+--
 -- Name: ix_organization_invites__fk_invited_profile_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -34021,6 +34863,41 @@ CREATE INDEX ix_vendor_qualifications__fk_fk_vendor_qualifications_vendor ON pub
 --
 
 CREATE INDEX ix_vendors__fk_fk_vendors_organization ON public.vendors USING btree (organization_id);
+
+
+--
+-- Name: organization_email_invites_email_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX organization_email_invites_email_status_idx ON public.organization_email_invites USING btree (invitee_email_norm, status);
+
+
+--
+-- Name: organization_email_invites_org_email_uq; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX organization_email_invites_org_email_uq ON public.organization_email_invites USING btree (organization_id, invitee_email_norm);
+
+
+--
+-- Name: organization_email_invites_org_status_expires_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX organization_email_invites_org_status_expires_idx ON public.organization_email_invites USING btree (organization_id, status, expires_at);
+
+
+--
+-- Name: organization_email_invites_org_updated_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX organization_email_invites_org_updated_idx ON public.organization_email_invites USING btree (organization_id, updated_at DESC);
+
+
+--
+-- Name: organization_email_invites_token_uq; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX organization_email_invites_token_uq ON public.organization_email_invites USING btree (invite_token);
 
 
 --
@@ -36261,6 +37138,38 @@ ALTER TABLE ONLY public.wbs
 
 ALTER TABLE ONLY public.notifications
     ADD CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id);
+
+
+--
+-- Name: organization_email_invites organization_email_invites_claimed_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organization_email_invites
+    ADD CONSTRAINT organization_email_invites_claimed_profile_id_fkey FOREIGN KEY (claimed_profile_id) REFERENCES public.profiles(id);
+
+
+--
+-- Name: organization_email_invites organization_email_invites_invited_by_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organization_email_invites
+    ADD CONSTRAINT organization_email_invites_invited_by_profile_id_fkey FOREIGN KEY (invited_by_profile_id) REFERENCES public.profiles(id);
+
+
+--
+-- Name: organization_email_invites organization_email_invites_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organization_email_invites
+    ADD CONSTRAINT organization_email_invites_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+
+--
+-- Name: organization_email_invites organization_email_invites_requested_job_title_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organization_email_invites
+    ADD CONSTRAINT organization_email_invites_requested_job_title_id_fkey FOREIGN KEY (requested_job_title_id) REFERENCES public.job_titles(id);
 
 
 --

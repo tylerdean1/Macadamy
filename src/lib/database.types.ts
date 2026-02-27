@@ -3999,6 +3999,123 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_email_invites: {
+        Row: {
+          cancelled_at: string | null
+          claimed_profile_id: string | null
+          created_at: string
+          deny_reason: string | null
+          expires_at: string
+          id: string
+          invite_token: string
+          invited_by_profile_id: string
+          invitee_email: string
+          invitee_email_norm: string
+          message_note: string | null
+          organization_id: string
+          requested_job_title_id: string | null
+          requested_permission_role: Database["public"]["Enums"]["org_role"]
+          responded_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          claimed_profile_id?: string | null
+          created_at?: string
+          deny_reason?: string | null
+          expires_at?: string
+          id?: string
+          invite_token?: string
+          invited_by_profile_id: string
+          invitee_email: string
+          invitee_email_norm: string
+          message_note?: string | null
+          organization_id: string
+          requested_job_title_id?: string | null
+          requested_permission_role: Database["public"]["Enums"]["org_role"]
+          responded_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          claimed_profile_id?: string | null
+          created_at?: string
+          deny_reason?: string | null
+          expires_at?: string
+          id?: string
+          invite_token?: string
+          invited_by_profile_id?: string
+          invitee_email?: string
+          invitee_email_norm?: string
+          message_note?: string | null
+          organization_id?: string
+          requested_job_title_id?: string | null
+          requested_permission_role?: Database["public"]["Enums"]["org_role"]
+          responded_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_email_invites_claimed_profile_id_fkey"
+            columns: ["claimed_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_email_invites_claimed_profile_id_fkey"
+            columns: ["claimed_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_email_invites_invited_by_profile_id_fkey"
+            columns: ["invited_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_email_invites_invited_by_profile_id_fkey"
+            columns: ["invited_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_email_invites_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_email_invites_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_email_invites_requested_job_title_id_fkey"
+            columns: ["requested_job_title_id"]
+            isOneToOne: false
+            referencedRelation: "job_titles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_email_invites_requested_job_title_id_fkey"
+            columns: ["requested_job_title_id"]
+            isOneToOne: false
+            referencedRelation: "job_titles_active"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_invites: {
         Row: {
           comment: string | null
@@ -16588,6 +16705,176 @@ export type Database = {
           p_rpc_name: string
         }
         Returns: undefined
+      }
+      org_invite_cancel: {
+        Args: { p_invite_id: string }
+        Returns: {
+          cancelled_at: string | null
+          claimed_profile_id: string | null
+          created_at: string
+          deny_reason: string | null
+          expires_at: string
+          id: string
+          invite_token: string
+          invited_by_profile_id: string
+          invitee_email: string
+          invitee_email_norm: string
+          message_note: string | null
+          organization_id: string
+          requested_job_title_id: string | null
+          requested_permission_role: Database["public"]["Enums"]["org_role"]
+          responded_at: string | null
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_email_invites"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      org_invite_list_for_current_user: {
+        Args: never
+        Returns: {
+          cancelled_at: string
+          created_at: string
+          deny_reason: string
+          display_status: string
+          expires_at: string
+          id: string
+          invited_by_name: string
+          invited_by_profile_id: string
+          invitee_email: string
+          message_note: string
+          organization_id: string
+          organization_name: string
+          requested_job_title_id: string
+          requested_job_title_name: string
+          requested_permission_role: Database["public"]["Enums"]["org_role"]
+          responded_at: string
+          status: string
+          updated_at: string
+        }[]
+      }
+      org_invite_list_for_org: {
+        Args: {
+          p_include_resolved_within_days?: number
+          p_organization_id: string
+        }
+        Returns: {
+          cancelled_at: string
+          created_at: string
+          deny_reason: string
+          display_status: string
+          expires_at: string
+          id: string
+          invited_by_name: string
+          invited_by_profile_id: string
+          invitee_email: string
+          message_note: string
+          organization_id: string
+          requested_job_title_id: string
+          requested_job_title_name: string
+          requested_permission_role: Database["public"]["Enums"]["org_role"]
+          responded_at: string
+          status: string
+          updated_at: string
+        }[]
+      }
+      org_invite_resend: {
+        Args: { p_invite_id: string }
+        Returns: {
+          cancelled_at: string | null
+          claimed_profile_id: string | null
+          created_at: string
+          deny_reason: string | null
+          expires_at: string
+          id: string
+          invite_token: string
+          invited_by_profile_id: string
+          invitee_email: string
+          invitee_email_norm: string
+          message_note: string | null
+          organization_id: string
+          requested_job_title_id: string | null
+          requested_permission_role: Database["public"]["Enums"]["org_role"]
+          responded_at: string | null
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_email_invites"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      org_invite_respond_self: {
+        Args: {
+          p_decision: string
+          p_deny_reason?: string
+          p_invite_id: string
+        }
+        Returns: {
+          cancelled_at: string | null
+          claimed_profile_id: string | null
+          created_at: string
+          deny_reason: string | null
+          expires_at: string
+          id: string
+          invite_token: string
+          invited_by_profile_id: string
+          invitee_email: string
+          invitee_email_norm: string
+          message_note: string | null
+          organization_id: string
+          requested_job_title_id: string | null
+          requested_permission_role: Database["public"]["Enums"]["org_role"]
+          responded_at: string | null
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_email_invites"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      org_invite_send_by_email: {
+        Args: {
+          p_email: string
+          p_message_note?: string
+          p_organization_id: string
+          p_requested_job_title_id?: string
+          p_requested_permission_role: Database["public"]["Enums"]["org_role"]
+        }
+        Returns: {
+          cancelled_at: string | null
+          claimed_profile_id: string | null
+          created_at: string
+          deny_reason: string | null
+          expires_at: string
+          id: string
+          invite_token: string
+          invited_by_profile_id: string
+          invitee_email: string
+          invitee_email_norm: string
+          message_note: string | null
+          organization_id: string
+          requested_job_title_id: string | null
+          requested_permission_role: Database["public"]["Enums"]["org_role"]
+          responded_at: string | null
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_email_invites"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       purge_orphaned_avatars: {
         Args: never

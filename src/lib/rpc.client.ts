@@ -71,6 +71,13 @@ async function executeRpc<TReturn>(rpcName: string, args?: RpcArgs): Promise<TRe
   return data as TReturn;
 }
 
+export async function invokeRpc<TReturn>(
+  rpcName: string,
+  args?: Record<string, unknown>,
+): Promise<TReturn> {
+  return executeRpc<TReturn>(rpcName, args);
+}
+
 export const rpcClient: RpcClient = new Proxy({} as RpcClient, {
   get: (_target, prop: string) => {
     return async (args?: Record<string, unknown>) => {

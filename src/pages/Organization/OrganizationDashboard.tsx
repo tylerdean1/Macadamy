@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Pencil, Users, Plus } from 'lucide-react';
+import { Building2, Pencil, Users, Plus, UserPlus } from 'lucide-react';
 import { Page, PageContainer, SectionContainer } from '@/components/Layout';
 import { LoadingState } from '@/components/ui/loading-state';
 import { ErrorState } from '@/components/ui/error-state';
@@ -25,6 +25,14 @@ import { getStoragePublicUrl, uploadStorageFile } from '@/lib/storageClient';
 import { useAuthStore } from '@/lib/store';
 import { resolveInviteReviewErrorMessage, resolveOrgMemberActionErrorMessage } from '@/lib/utils/inviteErrorMessages';
 import { formatPhoneUS } from '@/lib/utils/formatters';
+import {
+  orgInviteCancel,
+  orgInviteListForOrg,
+  orgInviteResend,
+  orgInviteSendByEmail,
+  sendOrganizationInviteEmail,
+  type OrganizationEmailInviteRow,
+} from '@/lib/inviteRpc';
 import { toast } from 'sonner';
 import type { Database, Tables } from '@/lib/database.types';
 
@@ -113,6 +121,14 @@ const ORG_DASHBOARD_TOAST_MESSAGES = {
   changeMemberPermissionRoleFailed: 'Unable to change member org role.',
   selectOrCreateJobTitleBeforeApproval: 'Please select or create a job title before approval.',
   selectPermissionRoleBeforeApproval: 'Please select an org role before approval.',
+  inviteEmailRequired: 'Please provide a valid email address.',
+  inviteRoleRequired: 'Please select an invite role.',
+  inviteSendSuccess: 'Invite sent.',
+  inviteSendFailed: 'Unable to send invite.',
+  inviteResendSuccess: 'Invite refreshed and resent.',
+  inviteResendFailed: 'Unable to resend invite.',
+  inviteCancelSuccess: 'Invite cancelled.',
+  inviteCancelFailed: 'Unable to cancel invite.',
   leaveOrganizationConfirm: 'Are you sure you want to leave the organization?',
   leaveOrganizationSuccess: 'You left the organization.',
   leaveOrganizationFailed: 'Unable to leave organization.',
@@ -306,6 +322,15 @@ export default function OrganizationDashboard(): JSX.Element {
   const [changeRoleDialogOpen, setChangeRoleDialogOpen] = useState(false);
   const [memberToReRole, setMemberToReRole] = useState<MemberListItem | null>(null);
   const [changeRolePermissionRole, setChangeRolePermissionRole] = useState<OrgRoleType | ''>('');
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<OrgRoleType | ''>('');
+  const [inviteJobTitleId, setInviteJobTitleId] = useState('');
+  const [inviteMessageNote, setInviteMessageNote] = useState('');
+  const [inviteActionBusyId, setInviteActionBusyId] = useState<string | null>(null);
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
+  const [organizationEmailInvites, setOrganizationEmailInvites] = useState<OrganizationEmailInviteRow[]>([]);
+  const [organizationEmailInvitesLoading, setOrganizationEmailInvitesLoading] = useState(false);
   const [leaveOrganizationDialogOpen, setLeaveOrganizationDialogOpen] = useState(false);
   const [memberActionBusyKey, setMemberActionBusyKey] = useState<string | null>(null);
   const hasStartedOrganizationsLoadRef = useRef(false);
@@ -347,6 +372,7 @@ export default function OrganizationDashboard(): JSX.Element {
   }, [activeOrganizationId, myOrganizations, profile?.id, safePayload.members.items]);
 
   const canManageMemberActions = actorOrgRole === 'admin' || actorOrgRole === 'hr' || actorOrgRole === 'owner';
+  const canManageEmailInvites = canManageMemberActions;
 
   const serviceAreas = useMemo(() => {
     return [...safePayload.service_areas].sort((a, b) => a.service_area_text.localeCompare(b.service_area_text));
@@ -570,6 +596,28 @@ export default function OrganizationDashboard(): JSX.Element {
     }
   }, [activeOrganizationId, canManagePendingInvites]);
 
+  const loadOrganizationEmailInvites = useCallback(async () => {
+    if (!activeOrganizationId || !canManageEmailInvites) {
+      setOrganizationEmailInvites([]);
+      setOrganizationEmailInvitesLoading(false);
+      return;
+    }
+
+    setOrganizationEmailInvitesLoading(true);
+    try {
+      const rows = await orgInviteListForOrg({
+        p_organization_id: activeOrganizationId,
+        p_include_resolved_within_days: 30,
+      });
+      setOrganizationEmailInvites(rows);
+    } catch (error) {
+      console.error('[OrganizationDashboard] load organization email invites', error);
+      setOrganizationEmailInvites([]);
+    } finally {
+      setOrganizationEmailInvitesLoading(false);
+    }
+  }, [activeOrganizationId, canManageEmailInvites]);
+
   useEffect(() => {
     if (pendingInvites.length === 0) {
       return;
@@ -648,6 +696,113 @@ export default function OrganizationDashboard(): JSX.Element {
   useEffect(() => {
     void loadPendingInvites();
   }, [loadPendingInvites]);
+
+  useEffect(() => {
+    void loadOrganizationEmailInvites();
+  }, [loadOrganizationEmailInvites]);
+
+  const resetInviteForm = (): void => {
+    setInviteEmail('');
+    setInviteRole('');
+    setInviteJobTitleId('');
+    setInviteMessageNote('');
+  };
+
+  const handleSendInvite = async (): Promise<void> => {
+    if (!activeOrganizationId) {
+      return;
+    }
+
+    const normalizedEmail = inviteEmail.trim().toLowerCase();
+    if (!normalizedEmail || !normalizedEmail.includes('@')) {
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.inviteEmailRequired);
+      return;
+    }
+
+    if (!inviteRole) {
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.inviteRoleRequired);
+      return;
+    }
+
+    setInviteSubmitting(true);
+    try {
+      const inviteRow = await orgInviteSendByEmail({
+        p_organization_id: activeOrganizationId,
+        p_email: normalizedEmail,
+        p_requested_permission_role: inviteRole,
+        p_requested_job_title_id: inviteJobTitleId || undefined,
+        p_message_note: inviteMessageNote.trim() || undefined,
+      });
+
+      if (inviteRow.claimed_profile_id == null) {
+        await sendOrganizationInviteEmail({
+          email: normalizedEmail,
+          organizationId: activeOrganizationId,
+          organizationName: safePayload.organization.name,
+          inviteId: inviteRow.id,
+          requestedRole: formatGlobalRole(inviteRole),
+          requestedJobTitleName: inviteJobTitleId ? (jobTitleNameById.get(inviteJobTitleId) ?? undefined) : undefined,
+          messageNote: inviteMessageNote.trim() || undefined,
+          invitedByName: profile?.full_name ?? undefined,
+        });
+      }
+
+      toast.success(ORG_DASHBOARD_TOAST_MESSAGES.inviteSendSuccess);
+      setInviteDialogOpen(false);
+      resetInviteForm();
+      await loadOrganizationEmailInvites();
+    } catch (error) {
+      console.error('[OrganizationDashboard] send organization invite', error);
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.inviteSendFailed);
+    } finally {
+      setInviteSubmitting(false);
+    }
+  };
+
+  const handleResendInvite = async (inviteId: string): Promise<void> => {
+    setInviteActionBusyId(inviteId);
+    try {
+      const inviteRow = await orgInviteResend({ p_invite_id: inviteId });
+      if (inviteRow.claimed_profile_id == null) {
+        await sendOrganizationInviteEmail({
+          email: inviteRow.invitee_email,
+          organizationId: inviteRow.organization_id,
+          organizationName: safePayload.organization.name,
+          inviteId: inviteRow.id,
+          requestedRole: inviteRow.requested_permission_role
+            ? formatGlobalRole(inviteRow.requested_permission_role)
+            : 'Unassigned',
+          requestedJobTitleName: inviteRow.requested_job_title_id
+            ? (jobTitleNameById.get(inviteRow.requested_job_title_id) ?? undefined)
+            : undefined,
+          messageNote: inviteRow.message_note ?? undefined,
+          invitedByName: profile?.full_name ?? undefined,
+        });
+      }
+
+      toast.success(ORG_DASHBOARD_TOAST_MESSAGES.inviteResendSuccess);
+      await loadOrganizationEmailInvites();
+    } catch (error) {
+      console.error('[OrganizationDashboard] resend invite', error);
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.inviteResendFailed);
+    } finally {
+      setInviteActionBusyId(null);
+    }
+  };
+
+  const handleCancelInvite = async (inviteId: string): Promise<void> => {
+    setInviteActionBusyId(inviteId);
+    try {
+      await orgInviteCancel({ p_invite_id: inviteId });
+      toast.success(ORG_DASHBOARD_TOAST_MESSAGES.inviteCancelSuccess);
+      await loadOrganizationEmailInvites();
+    } catch (error) {
+      console.error('[OrganizationDashboard] cancel invite', error);
+      toast.error(ORG_DASHBOARD_TOAST_MESSAGES.inviteCancelFailed);
+    } finally {
+      setInviteActionBusyId(null);
+    }
+  };
 
   const handleAddCustomJobTitle = async (inviteId: string): Promise<void> => {
     const currentQuery = (approveJobTitleQueryByInviteId[inviteId] ?? '').trim();
@@ -1326,7 +1481,21 @@ export default function OrganizationDashboard(): JSX.Element {
                 <div>
                   <p className="text-sm text-gray-400">{totalMembers} total</p>
                 </div>
-                <Users className="h-5 w-5 text-gray-500" />
+                <div className="flex items-center gap-2">
+                  {canManageEmailInvites && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setInviteDialogOpen(true)}
+                      disabled={inviteSubmitting || inviteActionBusyId != null}
+                      className="flex items-center gap-2"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      Send invite
+                    </Button>
+                  )}
+                  <Users className="h-5 w-5 text-gray-500" />
+                </div>
               </div>
 
               {sortedMembers.length === 0 ? (
@@ -1573,6 +1742,59 @@ export default function OrganizationDashboard(): JSX.Element {
 
                         </div>
                       ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {canManageEmailInvites && (
+                <div className="mt-6">
+                  <h4 className="text-lg font-semibold text-indigo-400 mb-3">Invited</h4>
+                  {organizationEmailInvitesLoading ? (
+                    <LoadingState />
+                  ) : organizationEmailInvites.length === 0 ? (
+                    <EmptyState message="No invited users" description="Invites will appear here for 30 days." />
+                  ) : (
+                    <div className="space-y-3">
+                      {organizationEmailInvites.map((invite) => {
+                        const isBusy = inviteActionBusyId === invite.id;
+                        const canAct = invite.status !== 'accepted';
+                        return (
+                          <div key={invite.id} className="rounded-lg border border-background-lighter p-3">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-white">{invite.invitee_email}</p>
+                                <p className="text-xs text-gray-400">Role: {invite.requested_permission_role ? formatGlobalRole(invite.requested_permission_role) : 'Unspecified'}</p>
+                                <p className="text-xs text-gray-400">Job title: {invite.requested_job_title_name ?? 'Unspecified'}</p>
+                                <p className="text-xs text-gray-400">Status: {invite.display_status}</p>
+                                <p className="text-xs text-gray-500">Expires: {new Date(invite.expires_at).toLocaleString()}</p>
+                                <p className="text-xs text-gray-500">Invited by: {invite.invited_by_name ?? invite.invited_by_profile_id} • {new Date(invite.created_at).toLocaleString()}</p>
+                                {invite.deny_reason && (
+                                  <p className="text-xs text-red-300 mt-1">Deny reason: {invite.deny_reason}</p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => { void handleResendInvite(invite.id); }}
+                                  disabled={isBusy || !canAct}
+                                >
+                                  {isBusy ? 'Working…' : 'Resend'}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => { void handleCancelInvite(invite.id); }}
+                                  disabled={isBusy || !canAct}
+                                >
+                                  {isBusy ? 'Working…' : 'Cancel'}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -1839,6 +2061,99 @@ export default function OrganizationDashboard(): JSX.Element {
               disabled={memberActionBusyKey != null || !changeRolePermissionRole}
             >
               {memberActionBusyKey?.startsWith('role:') ? 'Updating…' : 'Update Role'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Send invite</DialogTitle>
+            <DialogDescription>
+              Invite a user to join {safePayload.organization.name}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="invite-email" className="text-sm text-gray-300">Email</label>
+              <input
+                id="invite-email"
+                type="email"
+                className="w-full rounded border border-background-lighter bg-background px-3 py-2 text-sm text-white"
+                placeholder="name@company.com"
+                value={inviteEmail}
+                onChange={(event) => setInviteEmail(event.target.value)}
+                disabled={inviteSubmitting}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="invite-role" className="text-sm text-gray-300">Role</label>
+              <select
+                id="invite-role"
+                className="w-full rounded border border-background-lighter bg-background px-3 py-2 text-sm text-white"
+                value={inviteRole}
+                onChange={(event) => setInviteRole(asOrgRole(event.target.value) ?? '')}
+                disabled={inviteSubmitting}
+              >
+                <option value="">Select a role</option>
+                {APPROVAL_ORG_ROLE_OPTIONS.map((roleOption) => (
+                  <option key={roleOption} value={roleOption}>{formatGlobalRole(roleOption)}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="invite-job-title" className="text-sm text-gray-300">Job title (optional)</label>
+              <select
+                id="invite-job-title"
+                className="w-full rounded border border-background-lighter bg-background px-3 py-2 text-sm text-white"
+                value={inviteJobTitleId}
+                onChange={(event) => setInviteJobTitleId(event.target.value)}
+                disabled={inviteSubmitting}
+              >
+                <option value="">No job title</option>
+                {jobTitles.map((title) => (
+                  <option key={title.id} value={title.id}>{title.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="invite-message-note" className="text-sm text-gray-300">Message note (optional)</label>
+              <textarea
+                id="invite-message-note"
+                className="w-full rounded border border-background-lighter bg-background px-3 py-2 text-sm text-white"
+                rows={4}
+                placeholder="Optional invite message"
+                value={inviteMessageNote}
+                onChange={(event) => setInviteMessageNote(event.target.value)}
+                disabled={inviteSubmitting}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setInviteDialogOpen(false);
+                resetInviteForm();
+              }}
+              disabled={inviteSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { void handleSendInvite(); }}
+              disabled={inviteSubmitting}
+            >
+              {inviteSubmitting ? 'Sending…' : 'Send invite'}
             </Button>
           </DialogFooter>
         </DialogContent>

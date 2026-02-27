@@ -21,3 +21,15 @@ Use this folder as the source of truth for Supabase Auth email templates.
 - These templates are table-based with inline styles for email-client compatibility.
 - Keep Supabase variables (like `{{ .ConfirmationURL }}` and `{{ .SiteURL }}`) unchanged.
 - After updating templates, send test emails from Supabase to verify rendering and links.
+
+### Invite-user template data
+
+The `invite-user.html` template supports the following optional `.Data` fields when invites are sent through admin invite APIs:
+
+- `organization_name`
+- `requested_role`
+- `requested_job_title_name`
+- `message_note`
+- `invited_by_name`
+- `invite_id`
+- `organization_id`

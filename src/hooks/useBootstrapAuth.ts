@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { getBackendErrorMessage, logBackendError } from '@/lib/backendErrors';
+import { orgInviteListForCurrentUser } from '@/lib/inviteRpc';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/store';
 
@@ -32,6 +33,22 @@ export function useBootstrapAuth(): boolean {
   const navigate = useNavigate();
   const [initialCheckDone, setInitialCheckDone] = useState(false);
   const timeoutRef = useRef<number | null>(null);
+
+  const discoverPendingInvites = async (userId: string): Promise<void> => {
+    try {
+      await orgInviteListForCurrentUser();
+    } catch (error) {
+      logBackendError({
+        module: 'BootstrapAuth',
+        operation: 'discover pending organization invites',
+        trigger: 'background',
+        error,
+        ids: {
+          userId,
+        },
+      });
+    }
+  };
 
   const tryGetSessionFromUrl = async (): Promise<void> => {
     if (typeof window === 'undefined') return;
@@ -126,6 +143,7 @@ export function useBootstrapAuth(): boolean {
         if (sessionUser) {
           try {
             await loadProfile(sessionUser.id);
+            await discoverPendingInvites(sessionUser.id);
             if (import.meta.env.DEV && debugAuth) {
               console.log('[useBootstrapAuth] profile loaded');
             }
@@ -241,6 +259,7 @@ export function useBootstrapAuth(): boolean {
         if (shouldLoadProfile && nextUser) {
           try {
             await loadProfile(nextUser.id);
+            await discoverPendingInvites(nextUser.id);
           } catch (err) {
             logBackendError({
               module: 'BootstrapAuth',

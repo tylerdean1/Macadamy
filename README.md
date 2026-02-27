@@ -631,6 +631,21 @@ For hosted environments, use your normal migration deploy flow instead of `db re
   - **Still needs:** Apply migration to target Supabase DB environment, run end-to-end dashboard verification, and confirm no recurring `42804` responses.
   - **Next:** Mark as **Completed** after DB deployment + dashboard smoke test pass.
 
+- **Last worked on:** Organization email invite workflow (dashboard send invite UI, invited list, notification action modal wiring, and bootstrap discovery hook).
+
+- **Goal:** Ship org-role-gated (owner/admin/hr) invite-by-email flow with explicit Accept/Deny action, deny reason requirement on decline, and RPC-only fail-loud behavior.
+
+- **Stage:** **In Progress — frontend wiring added; backend migration + RPC rollout pending**
+  - **Completed:**
+    - Members card now includes a `Send invite` action and invite modal fields (email/role/job title/message).
+    - Members card includes an `Invited` section with resend/cancel actions and status details.
+    - Notifications page and navbar notification click paths can open an invite Accept/Deny modal.
+    - Auth bootstrap now performs invite discovery only (no auto-accept).
+  - **Still needs:**
+    - Apply DB migration `supabase/migrations/organization_email_invites_workflow.sql` (`organization_email_invites` + RPCs: `org_invite_send_by_email`, `org_invite_list_for_org`, `org_invite_resend`, `org_invite_cancel`, `org_invite_list_for_current_user`, `org_invite_respond_self`).
+    - Regenerate backend artifacts (`npm run fulldb`) so generated RPC/types include new contracts.
+    - Connect final notification event payload contract and email delivery path.
+
 ## 🧱 Bulk Insert RPC Rewrite (Default Preservation)
 
 - Generated migration: `supabase/migrations/rewrite_insert_rpc_defaults.sql`

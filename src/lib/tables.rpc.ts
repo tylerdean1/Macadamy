@@ -3772,6 +3772,8 @@ export type TableRpcMap = {
       }[]
     },
   },
+  organization_email_invites: {
+  },
   organization_invites: {
     delete_organization_invites: {
       Args: {
