@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 
 import { Page, PageContainer } from '@/components/Layout';
 import { invokeRpc } from '@/lib/rpc.client';
+import ProjectNav from './ProjectNav';
 
 type Row = Record<string, unknown>;
 
@@ -11,11 +12,6 @@ type ProductionPayload = {
   line_items?: Row[];
   recent_labor?: Row[];
   recent_quantity_entries?: Row[];
-};
-
-type NavItem = {
-  label: string;
-  href: string;
 };
 
 function asObject(value: unknown): Row {
@@ -69,15 +65,6 @@ export default function ProjectProduction(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const navItems: NavItem[] = [
-    { label: 'Dashboard', href: id ? `/projects/${id}` : '/projects' },
-    { label: 'PM Workspace', href: id ? `/projects/${id}/management` : '/projects' },
-    { label: 'Controls', href: id ? `/projects/${id}/controls` : '/schedule-tasks' },
-    { label: 'Registers', href: id ? `/projects/${id}/registers` : '/document-management' },
-    { label: 'Production', href: id ? `/projects/${id}/production` : '/field-operations' },
-    { label: 'Settings', href: id ? `/projects/${id}/settings` : '/projects' },
-  ];
-
   const loadProduction = useCallback(async (): Promise<void> => {
     if (!id) {
       setError('No project ID was provided.');
@@ -124,19 +111,7 @@ export default function ProjectProduction(): JSX.Element {
   return (
     <Page>
       <PageContainer className="space-y-8">
-        <nav className="rounded-2xl border border-border bg-card p-2 shadow-sm">
-          <div className="flex gap-2 overflow-x-auto">
-            {navItems.map((item) => (
-              <Link
-                key={item.label}
-                to={item.href}
-                className="inline-flex shrink-0 items-center rounded-xl px-3 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </nav>
+        <ProjectNav />
 
         <section className="rounded-3xl border border-border bg-card p-6 shadow-sm">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
