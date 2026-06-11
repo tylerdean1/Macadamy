@@ -10,8 +10,8 @@
  * - LineItemsTable: Added pagination, sorting, filtering, and improved accessibility
  */
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { FileText } from 'lucide-react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { ArrowRight, FileText, FolderKanban } from 'lucide-react';
 import { rpcClient } from '@/lib/rpc.client';
 import { supabase } from '@/lib/supabase';
 import { Page, PageContainer, SectionContainer } from '@/components/Layout';
@@ -24,6 +24,17 @@ type ProjectPayload = {
   line_items: { total_count: number; items: Array<Record<string, unknown>> };
   counts: { issues: number; change_orders: number; inspections: number };
 };
+
+const projectManagementWorkstreams = [
+  'Controls',
+  'Procurement',
+  'Document Control',
+  'Cost',
+  'Field Operations',
+  'Quality & Safety',
+  'Closeout',
+  'Reporting',
+] as const;
 
 import { ProjectHeader } from './ProjectDashboardComponents/ProjectHeader';
 import { ProjectInfoForm, type ProjectInfoVM } from './ProjectDashboardComponents/ProjectInfoForm';
@@ -257,6 +268,35 @@ export default function ProjectDashboard() {
             changeOrdersCount={changeOrdersCount}
             inspectionsCount={inspectionsCount}
           />
+
+          <section className="mb-6 rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.25em] text-primary">
+                  <FolderKanban className="h-4 w-4" />
+                  Project management workspace
+                </div>
+                <h2 className="mt-2 text-2xl font-bold text-foreground">Manage the project, not the job title</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+                  Macadamy is being organized around project controls, procurement, document control, cost, field operations, quality, safety, reporting, and closeout so PMs, APMs, PEs, supers, inspectors, admins, and owners can work from the same source of truth.
+                </p>
+              </div>
+              <Link
+                to="/projects"
+                className="inline-flex items-center justify-center rounded-xl border border-border px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-muted"
+              >
+                Open PM hub
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {projectManagementWorkstreams.map((workstream) => (
+                <div key={workstream} className="rounded-xl border border-border bg-muted/30 p-3 text-sm font-medium text-foreground">
+                  {workstream}
+                </div>
+              ))}
+            </div>
+          </section>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             <div className="lg:col-span-2">
