@@ -1,11 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 
 import { Page, PageContainer } from '@/components/Layout';
-
-type NavItem = {
-  label: string;
-  href: string;
-};
+import ProjectNav from './ProjectNav';
 
 const registers = [
   { title: 'Submittals', code: 'SUB', description: 'Shop drawings, product data, O&Ms, samples, and review cycles.' },
@@ -21,31 +17,10 @@ const registers = [
 export default function ProjectRegisters(): JSX.Element {
   const { id } = useParams<{ id: string }>();
 
-  const navItems: NavItem[] = [
-    { label: 'Dashboard', href: id ? `/projects/${id}` : '/projects' },
-    { label: 'PM Workspace', href: id ? `/projects/${id}/management` : '/projects' },
-    { label: 'Controls', href: id ? `/projects/${id}/controls` : '/schedule-tasks' },
-    { label: 'Registers', href: id ? `/projects/${id}/registers` : '/document-management' },
-    { label: 'Production', href: id ? `/projects/${id}/production` : '/field-operations' },
-    { label: 'Settings', href: id ? `/projects/${id}/settings` : '/projects' },
-  ];
-
   return (
     <Page>
       <PageContainer className="space-y-8">
-        <nav className="rounded-2xl border border-border bg-card p-2 shadow-sm">
-          <div className="flex gap-2 overflow-x-auto">
-            {navItems.map((item) => (
-              <Link
-                key={item.label}
-                to={item.href}
-                className="inline-flex shrink-0 items-center rounded-xl px-3 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </nav>
+        <ProjectNav />
 
         <section className="rounded-3xl border border-border bg-card p-6 shadow-sm">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
