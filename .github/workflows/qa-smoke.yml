@@ -1,0 +1,36 @@
+name: QA Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Base URL to test
+        required: false
+        default: https://macadamy.io
+
+jobs:
+  qa-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run QA smoke test
+        env:
+          QA_BASE_URL: ${{ inputs.base_url }}
+          MACADAMY_QA_EMAIL: ${{ secrets.MACADAMY_QA_EMAIL }}
+          MACADAMY_QA_LOGIN_SECRET: ${{ secrets.MACADAMY_QA_LOGIN_SECRET }}
+        run: npm run qa:smoke
