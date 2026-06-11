@@ -11,6 +11,7 @@ import { useAuthStore } from '@/lib/store';
 
 import { ProtectedRoute } from '@/pages/StandardPages/StandardPageComponents/ProtectedRoute';
 import { Navbar } from '@/pages/StandardPages/StandardPageComponents/Navbar';
+import { ProjectWorkspaceNavbar } from '@/pages/StandardPages/StandardPageComponents/ProjectWorkspaceNavbar';
 import { ScrollToTop } from '@/pages/StandardPages/StandardPageComponents/ScrollToTop';
 
 const LandingPage = lazy(() => import('@/pages/StandardPages/LandingPage'));
@@ -155,6 +156,7 @@ export default function App(): JSX.Element {
       {import.meta.env.PROD && <Analytics />}
       {pageLoading && <div className="fixed top-0 left-0 right-0 h-1 bg-primary animate-pulse z-50" />}
       {shouldShowNavbar && <Navbar />}
+      {shouldShowNavbar && <ProjectWorkspaceNavbar />}
 
       <Suspense fallback={<PageFallback />}>
         <Routes>
