@@ -23,6 +23,7 @@ const ProfileOnboarding = lazy(() => import('@/pages/StandardPages/ProfileOnboar
 const Dashboard = lazy(() => import('@/pages/StandardPages/Dashboard'));
 const Notifications = lazy(() => import('@/pages/StandardPages/Notifications'));
 const NotificationSettings = lazy(() => import('@/pages/StandardPages/NotificationSettings'));
+const Integrations = lazy(() => import('@/pages/StandardPages/Integrations'));
 
 const ProjectDashboard = lazy(() => import('@/pages/Projects/ProjectDashboard'));
 const ProjectManagement = lazy(() => import('@/pages/Projects/ProjectManagement'));
@@ -171,6 +172,7 @@ export default function App(): JSX.Element {
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute requireOrganization={false}><Notifications /></ProtectedRoute>} />
           <Route path="/settings/notifications" element={<ProtectedRoute requireOrganization={false}><NotificationSettings /></ProtectedRoute>} />
+          <Route path="/settings/integrations" element={<ProtectedRoute requireOrganization={false}><Integrations /></ProtectedRoute>} />
 
           <Route path="/projects/:id" element={<ProtectedRoute><ProjectDashboard /></ProtectedRoute>} />
           <Route path="/projects/:id/management" element={<ProtectedRoute><ProjectManagement /></ProtectedRoute>} />
