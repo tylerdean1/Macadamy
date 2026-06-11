@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -10,6 +10,7 @@ import {
   FileQuestion,
   FileText,
   PackageCheck,
+  PlusCircle,
   Receipt,
   RefreshCw,
   Search,
@@ -19,7 +20,6 @@ import { Page, PageContainer } from '@/components/Layout';
 import { invokeRpc } from '@/lib/rpc.client';
 
 type Row = Record<string, unknown>;
-
 type RegisterKey = 'submittals' | 'rfis' | 'rfqs' | 'purchaseOrders' | 'subcontracts' | 'invoices' | 'apInvoices' | 'changeOrders';
 
 type RegisterConfig = {
@@ -35,6 +35,23 @@ type RegisterConfig = {
 };
 
 type RegisterState = Record<RegisterKey, Row[]>;
+
+type RfqForm = {
+  rfq_number: string;
+  title: string;
+  description: string;
+  due_date: string;
+  amount: string;
+};
+
+type InvoiceForm = {
+  invoice_number: string;
+  invoice_type: string;
+  description: string;
+  invoice_date: string;
+  due_date: string;
+  amount: string;
+};
 
 const registerConfigs: RegisterConfig[] = [
   {
@@ -138,8 +155,26 @@ const emptyRegisters: RegisterState = {
   changeOrders: [],
 };
 
+const initialRfqForm: RfqForm = {
+  rfq_number: '',
+  title: '',
+  description: '',
+  due_date: '',
+  amount: '',
+};
+
+const initialInvoiceForm: InvoiceForm = {
+  invoice_number: '',
+  invoice_type: 'vendor',
+  description: '',
+  invoice_date: '',
+  due_date: '',
+  amount: '',
+};
+
 const doneWords = ['approved', 'closed', 'complete', 'completed', 'done', 'resolved', 'void', 'cancelled', 'canceled', 'paid', 'awarded'];
 const attentionWords = ['open', 'pending', 'blocked', 'overdue', 'late', 'rejected', 'revise', 'resubmit', 'draft', 'waiting', 'under_review', 'received'];
+const invoiceTypes = ['vendor', 'subcontractor', 'owner', 'ap', 'ar', 'other'];
 
 function asRows(value: unknown): Row[] {
   return Array.isArray(value) ? value.filter((row): row is Row => row !== null && typeof row === 'object' && !Array.isArray(row)) : [];
@@ -201,6 +236,11 @@ function formatCurrency(value: unknown): string {
   }).format(asNumber(value));
 }
 
+function nullable(value: string): string | null {
+  const trimmed = value.trim();
+  return trimmed === '' ? null : trimmed;
+}
+
 async function loadRegister(functionName: string, projectId: string): Promise<Row[]> {
   try {
     const result = await invokeRpc<unknown>(functionName, {
@@ -224,7 +264,12 @@ export default function ProjectRegisters(): JSX.Element {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'attention'>('all');
   const [loading, setLoading] = useState(true);
+  const [savingRfq, setSavingRfq] = useState(false);
+  const [savingInvoice, setSavingInvoice] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [rfqForm, setRfqForm] = useState<RfqForm>(initialRfqForm);
+  const [invoiceForm, setInvoiceForm] = useState<InvoiceForm>(initialInvoiceForm);
 
   const loadRegisters = useCallback(async (): Promise<void> => {
     if (!id) {
@@ -250,6 +295,89 @@ export default function ProjectRegisters(): JSX.Element {
   useEffect(() => {
     void loadRegisters();
   }, [loadRegisters]);
+
+  const handleRfqChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+    const { name, value } = event.target;
+    setRfqForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleInvoiceChange = (event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>): void => {
+    const { name, value } = event.target;
+    setInvoiceForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const createRfq = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault();
+    if (!id) return;
+
+    const title = rfqForm.title.trim();
+    if (!title) {
+      setFormError('RFQ title is required.');
+      return;
+    }
+
+    setSavingRfq(true);
+    setFormError(null);
+
+    try {
+      await invokeRpc<unknown>('insert_rfqs', {
+        _input: {
+          project_id: id,
+          rfq_number: nullable(rfqForm.rfq_number),
+          title,
+          description: nullable(rfqForm.description),
+          status: 'draft',
+          due_date: nullable(rfqForm.due_date),
+          amount: nullable(rfqForm.amount),
+        },
+      });
+      setRfqForm(initialRfqForm);
+      setActiveKey('rfqs');
+      await loadRegisters();
+    } catch (err) {
+      console.error('[ProjectRegisters] create RFQ failed', err);
+      setFormError('Unable to create RFQ.');
+    } finally {
+      setSavingRfq(false);
+    }
+  };
+
+  const createInvoice = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault();
+    if (!id) return;
+
+    const description = invoiceForm.description.trim();
+    if (!description) {
+      setFormError('Invoice description is required.');
+      return;
+    }
+
+    setSavingInvoice(true);
+    setFormError(null);
+
+    try {
+      await invokeRpc<unknown>('insert_invoices', {
+        _input: {
+          project_id: id,
+          invoice_number: nullable(invoiceForm.invoice_number),
+          invoice_type: invoiceForm.invoice_type,
+          description,
+          status: 'received',
+          invoice_date: nullable(invoiceForm.invoice_date),
+          due_date: nullable(invoiceForm.due_date),
+          amount: nullable(invoiceForm.amount),
+        },
+      });
+      setInvoiceForm(initialInvoiceForm);
+      setActiveKey('invoices');
+      await loadRegisters();
+    } catch (err) {
+      console.error('[ProjectRegisters] create invoice failed', err);
+      setFormError('Unable to create invoice.');
+    } finally {
+      setSavingInvoice(false);
+    }
+  };
 
   const activeConfig = registerConfigs.find((config) => config.key === activeKey) ?? registerConfigs[0];
   const activeRows = registers[activeConfig.key] ?? [];
@@ -348,6 +476,98 @@ export default function ProjectRegisters(): JSX.Element {
               ))}
             </section>
 
+            <section className="grid gap-6 xl:grid-cols-2">
+              <form onSubmit={createRfq} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.25em] text-primary">
+                  <PlusCircle className="h-4 w-4" />
+                  Quick create RFQ
+                </div>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Start a vendor/sub quote request for buyout, procurement, or change pricing.
+                </p>
+                <div className="mt-5 space-y-4">
+                  <div className="grid gap-4 md:grid-cols-[0.45fr_1fr]">
+                    <label className="block">
+                      <span className="text-sm font-medium text-foreground">RFQ #</span>
+                      <input name="rfq_number" value={rfqForm.rfq_number} onChange={handleRfqChange} placeholder="RFQ-001" className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary" />
+                    </label>
+                    <label className="block">
+                      <span className="text-sm font-medium text-foreground">Title</span>
+                      <input name="title" value={rfqForm.title} onChange={handleRfqChange} placeholder="Example: Valve package quote" className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary" />
+                    </label>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="block">
+                      <span className="text-sm font-medium text-foreground">Due date</span>
+                      <input type="date" name="due_date" value={rfqForm.due_date} onChange={handleRfqChange} className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary" />
+                    </label>
+                    <label className="block">
+                      <span className="text-sm font-medium text-foreground">Amount</span>
+                      <input name="amount" value={rfqForm.amount} onChange={handleRfqChange} inputMode="decimal" placeholder="Optional" className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary" />
+                    </label>
+                  </div>
+                  <label className="block">
+                    <span className="text-sm font-medium text-foreground">Description</span>
+                    <textarea name="description" value={rfqForm.description} onChange={handleRfqChange} rows={3} placeholder="Scope, alternates, quote instructions, or required backup" className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary" />
+                  </label>
+                </div>
+                <button type="submit" disabled={savingRfq} className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">
+                  {savingRfq ? 'Saving RFQ…' : 'Create RFQ'}
+                </button>
+              </form>
+
+              <form onSubmit={createInvoice} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.25em] text-primary">
+                  <PlusCircle className="h-4 w-4" />
+                  Quick create invoice
+                </div>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Add a project invoice record that can later connect to vendor/sub/owner, PO, subcontract, document, and AP workflows.
+                </p>
+                <div className="mt-5 space-y-4">
+                  <div className="grid gap-4 md:grid-cols-[0.45fr_1fr]">
+                    <label className="block">
+                      <span className="text-sm font-medium text-foreground">Invoice #</span>
+                      <input name="invoice_number" value={invoiceForm.invoice_number} onChange={handleInvoiceChange} placeholder="INV-001" className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary" />
+                    </label>
+                    <label className="block">
+                      <span className="text-sm font-medium text-foreground">Type</span>
+                      <select name="invoice_type" value={invoiceForm.invoice_type} onChange={handleInvoiceChange} className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary">
+                        {invoiceTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                  <label className="block">
+                    <span className="text-sm font-medium text-foreground">Description</span>
+                    <input name="description" value={invoiceForm.description} onChange={handleInvoiceChange} placeholder="Example: Pump package progress invoice" className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary" />
+                  </label>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <label className="block">
+                      <span className="text-sm font-medium text-foreground">Invoice date</span>
+                      <input type="date" name="invoice_date" value={invoiceForm.invoice_date} onChange={handleInvoiceChange} className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary" />
+                    </label>
+                    <label className="block">
+                      <span className="text-sm font-medium text-foreground">Due date</span>
+                      <input type="date" name="due_date" value={invoiceForm.due_date} onChange={handleInvoiceChange} className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary" />
+                    </label>
+                    <label className="block">
+                      <span className="text-sm font-medium text-foreground">Amount</span>
+                      <input name="amount" value={invoiceForm.amount} onChange={handleInvoiceChange} inputMode="decimal" placeholder="0" className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary" />
+                    </label>
+                  </div>
+                </div>
+                <button type="submit" disabled={savingInvoice} className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">
+                  {savingInvoice ? 'Saving invoice…' : 'Create invoice'}
+                </button>
+              </form>
+            </section>
+
+            {formError && (
+              <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                {formError}
+              </div>
+            )}
+
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {registerConfigs.map((config) => {
                 const Icon = config.icon;
@@ -361,9 +581,7 @@ export default function ProjectRegisters(): JSX.Element {
                     className={`rounded-2xl border p-5 text-left shadow-sm transition ${isActive ? 'border-primary bg-primary/10' : 'border-border bg-card hover:bg-muted/40'}`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="rounded-xl bg-primary/10 p-2 text-primary">
-                        <Icon className="h-5 w-5" />
-                      </div>
+                      <div className="rounded-xl bg-primary/10 p-2 text-primary"><Icon className="h-5 w-5" /></div>
                       <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{rows.length}</span>
                     </div>
                     <h2 className="mt-4 font-semibold text-foreground">{config.label}</h2>
@@ -384,18 +602,9 @@ export default function ProjectRegisters(): JSX.Element {
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <div className="relative">
                       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <input
-                        value={searchTerm}
-                        onChange={(event) => setSearchTerm(event.target.value)}
-                        placeholder="Search register"
-                        className="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground outline-none transition focus:border-primary sm:w-64"
-                      />
+                      <input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search register" className="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground outline-none transition focus:border-primary sm:w-64" />
                     </div>
-                    <select
-                      value={statusFilter}
-                      onChange={(event) => setStatusFilter(event.target.value as 'all' | 'open' | 'attention')}
-                      className="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
-                    >
+                    <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as 'all' | 'open' | 'attention')} className="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary">
                       <option value="all">All items</option>
                       <option value="open">Open only</option>
                       <option value="attention">Needs attention</option>
@@ -417,11 +626,7 @@ export default function ProjectRegisters(): JSX.Element {
                   </thead>
                   <tbody className="divide-y divide-border">
                     {filteredRows.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-5 py-8 text-center text-muted-foreground">
-                          No {activeConfig.label.toLowerCase()} found for this project/filter.
-                        </td>
-                      </tr>
+                      <tr><td colSpan={5} className="px-5 py-8 text-center text-muted-foreground">No {activeConfig.label.toLowerCase()} found for this project/filter.</td></tr>
                     ) : filteredRows.map((row, index) => {
                       const number = firstValue(row, activeConfig.numberFields) || `#${index + 1}`;
                       const title = firstValue(row, activeConfig.titleFields) || 'Untitled item';
@@ -430,15 +635,8 @@ export default function ProjectRegisters(): JSX.Element {
                       return (
                         <tr key={asString(row.id) || `${activeConfig.key}-${index}`} className="transition hover:bg-muted/30">
                           <td className="px-5 py-4 font-medium text-foreground">{number}</td>
-                          <td className="px-5 py-4">
-                            <p className="font-semibold text-foreground">{title}</p>
-                            {asString(row.description) && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{asString(row.description)}</p>}
-                          </td>
-                          <td className="px-5 py-4">
-                            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${needsAttention(row) ? 'bg-amber-100 text-amber-800' : isOpen(row) ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'}`}>
-                              {statusFor(row)}
-                            </span>
-                          </td>
+                          <td className="px-5 py-4"><p className="font-semibold text-foreground">{title}</p>{asString(row.description) && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{asString(row.description)}</p>}</td>
+                          <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${needsAttention(row) ? 'bg-amber-100 text-amber-800' : isOpen(row) ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'}`}>{statusFor(row)}</span></td>
                           <td className="px-5 py-4 text-muted-foreground">{formatDate(date)}</td>
                           <td className="px-5 py-4 text-right font-semibold text-foreground">{amount ? formatCurrency(amount) : '—'}</td>
                         </tr>
