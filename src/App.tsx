@@ -27,6 +27,7 @@ const ProjectDashboard = lazy(() => import('@/pages/Projects/ProjectDashboard'))
 const ProjectManagement = lazy(() => import('@/pages/Projects/ProjectManagement'));
 const ProjectControls = lazy(() => import('@/pages/Projects/ProjectControls'));
 const ProjectRegisters = lazy(() => import('@/pages/Projects/ProjectRegisters'));
+const ProjectProduction = lazy(() => import('@/pages/Projects/ProjectProduction'));
 const ContractSettings = lazy(() => import('@/pages/Projects/ContractSettings'));
 const ContractCreation = lazy(() => import('@/pages/Projects/ContractCreation'));
 const Calculators = lazy(() => import('@/pages/Projects/Calculators'));
@@ -173,6 +174,7 @@ export default function App(): JSX.Element {
           <Route path="/projects/:id/management" element={<ProtectedRoute><ProjectManagement /></ProtectedRoute>} />
           <Route path="/projects/:id/controls" element={<ProtectedRoute><ProjectControls /></ProtectedRoute>} />
           <Route path="/projects/:id/registers" element={<ProtectedRoute><ProjectRegisters /></ProtectedRoute>} />
+          <Route path="/projects/:id/production" element={<ProtectedRoute><ProjectProduction /></ProtectedRoute>} />
           <Route path="/projects/:id/settings" element={<ProtectedRoute><ContractSettings /></ProtectedRoute>} />
           <Route path="/projects/create" element={<ProtectedRoute><ContractCreation /></ProtectedRoute>} />
 
