@@ -1,7 +1,11 @@
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { Page, PageContainer } from '@/components/Layout';
+import { invokeRpc } from '@/lib/rpc.client';
 import ProjectNav from './ProjectNav';
+
+type Row = Record<string, unknown>;
 
 const registers = [
   { title: 'Submittals', code: 'SUB', description: 'Shop drawings, product data, O&Ms, samples, and review cycles.' },
@@ -14,8 +18,79 @@ const registers = [
   { title: 'Change Orders', code: 'CO', description: 'Pending and approved scope, cost exposure, owner pricing, and subcontract pricing.' },
 ];
 
+function asRows(value: unknown): Row[] {
+  return Array.isArray(value) ? value.filter((row): row is Row => row !== null && typeof row === 'object' && !Array.isArray(row)) : [];
+}
+
+function asString(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return String(value);
+  return '';
+}
+
+function firstValue(row: Row, fields: string[]): string {
+  for (const field of fields) {
+    const value = asString(row[field]);
+    if (value) return value;
+  }
+  return '';
+}
+
+function formatDate(value: unknown): string {
+  const raw = asString(value);
+  if (!raw) return 'No date';
+  const date = new Date(raw.length === 10 ? `${raw}T00:00:00` : raw);
+  if (Number.isNaN(date.getTime())) return raw;
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function rfqNumber(row: Row, index: number): string {
+  return firstValue(row, ['rfq_number', 'number', 'code']) || `RFQ-${index + 1}`;
+}
+
+function rfqTitle(row: Row): string {
+  return firstValue(row, ['title', 'subject', 'description']) || 'Untitled RFQ';
+}
+
+function rfqStatus(row: Row): string {
+  return firstValue(row, ['status', 'workflow_status', 'review_status']) || 'open';
+}
+
 export default function ProjectRegisters(): JSX.Element {
   const { id } = useParams<{ id: string }>();
+  const [rfqs, setRfqs] = useState<Row[]>([]);
+  const [loadingRfqs, setLoadingRfqs] = useState(true);
+  const [rfqError, setRfqError] = useState<string | null>(null);
+
+  const loadRfqs = useCallback(async (): Promise<void> => {
+    if (!id) {
+      setLoadingRfqs(false);
+      return;
+    }
+
+    setLoadingRfqs(true);
+    setRfqError(null);
+
+    try {
+      const result = await invokeRpc<unknown>('filter_rfqs', {
+        _filters: { project_id: id },
+        _limit: 100,
+        _offset: 0,
+        _order_by: 'updated_at',
+        _direction: 'desc',
+      });
+      setRfqs(asRows(result));
+    } catch (error) {
+      console.error('[ProjectRegisters] load RFQs failed', error);
+      setRfqError('Unable to load RFQs right now.');
+    } finally {
+      setLoadingRfqs(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void loadRfqs();
+  }, [loadRfqs]);
 
   return (
     <Page>
@@ -30,7 +105,7 @@ export default function ProjectRegisters(): JSX.Element {
                 Core Procore-style tracking logs
               </h1>
               <p className="mt-4 text-base leading-7 text-muted-foreground">
-                A build-safe project register hub for submittals, RFIs, RFQs, purchase orders, subcontracts, invoices, AP invoices, and change orders.
+                A project register hub for submittals, RFIs, RFQs, purchase orders, subcontracts, invoices, AP invoices, and change orders.
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -66,10 +141,67 @@ export default function ProjectRegisters(): JSX.Element {
           ))}
         </section>
 
+        <section className="rounded-2xl border border-border bg-card shadow-sm">
+          <div className="border-b border-border p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.25em] text-primary">Live register</p>
+                <h2 className="mt-2 text-xl font-bold text-foreground">RFQs</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Quote requests loaded from the project RFQ register.</p>
+              </div>
+              <div className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                {rfqs.length} item{rfqs.length === 1 ? '' : 's'}
+              </div>
+            </div>
+          </div>
+
+          {loadingRfqs ? (
+            <div className="p-5 text-sm text-muted-foreground">Loading RFQs…</div>
+          ) : rfqError ? (
+            <div className="p-5 text-sm text-destructive">{rfqError}</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-left text-sm">
+                <thead className="border-b border-border bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-5 py-3 font-semibold">RFQ #</th>
+                    <th className="px-5 py-3 font-semibold">Title / description</th>
+                    <th className="px-5 py-3 font-semibold">Status</th>
+                    <th className="px-5 py-3 font-semibold">Due / updated</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {rfqs.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-5 py-8 text-center text-muted-foreground">
+                        No RFQs found for this project yet.
+                      </td>
+                    </tr>
+                  ) : rfqs.map((row, index) => (
+                    <tr key={asString(row.id) || `rfq-${index}`} className="transition hover:bg-muted/30">
+                      <td className="px-5 py-4 font-semibold text-foreground">{rfqNumber(row, index)}</td>
+                      <td className="px-5 py-4">
+                        <p className="font-semibold text-foreground">{rfqTitle(row)}</p>
+                        {asString(row.description) && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{asString(row.description)}</p>}
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                          {rfqStatus(row)}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-muted-foreground">{formatDate(row.due_date ?? row.updated_at ?? row.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
         <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950">
-          <h2 className="font-semibold">Registers route stabilized</h2>
+          <h2 className="font-semibold">Registers live data v1</h2>
           <p className="mt-1 text-sm leading-6">
-            Next, live register data, filters, quick-create workflows, and detail drawers can be restored one module at a time after deployment is green.
+            RFQs are now the first restored live register. Next, search/filter and a small RFQ quick-create workflow can be added after deployment is green.
           </p>
         </section>
       </PageContainer>
