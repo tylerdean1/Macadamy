@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { AlertTriangle, ArrowRight, BarChart3, Clock, Gauge, HardHat, Sigma } from 'lucide-react';
 
 import { Page, PageContainer } from '@/components/Layout';
 import { invokeRpc } from '@/lib/rpc.client';
@@ -98,14 +97,14 @@ export default function ProjectProduction(): JSX.Element {
 
   const summary = asObject(payload.summary);
   const lineItems = payload.line_items ?? [];
-  const recentLabor = (payload.recent_labor ?? []).slice(0, 8);
-  const recentQuantities = (payload.recent_quantity_entries ?? []).slice(0, 8);
+  const recentLabor = (payload.recent_labor ?? []).slice(0, 6);
+  const recentQuantities = (payload.recent_quantity_entries ?? []).slice(0, 6);
 
   const cards = [
-    { label: 'Labor hours', value: formatNumber(summary.labor_hours), helper: 'Man hours tied to project line items', icon: Clock },
-    { label: 'Quantity installed', value: formatNumber(summary.quantity_completed), helper: 'Installed quantity from line item entries', icon: Sigma },
-    { label: 'Production rate', value: asNumber(summary.units_per_labor_hour) ? `${formatNumber(summary.units_per_labor_hour)} units/hr` : 'No rate yet', helper: 'Quantity installed divided by man hours', icon: Gauge },
-    { label: 'Worker count total', value: formatNumber(summary.worker_count_total), helper: 'Sum of worker_count across labor records', icon: HardHat },
+    { label: 'Labor hours', value: formatNumber(summary.labor_hours), helper: 'Man hours tied to project line items' },
+    { label: 'Quantity installed', value: formatNumber(summary.quantity_completed), helper: 'Installed quantity from line item entries' },
+    { label: 'Production rate', value: asNumber(summary.units_per_labor_hour) ? `${formatNumber(summary.units_per_labor_hour)} units/hr` : 'No rate yet', helper: 'Quantity installed divided by man hours' },
+    { label: 'Worker count total', value: formatNumber(summary.worker_count_total), helper: 'Sum of worker_count across labor records' },
   ];
 
   return (
@@ -121,37 +120,37 @@ export default function ProjectProduction(): JSX.Element {
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
-              {id && <Link to={`/projects/${id}/controls`} className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90">Open controls<ArrowRight className="ml-2 h-4 w-4" /></Link>}
-              {id && <Link to={`/projects/${id}/management`} className="inline-flex items-center justify-center rounded-xl border border-border px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-muted">Back to PM workspace</Link>}
+              {id && (
+                <Link to={`/projects/${id}/controls`} className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90">
+                  Open controls
+                </Link>
+              )}
+              {id && (
+                <Link to={`/projects/${id}/management`} className="inline-flex items-center justify-center rounded-xl border border-border px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-muted">
+                  Back to PM workspace
+                </Link>
+              )}
             </div>
           </div>
           {loading && <div className="mt-6 rounded-2xl border border-border bg-muted/30 p-5 text-sm text-muted-foreground">Loading production data…</div>}
-          {error && <div className="mt-6 flex gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-5 text-sm text-destructive"><AlertTriangle className="mt-0.5 h-5 w-5 flex-none" /><span>{error}</span></div>}
+          {error && <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/10 p-5 text-sm text-destructive">{error}</div>}
         </section>
 
         {!loading && !error && (
           <>
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {cards.map((card) => {
-                const Icon = card.icon;
-                return (
-                  <div key={card.label} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm text-muted-foreground">{card.label}</p>
-                        <p className="mt-2 text-2xl font-bold text-foreground">{card.value}</p>
-                      </div>
-                      <div className="rounded-xl bg-primary/10 p-2 text-primary"><Icon className="h-5 w-5" /></div>
-                    </div>
-                    <p className="mt-3 text-xs leading-5 text-muted-foreground">{card.helper}</p>
-                  </div>
-                );
-              })}
+              {cards.map((card) => (
+                <div key={card.label} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                  <p className="text-sm text-muted-foreground">{card.label}</p>
+                  <p className="mt-2 text-2xl font-bold text-foreground">{card.value}</p>
+                  <p className="mt-3 text-xs leading-5 text-muted-foreground">{card.helper}</p>
+                </div>
+              ))}
             </section>
 
             <section className="rounded-2xl border border-border bg-card shadow-sm">
               <div className="border-b border-border p-5">
-                <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.25em] text-primary"><BarChart3 className="h-4 w-4" />Line item production</div>
+                <p className="text-sm font-semibold uppercase tracking-[0.25em] text-primary">Line item production</p>
                 <h2 className="mt-2 text-xl font-bold text-foreground">Production by line item</h2>
                 <p className="mt-1 text-sm text-muted-foreground">Budget quantity, installed quantity, labor hours, worker count, and production rate by project line item.</p>
               </div>
