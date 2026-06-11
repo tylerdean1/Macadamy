@@ -26,6 +26,7 @@ const NotificationSettings = lazy(() => import('@/pages/StandardPages/Notificati
 const ProjectDashboard = lazy(() => import('@/pages/Projects/ProjectDashboard'));
 const ProjectManagement = lazy(() => import('@/pages/Projects/ProjectManagement'));
 const ProjectControls = lazy(() => import('@/pages/Projects/ProjectControls'));
+const ProjectRegisters = lazy(() => import('@/pages/Projects/ProjectRegisters'));
 const ContractSettings = lazy(() => import('@/pages/Projects/ContractSettings'));
 const ContractCreation = lazy(() => import('@/pages/Projects/ContractCreation'));
 const Calculators = lazy(() => import('@/pages/Projects/Calculators'));
@@ -87,14 +88,11 @@ export default function App(): JSX.Element {
 
     const applyTextAssistToElement = (element: HTMLElement): void => {
       if (isSpellcheckOptOut(element)) return;
-
       const tagName = element.tagName.toLowerCase();
       const isTextarea = tagName === 'textarea';
       const isSupportedInput = tagName === 'input'
         && ['text', 'search', 'email', 'url'].includes((element as HTMLInputElement).type);
-
       if (!isTextarea && !isSupportedInput) return;
-
       element.spellcheck = true;
       if (element.getAttribute('lang') === null) element.setAttribute('lang', 'en-US');
       if (element.getAttribute('autocapitalize') === null) element.setAttribute('autocapitalize', 'sentences');
@@ -106,10 +104,7 @@ export default function App(): JSX.Element {
       for (const field of fields) applyTextAssistToElement(field as HTMLElement);
     };
 
-    if (document.documentElement.getAttribute('lang') === null) {
-      document.documentElement.setAttribute('lang', 'en-US');
-    }
-
+    if (document.documentElement.getAttribute('lang') === null) document.documentElement.setAttribute('lang', 'en-US');
     applyTextAssist(document);
 
     const observer = new MutationObserver((mutations) => {
@@ -140,18 +135,10 @@ export default function App(): JSX.Element {
     (async () => {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       const { data: userData, error: userError } = await supabase.auth.getUser();
-
-      if (sessionError) {
-        logBackendError({ module: 'App', operation: 'debug getSession', trigger: 'background', error: sessionError });
-      } else {
-        console.log('[App] session', sessionData);
-      }
-
-      if (userError) {
-        logBackendError({ module: 'App', operation: 'debug getUser', trigger: 'background', error: userError });
-      } else {
-        console.log('[App] user', userData);
-      }
+      if (sessionError) logBackendError({ module: 'App', operation: 'debug getSession', trigger: 'background', error: sessionError });
+      else console.log('[App] session', sessionData);
+      if (userError) logBackendError({ module: 'App', operation: 'debug getUser', trigger: 'background', error: userError });
+      else console.log('[App] user', userData);
     })().catch(console.error);
   }, []);
 
@@ -185,6 +172,7 @@ export default function App(): JSX.Element {
           <Route path="/projects/:id" element={<ProtectedRoute><ProjectDashboard /></ProtectedRoute>} />
           <Route path="/projects/:id/management" element={<ProtectedRoute><ProjectManagement /></ProtectedRoute>} />
           <Route path="/projects/:id/controls" element={<ProtectedRoute><ProjectControls /></ProtectedRoute>} />
+          <Route path="/projects/:id/registers" element={<ProtectedRoute><ProjectRegisters /></ProtectedRoute>} />
           <Route path="/projects/:id/settings" element={<ProtectedRoute><ContractSettings /></ProtectedRoute>} />
           <Route path="/projects/create" element={<ProtectedRoute><ContractCreation /></ProtectedRoute>} />
 
@@ -221,7 +209,6 @@ export default function App(): JSX.Element {
           <Route path="/organizations" element={<ProtectedRoute requireOrganization={false}><OrganizationDashboard /></ProtectedRoute>} />
           <Route path="/organizations/onboarding" element={<ProtectedRoute requireOrganization={false}><OrganizationOnboarding /></ProtectedRoute>} />
           <Route path="/settings/organization-notifications" element={<ProtectedRoute><OrganizationNotificationSettings /></ProtectedRoute>} />
-
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
