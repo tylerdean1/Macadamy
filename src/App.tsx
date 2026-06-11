@@ -25,6 +25,7 @@ const Notifications = lazy(() => import('@/pages/StandardPages/Notifications'));
 const NotificationSettings = lazy(() => import('@/pages/StandardPages/NotificationSettings'));
 
 const ProjectDashboard = lazy(() => import('@/pages/Projects/ProjectDashboard'));
+const ProjectManagement = lazy(() => import('@/pages/Projects/ProjectManagement'));
 const ContractSettings = lazy(() => import('@/pages/Projects/ContractSettings'));
 const ContractCreation = lazy(() => import('@/pages/Projects/ContractCreation'));
 const Calculators = lazy(() => import('@/pages/Projects/Calculators'));
@@ -50,8 +51,8 @@ const ReportingCollaboration = lazy(() => import('@/pages/Features/ReportingColl
 const OrganizationDashboard = lazy(() => import('@/pages/Organization/OrganizationDashboard'));
 const OrganizationOnboarding = lazy(() => import('@/pages/Organization/OrganizationOnboarding'));
 const OrganizationNotificationSettings = lazy(() => import('@/pages/Organization/OrganizationNotificationSettings'));
-const QualitySafety = lazy(() => import("@/pages/Features/QualitySafety"));
-const SubcontractorManagement = lazy(() => import("@/pages/Features/SubcontractorManagement"));
+const QualitySafety = lazy(() => import('@/pages/Features/QualitySafety'));
+const SubcontractorManagement = lazy(() => import('@/pages/Features/SubcontractorManagement'));
 const EquipmentManagement = lazy(() => import('@/pages/Features/EquipmentManagement'));
 const DesignReviews = lazy(() => import('@/pages/Features/DesignReviews'));
 const EquipmentMaintenance = lazy(() => import('@/pages/Features/EquipmentMaintenance'));
@@ -272,6 +273,14 @@ export default function App(): JSX.Element {
             element={
               <ProtectedRoute>
                 <ProjectDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects/:id/management"
+            element={
+              <ProtectedRoute>
+                <ProjectManagement />
               </ProtectedRoute>
             }
           />
