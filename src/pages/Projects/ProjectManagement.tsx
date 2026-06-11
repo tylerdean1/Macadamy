@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 import { Page, PageContainer } from '@/components/Layout';
-import { rpcClient } from '@/lib/rpc.client';
+import { invokeRpc, rpcClient } from '@/lib/rpc.client';
 
 type RecordRow = Record<string, unknown>;
 type RpcInvoker = Record<string, (args?: Record<string, unknown>) => Promise<unknown>>;
@@ -29,6 +29,7 @@ type ProjectPayload = {
 };
 
 type ModuleKey =
+  | 'projectItems'
   | 'rfis'
   | 'submittals'
   | 'purchaseOrders'
@@ -63,6 +64,7 @@ type AttentionItem = {
 };
 
 const initialModules: ModuleState = {
+  projectItems: [],
   rfis: [],
   submittals: [],
   purchaseOrders: [],
@@ -187,6 +189,21 @@ async function safeRpcRows(functionName: string, projectId: string): Promise<Rec
   }
 }
 
+async function safeProjectManagementItems(projectId: string): Promise<RecordRow[]> {
+  try {
+    const result = await invokeRpc<unknown>('filter_project_management_items', {
+      _filters: buildFilters(projectId),
+      _limit: 200,
+      _offset: 0,
+    });
+
+    return Array.isArray(result) ? result.filter((row): row is RecordRow => row !== null && typeof row === 'object' && !Array.isArray(row)) : [];
+  } catch (error) {
+    console.warn('[ProjectManagement] filter_project_management_items failed', error);
+    return [];
+  }
+}
+
 function latestItems(rows: RecordRow[], module: string, href: string, limit = 3): AttentionItem[] {
   return rows
     .filter((row) => isOpenStatus(extractStatus(row)))
@@ -204,6 +221,11 @@ function latestItems(rows: RecordRow[], module: string, href: string, limit = 3)
       dateLabel: formatDate(extractDate(row)),
       href,
     }));
+}
+
+function typeMatches(row: RecordRow, itemTypes: string[]): boolean {
+  const type = valueToString(row.item_type).toLowerCase();
+  return itemTypes.includes(type);
 }
 
 export default function ProjectManagement(): JSX.Element {
@@ -227,12 +249,13 @@ export default function ProjectManagement(): JSX.Element {
       setError(null);
 
       try {
-        const [dashboard, rfis, submittals, purchaseOrders, dailyLogs, changeOrders, issues, inspections, tasks, documents, punchLists, materialOrders] = await Promise.all([
+        const [dashboard, projectItems, rfis, submittals, purchaseOrders, dailyLogs, changeOrders, issues, inspections, tasks, documents, punchLists, materialOrders] = await Promise.all([
           (rpcClient as unknown as RpcInvoker).rpc_project_dashboard_payload({
             p_project_id: id,
             p_line_items_page: 1,
             p_page_size: 500,
           }),
+          safeProjectManagementItems(id),
           safeRpcRows('filter_rfis', id),
           safeRpcRows('filter_submittals', id),
           safeRpcRows('filter_purchase_orders', id),
@@ -250,6 +273,7 @@ export default function ProjectManagement(): JSX.Element {
 
         setProjectPayload(dashboard && typeof dashboard === 'object' ? dashboard as ProjectPayload : null);
         setModules({
+          projectItems,
           rfis,
           submittals,
           purchaseOrders,
@@ -291,6 +315,15 @@ export default function ProjectManagement(): JSX.Element {
     return sum + (valueToNumber(item.quantity) * valueToNumber(item.unit_price));
   }, 0);
 
+  const actionItems = modules.projectItems;
+  const controlItems = actionItems.filter((row) => typeMatches(row, ['schedule', 'coordination']));
+  const procurementActionItems = actionItems.filter((row) => typeMatches(row, ['procurement']));
+  const documentActionItems = actionItems.filter((row) => typeMatches(row, ['submittal', 'rfi', 'document']));
+  const costActionItems = actionItems.filter((row) => typeMatches(row, ['change', 'cost']));
+  const fieldActionItems = actionItems.filter((row) => typeMatches(row, ['field']));
+  const qualitySafetyActionItems = actionItems.filter((row) => typeMatches(row, ['quality', 'safety']));
+  const closeoutActionItems = actionItems.filter((row) => typeMatches(row, ['closeout']));
+
   const workstreams: WorkstreamCard[] = useMemo(() => ([
     {
       title: 'Controls',
@@ -298,8 +331,8 @@ export default function ProjectManagement(): JSX.Element {
       href: '/schedule-tasks',
       icon: FolderKanban,
       status: 'Action register',
-      count: openCount(modules.tasks),
-      attentionCount: attentionCount(modules.tasks),
+      count: openCount([...modules.tasks, ...controlItems]),
+      attentionCount: attentionCount([...modules.tasks, ...controlItems]),
     },
     {
       title: 'Procurement',
@@ -307,8 +340,8 @@ export default function ProjectManagement(): JSX.Element {
       href: '/preconstruction',
       icon: Truck,
       status: 'PO pipeline',
-      count: openCount([...modules.purchaseOrders, ...modules.materialOrders]),
-      attentionCount: attentionCount([...modules.purchaseOrders, ...modules.materialOrders]),
+      count: openCount([...modules.purchaseOrders, ...modules.materialOrders, ...procurementActionItems]),
+      attentionCount: attentionCount([...modules.purchaseOrders, ...modules.materialOrders, ...procurementActionItems]),
     },
     {
       title: 'Document Control',
@@ -316,8 +349,8 @@ export default function ProjectManagement(): JSX.Element {
       href: '/document-management',
       icon: FileQuestion,
       status: 'Review log',
-      count: openCount([...modules.rfis, ...modules.submittals, ...modules.documents]),
-      attentionCount: attentionCount([...modules.rfis, ...modules.submittals, ...modules.documents]),
+      count: openCount([...modules.rfis, ...modules.submittals, ...modules.documents, ...documentActionItems]),
+      attentionCount: attentionCount([...modules.rfis, ...modules.submittals, ...modules.documents, ...documentActionItems]),
     },
     {
       title: 'Cost',
@@ -325,8 +358,8 @@ export default function ProjectManagement(): JSX.Element {
       href: '/financial-management',
       icon: DollarSign,
       status: 'Cost impact',
-      count: openCount(modules.changeOrders),
-      attentionCount: attentionCount(modules.changeOrders),
+      count: openCount([...modules.changeOrders, ...costActionItems]),
+      attentionCount: attentionCount([...modules.changeOrders, ...costActionItems]),
     },
     {
       title: 'Field Operations',
@@ -334,8 +367,8 @@ export default function ProjectManagement(): JSX.Element {
       href: '/field-operations',
       icon: ClipboardList,
       status: 'Field log',
-      count: modules.dailyLogs.length + openCount(modules.issues),
-      attentionCount: attentionCount(modules.issues),
+      count: modules.dailyLogs.length + openCount([...modules.issues, ...fieldActionItems]),
+      attentionCount: attentionCount([...modules.issues, ...fieldActionItems]),
     },
     {
       title: 'Quality & Safety',
@@ -343,8 +376,8 @@ export default function ProjectManagement(): JSX.Element {
       href: '/quality-safety',
       icon: ShieldAlert,
       status: 'Risk log',
-      count: openCount([...modules.inspections, ...modules.punchLists]),
-      attentionCount: attentionCount([...modules.inspections, ...modules.punchLists]),
+      count: openCount([...modules.inspections, ...modules.punchLists, ...qualitySafetyActionItems]),
+      attentionCount: attentionCount([...modules.inspections, ...modules.punchLists, ...qualitySafetyActionItems]),
     },
     {
       title: 'Closeout',
@@ -352,8 +385,8 @@ export default function ProjectManagement(): JSX.Element {
       href: '/document-management',
       icon: PackageCheck,
       status: 'Turnover tracker',
-      count: openCount(modules.punchLists),
-      attentionCount: attentionCount(modules.punchLists),
+      count: openCount([...modules.punchLists, ...closeoutActionItems]),
+      attentionCount: attentionCount([...modules.punchLists, ...closeoutActionItems]),
     },
     {
       title: 'Reporting',
@@ -364,9 +397,10 @@ export default function ProjectManagement(): JSX.Element {
       count: modules.dailyLogs.length,
       attentionCount: 0,
     },
-  ]), [modules]);
+  ]), [closeoutActionItems, controlItems, costActionItems, documentActionItems, fieldActionItems, modules, procurementActionItems, qualitySafetyActionItems]);
 
   const attentionItems = useMemo(() => ([
+    ...latestItems(modules.projectItems.filter(needsAttention), 'PM Action', `/projects/${id}/management`),
     ...latestItems(modules.rfis.filter(needsAttention), 'RFI', '/document-management'),
     ...latestItems(modules.submittals.filter(needsAttention), 'Submittal', '/document-management'),
     ...latestItems(modules.purchaseOrders.filter(needsAttention), 'Purchase Order', '/preconstruction'),
@@ -375,7 +409,9 @@ export default function ProjectManagement(): JSX.Element {
     ...latestItems(modules.issues.filter(needsAttention), 'Issue', '/issues'),
     ...latestItems(modules.punchLists.filter(needsAttention), 'Punch', '/quality-safety'),
     ...latestItems(modules.tasks.filter(needsAttention), 'Task', '/schedule-tasks'),
-  ]).slice(0, 10), [modules]);
+  ]).slice(0, 10), [id, modules]);
+
+  const openProjectActionItems = openCount(modules.projectItems);
 
   const topMetrics = [
     { label: 'Project status', value: projectStatus, helper: 'Current project phase/status' },
@@ -384,7 +420,7 @@ export default function ProjectManagement(): JSX.Element {
     {
       label: 'Open PM items',
       value: String(workstreams.reduce((sum, stream) => sum + stream.count, 0)),
-      helper: `${workstreams.reduce((sum, stream) => sum + stream.attentionCount, 0)} need attention`,
+      helper: `${workstreams.reduce((sum, stream) => sum + stream.attentionCount, 0)} need attention • ${openProjectActionItems} PM actions`,
     },
   ];
 
@@ -523,13 +559,13 @@ export default function ProjectManagement(): JSX.Element {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-950">
+        <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950">
           <div className="flex gap-3">
-            <AlertTriangle className="mt-0.5 h-5 w-5 flex-none" />
+            <CheckCircle2 className="mt-0.5 h-5 w-5 flex-none" />
             <div>
-              <h2 className="font-semibold">Action-item backend still pending migration review</h2>
+              <h2 className="font-semibold">Project action-item backend is live</h2>
               <p className="mt-1 text-sm leading-6">
-                This workspace now reads from existing project modules. The separate project-management action-item table/RPC migration is still staged for review before live Supabase application.
+                This workspace now reads the live project-management action-item table through `filter_project_management_items`, while still rolling up the older RFI, submittal, PO, field, cost, quality, and closeout modules.
               </p>
             </div>
           </div>
