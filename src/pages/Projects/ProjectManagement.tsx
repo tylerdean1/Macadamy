@@ -3,37 +3,54 @@ import { Link, useParams } from 'react-router-dom';
 import {
   AlertTriangle,
   ArrowRight,
+  Banknote,
+  BriefcaseBusiness,
   CalendarDays,
   CheckCircle2,
   ClipboardList,
+  Clock,
   DollarSign,
   FileCheck2,
   FileQuestion,
+  FileText,
   FolderKanban,
+  Gauge,
+  Hash,
   PackageCheck,
   PlusCircle,
+  Receipt,
+  RefreshCw,
   ShieldAlert,
+  Sigma,
   Truck,
 } from 'lucide-react';
 
 import { Page, PageContainer } from '@/components/Layout';
-import { invokeRpc, rpcClient } from '@/lib/rpc.client';
+import { invokeRpc } from '@/lib/rpc.client';
 
 type RecordRow = Record<string, unknown>;
-type RpcInvoker = Record<string, (args?: Record<string, unknown>) => Promise<unknown>>;
 
 type ProjectPayload = {
   project?: RecordRow;
   wbs?: { total_count?: number; items?: RecordRow[] };
   line_items?: { total_count?: number; items?: RecordRow[] };
-  counts?: { issues?: number; change_orders?: number; inspections?: number };
+};
+
+type CorePayload = {
+  counts?: RecordRow;
+  costs?: RecordRow;
+  production?: RecordRow;
 };
 
 type ModuleKey =
   | 'projectItems'
   | 'rfis'
+  | 'rfqs'
   | 'submittals'
   | 'purchaseOrders'
+  | 'subcontracts'
+  | 'invoices'
+  | 'apInvoices'
   | 'dailyLogs'
   | 'changeOrders'
   | 'issues'
@@ -72,11 +89,22 @@ type ActionFormState = {
   next_action: string;
 };
 
+type MetricCard = {
+  label: string;
+  value: string;
+  helper: string;
+  icon: typeof ClipboardList;
+};
+
 const initialModules: ModuleState = {
   projectItems: [],
   rfis: [],
+  rfqs: [],
   submittals: [],
   purchaseOrders: [],
+  subcontracts: [],
+  invoices: [],
+  apInvoices: [],
   dailyLogs: [],
   changeOrders: [],
   issues: [],
@@ -118,7 +146,7 @@ const priorities = [
 ];
 
 const statusDoneWords = ['approved', 'closed', 'complete', 'completed', 'done', 'resolved', 'void', 'cancelled', 'canceled'];
-const statusAttentionWords = ['open', 'pending', 'blocked', 'overdue', 'late', 'rejected', 'revise', 'resubmit', 'draft', 'waiting'];
+const statusAttentionWords = ['open', 'pending', 'blocked', 'overdue', 'late', 'rejected', 'revise', 'resubmit', 'draft', 'waiting', 'under_review'];
 
 function valueToString(value: unknown): string {
   if (typeof value === 'string') return value;
@@ -135,13 +163,26 @@ function valueToNumber(value: unknown): number {
   return 0;
 }
 
-function formatCurrency(value: number): string {
-  if (!Number.isFinite(value) || value === 0) return '$0';
+function asObject(value: unknown): RecordRow {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as RecordRow : {};
+}
+
+function formatCount(value: unknown): string {
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(valueToNumber(value));
+}
+
+function formatCurrency(value: unknown): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(valueToNumber(value));
+}
+
+function formatRate(value: unknown): string {
+  const parsed = valueToNumber(value);
+  if (!parsed) return 'No rate yet';
+  return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(parsed)} units/hr`;
 }
 
 function formatDate(value: unknown): string {
@@ -165,6 +206,9 @@ function extractTitle(row: RecordRow, fallback: string): string {
     || valueToString(row.subject)
     || valueToString(row.name)
     || valueToString(row.description)
+    || valueToString(row.order_number)
+    || valueToString(row.invoice_number)
+    || valueToString(row.rfq_number)
     || valueToString(row.po_number)
     || valueToString(row.rfi_number)
     || valueToString(row.submittal_number)
@@ -175,6 +219,8 @@ function extractDate(row: RecordRow): unknown {
   return row.due_date
     ?? row.required_on_site_date
     ?? row.next_follow_up_at
+    ?? row.reviewed_at
+    ?? row.submitted_at
     ?? row.updated_at
     ?? row.created_at;
 }
@@ -212,8 +258,7 @@ function buildFilters(projectId: string): Record<string, unknown> {
 
 async function safeRpcRows(functionName: string, projectId: string): Promise<RecordRow[]> {
   try {
-    const invoker = rpcClient as unknown as RpcInvoker;
-    const result = await invoker[functionName]?.({
+    const result = await invokeRpc<unknown>(functionName, {
       _filters: buildFilters(projectId),
       _limit: 200,
       _offset: 0,
@@ -228,18 +273,15 @@ async function safeRpcRows(functionName: string, projectId: string): Promise<Rec
   }
 }
 
-async function safeProjectManagementItems(projectId: string): Promise<RecordRow[]> {
+async function safeCorePayload(projectId: string): Promise<CorePayload> {
   try {
-    const result = await invokeRpc<unknown>('filter_project_management_items', {
-      _filters: buildFilters(projectId),
-      _limit: 200,
-      _offset: 0,
+    const result = await invokeRpc<unknown>('rpc_project_management_core_payload', {
+      p_project_id: projectId,
     });
-
-    return Array.isArray(result) ? result.filter((row): row is RecordRow => row !== null && typeof row === 'object' && !Array.isArray(row)) : [];
+    return asObject(result) as CorePayload;
   } catch (error) {
-    console.warn('[ProjectManagement] filter_project_management_items failed', error);
-    return [];
+    console.warn('[ProjectManagement] rpc_project_management_core_payload failed', error);
+    return {};
   }
 }
 
@@ -293,6 +335,7 @@ export default function ProjectManagement(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [projectPayload, setProjectPayload] = useState<ProjectPayload | null>(null);
+  const [corePayload, setCorePayload] = useState<CorePayload>({});
   const [modules, setModules] = useState<ModuleState>(initialModules);
   const [actionForm, setActionForm] = useState<ActionFormState>(initialActionForm);
 
@@ -307,16 +350,21 @@ export default function ProjectManagement(): JSX.Element {
     setError(null);
 
     try {
-      const [dashboard, projectItems, rfis, submittals, purchaseOrders, dailyLogs, changeOrders, issues, inspections, tasks, documents, punchLists, materialOrders] = await Promise.all([
-        (rpcClient as unknown as RpcInvoker).rpc_project_dashboard_payload({
+      const [dashboard, core, projectItems, rfis, rfqs, submittals, purchaseOrders, subcontracts, invoices, apInvoices, dailyLogs, changeOrders, issues, inspections, tasks, documents, punchLists, materialOrders] = await Promise.all([
+        invokeRpc<unknown>('rpc_project_dashboard_payload', {
           p_project_id: id,
           p_line_items_page: 1,
           p_page_size: 500,
         }),
-        safeProjectManagementItems(id),
+        safeCorePayload(id),
+        safeRpcRows('filter_project_management_items', id),
         safeRpcRows('filter_rfis', id),
+        safeRpcRows('filter_rfqs', id),
         safeRpcRows('filter_submittals', id),
         safeRpcRows('filter_purchase_orders', id),
+        safeRpcRows('filter_subcontracts', id),
+        safeRpcRows('filter_invoices', id),
+        safeRpcRows('filter_accounts_payable', id),
         safeRpcRows('filter_daily_logs', id),
         safeRpcRows('filter_change_orders', id),
         safeRpcRows('filter_issues', id),
@@ -328,11 +376,16 @@ export default function ProjectManagement(): JSX.Element {
       ]);
 
       setProjectPayload(dashboard && typeof dashboard === 'object' ? dashboard as ProjectPayload : null);
+      setCorePayload(core);
       setModules({
         projectItems,
         rfis,
+        rfqs,
         submittals,
         purchaseOrders,
+        subcontracts,
+        invoices,
+        apInvoices,
         dailyLogs,
         changeOrders,
         issues,
@@ -416,6 +469,9 @@ export default function ProjectManagement(): JSX.Element {
   };
 
   const project = projectPayload?.project ?? {};
+  const counts = asObject(corePayload.counts);
+  const costs = asObject(corePayload.costs);
+  const production = asObject(corePayload.production);
   const projectName = valueToString(project.name) || valueToString(project.title) || 'Project command workspace';
   const projectStatus = valueToString(project.status) || 'Unknown';
   const projectBudget = valueToNumber(project.budget);
@@ -448,12 +504,12 @@ export default function ProjectManagement(): JSX.Element {
     },
     {
       title: 'Procurement',
-      description: 'Purchase orders, material orders, vendor follow-ups, lead times, deliveries, and payment blockers.',
+      description: 'POs, RFQs, subcontracts, material orders, vendor follow-ups, lead times, deliveries, and payment blockers.',
       href: '/preconstruction',
       icon: Truck,
-      status: 'PO pipeline',
-      count: openCount([...modules.purchaseOrders, ...modules.materialOrders, ...procurementActionItems]),
-      attentionCount: attentionCount([...modules.purchaseOrders, ...modules.materialOrders, ...procurementActionItems]),
+      status: 'Buyout pipeline',
+      count: openCount([...modules.purchaseOrders, ...modules.rfqs, ...modules.subcontracts, ...modules.materialOrders, ...procurementActionItems]),
+      attentionCount: attentionCount([...modules.purchaseOrders, ...modules.rfqs, ...modules.subcontracts, ...modules.materialOrders, ...procurementActionItems]),
     },
     {
       title: 'Document Control',
@@ -466,16 +522,16 @@ export default function ProjectManagement(): JSX.Element {
     },
     {
       title: 'Cost',
-      description: 'Budgets, committed cost, change exposure, pay quantities, invoices, and forecast movement.',
+      description: 'Budgets, committed cost, invoices, AP, change exposure, pay quantities, and forecast movement.',
       href: '/financial-management',
       icon: DollarSign,
       status: 'Cost impact',
-      count: openCount([...modules.changeOrders, ...costActionItems]),
-      attentionCount: attentionCount([...modules.changeOrders, ...costActionItems]),
+      count: openCount([...modules.changeOrders, ...modules.invoices, ...modules.apInvoices, ...costActionItems]),
+      attentionCount: attentionCount([...modules.changeOrders, ...modules.invoices, ...modules.apInvoices, ...costActionItems]),
     },
     {
       title: 'Field Operations',
-      description: 'Daily reports, production quantities, inspections, issues, photos, crews, equipment, and weather.',
+      description: 'Daily reports, labor hours, production quantities, inspections, issues, photos, crews, equipment, and weather.',
       href: '/field-operations',
       icon: ClipboardList,
       status: 'Field log',
@@ -515,7 +571,11 @@ export default function ProjectManagement(): JSX.Element {
     ...latestItems(modules.projectItems.filter(needsAttention), 'PM Action', `/projects/${id}/management`),
     ...latestItems(modules.rfis.filter(needsAttention), 'RFI', '/document-management'),
     ...latestItems(modules.submittals.filter(needsAttention), 'Submittal', '/document-management'),
+    ...latestItems(modules.rfqs.filter(needsAttention), 'RFQ', '/preconstruction'),
     ...latestItems(modules.purchaseOrders.filter(needsAttention), 'Purchase Order', '/preconstruction'),
+    ...latestItems(modules.subcontracts.filter(needsAttention), 'Subcontract', '/subcontractors'),
+    ...latestItems(modules.invoices.filter(needsAttention), 'Invoice', '/financial-management'),
+    ...latestItems(modules.apInvoices.filter(needsAttention), 'AP Invoice', '/accounts-payable'),
     ...latestItems(modules.materialOrders.filter(needsAttention), 'Material Order', '/preconstruction'),
     ...latestItems(modules.changeOrders.filter(needsAttention), 'Change Order', '/financial-management'),
     ...latestItems(modules.issues.filter(needsAttention), 'Issue', '/issues'),
@@ -534,6 +594,34 @@ export default function ProjectManagement(): JSX.Element {
       value: String(workstreams.reduce((sum, stream) => sum + stream.count, 0)),
       helper: `${workstreams.reduce((sum, stream) => sum + stream.attentionCount, 0)} need attention • ${openProjectActionItems} PM actions`,
     },
+  ];
+
+  const documentMetrics: MetricCard[] = [
+    { label: 'Submittals', value: formatCount(counts.submittals), helper: 'Review workflow and package tracking.', icon: FileCheck2 },
+    { label: 'RFIs', value: formatCount(counts.rfis), helper: 'Questions, answers, and decisions.', icon: FileQuestion },
+    { label: 'RFQs', value: formatCount(counts.rfqs), helper: 'Quote requests for buyout and changes.', icon: FileText },
+    { label: 'Change orders', value: formatCount(counts.change_orders), helper: `${formatCurrency(costs.change_orders_amount)} in change exposure.`, icon: RefreshCw },
+  ];
+
+  const costMetrics: MetricCard[] = [
+    { label: 'Purchase orders', value: formatCount(counts.purchase_orders), helper: `${formatCurrency(costs.purchase_orders_amount)} committed/tracked in POs.`, icon: PackageCheck },
+    { label: 'Subcontracts', value: formatCount(counts.subcontracts), helper: `${formatCurrency(costs.subcontracts_amount)} tracked against subcontracts.`, icon: BriefcaseBusiness },
+    { label: 'Invoices', value: formatCount(counts.invoices), helper: `${formatCurrency(costs.invoices_amount)} in project invoices.`, icon: Receipt },
+    { label: 'AP invoices', value: formatCount(counts.ap_invoices), helper: `${formatCurrency(costs.ap_amount_due)} in accounts payable.`, icon: Banknote },
+  ];
+
+  const productionMetrics: MetricCard[] = [
+    { label: 'Labor hours', value: formatCount(production.labor_hours), helper: 'Man hours tied to line items.', icon: Clock },
+    { label: 'Quantity installed', value: formatCount(production.quantity_completed), helper: 'Installed quantity from production entries.', icon: Sigma },
+    { label: 'Production rate', value: formatRate(production.units_per_labor_hour), helper: 'Installed units per labor hour.', icon: Gauge },
+    { label: 'Cost codes used', value: formatCount(counts.cost_codes), helper: `${formatCount(counts.line_items)} project line items.`, icon: Hash },
+  ];
+
+  const registerLinks = [
+    { title: 'Document control', description: 'Submittals, RFIs, RFQs, drawings, specs, and review workflow.', href: '/document-management' },
+    { title: 'Procurement / buyout', description: 'Purchase orders, RFQs, vendors, subcontracts, materials, and deliveries.', href: '/preconstruction' },
+    { title: 'Cost / financials', description: 'Change orders, invoices, AP, commitments, and payment visibility.', href: '/financial-management' },
+    { title: 'Labor / production', description: 'Man hours, daily reports, quantities, production rates, and cost codes.', href: '/field-operations' },
   ];
 
   return (
@@ -620,6 +708,55 @@ export default function ProjectManagement(): JSX.Element {
           })}
         </section>
 
+        <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <div>
+            <h2 className="text-xl font-bold text-foreground">Core tracking coverage</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              The basic Procore/HeavyJob/HeavyBid/P6-adjacent objects are now visible together: documents, buyout, financials, production, and cost-code structure.
+            </p>
+          </div>
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {[...documentMetrics, ...costMetrics, ...productionMetrics].map((metric) => {
+              const Icon = metric.icon;
+              return (
+                <div key={metric.label} className="rounded-2xl border border-border bg-muted/30 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground">{metric.label}</p>
+                      <p className="mt-2 text-2xl font-bold text-foreground">{metric.value}</p>
+                    </div>
+                    <div className="rounded-xl bg-primary/10 p-2 text-primary">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-muted-foreground">{metric.helper}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <div>
+            <h2 className="text-xl font-bold text-foreground">Register launchpad</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              These are the register families Macadamy needs to turn into full CRUD tables next.
+            </p>
+          </div>
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {registerLinks.map((register) => (
+              <Link key={register.title} to={register.href} className="rounded-2xl border border-border bg-muted/30 p-4 transition hover:bg-muted">
+                <h3 className="font-semibold text-foreground">{register.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{register.description}</p>
+                <div className="mt-4 inline-flex items-center text-sm font-medium text-primary">
+                  Open register area
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
         <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
           <form onSubmit={handleCreateAction} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
             <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.25em] text-primary">
@@ -627,7 +764,7 @@ export default function ProjectManagement(): JSX.Element {
               Add PM action
             </div>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Create a lightweight project action item tied to the new PM backend. Use it for blockers, follow-ups, delivery risks, closeout gaps, and coordination tasks.
+              Create a lightweight project action item tied to the PM backend. Use it for blockers, follow-ups, delivery risks, closeout gaps, and coordination tasks.
             </p>
 
             <div className="mt-5 space-y-4">
@@ -812,20 +949,20 @@ export default function ProjectManagement(): JSX.Element {
           <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
             <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.25em] text-primary">
               <CalendarDays className="h-4 w-4" />
-              Next PM moves
+              Next build moves
             </div>
             <div className="mt-5 space-y-4">
               <div className="rounded-xl border border-border bg-muted/30 p-4">
-                <h3 className="font-semibold text-foreground">1. Clear blockers</h3>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">Start with the attention list, then assign ownership and next follow-up dates.</p>
+                <h3 className="font-semibold text-foreground">1. Convert launchpad cards into full registers</h3>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">Each module needs create/edit/detail views, filters, statuses, links to docs, and exports.</p>
               </div>
               <div className="rounded-xl border border-border bg-muted/30 p-4">
-                <h3 className="font-semibold text-foreground">2. Connect workflow chains</h3>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">Tie PO, submittal, delivery, ticket, invoice, and closeout status together instead of tracking them separately.</p>
+                <h3 className="font-semibold text-foreground">2. Tie production to estimate assumptions</h3>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">Compare estimated production rates, crew hours, unit costs, and actual field performance by cost code.</p>
               </div>
               <div className="rounded-xl border border-border bg-muted/30 p-4">
-                <h3 className="font-semibold text-foreground">3. Keep closeout live</h3>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">Use punch, documents, O&Ms, warranties, spare parts, training, testing, and as-builts as a running turnover checklist.</p>
+                <h3 className="font-semibold text-foreground">3. Add CPM-lite activities</h3>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">Activities, dependencies, baselines, actuals, and blockers linked to RFIs, submittals, POs, and production.</p>
               </div>
             </div>
           </div>
@@ -835,9 +972,9 @@ export default function ProjectManagement(): JSX.Element {
           <div className="flex gap-3">
             <CheckCircle2 className="mt-0.5 h-5 w-5 flex-none" />
             <div>
-              <h2 className="font-semibold">Project action-item backend is live</h2>
+              <h2 className="font-semibold">Core PM tracking foundation is live</h2>
               <p className="mt-1 text-sm leading-6">
-                This workspace now creates, reads, and completes project action items through `project_management_items`, while still rolling up the older RFI, submittal, PO, field, cost, quality, and closeout modules.
+                This workspace now surfaces submittals, POs, RFIs, RFQs, subcontracts, invoices, AP invoices, change orders, labor hours, production quantity, production rate, line items, cost codes, and PM action items.
               </p>
             </div>
           </div>
