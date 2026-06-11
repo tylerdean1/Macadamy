@@ -72,6 +72,18 @@ function rfqStatus(row: Row): string {
   return firstValue(row, ['status', 'workflow_status', 'review_status']) || 'open';
 }
 
+function submittalNumber(row: Row, index: number): string {
+  return firstValue(row, ['submittal_number', 'number', 'code']) || `SUB-${index + 1}`;
+}
+
+function submittalTitle(row: Row): string {
+  return firstValue(row, ['title', 'name', 'subject', 'description']) || 'Untitled submittal';
+}
+
+function submittalStatus(row: Row): string {
+  return firstValue(row, ['status', 'workflow_status', 'review_status']) || 'open';
+}
+
 function isClosed(row: Row): boolean {
   const status = rfqStatus(row).toLowerCase();
   return closedStatusWords.some((word) => status.includes(word));
@@ -80,9 +92,12 @@ function isClosed(row: Row): boolean {
 export default function ProjectRegisters(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const [rfqs, setRfqs] = useState<Row[]>([]);
+  const [submittals, setSubmittals] = useState<Row[]>([]);
   const [loadingRfqs, setLoadingRfqs] = useState(true);
+  const [loadingSubmittals, setLoadingSubmittals] = useState(true);
   const [savingRfq, setSavingRfq] = useState(false);
   const [rfqError, setRfqError] = useState<string | null>(null);
+  const [submittalError, setSubmittalError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -114,9 +129,36 @@ export default function ProjectRegisters(): JSX.Element {
     }
   }, [id]);
 
+  const loadSubmittals = useCallback(async (): Promise<void> => {
+    if (!id) {
+      setLoadingSubmittals(false);
+      return;
+    }
+
+    setLoadingSubmittals(true);
+    setSubmittalError(null);
+
+    try {
+      const result = await invokeRpc<unknown>('filter_submittals', {
+        _filters: { project_id: id },
+        _limit: 100,
+        _offset: 0,
+        _order_by: 'updated_at',
+        _direction: 'desc',
+      });
+      setSubmittals(asRows(result));
+    } catch (error) {
+      console.error('[ProjectRegisters] load submittals failed', error);
+      setSubmittalError('Unable to load submittals right now.');
+    } finally {
+      setLoadingSubmittals(false);
+    }
+  }, [id]);
+
   useEffect(() => {
     void loadRfqs();
-  }, [loadRfqs]);
+    void loadSubmittals();
+  }, [loadRfqs, loadSubmittals]);
 
   const handleRfqChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
     const { name, value } = event.target;
@@ -359,10 +401,67 @@ export default function ProjectRegisters(): JSX.Element {
           )}
         </section>
 
+        <section className="rounded-2xl border border-border bg-card shadow-sm">
+          <div className="border-b border-border p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.25em] text-primary">Live register</p>
+                <h2 className="mt-2 text-xl font-bold text-foreground">Submittals</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Submittals loaded from the project submittal register.</p>
+              </div>
+              <div className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                {submittals.length} item{submittals.length === 1 ? '' : 's'}
+              </div>
+            </div>
+          </div>
+
+          {loadingSubmittals ? (
+            <div className="p-5 text-sm text-muted-foreground">Loading submittals…</div>
+          ) : submittalError ? (
+            <div className="p-5 text-sm text-destructive">{submittalError}</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-left text-sm">
+                <thead className="border-b border-border bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-5 py-3 font-semibold">Submittal #</th>
+                    <th className="px-5 py-3 font-semibold">Title / description</th>
+                    <th className="px-5 py-3 font-semibold">Status</th>
+                    <th className="px-5 py-3 font-semibold">Due / updated</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {submittals.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-5 py-8 text-center text-muted-foreground">
+                        No submittals found for this project yet.
+                      </td>
+                    </tr>
+                  ) : submittals.map((row, index) => (
+                    <tr key={asString(row.id) || `submittal-${index}`} className="transition hover:bg-muted/30">
+                      <td className="px-5 py-4 font-semibold text-foreground">{submittalNumber(row, index)}</td>
+                      <td className="px-5 py-4">
+                        <p className="font-semibold text-foreground">{submittalTitle(row)}</p>
+                        {asString(row.description) && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{asString(row.description)}</p>}
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                          {submittalStatus(row)}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-muted-foreground">{formatDate(row.due_date ?? row.updated_at ?? row.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
         <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950">
-          <h2 className="font-semibold">Registers live data v1</h2>
+          <h2 className="font-semibold">Registers live data v2</h2>
           <p className="mt-1 text-sm leading-6">
-            RFQs are now the first restored live register with search, status filtering, and quick-create. Next, the same pattern can be extended to invoices or submittals.
+            RFQs now have search, status filtering, and quick-create. Submittals are now restored as a read-only live register. Next, the same filter/create pattern can be extended to submittals.
           </p>
         </section>
       </PageContainer>
