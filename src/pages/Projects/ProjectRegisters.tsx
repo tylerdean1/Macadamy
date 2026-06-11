@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { Page, PageContainer } from '@/components/Layout';
@@ -7,6 +7,13 @@ import ProjectNav from './ProjectNav';
 
 type Row = Record<string, unknown>;
 type StatusFilter = 'all' | 'open' | 'closed';
+
+type RfqForm = {
+  rfq_number: string;
+  title: string;
+  due_date: string;
+  description: string;
+};
 
 const registers = [
   { title: 'Submittals', code: 'SUB', description: 'Shop drawings, product data, O&Ms, samples, and review cycles.' },
@@ -20,6 +27,7 @@ const registers = [
 ];
 
 const closedStatusWords = ['closed', 'complete', 'completed', 'awarded', 'cancelled', 'canceled', 'void'];
+const emptyRfqForm: RfqForm = { rfq_number: '', title: '', due_date: '', description: '' };
 
 function asRows(value: unknown): Row[] {
   return Array.isArray(value) ? value.filter((row): row is Row => row !== null && typeof row === 'object' && !Array.isArray(row)) : [];
@@ -47,6 +55,11 @@ function formatDate(value: unknown): string {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function nullable(value: string): string | null {
+  const trimmed = value.trim();
+  return trimmed === '' ? null : trimmed;
+}
+
 function rfqNumber(row: Row, index: number): string {
   return firstValue(row, ['rfq_number', 'number', 'code']) || `RFQ-${index + 1}`;
 }
@@ -68,9 +81,12 @@ export default function ProjectRegisters(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const [rfqs, setRfqs] = useState<Row[]>([]);
   const [loadingRfqs, setLoadingRfqs] = useState(true);
+  const [savingRfq, setSavingRfq] = useState(false);
   const [rfqError, setRfqError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [rfqForm, setRfqForm] = useState<RfqForm>(emptyRfqForm);
 
   const loadRfqs = useCallback(async (): Promise<void> => {
     if (!id) {
@@ -101,6 +117,47 @@ export default function ProjectRegisters(): JSX.Element {
   useEffect(() => {
     void loadRfqs();
   }, [loadRfqs]);
+
+  const handleRfqChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+    const { name, value } = event.target;
+    setRfqForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const createRfq = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault();
+    if (!id) return;
+
+    const title = rfqForm.title.trim();
+    if (!title) {
+      setFormError('RFQ title is required.');
+      return;
+    }
+
+    setSavingRfq(true);
+    setFormError(null);
+
+    try {
+      await invokeRpc<unknown>('insert_rfqs', {
+        _input: {
+          project_id: id,
+          rfq_number: nullable(rfqForm.rfq_number),
+          title,
+          due_date: nullable(rfqForm.due_date),
+          description: nullable(rfqForm.description),
+          status: 'draft',
+        },
+      });
+      setRfqForm(emptyRfqForm);
+      setStatusFilter('all');
+      setSearchTerm('');
+      await loadRfqs();
+    } catch (error) {
+      console.error('[ProjectRegisters] create RFQ failed', error);
+      setFormError('Unable to create RFQ right now.');
+    } finally {
+      setSavingRfq(false);
+    }
+  };
 
   const filteredRfqs = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -168,6 +225,65 @@ export default function ProjectRegisters(): JSX.Element {
             </div>
           ))}
         </section>
+
+        <form onSubmit={createRfq} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-primary">Quick create</p>
+            <h2 className="mt-2 text-xl font-bold text-foreground">Create RFQ</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Start a quote request for buyout, procurement, vendor pricing, or change pricing.</p>
+          </div>
+          <div className="mt-5 grid gap-4 lg:grid-cols-[0.5fr_1fr_0.5fr]">
+            <label className="block">
+              <span className="text-sm font-medium text-foreground">RFQ #</span>
+              <input
+                name="rfq_number"
+                value={rfqForm.rfq_number}
+                onChange={handleRfqChange}
+                placeholder="RFQ-001"
+                className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium text-foreground">Title</span>
+              <input
+                name="title"
+                value={rfqForm.title}
+                onChange={handleRfqChange}
+                placeholder="Example: Valve package quote"
+                className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium text-foreground">Due date</span>
+              <input
+                type="date"
+                name="due_date"
+                value={rfqForm.due_date}
+                onChange={handleRfqChange}
+                className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+              />
+            </label>
+          </div>
+          <label className="mt-4 block">
+            <span className="text-sm font-medium text-foreground">Description</span>
+            <textarea
+              name="description"
+              value={rfqForm.description}
+              onChange={handleRfqChange}
+              rows={3}
+              placeholder="Scope, alternates, quote instructions, or required backup"
+              className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+            />
+          </label>
+          {formError && <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{formError}</div>}
+          <button
+            type="submit"
+            disabled={savingRfq}
+            className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          >
+            {savingRfq ? 'Creating RFQ…' : 'Create RFQ'}
+          </button>
+        </form>
 
         <section className="rounded-2xl border border-border bg-card shadow-sm">
           <div className="border-b border-border p-5">
@@ -246,7 +362,7 @@ export default function ProjectRegisters(): JSX.Element {
         <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950">
           <h2 className="font-semibold">Registers live data v1</h2>
           <p className="mt-1 text-sm leading-6">
-            RFQs are now the first restored live register with search and status filtering. Next, a small RFQ quick-create workflow can be added after deployment is green.
+            RFQs are now the first restored live register with search, status filtering, and quick-create. Next, the same pattern can be extended to invoices or submittals.
           </p>
         </section>
       </PageContainer>
