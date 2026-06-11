@@ -19,10 +19,24 @@ type WorkspaceCard = {
   label: string;
 };
 
+type NavItem = {
+  label: string;
+  href: string;
+};
+
 export default function ProjectManagement(): JSX.Element {
   const { id } = useParams<{ id: string }>();
 
   const projectHref = id ? `/projects/${id}` : '/projects';
+  const navItems: NavItem[] = [
+    { label: 'Dashboard', href: projectHref },
+    { label: 'PM Workspace', href: id ? `/projects/${id}/management` : '/projects' },
+    { label: 'Controls', href: id ? `/projects/${id}/controls` : '/schedule-tasks' },
+    { label: 'Registers', href: id ? `/projects/${id}/registers` : '/document-management' },
+    { label: 'Production', href: id ? `/projects/${id}/production` : '/field-operations' },
+    { label: 'Settings', href: id ? `/projects/${id}/settings` : '/projects' },
+  ];
+
   const cards: WorkspaceCard[] = [
     {
       title: 'Project controls',
@@ -71,6 +85,20 @@ export default function ProjectManagement(): JSX.Element {
   return (
     <Page>
       <PageContainer className="space-y-8">
+        <nav className="rounded-2xl border border-border bg-card p-2 shadow-sm">
+          <div className="flex gap-2 overflow-x-auto">
+            {navItems.map((item) => (
+              <Link
+                key={item.label}
+                to={item.href}
+                className="inline-flex shrink-0 items-center rounded-xl px-3 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </nav>
+
         <section className="rounded-3xl border border-border bg-card p-6 shadow-sm">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
@@ -121,9 +149,9 @@ export default function ProjectManagement(): JSX.Element {
         </section>
 
         <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950">
-          <h2 className="font-semibold">Build-safe PM workspace</h2>
+          <h2 className="font-semibold">Platform spine online</h2>
           <p className="mt-1 text-sm leading-6">
-            This page is intentionally lightweight while the deeper Controls, Registers, and Production pages carry the heavier workflows. That keeps deployment risk down while the platform grows.
+            The project workspace now links the Procore-style register hub, the HeavyJob-style production page, and the controls/P6 spine from one place. The next build steps are deeper live data, record details, and small safe create/edit workflows.
           </p>
         </section>
       </PageContainer>
