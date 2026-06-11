@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { Page, PageContainer } from '@/components/Layout';
@@ -6,6 +6,7 @@ import { invokeRpc } from '@/lib/rpc.client';
 import ProjectNav from './ProjectNav';
 
 type Row = Record<string, unknown>;
+type StatusFilter = 'all' | 'open' | 'closed';
 
 const registers = [
   { title: 'Submittals', code: 'SUB', description: 'Shop drawings, product data, O&Ms, samples, and review cycles.' },
@@ -17,6 +18,8 @@ const registers = [
   { title: 'AP Invoices', code: 'AP', description: 'Accounts payable exposure, amount due, review status, and payment timing.' },
   { title: 'Change Orders', code: 'CO', description: 'Pending and approved scope, cost exposure, owner pricing, and subcontract pricing.' },
 ];
+
+const closedStatusWords = ['closed', 'complete', 'completed', 'awarded', 'cancelled', 'canceled', 'void'];
 
 function asRows(value: unknown): Row[] {
   return Array.isArray(value) ? value.filter((row): row is Row => row !== null && typeof row === 'object' && !Array.isArray(row)) : [];
@@ -56,11 +59,18 @@ function rfqStatus(row: Row): string {
   return firstValue(row, ['status', 'workflow_status', 'review_status']) || 'open';
 }
 
+function isClosed(row: Row): boolean {
+  const status = rfqStatus(row).toLowerCase();
+  return closedStatusWords.some((word) => status.includes(word));
+}
+
 export default function ProjectRegisters(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const [rfqs, setRfqs] = useState<Row[]>([]);
   const [loadingRfqs, setLoadingRfqs] = useState(true);
   const [rfqError, setRfqError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   const loadRfqs = useCallback(async (): Promise<void> => {
     if (!id) {
@@ -91,6 +101,24 @@ export default function ProjectRegisters(): JSX.Element {
   useEffect(() => {
     void loadRfqs();
   }, [loadRfqs]);
+
+  const filteredRfqs = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+
+    return rfqs.filter((row, index) => {
+      if (statusFilter === 'open' && isClosed(row)) return false;
+      if (statusFilter === 'closed' && !isClosed(row)) return false;
+      if (!term) return true;
+
+      const haystack = [
+        rfqNumber(row, index),
+        rfqTitle(row),
+        rfqStatus(row),
+        asString(row.description),
+      ].join(' ').toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [rfqs, searchTerm, statusFilter]);
 
   return (
     <Page>
@@ -143,14 +171,31 @@ export default function ProjectRegisters(): JSX.Element {
 
         <section className="rounded-2xl border border-border bg-card shadow-sm">
           <div className="border-b border-border p-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.25em] text-primary">Live register</p>
                 <h2 className="mt-2 text-xl font-bold text-foreground">RFQs</h2>
                 <p className="mt-1 text-sm text-muted-foreground">Quote requests loaded from the project RFQ register.</p>
               </div>
-              <div className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-                {rfqs.length} item{rfqs.length === 1 ? '' : 's'}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Search RFQs"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary sm:w-64"
+                />
+                <select
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+                  className="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                >
+                  <option value="all">All statuses</option>
+                  <option value="open">Open only</option>
+                  <option value="closed">Closed only</option>
+                </select>
+                <div className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                  {filteredRfqs.length}/{rfqs.length} shown
+                </div>
               </div>
             </div>
           </div>
@@ -171,13 +216,13 @@ export default function ProjectRegisters(): JSX.Element {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {rfqs.length === 0 ? (
+                  {filteredRfqs.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="px-5 py-8 text-center text-muted-foreground">
-                        No RFQs found for this project yet.
+                        No RFQs match this project/filter.
                       </td>
                     </tr>
-                  ) : rfqs.map((row, index) => (
+                  ) : filteredRfqs.map((row, index) => (
                     <tr key={asString(row.id) || `rfq-${index}`} className="transition hover:bg-muted/30">
                       <td className="px-5 py-4 font-semibold text-foreground">{rfqNumber(row, index)}</td>
                       <td className="px-5 py-4">
@@ -201,7 +246,7 @@ export default function ProjectRegisters(): JSX.Element {
         <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950">
           <h2 className="font-semibold">Registers live data v1</h2>
           <p className="mt-1 text-sm leading-6">
-            RFQs are now the first restored live register. Next, search/filter and a small RFQ quick-create workflow can be added after deployment is green.
+            RFQs are now the first restored live register with search and status filtering. Next, a small RFQ quick-create workflow can be added after deployment is green.
           </p>
         </section>
       </PageContainer>
