@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -11,6 +11,7 @@ import {
   FileQuestion,
   FolderKanban,
   PackageCheck,
+  PlusCircle,
   ShieldAlert,
   Truck,
 } from 'lucide-react';
@@ -63,6 +64,14 @@ type AttentionItem = {
   href: string;
 };
 
+type ActionFormState = {
+  title: string;
+  item_type: string;
+  priority: string;
+  due_date: string;
+  next_action: string;
+};
+
 const initialModules: ModuleState = {
   projectItems: [],
   rfis: [],
@@ -78,7 +87,37 @@ const initialModules: ModuleState = {
   materialOrders: [],
 };
 
-const statusDoneWords = ['approved', 'closed', 'complete', 'completed', 'done', 'resolved', 'void', 'cancelled', 'canceled', 'rejected'];
+const initialActionForm: ActionFormState = {
+  title: '',
+  item_type: 'coordination',
+  priority: 'normal',
+  due_date: '',
+  next_action: '',
+};
+
+const actionTypes = [
+  { value: 'coordination', label: 'Coordination' },
+  { value: 'schedule', label: 'Schedule / Controls' },
+  { value: 'procurement', label: 'Procurement' },
+  { value: 'submittal', label: 'Submittal' },
+  { value: 'rfi', label: 'RFI' },
+  { value: 'change', label: 'Change' },
+  { value: 'cost', label: 'Cost' },
+  { value: 'field', label: 'Field' },
+  { value: 'quality', label: 'Quality' },
+  { value: 'safety', label: 'Safety' },
+  { value: 'closeout', label: 'Closeout' },
+  { value: 'document', label: 'Document' },
+];
+
+const priorities = [
+  { value: 'low', label: 'Low' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'high', label: 'High' },
+  { value: 'critical', label: 'Critical' },
+];
+
+const statusDoneWords = ['approved', 'closed', 'complete', 'completed', 'done', 'resolved', 'void', 'cancelled', 'canceled'];
 const statusAttentionWords = ['open', 'pending', 'blocked', 'overdue', 'late', 'rejected', 'revise', 'resubmit', 'draft', 'waiting'];
 
 function valueToString(value: unknown): string {
@@ -228,82 +267,153 @@ function typeMatches(row: RecordRow, itemTypes: string[]): boolean {
   return itemTypes.includes(type);
 }
 
+function labelForActionType(value: unknown): string {
+  const normalized = valueToString(value).toLowerCase();
+  return actionTypes.find((type) => type.value === normalized)?.label ?? 'Coordination';
+}
+
+function priorityClass(priority: unknown): string {
+  switch (valueToString(priority).toLowerCase()) {
+    case 'critical':
+      return 'border-red-300 bg-red-50 text-red-700';
+    case 'high':
+      return 'border-amber-300 bg-amber-50 text-amber-700';
+    case 'low':
+      return 'border-slate-300 bg-slate-50 text-slate-700';
+    default:
+      return 'border-blue-300 bg-blue-50 text-blue-700';
+  }
+}
+
 export default function ProjectManagement(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState<boolean>(true);
+  const [savingAction, setSavingAction] = useState<boolean>(false);
+  const [completingId, setCompletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [projectPayload, setProjectPayload] = useState<ProjectPayload | null>(null);
   const [modules, setModules] = useState<ModuleState>(initialModules);
+  const [actionForm, setActionForm] = useState<ActionFormState>(initialActionForm);
+
+  const loadWorkspace = useCallback(async (): Promise<void> => {
+    if (!id) {
+      setError('No project ID was provided.');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [dashboard, projectItems, rfis, submittals, purchaseOrders, dailyLogs, changeOrders, issues, inspections, tasks, documents, punchLists, materialOrders] = await Promise.all([
+        (rpcClient as unknown as RpcInvoker).rpc_project_dashboard_payload({
+          p_project_id: id,
+          p_line_items_page: 1,
+          p_page_size: 500,
+        }),
+        safeProjectManagementItems(id),
+        safeRpcRows('filter_rfis', id),
+        safeRpcRows('filter_submittals', id),
+        safeRpcRows('filter_purchase_orders', id),
+        safeRpcRows('filter_daily_logs', id),
+        safeRpcRows('filter_change_orders', id),
+        safeRpcRows('filter_issues', id),
+        safeRpcRows('filter_inspections', id),
+        safeRpcRows('filter_tasks', id),
+        safeRpcRows('filter_documents', id),
+        safeRpcRows('filter_punch_lists', id),
+        safeRpcRows('filter_material_orders', id),
+      ]);
+
+      setProjectPayload(dashboard && typeof dashboard === 'object' ? dashboard as ProjectPayload : null);
+      setModules({
+        projectItems,
+        rfis,
+        submittals,
+        purchaseOrders,
+        dailyLogs,
+        changeOrders,
+        issues,
+        inspections,
+        tasks,
+        documents,
+        punchLists,
+        materialOrders,
+      });
+    } catch (err) {
+      console.error('[ProjectManagement] workspace load failed', err);
+      setError('Unable to load the project management workspace.');
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const loadWorkspace = async (): Promise<void> => {
-      if (!id) {
-        setError('No project ID was provided.');
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const [dashboard, projectItems, rfis, submittals, purchaseOrders, dailyLogs, changeOrders, issues, inspections, tasks, documents, punchLists, materialOrders] = await Promise.all([
-          (rpcClient as unknown as RpcInvoker).rpc_project_dashboard_payload({
-            p_project_id: id,
-            p_line_items_page: 1,
-            p_page_size: 500,
-          }),
-          safeProjectManagementItems(id),
-          safeRpcRows('filter_rfis', id),
-          safeRpcRows('filter_submittals', id),
-          safeRpcRows('filter_purchase_orders', id),
-          safeRpcRows('filter_daily_logs', id),
-          safeRpcRows('filter_change_orders', id),
-          safeRpcRows('filter_issues', id),
-          safeRpcRows('filter_inspections', id),
-          safeRpcRows('filter_tasks', id),
-          safeRpcRows('filter_documents', id),
-          safeRpcRows('filter_punch_lists', id),
-          safeRpcRows('filter_material_orders', id),
-        ]);
-
-        if (!isMounted) return;
-
-        setProjectPayload(dashboard && typeof dashboard === 'object' ? dashboard as ProjectPayload : null);
-        setModules({
-          projectItems,
-          rfis,
-          submittals,
-          purchaseOrders,
-          dailyLogs,
-          changeOrders,
-          issues,
-          inspections,
-          tasks,
-          documents,
-          punchLists,
-          materialOrders,
-        });
-      } catch (err) {
-        console.error('[ProjectManagement] workspace load failed', err);
-        if (isMounted) {
-          setError('Unable to load the project management workspace.');
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
     void loadWorkspace();
+  }, [loadWorkspace]);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [id]);
+  const handleActionFormChange = (event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>): void => {
+    const { name, value } = event.target;
+    setActionForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleCreateAction = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault();
+    if (!id) return;
+
+    const title = actionForm.title.trim();
+    if (!title) {
+      setActionError('Action item title is required.');
+      return;
+    }
+
+    setSavingAction(true);
+    setActionError(null);
+
+    try {
+      await invokeRpc<unknown>('insert_project_management_items', {
+        _input: {
+          project_id: id,
+          title,
+          item_type: actionForm.item_type,
+          status: 'open',
+          priority: actionForm.priority,
+          due_date: actionForm.due_date || null,
+          next_action: actionForm.next_action.trim() || null,
+        },
+      });
+      setActionForm(initialActionForm);
+      await loadWorkspace();
+    } catch (err) {
+      console.error('[ProjectManagement] create action failed', err);
+      setActionError('Unable to create the action item.');
+    } finally {
+      setSavingAction(false);
+    }
+  };
+
+  const handleCompleteAction = async (row: RecordRow): Promise<void> => {
+    const actionId = valueToString(row.id);
+    if (!actionId) return;
+
+    setCompletingId(actionId);
+    setActionError(null);
+
+    try {
+      await invokeRpc<unknown>('update_project_management_items', {
+        _id: actionId,
+        _input: { status: 'complete' },
+      });
+      await loadWorkspace();
+    } catch (err) {
+      console.error('[ProjectManagement] complete action failed', err);
+      setActionError('Unable to complete the action item.');
+    } finally {
+      setCompletingId(null);
+    }
+  };
 
   const project = projectPayload?.project ?? {};
   const projectName = valueToString(project.name) || valueToString(project.title) || 'Project command workspace';
@@ -316,6 +426,8 @@ export default function ProjectManagement(): JSX.Element {
   }, 0);
 
   const actionItems = modules.projectItems;
+  const openActionItems = actionItems.filter((row) => isOpenStatus(extractStatus(row)));
+  const recentlyCompletedActionItems = actionItems.filter((row) => !isOpenStatus(extractStatus(row))).slice(0, 3);
   const controlItems = actionItems.filter((row) => typeMatches(row, ['schedule', 'coordination']));
   const procurementActionItems = actionItems.filter((row) => typeMatches(row, ['procurement']));
   const documentActionItems = actionItems.filter((row) => typeMatches(row, ['submittal', 'rfi', 'document']));
@@ -508,6 +620,166 @@ export default function ProjectManagement(): JSX.Element {
           })}
         </section>
 
+        <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+          <form onSubmit={handleCreateAction} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.25em] text-primary">
+              <PlusCircle className="h-4 w-4" />
+              Add PM action
+            </div>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Create a lightweight project action item tied to the new PM backend. Use it for blockers, follow-ups, delivery risks, closeout gaps, and coordination tasks.
+            </p>
+
+            <div className="mt-5 space-y-4">
+              <label className="block">
+                <span className="text-sm font-medium text-foreground">Title</span>
+                <input
+                  name="title"
+                  value={actionForm.title}
+                  onChange={handleActionFormChange}
+                  placeholder="Example: Follow up with vendor on approved submittal release"
+                  className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                />
+              </label>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <label className="block">
+                  <span className="text-sm font-medium text-foreground">Type</span>
+                  <select
+                    name="item_type"
+                    value={actionForm.item_type}
+                    onChange={handleActionFormChange}
+                    className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                  >
+                    {actionTypes.map((type) => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-medium text-foreground">Priority</span>
+                  <select
+                    name="priority"
+                    value={actionForm.priority}
+                    onChange={handleActionFormChange}
+                    className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                  >
+                    {priorities.map((priority) => (
+                      <option key={priority.value} value={priority.value}>{priority.label}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-medium text-foreground">Due date</span>
+                  <input
+                    type="date"
+                    name="due_date"
+                    value={actionForm.due_date}
+                    onChange={handleActionFormChange}
+                    className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                  />
+                </label>
+              </div>
+
+              <label className="block">
+                <span className="text-sm font-medium text-foreground">Next action</span>
+                <textarea
+                  name="next_action"
+                  value={actionForm.next_action}
+                  onChange={handleActionFormChange}
+                  rows={3}
+                  placeholder="What needs to happen next?"
+                  className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                />
+              </label>
+            </div>
+
+            {actionError && (
+              <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                {actionError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={savingAction}
+              className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {savingAction ? 'Saving action…' : 'Create action item'}
+            </button>
+          </form>
+
+          <div className="rounded-2xl border border-border bg-card shadow-sm">
+            <div className="border-b border-border p-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-foreground">PM action register</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Live action items stored in `project_management_items`.</p>
+                </div>
+                <span className="rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
+                  {openActionItems.length} open
+                </span>
+              </div>
+            </div>
+            <div className="divide-y divide-border">
+              {openActionItems.length === 0 ? (
+                <div className="flex items-start gap-3 p-5 text-sm text-muted-foreground">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 flex-none text-emerald-600" />
+                  <span>No open PM action items yet. Add one from the form to start using the live project action register.</span>
+                </div>
+              ) : openActionItems.map((item) => {
+                const itemId = valueToString(item.id);
+                return (
+                  <div key={itemId || extractTitle(item, 'action')} className="grid gap-4 p-5 lg:grid-cols-[1fr_auto] lg:items-center">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${priorityClass(item.priority)}`}>
+                          {valueToString(item.priority) || 'normal'}
+                        </span>
+                        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                          {labelForActionType(item.item_type)}
+                        </span>
+                        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                          {extractStatus(item)}
+                        </span>
+                      </div>
+                      <h3 className="mt-3 font-semibold text-foreground">{extractTitle(item, 'PM action item')}</h3>
+                      {valueToString(item.next_action) && (
+                        <p className="mt-1 text-sm leading-6 text-muted-foreground">{valueToString(item.next_action)}</p>
+                      )}
+                      <p className="mt-2 text-xs text-muted-foreground">Due: {formatDate(item.due_date)}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { void handleCompleteAction(item); }}
+                      disabled={completingId === itemId}
+                      className="inline-flex items-center justify-center rounded-xl border border-border px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      {completingId === itemId ? 'Completing…' : 'Mark complete'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            {recentlyCompletedActionItems.length > 0 && (
+              <div className="border-t border-border bg-muted/20 p-5">
+                <h3 className="text-sm font-semibold text-foreground">Recently completed</h3>
+                <div className="mt-3 space-y-2">
+                  {recentlyCompletedActionItems.map((item) => (
+                    <div key={valueToString(item.id)} className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+                      <span>{extractTitle(item, 'Completed action')}</span>
+                      <span>{formatDate(item.updated_at)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
         <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <div className="rounded-2xl border border-border bg-card shadow-sm">
             <div className="border-b border-border p-5">
@@ -565,7 +837,7 @@ export default function ProjectManagement(): JSX.Element {
             <div>
               <h2 className="font-semibold">Project action-item backend is live</h2>
               <p className="mt-1 text-sm leading-6">
-                This workspace now reads the live project-management action-item table through `filter_project_management_items`, while still rolling up the older RFI, submittal, PO, field, cost, quality, and closeout modules.
+                This workspace now creates, reads, and completes project action items through `project_management_items`, while still rolling up the older RFI, submittal, PO, field, cost, quality, and closeout modules.
               </p>
             </div>
           </div>
