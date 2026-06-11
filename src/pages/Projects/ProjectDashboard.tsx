@@ -295,10 +295,10 @@ export default function ProjectDashboard(): JSX.Element {
                 </p>
               </div>
               <Link
-                to="/projects"
+                to={`/projects/${contract.id}/management`}
                 className="inline-flex items-center justify-center rounded-xl border border-border px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-muted"
               >
-                Open PM hub
+                Open PM workspace
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </div>
