@@ -26,6 +26,7 @@ import { ProjectInfoForm, type ProjectInfoVM } from './ProjectDashboardComponent
 import { ProjectTools } from './ProjectDashboardComponents/ProjectTools';
 import { ProjectTotalsPanel } from './ProjectDashboardComponents/ProjectTotalsPanel';
 import { WbsSection } from './ProjectDashboardComponents/WbsSection';
+import ProjectNav from './ProjectNav';
 
 type ProjectPayload = {
   project: Record<string, unknown>;
@@ -33,17 +34,6 @@ type ProjectPayload = {
   line_items: { total_count: number; items: Array<Record<string, unknown>> };
   counts: { issues: number; change_orders: number; inspections: number };
 };
-
-const projectManagementWorkstreams = [
-  'Controls',
-  'Procurement',
-  'Document Control',
-  'Cost',
-  'Field Operations',
-  'Quality & Safety',
-  'Closeout',
-  'Reporting',
-] as const;
 
 function toNullableNumber(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -269,11 +259,39 @@ export default function ProjectDashboard(): JSX.Element {
   const lineItemsTotal = lineItems.reduce((acc, item) => acc + (item.quantity * item.unit_price), 0);
   const totalBudget = typeof contract.budget === 'number' ? contract.budget : 0;
 
+  const workspaceCards = [
+    {
+      title: 'PM Workspace',
+      code: 'PM',
+      href: `/projects/${contract.id}/management`,
+      description: 'Command center for the project-management workspaces.',
+    },
+    {
+      title: 'Controls',
+      code: 'CTRL',
+      href: `/projects/${contract.id}/controls`,
+      description: 'Budget, schedule, P6-lite logic, blockers, and production controls.',
+    },
+    {
+      title: 'Registers',
+      code: 'REG',
+      href: `/projects/${contract.id}/registers`,
+      description: 'RFQs, submittals, RFIs, POs, subcontracts, invoices, AP invoices, and change orders.',
+    },
+    {
+      title: 'Production',
+      code: 'PROD',
+      href: `/projects/${contract.id}/production`,
+      description: 'Labor hours, installed quantities, worker counts, and production rates.',
+    },
+  ];
+
   return (
     <Page>
       <PageContainer>
         <SectionContainer className="py-6">
           <ProjectHeader contract={contract} />
+          <ProjectNav />
 
           <ProjectTools
             contractId={contract.id}
@@ -283,30 +301,42 @@ export default function ProjectDashboard(): JSX.Element {
           />
 
           <section className="mb-6 rounded-2xl border border-border bg-card p-5 shadow-sm">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.25em] text-primary">
                   <FolderKanban className="h-4 w-4" />
-                  Project management workspace
+                  Project workspaces
                 </div>
-                <h2 className="mt-2 text-2xl font-bold text-foreground">Manage the project, not the job title</h2>
+                <h2 className="mt-2 text-2xl font-bold text-foreground">Open the new project-management modules</h2>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                  Macadamy is being organized around project controls, procurement, document control, cost, field operations, quality, safety, reporting, and closeout so PMs, APMs, PEs, supers, inspectors, admins, and owners can work from the same source of truth.
+                  These workspaces are where the Procore-style registers, HeavyJob-style production tracking, and controls/P6 spine are being restored and expanded.
                 </p>
               </div>
               <Link
-                to={`/projects/${contract.id}/management`}
-                className="inline-flex items-center justify-center rounded-xl border border-border px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-muted"
+                to={`/projects/${contract.id}/registers`}
+                className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
               >
-                Open PM workspace
+                Open live registers
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {projectManagementWorkstreams.map((workstream) => (
-                <div key={workstream} className="rounded-xl border border-border bg-muted/30 p-3 text-sm font-medium text-foreground">
-                  {workstream}
-                </div>
+            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {workspaceCards.map((card) => (
+                <Link
+                  key={card.title}
+                  to={card.href}
+                  className="group rounded-2xl border border-border bg-muted/20 p-4 transition hover:-translate-y-0.5 hover:bg-muted/40"
+                >
+                  <div className="inline-flex h-10 min-w-10 items-center justify-center rounded-xl bg-primary/10 px-3 text-xs font-bold text-primary">
+                    {card.code}
+                  </div>
+                  <h3 className="mt-4 text-base font-semibold text-foreground">{card.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{card.description}</p>
+                  <div className="mt-4 inline-flex items-center text-sm font-semibold text-primary">
+                    Open
+                    <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1" />
+                  </div>
+                </Link>
               ))}
             </div>
           </section>
