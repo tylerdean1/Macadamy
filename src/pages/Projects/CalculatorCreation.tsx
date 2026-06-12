@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Minus, Save } from 'lucide-react';
+import { toast } from 'sonner';
 import { rpcClient } from '@/lib/rpc.client';
 import { useAuthStore } from '@/lib/store';
 import type { CalculatorTemplate, Variable as CanonicalVariable, Formula as CanonicalFormula } from '@/lib/formula.types';
+import { logBackendError, toBackendErrorToastMessage } from '@/lib/backendErrors';
 
 const MATH_OPERATIONS = [
   { symbol: '+', description: 'Addition' },
@@ -37,8 +39,30 @@ const MATH_FUNCTIONS = [
   { name: 'E', description: 'e (2.71828...)' },
 ];
 
+function reportCalculatorCreationError(
+  operation: string,
+  error: unknown,
+  projectId: string | null,
+): string {
+  const context = {
+    module: 'CalculatorCreation',
+    operation,
+    trigger: 'user' as const,
+    error,
+    ids: {
+      projectId,
+    },
+  };
+
+  logBackendError(context);
+  const message = toBackendErrorToastMessage(context);
+  toast.error(message);
+  return message;
+}
+
 export default function CalculatorCreation() {
   const { id } = useParams();
+  const projectId = typeof id === 'string' && id.trim() !== '' ? id : null;
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user) as { id: string } | null;
   const [name, setName] = useState('');
@@ -59,6 +83,7 @@ export default function CalculatorCreation() {
     },
   ]);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddVariable = () => {
     setVariables([...variables, { name: '', type: 'input', unit: 'Feet (FT)', defaultValue: 0 }]);
@@ -109,49 +134,68 @@ export default function CalculatorCreation() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (isSubmitting) return;
+
+    if (!projectId) {
+      setError('Project context is missing. Return to the project and try again.');
+      return;
+    }
+
+    if (!user) {
+      setError('You must be signed in to create a calculator template.');
+      return;
+    }
+
+    const variableNames = new Set<string>();
+    for (const variable of variables) {
+      const variableName = variable.name.trim();
+      if (variableNames.has(variableName)) {
+        setError('Variable names must be unique');
+        return;
+      }
+      variableNames.add(variableName);
+    }
+
+    const formulaNames = new Set<string>();
+    for (const formula of formulas) {
+      const formulaName = formula.name.trim();
+      if (formulaNames.has(formulaName)) {
+        setError('Formula names must be unique');
+        return;
+      }
+      formulaNames.add(formulaName);
+    }
+
+    const calculatorTemplate: CalculatorTemplate = {
+      id: '',
+      name,
+      description,
+      variables,
+      formula: formulas[0],
+    };
+
+    setIsSubmitting(true);
+    setError(null);
 
     try {
-      setError(null);
-
-      const variableNames = new Set();
-      for (const variable of variables) {
-        if (variableNames.has(variable.name)) throw new Error('Variable names must be unique');
-        variableNames.add(variable.name);
-      }
-
-      const formulaNames = new Set();
-      for (const formula of formulas) {
-        if (formulaNames.has(formula.name)) throw new Error('Formula names must be unique');
-        formulaNames.add(formula.name);
-      }
-
-      const calculatorTemplate: CalculatorTemplate = {
-        id: '',
-        name,
-        description,
-        variables,
-        formula: formulas[0],
-      };
       await rpcClient.insert_line_item_templates({
         _input: {
           name: calculatorTemplate.name,
           formula: calculatorTemplate.formula ? JSON.stringify(calculatorTemplate.formula) : null,
           variables: calculatorTemplate.variables ? JSON.stringify(calculatorTemplate.variables) : null,
-          created_by: user?.id || null,
+          created_by: user.id,
         }
       });
 
-      navigate(`/projects/${id}/line-items`);
+      navigate(`/projects/${projectId}/calculators`);
     } catch (error: unknown) {
-      console.error('Error creating calculator template:', error);
-      if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError('An unknown error occurred');
-      }
+      setError(reportCalculatorCreationError('create calculator template', error, projectId));
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  const visibleError = error ?? (!projectId ? 'Project context is missing. Return to the project and try again.' : null);
 
   return (
     <div className="min-h-screen bg-background">
@@ -159,7 +203,7 @@ export default function CalculatorCreation() {
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate(`/projects/${id}/calculators`)}
+              onClick={() => navigate(projectId ? `/projects/${projectId}/calculators` : '/projects')}
               className="p-2 text-gray-400 hover:text-white hover:bg-background-lighter rounded-lg transition-colors"
               aria-label="Go back to calculators list"
               title="Go back"
@@ -170,10 +214,9 @@ export default function CalculatorCreation() {
           </div>
         </div>
 
-        {/* Display error message if any */}
-        {typeof error === 'string' && error.trim() !== '' && (
+        {typeof visibleError === 'string' && visibleError.trim() !== '' && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500">
-            {error}
+            {visibleError}
           </div>
         )}
 
@@ -528,11 +571,12 @@ export default function CalculatorCreation() {
             {/* Submit button with descriptive text => good for A11y */}
             <button
               type="submit"
-              className="flex items-center px-6 py-3 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors"
+              disabled={isSubmitting || !projectId}
+              className="flex items-center px-6 py-3 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-60"
               aria-label="Save this Calculator Template"
             >
               <Save className="w-5 h-5 mr-2" />
-              Save Template
+              {isSubmitting ? 'Saving...' : 'Save Template'}
             </button>
           </div>
         </form>
