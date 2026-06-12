@@ -224,6 +224,8 @@ wbs                       workflows
 
 - Project-related pages now live in `src/pages/Projects` (previously `Contract`)
 
+- Labor records now keep explicit loading/error state around `filter_labor_records` and `insert_labor_records`; failed loads show a fail-loud toast plus retry panel instead of the empty-state card
+
 - Shared layout components (`Page`, `PageContainer`, `SectionContainer`) live in `src/components/Layout.tsx`
 
 - `FeatureListPage` simplifies our feature pages. Find it in `src/components/FeatureListPage.tsx`
