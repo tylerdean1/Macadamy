@@ -1,23 +1,24 @@
-import { useState, useEffect } from 'react'; // Import React and hooks
-import { useParams, useNavigate } from 'react-router-dom'; // Import hooks for routing
-import { ArrowLeft, Plus, Save } from 'lucide-react'; // Import action icons
-import { rpcClient } from '@/lib/rpc.client'; // Import RPC client for interacting with the database
+import { useCallback, useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Plus, Save } from 'lucide-react';
+import { toast } from 'sonner';
+import { rpcClient } from '@/lib/rpc.client';
 import type { Database } from '@/lib/database.types';
-import { useAuthStore } from '@/lib/store'; // Import auth state management
+import { useAuthStore } from '@/lib/store';
+import { logBackendError, toBackendErrorToastMessage } from '@/lib/backendErrors';
 
-/**
- * Interface representing a daily log entry - aligned with database.types.ts daily_logs table
- */
+type DailyLogRow = Database['public']['Functions']['filter_daily_logs']['Returns'][number];
+type WeatherValue = Database['public']['Tables']['daily_logs']['Row']['weather'];
+
 interface DailyLog {
   id?: string;
   contract_id: string;
-  date: string; // Using 'date' field from database, not 'log_date'
+  date: string;
   notes: string | null;
   project_id: string | null;
-  weather: Database['public']['Tables']['daily_logs']['Row']['weather']; // Json type from database
+  weather: WeatherValue;
   created_at: string | null;
   updated_at: string;
-  // Additional fields for UI mapping
   weather_conditions?: string | null;
   temperature?: number | null;
   work_performed?: string | null;
@@ -26,154 +27,163 @@ interface DailyLog {
   safety_incidents?: string | null;
 }
 
-/**
- * DailyReports component for managing daily log reports associated with a contract.
- * 
- * This component allows users to view, create, and update daily logs for
- * a specific contract. It ensures that only authorized roles can create or edit
- * logs while pulling and displaying data from Supabase. The component includes
- * state management for loading status, current log details, and the list of logs.
- */
-export default function DailyReports() {
-  const { id: contract_id } = useParams(); // Extract contract ID from route parameters
-  const navigate = useNavigate(); // Use navigate for routing
-  const user = useAuthStore(state => state.user); // Fetch the current user from the auth store
+type WeatherData = {
+  conditions?: unknown;
+  temperature?: unknown;
+  work_performed?: unknown;
+  delays_encountered?: unknown;
+  visitors?: unknown;
+  safety_incidents?: unknown;
+};
 
-  // State variables
-  const [logs, setLogs] = useState<DailyLog[]>([]); // State to hold fetched daily logs
-  const [currentLog, setCurrentLog] = useState<DailyLog | null>(null); // State for currently editing log
-  const [loading, setLoading] = useState(true); // Loading state for fetching data
-  const [contractStatus, setContractStatus] = useState<string | null>(null); // Contract status state
-  const [contractCheckLoading, setContractCheckLoading] = useState(true); // Loading state for checking contract status
-  const [editing, setEditing] = useState(false); // Editing state for current log
+function parseWeatherData(weather: WeatherValue): WeatherData {
+  if (!weather) return {};
 
-  // Fetch daily logs based on contract ID
-  useEffect(() => {
-    async function fetchData() {
-      if (typeof contract_id !== 'string' || contract_id.length === 0) return;
-      try {
-        const data = await rpcClient.filter_daily_logs({ _filters: { project_id: contract_id } });
-
-        // Map database fields to our interface
-        const mappedLogs: DailyLog[] = Array.isArray(data)
-          ? data.map((log) => {
-            type WeatherData = {
-              conditions?: string;
-              temperature?: number;
-              work_performed?: string;
-              delays_encountered?: string;
-              visitors?: string;
-              safety_incidents?: string;
-            };
-
-            // Parse weather JSON if it exists
-            let weatherData: WeatherData = {};
-            try {
-              weatherData = log.weather
-                ? (typeof log.weather === 'string' ? JSON.parse(log.weather) as WeatherData : log.weather as WeatherData)
-                : {};
-            } catch {
-              weatherData = {};
-            }
-
-            return {
-              id: log.id,
-              contract_id: contract_id,
-              date: log.date,
-              notes: log.notes,
-              project_id: log.project_id,
-              weather: log.weather,
-              created_at: log.created_at,
-              updated_at: log.updated_at,
-              // Extract from weather JSON or notes
-              weather_conditions: weatherData.conditions || null,
-              temperature: weatherData.temperature || null,
-              work_performed: weatherData.work_performed || null,
-              delays_encountered: weatherData.delays_encountered || null,
-              visitors: weatherData.visitors || null,
-              safety_incidents: weatherData.safety_incidents || null,
-            };
-          })
-          : [];
-        setLogs(mappedLogs);
-      } catch (err) {
-        console.error('Failed to fetch daily logs:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    void fetchData(); // Invoke data fetch
-  }, [contract_id]); // Dependency on contract ID
-
-  // Check contract status using direct table query
-  useEffect(() => {
-    async function fetchContractStatus() {
-      if (typeof contract_id !== 'string' || contract_id.length === 0) return;
-
-      try {
-        const rows = await rpcClient.filter_projects({ _filters: { id: contract_id }, _limit: 1 });
-        const first = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
-        if (first && typeof first.status === 'string') {
-          setContractStatus(first.status);
-        }
-      } catch (err) {
-        console.error('Error fetching contract status:', err);
-      } finally {
-        setContractCheckLoading(false);
-      }
-    }
-
-    void fetchContractStatus();
-  }, [contract_id]);
-
-  // Move fetchData to top-level so it can be called from handleUpdate
-  async function fetchData() {
-    if (typeof contract_id !== 'string' || contract_id.length === 0) return;
+  if (typeof weather === 'string') {
     try {
-      const data = await rpcClient.filter_daily_logs({ _filters: { project_id: contract_id } });
-
-      const mappedLogs: DailyLog[] = Array.isArray(data)
-        ? data.map((log) => {
-          let weatherData: Record<string, unknown> = {};
-          try {
-            weatherData = log.weather ? (typeof log.weather === 'string' ? JSON.parse(log.weather) : log.weather) : {};
-          } catch {
-            weatherData = {};
-          }
-
-          return {
-            id: log.id,
-            contract_id: contract_id,
-            date: log.date,
-            notes: log.notes,
-            project_id: log.project_id,
-            weather: log.weather,
-            created_at: log.created_at,
-            updated_at: log.updated_at,
-            weather_conditions: typeof weatherData.conditions === 'string' ? weatherData.conditions : null,
-            temperature: typeof weatherData.temperature === 'number' ? weatherData.temperature : null,
-            work_performed: typeof weatherData.work_performed === 'string' ? weatherData.work_performed : null,
-            delays_encountered: typeof weatherData.delays_encountered === 'string' ? weatherData.delays_encountered : null,
-            visitors: typeof weatherData.visitors === 'string' ? weatherData.visitors : null,
-            safety_incidents: typeof weatherData.safety_incidents === 'string' ? weatherData.safety_incidents : null,
-          };
-        })
-        : [];
-      setLogs(mappedLogs);
-    } catch (err) {
-      console.error('Failed to fetch daily logs:', err);
-    } finally {
-      setLoading(false);
+      const parsed = JSON.parse(weather) as unknown;
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? parsed as WeatherData
+        : {};
+    } catch {
+      return {};
     }
   }
 
-  // Handle updates to the daily log
-  const handleUpdate = async () => {
-    if (!currentLog || typeof user !== 'object' || user === null || typeof currentLog.id !== 'string' || currentLog.id.length === 0) return;
+  return typeof weather === 'object' && !Array.isArray(weather) ? weather as WeatherData : {};
+}
+
+function toOptionalString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() !== '' ? value : null;
+}
+
+function toOptionalNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function mapDailyLog(log: DailyLogRow, projectId: string): DailyLog {
+  const weatherData = parseWeatherData(log.weather);
+
+  return {
+    id: typeof log.id === 'string' ? log.id : undefined,
+    contract_id: projectId,
+    date: typeof log.date === 'string' ? log.date : new Date().toISOString().split('T')[0],
+    notes: log.notes ?? null,
+    project_id: log.project_id ?? null,
+    weather: log.weather,
+    created_at: log.created_at ?? null,
+    updated_at: typeof log.updated_at === 'string' ? log.updated_at : new Date().toISOString(),
+    weather_conditions: toOptionalString(weatherData.conditions),
+    temperature: toOptionalNumber(weatherData.temperature),
+    work_performed: toOptionalString(weatherData.work_performed),
+    delays_encountered: toOptionalString(weatherData.delays_encountered),
+    visitors: toOptionalString(weatherData.visitors),
+    safety_incidents: toOptionalString(weatherData.safety_incidents),
+  };
+}
+
+function reportDailyReportsError(
+  operation: string,
+  error: unknown,
+  projectId: string | null,
+): string {
+  const context = {
+    module: 'DailyReports',
+    operation,
+    trigger: 'user' as const,
+    error,
+    ids: {
+      projectId,
+    },
+  };
+
+  logBackendError(context);
+  const message = toBackendErrorToastMessage(context);
+  toast.error(message);
+  return message;
+}
+
+export default function DailyReports() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const user = useAuthStore(state => state.user);
+  const projectId = typeof id === 'string' && id.trim() !== '' ? id : null;
+
+  const [logs, setLogs] = useState<DailyLog[]>([]);
+  const [currentLog, setCurrentLog] = useState<DailyLog | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [contractStatus, setContractStatus] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const fetchDailyReports = useCallback(async () => {
+    if (!projectId) {
+      setLogs([]);
+      setCurrentLog(null);
+      setContractStatus(null);
+      setErrorMessage('Project context is missing. Return to the project and try again.');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage(null);
 
     try {
-      // Prepare weather data as JSON
+      const [dailyLogRows, projectRows] = await Promise.all([
+        rpcClient.filter_daily_logs({ _filters: { project_id: projectId } }),
+        rpcClient.filter_projects({ _filters: { id: projectId }, _limit: 1 }),
+      ]);
+
+      const mappedLogs = Array.isArray(dailyLogRows)
+        ? dailyLogRows.map((log) => mapDailyLog(log, projectId))
+        : [];
+      setLogs(mappedLogs);
+
+      const project = Array.isArray(projectRows) && projectRows.length > 0 ? projectRows[0] : null;
+      setContractStatus(project && typeof project.status === 'string' ? project.status : null);
+      if (!project) {
+        setCurrentLog(null);
+        setErrorMessage('Project could not be found or you do not have access.');
+        return;
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      setCurrentLog(mappedLogs.find((log) => log.date === today) ?? null);
+      setEditing(false);
+    } catch (err) {
+      setLogs([]);
+      setCurrentLog(null);
+      setContractStatus(null);
+      setErrorMessage(reportDailyReportsError('load daily reports', err, projectId));
+    } finally {
+      setLoading(false);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    void fetchDailyReports();
+  }, [fetchDailyReports]);
+
+  const handleUpdate = async () => {
+    if (!currentLog || typeof currentLog.id !== 'string' || currentLog.id.length === 0) return;
+
+    if (!user) {
+      const error = new Error('User must be authenticated to update a daily report.');
+      setErrorMessage(reportDailyReportsError('update daily report', error, projectId));
+      return;
+    }
+
+    if (!projectId) {
+      setErrorMessage('Project context is missing. Return to the project and try again.');
+      return;
+    }
+
+    setIsSaving(true);
+    setErrorMessage(null);
+
+    try {
       const weatherData = {
         conditions: currentLog.weather_conditions,
         temperature: currentLog.temperature,
@@ -183,7 +193,6 @@ export default function DailyReports() {
         safety_incidents: currentLog.safety_incidents,
       };
 
-      // Update daily_logs table directly
       await rpcClient.update_daily_logs({
         _id: currentLog.id,
         _input: {
@@ -192,163 +201,185 @@ export default function DailyReports() {
           updated_at: new Date().toISOString(),
         }
       });
-      setEditing(false);
-      void fetchData();
+      await fetchDailyReports();
     } catch (err) {
-      console.error('Error updating daily log:', err);
+      setErrorMessage(reportDailyReportsError('update daily report', err, projectId));
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  // Render loading indicator while fetching data
-  if (contractCheckLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center text-white">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div> // Circular loading spinner
-    );
-  }
-
-  // Render message if contract is not active
-  if (contractStatus !== 'active') {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center text-white text-center px-4">
-        <p>
-          Daily reporting is only available for contracts with <strong>Active</strong> status. <br />
-          Current contract status: <strong>{contractStatus}</strong>
-        </p>
       </div>
     );
   }
 
+  const isProjectActive = contractStatus?.toLowerCase() === 'active';
+
   return (
-    <div className="min-h-screen bg-background"> {/* Main container for daily reports */}
-      <div className="max-w-5xl mx-auto px-4 py-8"> {/* Container for content */}
-        <div className="flex justify-between items-center mb-6"> {/* Header section */}
+    <div className="min-h-screen bg-background">
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate(`/projects/${contract_id}`)} // Back to project dashboard
+              onClick={() => navigate(projectId ? `/projects/${projectId}` : '/projects')}
               className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-              aria-label="Go back to contract"
+              aria-label="Go back to project"
             >
-              <ArrowLeft className="w-6 h-6" /> {/* Back arrow icon */}
+              <ArrowLeft className="w-6 h-6" />
             </button>
-            <h1 className="text-2xl font-bold text-white">Daily Reports</h1> {/* Page title */}
+            <h1 className="text-2xl font-bold text-white">Daily Reports</h1>
           </div>
-          {currentLog && !editing && ( // Show edit button if log exists and not in editing mode
+          {isProjectActive && currentLog && !editing && (
             <button
-              onClick={() => setEditing(true)} // Start editing the current log
+              onClick={() => setEditing(true)}
               className="flex items-center px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg"
             >
-              <Plus className="w-5 h-5 mr-2" /> Edit Today’s Log {/* Button to edit log */}
+              <Plus className="w-5 h-5 mr-2" /> Edit Today’s Log
             </button>
           )}
         </div>
 
-        {editing && currentLog && ( // Render form for editing daily log
-          <div className="bg-background-light p-6 rounded-lg border border-background-lighter space-y-6 mb-8">
-            <h2 className="text-xl font-semibold text-white">Edit Daily Log</h2> {/* Edit log header */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> {/* Grid for input fields */}
-              <div>
-                <label className="text-gray-400 text-sm">Weather Conditions</label>
-                <input
-                  type="text"
-                  value={currentLog.weather_conditions ?? ''} // Bind weather conditions to input
-                  onChange={(e) =>
-                    setCurrentLog({ ...currentLog, weather_conditions: e.target.value }) // Update state on change
-                  }
-                  className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded"
-                  placeholder="Enter weather conditions"
-                />
-              </div>
-              <div>
-                <label className="text-gray-400 text-sm">Temperature (°F)</label>
-                <input
-                  type="number"
-                  value={currentLog.temperature ?? ''} // Bind temperature to input
-                  onChange={(e) =>
-                    setCurrentLog({ ...currentLog, temperature: parseFloat(e.target.value) }) // Update state on change
-                  }
-                  className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded"
-                  placeholder="Enter temperature in °F"
-                  title="Temperature input field"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="text-gray-400 text-sm">Visitors</label>
-                <textarea
-                  rows={3}
-                  value={currentLog.visitors ?? ''} // Bind visitors to input
-                  onChange={(e) =>
-                    setCurrentLog({ ...currentLog, visitors: e.target.value }) // Update state on change
-                  }
-                  className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded"
-                  placeholder="Enter visitors"
-                  title="Visitors input field"
-                />
-              </div>
-              <div>
-                <label className="text-gray-400 text-sm">Safety Incidents</label>
-                <textarea
-                  rows={3}
-                  value={currentLog.safety_incidents ?? ''} // Bind safety incidents to input
-                  onChange={(e) =>
-                    setCurrentLog({ ...currentLog, safety_incidents: e.target.value }) // Update state on change
-                  }
-                  className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded"
-                  placeholder="Enter safety incidents"
-                  title="Safety incidents input field"
-                />
-              </div>
-            </div>
-
-            {/* Buttons for canceling or saving the log */}
-            <div className="flex justify-end gap-4">
+        {errorMessage && (
+          <div className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-red-200">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p>{errorMessage}</p>
               <button
-                onClick={() => setEditing(false)} // Reset editing state on cancel
-                className="px-4 py-2 rounded-md bg-gray-700 text-white hover:bg-gray-600"
+                type="button"
+                onClick={() => { void fetchDailyReports(); }}
+                className="rounded-md border border-red-400/40 px-3 py-2 text-sm font-semibold text-red-100 hover:bg-red-500/20"
               >
-                Cancel
-              </button>
-              <button
-                onClick={() => { void handleUpdate(); }} // Call update function on save
-                className="flex items-center px-4 py-2 bg-primary text-white rounded hover:bg-primary-hover"
-              >
-                <Save className="w-5 h-5 mr-2" /> Save {/* Save button */}
+                Retry
               </button>
             </div>
           </div>
         )}
 
-        {/* Render the list of existing daily logs */}
-        <div className="space-y-4">
-          {logs.map((log) => (
-            <div
-              key={log.id}
-              className="bg-background-light p-4 rounded border border-background-lighter"
-            >
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h3 className="text-white font-semibold text-lg">
-                    {new Date(log.date).toLocaleDateString()} {/* Display log date */}
-                  </h3>
-                  <p className="text-gray-400 text-sm">Created at {log.created_at ? new Date(log.created_at).toLocaleDateString() : '—'}</p>
+        {!errorMessage && !isProjectActive && (
+          <div className="rounded-lg border border-background-lighter bg-background-light p-6 text-center text-white">
+            <p>
+              Daily reporting is only available for projects with <strong>Active</strong> status. <br />
+              Current project status: <strong>{contractStatus ?? 'Unknown'}</strong>
+            </p>
+          </div>
+        )}
+
+        {!errorMessage && isProjectActive && (
+          <>
+            {editing && currentLog && (
+              <div className="bg-background-light p-6 rounded-lg border border-background-lighter space-y-6 mb-8">
+                <h2 className="text-xl font-semibold text-white">Edit Daily Log</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="text-gray-400 text-sm">Weather Conditions</label>
+                    <input
+                      type="text"
+                      value={currentLog.weather_conditions ?? ''}
+                      onChange={(e) => setCurrentLog({ ...currentLog, weather_conditions: e.target.value })}
+                      className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded"
+                      placeholder="Enter weather conditions"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm">Temperature (°F)</label>
+                    <input
+                      type="number"
+                      value={currentLog.temperature ?? ''}
+                      onChange={(e) => setCurrentLog({
+                        ...currentLog,
+                        temperature: e.target.value === '' ? null : Number(e.target.value),
+                      })}
+                      className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded"
+                      placeholder="Enter temperature in °F"
+                      title="Temperature input field"
+                    />
+                  </div>
                 </div>
-                <div className="text-sm text-gray-400">
-                  {log.weather_conditions} | {log.temperature}°F {/* Display weather and temperature */}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="text-gray-400 text-sm">Visitors</label>
+                    <textarea
+                      rows={3}
+                      value={currentLog.visitors ?? ''}
+                      onChange={(e) => setCurrentLog({ ...currentLog, visitors: e.target.value })}
+                      className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded"
+                      placeholder="Enter visitors"
+                      title="Visitors input field"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm">Safety Incidents</label>
+                    <textarea
+                      rows={3}
+                      value={currentLog.safety_incidents ?? ''}
+                      onChange={(e) => setCurrentLog({ ...currentLog, safety_incidents: e.target.value })}
+                      className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded"
+                      placeholder="Enter safety incidents"
+                      title="Safety incidents input field"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setEditing(false)}
+                    className="px-4 py-2 rounded-md bg-gray-700 text-white hover:bg-gray-600"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { void handleUpdate(); }}
+                    disabled={isSaving}
+                    className="flex items-center px-4 py-2 bg-primary text-white rounded hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Save className="w-5 h-5 mr-2" /> {isSaving ? 'Saving...' : 'Save'}
+                  </button>
                 </div>
               </div>
-              <p className="text-gray-300 text-sm mb-1">
-                <strong>Visitors:</strong> {typeof log.visitors === 'string' && log.visitors.length > 0 ? log.visitors : '—'}
-              </p>
-              <p className="text-gray-300 text-sm">
-                <strong>Safety:</strong> {typeof log.safety_incidents === 'string' && log.safety_incidents.length > 0 ? log.safety_incidents : '—'}
-              </p>
+            )}
+
+            <div className="space-y-4">
+              {logs.length === 0 ? (
+                <div className="rounded-lg border border-background-lighter bg-background-light p-8 text-center text-gray-300">
+                  No daily reports have been recorded for this project yet.
+                </div>
+              ) : (
+                logs.map((log) => (
+                  <div
+                    key={log.id ?? `${log.date}-${log.created_at ?? 'daily-log'}`}
+                    className="bg-background-light p-4 rounded border border-background-lighter"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="text-white font-semibold text-lg">
+                          {new Date(log.date).toLocaleDateString()}
+                        </h3>
+                        <p className="text-gray-400 text-sm">
+                          Created at {log.created_at ? new Date(log.created_at).toLocaleDateString() : '—'}
+                        </p>
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        {log.weather_conditions ?? '—'} | {typeof log.temperature === 'number' ? `${log.temperature}°F` : '—'}
+                      </div>
+                    </div>
+                    <p className="text-gray-300 text-sm mb-1">
+                      <strong>Visitors:</strong> {log.visitors ?? '—'}
+                    </p>
+                    <p className="text-gray-300 text-sm">
+                      <strong>Safety:</strong> {log.safety_incidents ?? '—'}
+                    </p>
+                  </div>
+                ))
+              )}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
