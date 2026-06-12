@@ -2,6 +2,7 @@
 const { spawnSync } = require('child_process');
 
 const checks = [
+  ['npm', ['run', 'audit:data-boundaries']],
   ['npm', ['run', 'eslint']],
   ['npm', ['run', 'test:unit']]
 ];
