@@ -5,8 +5,7 @@ import { supabase } from '@/lib/supabase';
 
 /**
  * Fail-loud invariant boundary.
- * All frontend storage access must flow through this module.
- * Do not bypass this file.
+ * All frontend storage access should flow through this module.
  */
 
 interface StorageOperationContext {
@@ -18,6 +17,18 @@ interface StorageOperationContext {
 
 interface StorageListItem {
     name: string;
+    metadata?: {
+        mimetype?: string;
+        size?: number;
+    } | null;
+}
+
+export interface StorageSignedListItem {
+    name: string;
+    path: string;
+    signedUrl: string;
+    type: string;
+    size: number;
 }
 
 async function executeStorageOperation<T>(
@@ -108,6 +119,50 @@ export async function listStoragePaths(
         }
 
         return files;
+    });
+}
+
+export async function listStorageFilesWithSignedUrls(
+    bucket: string,
+    prefix: string,
+    expiresInSeconds: number,
+    context: StorageOperationContext,
+): Promise<StorageSignedListItem[]> {
+    return executeStorageOperation(context, async () => {
+        const { data, error } = await supabase.storage
+            .from(bucket)
+            .list(prefix, { limit: 100, offset: 0 });
+
+        if (error) {
+            throw error;
+        }
+
+        const files = Array.isArray(data) ? data as StorageListItem[] : [];
+        const visibleFiles = files.filter((file) => file.name.trim() !== '');
+
+        return Promise.all(visibleFiles.map(async (file) => {
+            const filePath = `${prefix}/${file.name}`;
+            const { data: signedData, error: signedError } = await supabase.storage
+                .from(bucket)
+                .createSignedUrl(filePath, expiresInSeconds);
+
+            if (signedError) {
+                throw signedError;
+            }
+
+            const signedUrl = signedData?.signedUrl;
+            if (!signedUrl) {
+                throw new Error(`[Storage] Unable to create signed URL for ${bucket}/${filePath}`);
+            }
+
+            return {
+                name: file.name,
+                path: filePath,
+                signedUrl,
+                type: typeof file.metadata?.mimetype === 'string' ? file.metadata.mimetype : 'application/octet-stream',
+                size: typeof file.metadata?.size === 'number' ? file.metadata.size : 0,
+            };
+        }));
     });
 }
 
