@@ -1,49 +1,197 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 import { rpcClient } from '@/lib/rpc.client';
 import { useAuthStore } from '@/lib/store';
-import { evaluate } from 'mathjs'; // Import mathjs
+import { logBackendError, toBackendErrorToastMessage } from '@/lib/backendErrors';
+import { evaluate } from 'mathjs';
 
-// This interface defines the structure for Variables used in calculations
+type RawRecord = Record<string, unknown>;
+
 interface Variable {
-  name: string;        // The name of the variable used in calculations
-  label: string;       // Display label for the variable
-  type: string;        // Specify the variable type (e.g., number)
-  unit: string;        // Unit associated with the variable
-  defaultValue: number; // Default value for the variable
+  name: string;
+  label: string;
+  type: string;
+  unit: string;
+  defaultValue: number;
 }
 
-// This interface defines the structure for Formula objects in the calculator
 interface Formula {
-  name: string;         // Name of the formula
-  expression: string;   // Mathematical expression for calculation
-  description: string;  // Description of the formula's purpose
+  name: string;
+  expression: string;
+  description: string;
 }
 
-// This interface defines the structure for Calculator templates fetched from the database
 interface CalculatorTemplate {
-  id: string;             // Unique identifier for the calculator template
-  name: string;           // The name of the calculator template
-  description: string;    // Description detailing the template
-  variables: Variable[];  // List of variables associated with this template
-  formulas: Formula[];    // List of formulas used in the calculator
+  id: string;
+  name: string;
+  description: string;
+  variables: Variable[];
+  formulas: Formula[];
 }
 
-// This interface defines the structure for calculations performed using the template
 interface Calculation {
-  id?: string;                     // Optional ID for the calculation
-  line_item_id: string;            // ID linking to the line item
-  template_id: string;             // Template ID linked to the calculation
-  station_number?: string;         // Station number associated with this calculation
-  values: Record<string, number>;  // Variable values in the calculation
-  results: Record<string, number>; // Calculation results from formulas
-  notes?: string;                  // Additional notes associated with the calculation
-  created_at?: string;             // Optional created_at timestamp from database
+  id?: string;
+  line_item_id: string;
+  template_id: string;
+  station_number?: string;
+  values: Record<string, number>;
+  results: Record<string, number>;
+  notes?: string;
+  created_at?: string;
+}
+
+function isRecord(value: unknown): value is RawRecord {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function parseJsonish(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (trimmed === '') return value;
+
+  try {
+    return JSON.parse(trimmed) as unknown;
+  } catch {
+    return value;
+  }
+}
+
+function toFiniteNumber(value: unknown): number {
+  const numericValue = typeof value === 'number'
+    ? value
+    : typeof value === 'string'
+      ? Number(value)
+      : 0;
+
+  return Number.isFinite(numericValue) ? numericValue : 0;
+}
+
+function parseVariable(value: unknown): Variable | null {
+  if (!isRecord(value)) return null;
+
+  const name = typeof value.name === 'string' ? value.name.trim() : '';
+  if (name === '') return null;
+
+  const label = typeof value.label === 'string' && value.label.trim() !== ''
+    ? value.label
+    : name;
+  const type = typeof value.type === 'string' && value.type.trim() !== ''
+    ? value.type
+    : 'input';
+  const unit = typeof value.unit === 'string' ? value.unit : '';
+  const defaultValue = toFiniteNumber(value.defaultValue ?? value.value);
+
+  return {
+    name,
+    label,
+    type,
+    unit,
+    defaultValue,
+  };
+}
+
+function parseFormula(value: unknown): Formula | null {
+  if (typeof value === 'string' && value.trim() !== '') {
+    return {
+      name: 'result',
+      expression: value.trim(),
+      description: 'Result',
+    };
+  }
+
+  if (!isRecord(value)) return null;
+
+  const expression = typeof value.expression === 'string' ? value.expression.trim() : '';
+  if (expression === '') return null;
+
+  const name = typeof value.name === 'string' && value.name.trim() !== ''
+    ? value.name
+    : 'result';
+  const description = typeof value.description === 'string' && value.description.trim() !== ''
+    ? value.description
+    : name;
+
+  return {
+    name,
+    expression,
+    description,
+  };
+}
+
+function extractVariables(value: unknown): Variable[] {
+  const parsedValue = parseJsonish(value);
+  const rawVariables = Array.isArray(parsedValue)
+    ? parsedValue
+    : isRecord(parsedValue) && Array.isArray(parsedValue.variables)
+      ? parsedValue.variables
+      : [];
+
+  return rawVariables.map(parseVariable).filter((variable): variable is Variable => variable !== null);
+}
+
+function extractFormulas(value: unknown): Formula[] {
+  const parsedValue = parseJsonish(value);
+
+  if (Array.isArray(parsedValue)) {
+    return parsedValue.map(parseFormula).filter((formula): formula is Formula => formula !== null);
+  }
+
+  if (isRecord(parsedValue) && Array.isArray(parsedValue.formulas)) {
+    const formulas = parsedValue.formulas
+      .map(parseFormula)
+      .filter((formula): formula is Formula => formula !== null);
+    if (formulas.length > 0) return formulas;
+  }
+
+  const formula = parseFormula(parsedValue);
+  return formula ? [formula] : [];
+}
+
+function parseTemplateDetails(found: RawRecord): Pick<CalculatorTemplate, 'variables' | 'formulas'> {
+  const formulaField = parseJsonish(found.formula);
+  const variablesField = parseJsonish(found.variables);
+  const formulasField = parseJsonish(found.formulas);
+
+  const variablesFromFormula = extractVariables(formulaField);
+  const variablesFromField = extractVariables(variablesField);
+  const formulasFromFormula = extractFormulas(formulaField);
+  const formulasFromField = extractFormulas(formulasField);
+
+  return {
+    variables: variablesFromFormula.length > 0 ? variablesFromFormula : variablesFromField,
+    formulas: formulasFromFormula.length > 0 ? formulasFromFormula : formulasFromField,
+  };
+}
+
+function reportCalculatorUsageError(
+  operation: string,
+  error: unknown,
+  projectId: string | null,
+  templateId: string | null,
+): string {
+  const context = {
+    module: 'CalculatorUsage',
+    operation,
+    trigger: 'user' as const,
+    error,
+    ids: {
+      projectId,
+      templateId,
+    },
+  };
+
+  logBackendError(context);
+  const message = toBackendErrorToastMessage(context);
+  toast.error(message);
+  return message;
 }
 
 export default function CalculatorUsage() {
-  const { id, templateId } = useParams(); // Extract contract ID and template ID from route parameters
+  const { id, templateId } = useParams();
+  const projectId = typeof id === 'string' && id.trim() !== '' ? id : null;
+  const selectedTemplateId = typeof templateId === 'string' && templateId.trim() !== '' ? templateId : null;
   const navigate = useNavigate();
 
   const [template, setTemplate] = useState<CalculatorTemplate | null>(null);
@@ -57,102 +205,74 @@ export default function CalculatorUsage() {
 
   const user = useAuthStore((state) => state.user);
 
-  // Fetch the calculator template from the database using RPC
   const fetchTemplate = useCallback(async () => {
-    if (typeof templateId !== 'string' || templateId.length === 0) return;
+    if (!projectId || !selectedTemplateId) {
+      setTemplate(null);
+      setCalculations([]);
+      setValues({});
+      setResults({});
+      setError('Project or calculator context is missing. Return to the project and try again.');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
     try {
-      const raw = await rpcClient.rpc_calculator_template_payload({ p_template_id: templateId });
+      const raw = await rpcClient.rpc_calculator_template_payload({ p_template_id: selectedTemplateId });
       const payload = raw && typeof raw === 'object' && !Array.isArray(raw)
-        ? (raw as Record<string, unknown>)
+        ? (raw as RawRecord)
         : {};
-      const found = payload.template && typeof payload.template === 'object'
-        ? (payload.template as Record<string, unknown>)
-        : null;
+      const found = isRecord(payload.template) ? payload.template : null;
+
       if (!found) throw new Error('Template not found');
-      // Parse variables and formulas from formula JSON
-      let variables: Variable[] = [];
-      let formulas: Formula[] = [];
-      try {
-        // 1. Remove all usage of line_code if not present on the type
-        // 2. Type-safe JSON parsing for formulaObj
-        let formulaObj: { variables?: Variable[]; formulas?: Formula[] } = {};
-        if (typeof found?.formula === 'string') {
-          try {
-            const parsed: unknown = JSON.parse(found.formula);
-            if (
-              typeof parsed === 'object' &&
-              parsed !== null &&
-              ('variables' in parsed || 'formulas' in parsed)
-            ) {
-              formulaObj = parsed as { variables?: Variable[]; formulas?: Formula[] };
-            }
-          } catch {
-            // Optionally log error
-          }
-        } else if (typeof found?.formula === 'object' && found.formula !== null) {
-          formulaObj = found.formula as { variables?: Variable[]; formulas?: Formula[] };
-        }
-        // 3. Access variables/formulas safely
-        variables = Array.isArray(formulaObj.variables) ? formulaObj.variables : [];
-        formulas = Array.isArray(formulaObj.formulas) ? formulaObj.formulas : [];
-      } catch { /* Optionally log error */ }
-      setTemplate({
-        id: typeof found.id === 'string' ? found.id : '',
-        name: typeof found.name === 'string' ? found.name : '',
-        description: '', // Remove description field as it doesn't exist in database
+
+      const { variables, formulas } = parseTemplateDetails(found);
+      const loadedTemplate: CalculatorTemplate = {
+        id: typeof found.id === 'string' ? found.id : selectedTemplateId,
+        name: typeof found.name === 'string' && found.name.trim() !== '' ? found.name : 'Untitled Calculator',
+        description: typeof found.description === 'string' ? found.description : '',
         variables,
         formulas,
-      });
-      // Initialize input values with default values from the template
-      const initialValues = variables.reduce(
-        (acc: Record<string, number>, v: Variable) => {
-          acc[v.name] = v.defaultValue;
-          return acc;
-        },
-        {} as Record<string, number>
-      );
-      setValues(initialValues);
-    } catch (error) {
-      console.error('Error fetching template:', error);
-      setError('Error loading calculator template');
+      };
+
+      setTemplate(loadedTemplate);
+      setCalculations([]);
+      setResults({});
+      setValues(variables.reduce<Record<string, number>>((acc, variable) => {
+        acc[variable.name] = variable.defaultValue;
+        return acc;
+      }, {}));
+    } catch (error: unknown) {
+      setTemplate(null);
+      setCalculations([]);
+      setValues({});
+      setResults({});
+      setError(reportCalculatorUsageError('load calculator template', error, projectId, selectedTemplateId));
+    } finally {
+      setLoading(false);
     }
-  }, [templateId]);
+  }, [projectId, selectedTemplateId]);
 
-  // Fetch previously saved calculations from the database (TODO: refactor to RPC if available)
-  // Add runtime guard for id and templateId
-  const fetchCalculations = useCallback(() => {
-    if (typeof id !== 'string' || id.length === 0 || typeof templateId !== 'string' || templateId.length === 0) return;
-    // TODO: Replace with RPC when available
-    setCalculations([]);
-    setLoading(false);
-  }, [templateId, id]);
-
-  // Evaluate a mathematical expression and return its evaluated result
   const evaluateExpression = (expression: string, currentValues: Record<string, number>): number => {
     try {
-      // The scope (variables) is passed directly to mathjs
       const resultUnknown: unknown = evaluate(expression, currentValues);
       if (typeof resultUnknown !== 'number') return 0;
       return resultUnknown;
     } catch (error) {
       console.error('Error evaluating expression with mathjs:', error);
-      // Return NaN or throw a custom error to be handled by the caller
-      // For now, returning 0 to maintain previous behavior, but NaN might be more appropriate
       return 0;
     }
   };
 
-  // Wrap calculateResults in useCallback so it can be used as an effect dependency
   const calculateResults = useCallback(() => {
     if (!template) return;
-    const newResults = template.formulas.reduce(
-      (acc: Record<string, number>, formula: Formula) => {
-        acc[formula.name] = evaluateExpression(formula.expression, values);
-        return acc;
-      },
-      {} as Record<string, number>
-    );
-    setResults(newResults);
+
+    setResults(template.formulas.reduce<Record<string, number>>((acc, formula) => {
+      acc[formula.name] = evaluateExpression(formula.expression, values);
+      return acc;
+    }, {}));
   }, [template, values]);
 
   useEffect(() => {
@@ -161,24 +281,19 @@ export default function CalculatorUsage() {
 
   useEffect(() => {
     void fetchTemplate();
-    void fetchCalculations();
-  }, [templateId, fetchTemplate, fetchCalculations]);
+  }, [fetchTemplate]);
 
-  // Save the current calculation to the database
   const handleSave = () => {
-    if (!template || !user || typeof id !== 'string' || id.length === 0 || typeof templateId !== 'string' || templateId.length === 0) return;
+    if (!template || !user || !projectId || !selectedTemplateId) return;
     setError('Saving calculations is not yet supported via RPC.');
-    // TODO: Implement save via RPC when available
   };
 
-  // Load a previous calculation into the form
   const handleLoadCalculation = (calculation: Calculation) => {
     setValues(calculation.values);
     setStationNumber(calculation.station_number ?? '');
     setNotes(calculation.notes ?? '');
   };
 
-  // Loading indicator
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -187,19 +302,30 @@ export default function CalculatorUsage() {
     );
   }
 
-  // If no template found
   if (!template) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-xl text-gray-400">Calculator template not found</p>
-          <button
-            onClick={() => navigate(`/projects/${id}/calculators`)}
-            className="mt-4 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-md transition-colors"
-            aria-label="Return to calculators"
-          >
-            Return to Calculators
-          </button>
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="max-w-xl text-center">
+          <p className="text-xl text-gray-400">{error ?? 'Calculator template not found'}</p>
+          <div className="mt-4 flex flex-col justify-center gap-3 sm:flex-row">
+            {projectId && selectedTemplateId && (
+              <button
+                type="button"
+                onClick={() => { void fetchTemplate(); }}
+                className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-md transition-colors"
+              >
+                Retry
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => navigate(projectId ? `/projects/${projectId}/calculators` : '/projects')}
+              className="px-4 py-2 bg-background-lighter hover:bg-background-light text-white rounded-md transition-colors"
+              aria-label="Return to calculators"
+            >
+              Return to Calculators
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -208,11 +334,10 @@ export default function CalculatorUsage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate(`/projects/${id}/calculators`)}
+              onClick={() => navigate(projectId ? `/projects/${projectId}/calculators` : '/projects')}
               className="p-2 text-gray-400 hover:text-white hover:bg-background-lighter rounded-lg transition-colors"
               aria-label="Go back to calculators list"
               title="Go back"
@@ -233,7 +358,6 @@ export default function CalculatorUsage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            {/* Input Values */}
             <div className="bg-background-light rounded-lg border border-background-lighter p-6">
               <h2 className="text-lg font-medium text-white mb-4">Input Values</h2>
               <div className="grid grid-cols-2 gap-4">
@@ -262,7 +386,6 @@ export default function CalculatorUsage() {
               </div>
             </div>
 
-            {/* Results */}
             <div className="bg-background-light rounded-lg border border-background-lighter p-6">
               <h2 className="text-lg font-medium text-white mb-4">Results</h2>
               <div className="grid grid-cols-2 gap-4">
@@ -277,7 +400,6 @@ export default function CalculatorUsage() {
               </div>
             </div>
 
-            {/* Additional Information */}
             <div className="bg-background-light rounded-lg border border-background-lighter p-6">
               <h2 className="text-lg font-medium text-white mb-4">Additional Information</h2>
               <div className="space-y-4">
@@ -325,7 +447,6 @@ export default function CalculatorUsage() {
             </div>
           </div>
 
-          {/* History */}
           <div className="space-y-6">
             <div className="bg-background-light rounded-lg border border-background-lighter p-6">
               <h2 className="text-lg font-medium text-white mb-4">History</h2>
