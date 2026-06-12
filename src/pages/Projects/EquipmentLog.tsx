@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { rpcClient } from '@/lib/rpc.client';
 import { useAuthStore } from '@/lib/store';
+import { logBackendError, toBackendErrorToastMessage } from '@/lib/backendErrors';
 
 interface EquipmentUsage {
   id?: string;
@@ -32,7 +35,41 @@ interface EquipmentLogPayload {
   operators: Array<Record<string, unknown>>;
 }
 
+function createEmptyLog(): EquipmentUsage {
+  return {
+    equipment_id: '',
+    usage_date: new Date().toISOString().split('T')[0],
+    hours_used: 0,
+    operator_id: null,
+    operator_name: '',
+    notes: '',
+  };
+}
+
+function reportEquipmentLogError(
+  operation: string,
+  error: unknown,
+  projectId: string | null,
+): string {
+  const context = {
+    module: 'EquipmentLog',
+    operation,
+    trigger: 'user' as const,
+    error,
+    ids: {
+      projectId,
+    },
+  };
+
+  logBackendError(context);
+  const message = toBackendErrorToastMessage(context);
+  toast.error(message);
+  return message;
+}
+
 export default function EquipmentLog() {
+  const { id } = useParams();
+  const projectId = typeof id === 'string' && id.trim() !== '' ? id : null;
   const { user } = useAuthStore(state => ({
     user: state.user,
   }));
@@ -41,7 +78,10 @@ export default function EquipmentLog() {
   const [operators, setOperators] = useState<Operator[]>([]);
   const [equipmentList, setEquipmentList] = useState<EquipmentItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isSubmittingLog, setIsSubmittingLog] = useState(false);
+  const [isAddingEquipment, setIsAddingEquipment] = useState(false);
   const [showAddEquipment, setShowAddEquipment] = useState(false);
 
   const [newEquipment, setNewEquipment] = useState({
@@ -50,16 +90,12 @@ export default function EquipmentLog() {
     description: '',
   });
 
-  const [newLog, setNewLog] = useState<EquipmentUsage>({
-    equipment_id: '',
-    usage_date: new Date().toISOString().split('T')[0],
-    hours_used: 0,
-    operator_id: null,
-    operator_name: '',
-    notes: '',
-  });
+  const [newLog, setNewLog] = useState<EquipmentUsage>(() => createEmptyLog());
 
   const loadPayload = useCallback(async () => {
+    setLoading(true);
+    setErrorMessage(null);
+
     try {
       const raw = await rpcClient.rpc_equipment_log_payload();
       const payload = raw && typeof raw === 'object' && !Array.isArray(raw)
@@ -98,11 +134,14 @@ export default function EquipmentLog() {
       setEquipmentList(normalizedEquipment);
       setOperators(normalizedOperators);
     } catch (error) {
-      console.error('Error loading equipment log payload:', error);
+      setLogs([]);
+      setEquipmentList([]);
+      setOperators([]);
+      setErrorMessage(reportEquipmentLogError('load equipment log', error, projectId));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [projectId]);
 
   useEffect(() => {
     void loadPayload();
@@ -110,7 +149,16 @@ export default function EquipmentLog() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (isSubmittingLog) return;
+
+    if (!user) {
+      const error = new Error('User must be authenticated to create an equipment usage log.');
+      setErrorMessage(reportEquipmentLogError('create equipment usage log', error, projectId));
+      return;
+    }
+
+    setIsSubmittingLog(true);
+    setErrorMessage(null);
 
     try {
       const createdLogs = await rpcClient.insert_equipment_usage({
@@ -122,7 +170,6 @@ export default function EquipmentLog() {
         }
       });
 
-      // Use returned row to update UI without a full refetch.
       const created = Array.isArray(createdLogs) && createdLogs.length > 0
         ? createdLogs[0]
         : null;
@@ -141,34 +188,42 @@ export default function EquipmentLog() {
           },
           ...prev,
         ]));
+      } else {
+        await loadPayload();
       }
 
       setIsCreating(false);
-      setNewLog({
-        equipment_id: '',
-        usage_date: new Date().toISOString().split('T')[0],
-        hours_used: 0,
-        operator_id: null,
-        operator_name: '',
-        notes: '',
-      });
+      setNewLog(createEmptyLog());
     } catch (error) {
-      alert('Error saving log');
-      console.error('Error saving log:', error);
+      setErrorMessage(reportEquipmentLogError('create equipment usage log', error, projectId));
+    } finally {
+      setIsSubmittingLog(false);
     }
   };
 
   const handleAddEquipment = async () => {
-    if (!user) return;
+    if (isAddingEquipment) return;
+
+    if (!user) {
+      const error = new Error('User must be authenticated to add equipment.');
+      setErrorMessage(reportEquipmentLogError('add equipment', error, projectId));
+      return;
+    }
+
+    const name = newEquipment.name.trim();
+    if (name.length === 0) return;
+
+    setIsAddingEquipment(true);
+    setErrorMessage(null);
+
     try {
       const createdEquipment = await rpcClient.insert_equipment({
         _input: {
-          name: newEquipment.name,
+          name,
           serial_number: newEquipment.user_defined_id || null,
           model: newEquipment.description || null
         }
       });
-      // Use returned row to update equipment list without refetching.
       const created = Array.isArray(createdEquipment) && createdEquipment.length > 0
         ? createdEquipment[0]
         : null;
@@ -185,12 +240,16 @@ export default function EquipmentLog() {
           },
           ...prev,
         ].filter((item) => item.id !== '')));
+      } else {
+        await loadPayload();
       }
+
       setShowAddEquipment(false);
       setNewEquipment({ user_defined_id: '', name: '', description: '' });
     } catch (error) {
-      alert('Error adding equipment');
-      console.error('Error adding equipment:', error);
+      setErrorMessage(reportEquipmentLogError('add equipment', error, projectId));
+    } finally {
+      setIsAddingEquipment(false);
     }
   };
 
@@ -204,6 +263,21 @@ export default function EquipmentLog() {
           + New
         </button>
       </div>
+
+      {errorMessage && (
+        <div className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-red-200">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p>{errorMessage}</p>
+            <button
+              type="button"
+              onClick={() => { void loadPayload(); }}
+              className="rounded-md border border-red-400/40 px-3 py-2 text-sm font-semibold text-red-100 hover:bg-red-500/20"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
 
       {isCreating && (
         <form onSubmit={e => { void handleSubmit(e); }} className="bg-background-light p-4 rounded border space-y-4">
@@ -273,8 +347,12 @@ export default function EquipmentLog() {
             <button onClick={() => setIsCreating(false)} type="button" className="bg-gray-600 px-4 py-2 rounded">
               Cancel
             </button>
-            <button type="submit" className="bg-green-600 px-4 py-2 rounded">
-              Save
+            <button
+              type="submit"
+              disabled={isSubmittingLog}
+              className="bg-green-600 px-4 py-2 rounded disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmittingLog ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>
@@ -311,8 +389,12 @@ export default function EquipmentLog() {
               <button onClick={() => setShowAddEquipment(false)} className="bg-gray-600 px-4 py-2 rounded">
                 Cancel
               </button>
-              <button onClick={() => { void handleAddEquipment(); }} className="bg-blue-600 px-4 py-2 rounded">
-                Add Equipment
+              <button
+                onClick={() => { void handleAddEquipment(); }}
+                disabled={isAddingEquipment || newEquipment.name.trim() === ''}
+                className="bg-blue-600 px-4 py-2 rounded disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isAddingEquipment ? 'Adding...' : 'Add Equipment'}
               </button>
             </div>
           </div>
@@ -320,13 +402,19 @@ export default function EquipmentLog() {
       )}
 
       <div className="mt-8 space-y-4">
-        {logs.map((log) => (
-          <div key={log.id} className="bg-background-light p-4 rounded border">
-            <div className="font-semibold">{log.equipment_id}</div>
-            <div>{log.usage_date} – {log.hours_used} hrs</div>
-            <div className="text-sm text-gray-400">{log.notes ?? ''}</div>
+        {logs.length === 0 && !errorMessage ? (
+          <div className="bg-background-light p-4 rounded border text-gray-300">
+            No equipment usage logs yet.
           </div>
-        ))}
+        ) : (
+          logs.map((log) => (
+            <div key={log.id} className="bg-background-light p-4 rounded border">
+              <div className="font-semibold">{log.equipment_id}</div>
+              <div>{log.usage_date} – {log.hours_used} hrs</div>
+              <div className="text-sm text-gray-400">{log.notes ?? ''}</div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
