@@ -50,7 +50,7 @@ export default function ProjectManagement(): JSX.Element {
     {
       title: 'Daily reports',
       description: 'Daily field reporting, production context, notes, issues, weather, and project recordkeeping.',
-      href: '/dailyreports',
+      href: id ? `/projects/${id}/daily-reports` : '/dailyreports',
       icon: ClipboardList,
       label: 'Field logs',
     },
