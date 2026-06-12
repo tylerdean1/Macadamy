@@ -180,6 +180,14 @@ export default function App(): JSX.Element {
           <Route path="/projects/:id/registers" element={<ProtectedRoute><ProjectRegisters /></ProtectedRoute>} />
           <Route path="/projects/:id/production" element={<ProtectedRoute><ProjectProduction /></ProtectedRoute>} />
           <Route path="/projects/:id/settings" element={<ProtectedRoute><ContractSettings /></ProtectedRoute>} />
+          <Route path="/projects/:id/calculators" element={<ProtectedRoute><Calculators /></ProtectedRoute>} />
+          <Route path="/projects/:id/calculators/new" element={<ProtectedRoute><CalculatorCreation /></ProtectedRoute>} />
+          <Route path="/projects/:id/calculators/:templateId" element={<ProtectedRoute><CalculatorUsage /></ProtectedRoute>} />
+          <Route path="/projects/:id/change-orders" element={<ProtectedRoute><ChangeOrders /></ProtectedRoute>} />
+          <Route path="/projects/:id/equipment-log" element={<ProtectedRoute><EquipmentLog /></ProtectedRoute>} />
+          <Route path="/projects/:id/inspections" element={<ProtectedRoute><Inspections /></ProtectedRoute>} />
+          <Route path="/projects/:id/issues" element={<ProtectedRoute><Issues /></ProtectedRoute>} />
+          <Route path="/projects/:id/daily-reports" element={<ProtectedRoute><DailyReports /></ProtectedRoute>} />
           <Route path="/projects/create" element={<ProtectedRoute><ContractCreation /></ProtectedRoute>} />
 
           <Route path="/calculators" element={<ProtectedRoute><Calculators /></ProtectedRoute>} />
