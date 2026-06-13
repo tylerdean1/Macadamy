@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import {
   ArrowRight,
   Banknote,
-  BriefcaseBusiness,
+  Briefcase,
   ClipboardList,
   Clock,
   FileCheck2,
@@ -125,7 +125,7 @@ export default function ProjectCoreTracking(): JSX.Element {
 
   const procurementMetrics: MetricCard[] = [
     { label: 'Purchase orders', value: formatCount(counts.purchase_orders), helper: `${formatCurrency(costs.purchase_orders_amount)} committed/tracked in POs.`, icon: PackageCheck },
-    { label: 'Subcontracts', value: formatCount(counts.subcontracts), helper: `${formatCurrency(costs.subcontracts_amount)} tracked against subcontract agreements.`, icon: BriefcaseBusiness },
+    { label: 'Subcontracts', value: formatCount(counts.subcontracts), helper: `${formatCurrency(costs.subcontracts_amount)} tracked against subcontract agreements.`, icon: Briefcase },
     { label: 'Invoices', value: formatCount(counts.invoices), helper: `${formatCurrency(costs.invoices_amount)} in vendor/sub/owner invoices.`, icon: Receipt },
     { label: 'AP invoices', value: formatCount(counts.ap_invoices), helper: `${formatCurrency(costs.ap_amount_due)} currently represented in accounts payable.`, icon: Banknote },
   ];
