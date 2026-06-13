@@ -1,12 +1,27 @@
 import { supabase } from './supabase';
 import type { Database } from './database.types';
-import { RPC_NAMES } from './rpc.definitions';
+import { RPC_NAMES, type RpcName } from './rpc.definitions';
 
 /**
  * Fail-loud invariant boundary.
  * All frontend RPC access must flow through this module.
  * Do not bypass this file.
  */
+
+/**
+ * Live project-management RPCs that exist in Supabase but are not yet captured
+ * by the generated Database['public']['Functions'] contract in this repository.
+ * Keep this list small and remove entries after running the full backend typegen.
+ */
+export const EXTRA_RPC_NAMES = [
+  'filter_project_source_documents',
+  'filter_rfqs',
+  'rpc_project_management_core_payload',
+  'rpc_project_production_payload',
+] as const;
+
+type ExtraRpcName = typeof EXTRA_RPC_NAMES[number];
+export type KnownRpcName = RpcName | ExtraRpcName;
 
 /**
  * Typed RPC client generated from database functions.
@@ -22,7 +37,13 @@ export type RpcClient = {
   [K in keyof Functions]: RpcFn<Functions[K]['Args'], Functions[K]['Returns']>;
 };
 
-const rpcNameSet = new Set<string>(RPC_NAMES);
+const rpcNameSet = new Set<string>([...RPC_NAMES, ...EXTRA_RPC_NAMES]);
+
+function assertKnownRpcName(rpcName: string): asserts rpcName is KnownRpcName {
+  if (!rpcNameSet.has(rpcName)) {
+    throw new Error(`[rpcClient] Unknown RPC: ${rpcName}`);
+  }
+}
 
 function getForcedRpcFailures(): Set<string> {
   if (!import.meta.env.DEV || typeof window === 'undefined') {
@@ -52,7 +73,7 @@ function shouldForceRpcFailure(rpcName: string): boolean {
 
 type RpcArgs = Record<string, unknown> | undefined;
 
-async function executeRpc<TReturn>(rpcName: string, args?: RpcArgs): Promise<TReturn> {
+async function executeRpc<TReturn>(rpcName: KnownRpcName, args?: RpcArgs): Promise<TReturn> {
   if (shouldForceRpcFailure(rpcName)) {
     const forcedError = new Error(`[dev-force-fail] Forced RPC failure for ${rpcName}`);
     console.error(`[rpcClient] ${rpcName} error:`, forcedError);
@@ -72,7 +93,7 @@ async function executeRpc<TReturn>(rpcName: string, args?: RpcArgs): Promise<TRe
 }
 
 export async function invokeRpc<TReturn>(
-  rpcName: string,
+  rpcName: KnownRpcName,
   args?: Record<string, unknown>,
 ): Promise<TReturn> {
   return executeRpc<TReturn>(rpcName, args);
@@ -80,12 +101,7 @@ export async function invokeRpc<TReturn>(
 
 export const rpcClient: RpcClient = new Proxy({} as RpcClient, {
   get: (_target, prop: string) => {
-    return async (args?: Record<string, unknown>) => {
-      if (!rpcNameSet.has(prop)) {
-        throw new Error(`[rpcClient] Unknown RPC: ${prop}`);
-      }
-
-      return executeRpc<unknown>(prop, args);
-    };
+    assertKnownRpcName(prop);
+    return async (args?: Record<string, unknown>) => executeRpc<unknown>(prop, args);
   }
 });
