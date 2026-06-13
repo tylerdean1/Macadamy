@@ -16,9 +16,11 @@ import { ArrowRight, FileText, FolderKanban } from 'lucide-react';
 import { Page, PageContainer, SectionContainer } from '@/components/Layout';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LoadingState } from '@/components/ui/loading-state';
+import { getBackendErrorMessage, logBackendError } from '@/lib/backendErrors';
 import { rpcClient } from '@/lib/rpc.client';
 import { supabase } from '@/lib/supabase';
 import type { ContractWithWktRow, LineItemsWithWktRow, WbsWithWktRow } from '@/lib/geospatial.types';
+import { toast } from 'sonner';
 
 import { LineItemsTable } from './ProjectDashboardComponents/LineItemsTable';
 import { ProjectHeader } from './ProjectDashboardComponents/ProjectHeader';
@@ -34,6 +36,8 @@ type ProjectPayload = {
   line_items: { total_count: number; items: Array<Record<string, unknown>> };
   counts: { issues: number; change_orders: number; inspections: number };
 };
+
+type LoadTrigger = 'user' | 'background';
 
 function toNullableNumber(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -76,7 +80,7 @@ export default function ProjectDashboard(): JSX.Element {
     }
     : null;
 
-  const fetchProjectData = useCallback(async () => {
+  const fetchProjectData = useCallback(async (trigger: LoadTrigger = 'user') => {
     if (typeof projectId !== 'string' || !projectId.trim()) {
       setError(new Error('No project ID provided.'));
       setIsLoading(false);
@@ -153,8 +157,14 @@ export default function ProjectDashboard(): JSX.Element {
       setChangeOrdersCount(typeof payload?.counts?.change_orders === 'number' ? payload.counts.change_orders : 0);
       setInspectionsCount(typeof payload?.counts?.inspections === 'number' ? payload.counts.inspections : 0);
     } catch (err) {
-      console.error('Error fetching project data:', err);
-      const fetchError = err instanceof Error ? err : new Error('Failed to fetch project data');
+      logBackendError({
+        module: 'Project Dashboard',
+        operation: 'load project dashboard payload',
+        trigger,
+        error: err,
+        ids: { projectId },
+      });
+      const fetchError = new Error(getBackendErrorMessage(err));
       setError(fetchError);
       setContract(null);
       setWbsItems([]);
@@ -162,13 +172,16 @@ export default function ProjectDashboard(): JSX.Element {
       setIssuesCount(0);
       setChangeOrdersCount(0);
       setInspectionsCount(0);
+      if (trigger === 'user') {
+        toast.error('Unable to load project dashboard.');
+      }
     } finally {
       setIsLoading(false);
     }
   }, [projectId]);
 
   useEffect(() => {
-    void fetchProjectData();
+    void fetchProjectData('user');
   }, [fetchProjectData]);
 
   useEffect(() => {
@@ -176,12 +189,12 @@ export default function ProjectDashboard(): JSX.Element {
 
     const changes = supabase
       .channel(`project-dashboard-${projectId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects', filter: `id=eq.${projectId}` }, () => { void fetchProjectData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'wbs', filter: `project_id=eq.${projectId}` }, () => { void fetchProjectData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'line_items', filter: `project_id=eq.${projectId}` }, () => { void fetchProjectData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'issues', filter: `project_id=eq.${projectId}` }, () => { void fetchProjectData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'change_orders', filter: `project_id=eq.${projectId}` }, () => { void fetchProjectData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'inspections', filter: `project_id=eq.${projectId}` }, () => { void fetchProjectData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects', filter: `id=eq.${projectId}` }, () => { void fetchProjectData('background'); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wbs', filter: `project_id=eq.${projectId}` }, () => { void fetchProjectData('background'); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'line_items', filter: `project_id=eq.${projectId}` }, () => { void fetchProjectData('background'); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'issues', filter: `project_id=eq.${projectId}` }, () => { void fetchProjectData('background'); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'change_orders', filter: `project_id=eq.${projectId}` }, () => { void fetchProjectData('background'); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inspections', filter: `project_id=eq.${projectId}` }, () => { void fetchProjectData('background'); })
       .subscribe();
 
     return () => {
@@ -212,7 +225,7 @@ export default function ProjectDashboard(): JSX.Element {
                 <p className="text-gray-300 mb-6">{error.message}</p>
                 <div className="flex space-x-4">
                   <button
-                    onClick={() => { void fetchProjectData(); }}
+                    onClick={() => { void fetchProjectData('user'); }}
                     className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
                   >
                     Try Again
@@ -361,7 +374,7 @@ export default function ProjectDashboard(): JSX.Element {
             contractId={contract.id}
             isLoading={isLoading}
             error={error}
-            onRetry={() => { void fetchProjectData(); }}
+            onRetry={() => { void fetchProjectData('user'); }}
           />
           <LineItemsTable
             lineItems={lineItems}
