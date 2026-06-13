@@ -1,15 +1,26 @@
-
-
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { rpcClient } from '@/lib/rpc.client';
 import { useAuthStore } from '@/lib/store';
+import { getBackendErrorMessage, logBackendError } from '@/lib/backendErrors';
+import { getStoragePublicUrl, uploadStorageFile } from '@/lib/storageClient';
 import { resolveInviteRequestErrorMessage } from '@/lib/utils/inviteErrorMessages';
 import { invalidateMyOrganizationsCache } from '@/hooks/useMyOrganizations';
 import { invalidateMyInactiveOrganizationsCache, useMyInactiveOrganizations } from '@/hooks/useMyInactiveOrganizations';
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
+
+const resolveLogoFileExtension = (file: File): string => {
+    const fileNameExtension = file.name.includes('.')
+        ? file.name.split('.').pop()?.trim().toLowerCase()
+        : '';
+    const mimeExtension = file.type.includes('/')
+        ? file.type.split('/').pop()?.trim().toLowerCase()
+        : '';
+    const extension = (fileNameExtension || mimeExtension || 'png').replace(/[^a-z0-9]/g, '');
+    return extension || 'png';
+};
 
 export default function OrganizationOnboarding(): JSX.Element {
     const navigate = useNavigate();
@@ -47,6 +58,51 @@ export default function OrganizationOnboarding(): JSX.Element {
         } else {
             setLogoPreview(null);
         }
+    };
+
+    const uploadOrganizationLogo = async (file: File): Promise<string> => {
+        const profileId = profile?.id;
+        if (!profileId) {
+            const error = new Error('Profile is not ready yet. Please retry.');
+            logBackendError({
+                module: 'OrganizationOnboarding',
+                operation: 'prepare organization logo upload',
+                trigger: 'user',
+                error,
+                ids: { profileId: null },
+            });
+            toast.error(error.message);
+            throw error;
+        }
+
+        if (file.size === 0) {
+            const error = new Error('Selected logo file is empty.');
+            logBackendError({
+                module: 'OrganizationOnboarding',
+                operation: 'prepare organization logo upload',
+                trigger: 'user',
+                error,
+                ids: { profileId },
+            });
+            toast.error(error.message);
+            throw error;
+        }
+
+        const fileName = `${crypto.randomUUID()}.${resolveLogoFileExtension(file)}`;
+        const filePath = `${profileId}/${fileName}`;
+        const storedPath = await uploadStorageFile('avatars-personal', filePath, file, {
+            module: 'OrganizationOnboarding',
+            operation: 'upload organization logo',
+            trigger: 'user',
+            ids: { profileId },
+        });
+
+        return getStoragePublicUrl('avatars-personal', storedPath, {
+            module: 'OrganizationOnboarding',
+            operation: 'resolve organization logo url',
+            trigger: 'user',
+            ids: { profileId },
+        });
     };
 
     useEffect(() => {
@@ -94,8 +150,8 @@ export default function OrganizationOnboarding(): JSX.Element {
             invalidateMyOrganizationsCache(profile.id);
             invalidateMyInactiveOrganizationsCache(profile.id);
             toast.success(isRejoinFlow
-                ? 'Rejoin request submitted — org admins were notified'
-                : 'Membership request submitted — org admins were notified');
+                ? 'Rejoin request submitted - org admins were notified'
+                : 'Membership request submitted - org admins were notified');
             setJoinModalOpen(false);
             setOrgToJoin(null);
             setSearchResults([]);
@@ -117,13 +173,16 @@ export default function OrganizationOnboarding(): JSX.Element {
             return;
         }
         setIsBusy(true);
+        let failedDuringLogoUpload = false;
         try {
-            // Optionally upload logo first and get URL
             let logoUrl: string | null = null;
             if (logoFile) {
-                // TODO: Replace with your upload logic
-                // logoUrl = await uploadLogo(logoFile);
-                logoUrl = logoPreview;
+                try {
+                    logoUrl = await uploadOrganizationLogo(logoFile);
+                } catch (err) {
+                    failedDuringLogoUpload = true;
+                    throw err;
+                }
             }
             await rpcClient.create_my_organization({
                 p_name: orgName.trim(),
@@ -137,8 +196,18 @@ export default function OrganizationOnboarding(): JSX.Element {
             toast.success('Organization created!');
             navigate('/dashboard');
         } catch (err) {
-            console.error('[OrganizationOnboarding] create_my_organization error', err);
-            toast.error('Error creating organization');
+            if (failedDuringLogoUpload) {
+                return;
+            }
+
+            logBackendError({
+                module: 'OrganizationOnboarding',
+                operation: 'create organization',
+                trigger: 'user',
+                error: err,
+                ids: { profileId: profile?.id ?? null },
+            });
+            toast.error(`Unable to create organization. ${getBackendErrorMessage(err)}`);
         } finally {
             setIsBusy(false);
         }
@@ -159,7 +228,7 @@ export default function OrganizationOnboarding(): JSX.Element {
                 )}
 
                 {inactiveMembershipsLoading ? (
-                    <p className="text-sm text-gray-400">Loading previous organizations…</p>
+                    <p className="text-sm text-gray-400">Loading previous organizations...</p>
                 ) : inactiveMemberships.length === 0 ? (
                     <div className="rounded border border-background-lighter bg-background p-4 text-sm text-gray-300">
                         No inactive memberships found.
@@ -174,7 +243,7 @@ export default function OrganizationOnboarding(): JSX.Element {
                                 <p className="text-white font-semibold">{membership.organizationName}</p>
                                 <p className="text-xs text-gray-400 mt-1">
                                     Left on {new Date(membership.membershipDeletedAt).toLocaleDateString()}
-                                    {membership.roleLastKnown ? ` • Last role: ${membership.roleLastKnown}` : ''}
+                                    {membership.roleLastKnown ? ` - Last role: ${membership.roleLastKnown}` : ''}
                                 </p>
                                 <div className="mt-3">
                                     <Button
@@ -251,7 +320,7 @@ export default function OrganizationOnboarding(): JSX.Element {
                             disabled={isBusy}
                             aria-autocomplete="list"
                         />
-                        {isSearching && <p className="text-xs text-gray-400 mt-2">Searching organizations…</p>}
+                        {isSearching && <p className="text-xs text-gray-400 mt-2">Searching organizations...</p>}
                         {!isSearching && searchResults.length > 0 && (
                             <div className="border border-background-lighter rounded mt-2 divide-y divide-background-lighter bg-background">
                                 {searchResults.map((r) => (
