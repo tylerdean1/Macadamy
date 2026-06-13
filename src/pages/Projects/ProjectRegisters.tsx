@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 
 import { Page, PageContainer } from '@/components/Layout';
+import { logBackendError, toBackendErrorToastMessage } from '@/lib/backendErrors';
 import { invokeRpc } from '@/lib/rpc.client';
 import ProjectNav from './ProjectNav';
 
@@ -11,6 +13,11 @@ type RegisterConfig = {
   title: string;
   code: string;
   description: string;
+};
+
+type FailedRegisterLoad = {
+  operation: string;
+  error: unknown;
 };
 
 const registers: RegisterConfig[] = [
@@ -79,44 +86,78 @@ function rowStatus(row: Row): string {
   return firstValue(row, ['status', 'workflow_status', 'review_status', 'import_status'], 'open');
 }
 
+function reportRegisterLoadErrors(failures: FailedRegisterLoad[], projectId: string): string {
+  for (const failure of failures) {
+    logBackendError({
+      module: 'ProjectRegisters',
+      operation: failure.operation,
+      trigger: 'user',
+      error: failure.error,
+      ids: { projectId },
+    });
+  }
+
+  const firstFailure = failures[0] ?? {
+    operation: 'load project registers',
+    error: new Error('Unknown register load failure'),
+  };
+  const message = toBackendErrorToastMessage({
+    module: 'ProjectRegisters',
+    operation: firstFailure.operation,
+    trigger: 'user',
+    error: firstFailure.error,
+    ids: { projectId },
+  });
+  const fullMessage = failures.length > 1 ? `${message} (${failures.length} register requests failed.)` : message;
+  toast.error(fullMessage);
+  return fullMessage;
+}
+
 export default function ProjectRegisters(): JSX.Element {
   const { id } = useParams<{ id: string }>();
+  const projectId = typeof id === 'string' && id.trim() !== '' ? id : null;
   const [rfqs, setRfqs] = useState<Row[]>([]);
   const [submittals, setSubmittals] = useState<Row[]>([]);
   const [sources, setSources] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sourceCategory, setSourceCategory] = useState('all');
 
   const loadRegisters = useCallback(async (): Promise<void> => {
-    if (!id) {
-      setError('No project ID was provided.');
+    if (!projectId) {
+      setRfqs([]);
+      setSubmittals([]);
+      setSources([]);
+      setLoadFailed(true);
+      setError('Project context is missing. Return to the project and try again.');
       setLoading(false);
       return;
     }
 
     setLoading(true);
+    setLoadFailed(false);
     setError(null);
 
     try {
       const [rfqResult, submittalResult, sourceResult] = await Promise.allSettled([
         invokeRpc<unknown>('filter_rfqs', {
-          _filters: { project_id: id },
+          _filters: { project_id: projectId },
           _limit: 100,
           _offset: 0,
           _order_by: 'updated_at',
           _direction: 'desc',
         }),
         invokeRpc<unknown>('filter_submittals', {
-          _filters: { project_id: id },
+          _filters: { project_id: projectId },
           _limit: 100,
           _offset: 0,
           _order_by: 'updated_at',
           _direction: 'desc',
         }),
         invokeRpc<unknown>('filter_project_source_documents', {
-          _filters: { project_id: id },
+          _filters: { project_id: projectId },
           _limit: 500,
           _offset: 0,
           _order_by: 'created_at',
@@ -124,20 +165,28 @@ export default function ProjectRegisters(): JSX.Element {
         }),
       ]);
 
-      if (rfqResult.status === 'fulfilled') setRfqs(asRows(rfqResult.value));
-      if (submittalResult.status === 'fulfilled') setSubmittals(asRows(submittalResult.value));
-      if (sourceResult.status === 'fulfilled') setSources(asRows(sourceResult.value));
+      const failures: FailedRegisterLoad[] = [
+        rfqResult.status === 'rejected' ? { operation: 'load RFQs', error: rfqResult.reason } : null,
+        submittalResult.status === 'rejected' ? { operation: 'load submittals', error: submittalResult.reason } : null,
+        sourceResult.status === 'rejected' ? { operation: 'load source documents', error: sourceResult.reason } : null,
+      ].filter((failure): failure is FailedRegisterLoad => failure !== null);
 
-      if (rfqResult.status === 'rejected' || submittalResult.status === 'rejected' || sourceResult.status === 'rejected') {
-        setError('Some registers could not be loaded. Showing the records that are available.');
+      if (failures.length > 0) {
+        setRfqs([]);
+        setSubmittals([]);
+        setSources([]);
+        setLoadFailed(true);
+        setError(reportRegisterLoadErrors(failures, projectId));
+        return;
       }
-    } catch (err) {
-      console.error('[ProjectRegisters] load failed', err);
-      setError('Unable to load project registers right now.');
+
+      setRfqs(asRows(rfqResult.value));
+      setSubmittals(asRows(submittalResult.value));
+      setSources(asRows(sourceResult.value));
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [projectId]);
 
   useEffect(() => {
     void loadRegisters();
@@ -177,12 +226,25 @@ export default function ProjectRegisters(): JSX.Element {
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
-              {id && <Link to={`/projects/${id}/controls`} className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90">Open controls</Link>}
-              {id && <Link to={`/projects/${id}/production`} className="inline-flex items-center justify-center rounded-xl border border-border px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-muted">Open production</Link>}
+              {projectId && <Link to={`/projects/${projectId}/controls`} className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90">Open controls</Link>}
+              {projectId && <Link to={`/projects/${projectId}/production`} className="inline-flex items-center justify-center rounded-xl border border-border px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-muted">Open production</Link>}
             </div>
           </div>
           {loading && <div className="mt-6 rounded-2xl border border-border bg-muted/30 p-5 text-sm text-muted-foreground">Loading project registers…</div>}
-          {error && <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">{error}</div>}
+          {error && (
+            <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-5 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
+              <span>{error}</span>
+              {projectId && (
+                <button
+                  type="button"
+                  onClick={() => void loadRegisters()}
+                  className="inline-flex items-center justify-center rounded-xl border border-destructive/30 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/10"
+                >
+                  Retry
+                </button>
+              )}
+            </div>
+          )}
         </section>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -195,44 +257,48 @@ export default function ProjectRegisters(): JSX.Element {
           ))}
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><p className="text-sm text-muted-foreground">RFQs</p><p className="mt-2 text-3xl font-bold text-foreground">{rfqs.length}</p></div>
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><p className="text-sm text-muted-foreground">Submittals</p><p className="mt-2 text-3xl font-bold text-foreground">{submittals.length}</p></div>
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><p className="text-sm text-muted-foreground">Source docs</p><p className="mt-2 text-3xl font-bold text-foreground">{sources.length}</p></div>
-          {Object.entries(sourceCounts).slice(0, 2).map(([category, count]) => (
-            <div key={category} className="rounded-2xl border border-border bg-card p-5 shadow-sm"><p className="text-sm capitalize text-muted-foreground">{category.replaceAll('_', ' ')}</p><p className="mt-2 text-3xl font-bold text-foreground">{count}</p></div>
-          ))}
-        </section>
+        {!loading && !loadFailed && (
+          <>
+            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><p className="text-sm text-muted-foreground">RFQs</p><p className="mt-2 text-3xl font-bold text-foreground">{rfqs.length}</p></div>
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><p className="text-sm text-muted-foreground">Submittals</p><p className="mt-2 text-3xl font-bold text-foreground">{submittals.length}</p></div>
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><p className="text-sm text-muted-foreground">Source docs</p><p className="mt-2 text-3xl font-bold text-foreground">{sources.length}</p></div>
+              {Object.entries(sourceCounts).slice(0, 2).map(([category, count]) => (
+                <div key={category} className="rounded-2xl border border-border bg-card p-5 shadow-sm"><p className="text-sm capitalize text-muted-foreground">{category.replaceAll('_', ' ')}</p><p className="mt-2 text-3xl font-bold text-foreground">{count}</p></div>
+              ))}
+            </section>
 
-        <section className="rounded-2xl border border-border bg-card shadow-sm">
-          <div className="border-b border-border p-5"><h2 className="text-xl font-bold text-foreground">RFQs</h2><p className="mt-1 text-sm text-muted-foreground">Quote requests tied to this project.</p></div>
-          <RegisterTable rows={rfqs} prefix="RFQ" emptyText="No RFQs found for this project yet." />
-        </section>
+            <section className="rounded-2xl border border-border bg-card shadow-sm">
+              <div className="border-b border-border p-5"><h2 className="text-xl font-bold text-foreground">RFQs</h2><p className="mt-1 text-sm text-muted-foreground">Quote requests tied to this project.</p></div>
+              <RegisterTable rows={rfqs} prefix="RFQ" emptyText="No RFQs found for this project yet." />
+            </section>
 
-        <section className="rounded-2xl border border-border bg-card shadow-sm">
-          <div className="border-b border-border p-5"><h2 className="text-xl font-bold text-foreground">Submittals</h2><p className="mt-1 text-sm text-muted-foreground">Submittals tied to this project.</p></div>
-          <RegisterTable rows={submittals} prefix="SUB" emptyText="No submittals found for this project yet." />
-        </section>
+            <section className="rounded-2xl border border-border bg-card shadow-sm">
+              <div className="border-b border-border p-5"><h2 className="text-xl font-bold text-foreground">Submittals</h2><p className="mt-1 text-sm text-muted-foreground">Submittals tied to this project.</p></div>
+              <RegisterTable rows={submittals} prefix="SUB" emptyText="No submittals found for this project yet." />
+            </section>
 
-        <section className="rounded-2xl border border-border bg-card shadow-sm">
-          <div className="border-b border-border p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.25em] text-primary">SharePoint import staging</p>
-                <h2 className="mt-2 text-xl font-bold text-foreground">Project source index</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Indexed 25254 files staged for schedule, subcontract, PO, closeout, and revenue imports.</p>
+            <section className="rounded-2xl border border-border bg-card shadow-sm">
+              <div className="border-b border-border p-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.25em] text-primary">SharePoint import staging</p>
+                    <h2 className="mt-2 text-xl font-bold text-foreground">Project source index</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">Indexed 25254 files staged for schedule, subcontract, PO, closeout, and revenue imports.</p>
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search source docs" className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary sm:w-64" />
+                    <select value={sourceCategory} onChange={(event) => setSourceCategory(event.target.value)} className="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary">
+                      {sourceCategories.map((category) => <option key={category} value={category}>{category === 'all' ? 'All categories' : category.replaceAll('_', ' ')}</option>)}
+                    </select>
+                    <div className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">{filteredSources.length}/{sources.length} shown</div>
+                  </div>
+                </div>
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search source docs" className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary sm:w-64" />
-                <select value={sourceCategory} onChange={(event) => setSourceCategory(event.target.value)} className="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary">
-                  {sourceCategories.map((category) => <option key={category} value={category}>{category === 'all' ? 'All categories' : category.replaceAll('_', ' ')}</option>)}
-                </select>
-                <div className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">{filteredSources.length}/{sources.length} shown</div>
-              </div>
-            </div>
-          </div>
-          <SourceTable rows={filteredSources} />
-        </section>
+              <SourceTable rows={filteredSources} />
+            </section>
+          </>
+        )}
       </PageContainer>
     </Page>
   );
