@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  AlertTriangle,
   ArrowRight,
   BarChart3,
   CalendarClock,
@@ -14,10 +13,15 @@ import {
 } from 'lucide-react';
 
 import { Page, PageContainer } from '@/components/Layout';
+import { ErrorState } from '@/components/ui/error-state';
+import { LoadingState } from '@/components/ui/loading-state';
+import { getBackendErrorMessage, logBackendError } from '@/lib/backendErrors';
 import { rpcClient } from '@/lib/rpc.client';
 import type { Database } from '@/lib/database.types';
+import { toast } from 'sonner';
 
 type ProjectRow = Database['public']['Tables']['projects']['Row'];
+type LoadTrigger = 'user' | 'background';
 
 type ProjectHealth = 'Active' | 'Preconstruction' | 'Closeout' | 'On hold' | 'Unknown';
 
@@ -104,27 +108,33 @@ export default function Projects(): JSX.Element {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async (): Promise<void> => {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await rpcClient.filter_projects({ _filters: {} });
-        setProjects(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error('[Projects] fetch projects failed', {
-          error: err,
-          identifiers: {},
-          trigger: 'user',
-        });
-        setError('Unable to load projects. Please refresh and try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loadProjects = useCallback(async (trigger: LoadTrigger = 'user'): Promise<void> => {
+    setLoading(true);
+    setError(null);
 
-    void fetchData();
+    try {
+      const data = await rpcClient.filter_projects({ _filters: {} });
+      setProjects(Array.isArray(data) ? data : []);
+    } catch (error) {
+      logBackendError({
+        module: 'Projects',
+        operation: 'load projects',
+        trigger,
+        error,
+      });
+      setProjects([]);
+      setError(getBackendErrorMessage(error));
+      if (trigger === 'user') {
+        toast.error('Unable to load projects.');
+      }
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadProjects('user');
+  }, [loadProjects]);
 
   const projectStats = useMemo(() => {
     const activeProjects = projects.filter((project) => getProjectHealth(project) === 'Active').length;
@@ -231,11 +241,16 @@ export default function Projects(): JSX.Element {
           </div>
 
           {loading ? (
-            <div className="p-8 text-sm text-muted-foreground">Loading projects…</div>
+            <div className="p-8">
+              <LoadingState message="Loading projects..." />
+            </div>
           ) : error ? (
-            <div className="flex items-start gap-3 p-8 text-sm text-destructive">
-              <AlertTriangle className="mt-0.5 h-5 w-5" />
-              <span>{error}</span>
+            <div className="p-8">
+              <ErrorState
+                error={error}
+                onRetry={() => { void loadProjects('user'); }}
+                title="Unable to load projects"
+              />
             </div>
           ) : projects.length === 0 ? (
             <div className="p-8 text-sm text-muted-foreground">
