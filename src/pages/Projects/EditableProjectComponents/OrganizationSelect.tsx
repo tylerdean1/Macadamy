@@ -1,52 +1,66 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Search, Plus } from 'lucide-react';
+
+import { ErrorState } from '@/components/ui/error-state';
 import { rpcClient } from '@/lib/rpc.client';
+import { getBackendErrorMessage, logBackendError } from '@/lib/backendErrors';
 import { Input } from '@/pages/StandardPages/StandardPageComponents/input';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import type { Organization } from '@/lib/types';
-import { Search, Plus } from 'lucide-react';
 
 interface OrganizationSelectProps {
   selectedId: string | null;
   onSelect: (org: Organization) => void;
-  createUrl?: string; // ✅ New prop for customizing destination
+  createUrl?: string;
 }
 
 export default function OrganizationSelect({
   selectedId,
   onSelect,
-  createUrl = '/organization_creation' // ✅ Default fallback
-}: OrganizationSelectProps) {
+  createUrl = '/organization_creation',
+}: OrganizationSelectProps): JSX.Element {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchOrganizations = async () => {
-      setLoading(true);
-      try {
-        const data = await rpcClient.get_organizations_public({ p_query: search.trim() });
-        const normalized = Array.isArray(data)
-          ? data.map(org => ({
-            id: org.id,
-            name: org.name,
-            address: null,
-            phone: null,
-            website: null
-          }))
-          : [];
-        setOrganizations(normalized);
-      } catch (error) {
-        console.error('Error loading organizations:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchOrganizations = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    setError(null);
 
-    void fetchOrganizations();
+    try {
+      const data = await rpcClient.get_organizations_public({ p_query: search.trim() });
+      const normalized = Array.isArray(data)
+        ? data.map((org) => ({
+          id: org.id,
+          name: org.name,
+          address: null,
+          phone: null,
+          website: null,
+        }))
+        : [];
+      setOrganizations(normalized);
+    } catch (error) {
+      logBackendError({
+        module: 'OrganizationSelect',
+        operation: 'load organizations',
+        trigger: 'user',
+        error,
+        ids: { query: search.trim() },
+      });
+      setOrganizations([]);
+      setError(getBackendErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
   }, [search]);
+
+  useEffect(() => {
+    void fetchOrganizations();
+  }, [fetchOrganizations]);
 
   const filtered = organizations.filter((org) =>
     org.name.toLowerCase().includes(search.toLowerCase())
@@ -65,10 +79,16 @@ export default function OrganizationSelect({
       <div className="max-h-40 overflow-y-auto rounded border border-background-lighter p-2">
         {loading ? (
           <div className="flex justify-center py-2">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+            <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-primary" />
           </div>
+        ) : error ? (
+          <ErrorState
+            error={error}
+            onRetry={() => { void fetchOrganizations(); }}
+            title="Unable to load organizations"
+          />
         ) : filtered.length === 0 ? (
-          <p className="text-sm text-gray-500 py-2 text-center">No matches found.</p>
+          <p className="py-2 text-center text-sm text-gray-500">No matches found.</p>
         ) : (
           filtered.map((org) => (
             <div
@@ -85,7 +105,7 @@ export default function OrganizationSelect({
       <Button
         variant="outline"
         leftIcon={<Plus className="w-4 h-4" />}
-        onClick={() => navigate(createUrl)} // ✅ Uses passed-in destination
+        onClick={() => navigate(createUrl)}
         className="w-full"
       >
         Create New Organization
