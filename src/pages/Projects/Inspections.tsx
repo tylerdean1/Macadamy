@@ -63,6 +63,28 @@ interface InspectionErrorIds {
   userId?: string | null;
 }
 
+interface InspectionFormState {
+  name: string;
+  description: string;
+  project_id: string;
+  wbs_id: string;
+  map_id: string;
+  line_item_id: string;
+  pdf_url: string | null;
+  photo_urls: string[];
+}
+
+const getBlankInspectionForm = (projectId: string | null): InspectionFormState => ({
+  name: '',
+  description: '',
+  project_id: projectId ?? '',
+  wbs_id: '',
+  map_id: '',
+  line_item_id: '',
+  pdf_url: null,
+  photo_urls: [],
+});
+
 const normalizeOptions = (items: Array<Record<string, unknown>>): Option[] =>
   items
     .map((item) => ({
@@ -112,29 +134,20 @@ export default function Inspections() {
   const [photoFiles, setPhotoFiles] = useState<FileList | null>(null);
 
   // Holds form data for creating/editing inspections
-  const [newInspection, setNewInspection] = useState<{
-    name: string;
-    description: string;
-    project_id: string;
-    wbs_id: string;
-    map_id: string;
-    line_item_id: string;
-    photo_urls: string[];
-  }>({
-    name: '',
-    description: '',
-    project_id: routeProjectId ?? '',
-    wbs_id: '',
-    map_id: '',
-    line_item_id: '',
-    photo_urls: [],
-  });
+  const [newInspection, setNewInspection] = useState<InspectionFormState>(() => getBlankInspectionForm(routeProjectId));
 
   // Dropdown data
   const [contracts, setContracts] = useState<Option[]>([]);
   const [wbsList, setWbsList] = useState<Option[]>([]);
   const [mapList, setMapList] = useState<Option[]>([]);
   const [lineItems, setLineItems] = useState<Option[]>([]);
+
+  const resetInspectionForm = useCallback(() => {
+    setNewInspection(getBlankInspectionForm(routeProjectId));
+    setPdfFile(null);
+    setPhotoFiles(null);
+    setEditingId(null);
+  }, [routeProjectId]);
 
   // Check if the user has edit permissions
   const canEdit = profile?.role === 'system_admin' || profile?.role === 'org_admin' || profile?.role === 'org_supervisor' || profile?.role === 'inspector';
@@ -258,17 +271,28 @@ export default function Inspections() {
     if (isSaving) return;
 
     const selectedProjectId = newInspection.project_id || routeProjectId;
-    if (!user || !newInspection.name || !selectedProjectId || !pdfFile) return;
+    const trimmedName = newInspection.name.trim();
+    const existingPdfUrl = typeof newInspection.pdf_url === 'string' ? newInspection.pdf_url : '';
+    if (!user || !trimmedName || !selectedProjectId) return;
+
+    if (!pdfFile && !existingPdfUrl) {
+      const message = 'Upload a PDF report before saving this inspection.';
+      setErrorMessage(message);
+      toast.error(message);
+      return;
+    }
 
     setIsSaving(true);
     setErrorMessage(null);
 
     try {
-      let pdfUrl = '';
-      const photoUrls: string[] = [];
+      let pdfUrl = existingPdfUrl;
+      const photoUrls = newInspection.photo_urls.filter((url) => url.trim() !== '');
 
       try {
-        pdfUrl = await uploadFile(pdfFile, 'inspections');
+        if (pdfFile) {
+          pdfUrl = await uploadFile(pdfFile, 'inspections');
+        }
 
         if (photoFiles) {
           for (const file of Array.from(photoFiles)) {
@@ -290,7 +314,7 @@ export default function Inspections() {
       }
 
       const insertData = {
-        name: newInspection.name,
+        name: trimmedName,
         description: newInspection.description,
         project_id: selectedProjectId,
         wbs_id: newInspection.wbs_id || undefined,
@@ -358,18 +382,7 @@ export default function Inspections() {
       }
 
       setCreating(false);
-      setEditingId(null);
-      setNewInspection({
-        name: '',
-        description: '',
-        project_id: routeProjectId ?? '',
-        wbs_id: '',
-        map_id: '',
-        line_item_id: '',
-        photo_urls: []
-      });
-      setPdfFile(null);
-      setPhotoFiles(null);
+      resetInspectionForm();
     } catch (err) {
       setErrorMessage(reportInspectionsError(
         typeof editingId === 'string' && editingId.length > 0
@@ -389,6 +402,8 @@ export default function Inspections() {
 
   // Load inspection data into form for editing, handling nullable fields correctly
   function handleEdit(insp: Inspection) {
+    if (!insp.id) return;
+
     setNewInspection({
       name: insp.name,
       description: typeof insp.description === 'string' ? insp.description : '',
@@ -396,9 +411,13 @@ export default function Inspections() {
       wbs_id: typeof insp.wbs_id === 'string' ? insp.wbs_id : '',
       map_id: typeof insp.map_id === 'string' ? insp.map_id : '',
       line_item_id: typeof insp.line_item_id === 'string' ? insp.line_item_id : '',
+      pdf_url: insp.pdf_url,
       photo_urls: insp.photo_urls || [],
     });
-    setEditingId(insp.id!);
+    setPdfFile(null);
+    setPhotoFiles(null);
+    setErrorMessage(null);
+    setEditingId(insp.id);
     setCreating(true);
   }
 
@@ -408,7 +427,13 @@ export default function Inspections() {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Inspections</h1>
         {canEdit && (
-          <button className="bg-blue-600 px-4 py-2 rounded flex items-center gap-2" onClick={() => setCreating(true)}>
+          <button
+            className="bg-blue-600 px-4 py-2 rounded flex items-center gap-2"
+            onClick={() => {
+              resetInspectionForm();
+              setCreating(true);
+            }}
+          >
             <Plus className="w-4 h-4" /> New Inspection
           </button>
         )}
@@ -432,7 +457,7 @@ export default function Inspections() {
 
       {/* Inspection Form */}
       {creating && (
-        <form onSubmit={e => { void handleSave(e); }} className="space-y-4 bg-background-light p-4 rounded border">
+        <form key={editingId ?? 'new-inspection'} onSubmit={e => { void handleSave(e); }} className="space-y-4 bg-background-light p-4 rounded border">
           <input
             type="text"
             placeholder="Name"
@@ -489,8 +514,19 @@ export default function Inspections() {
             {lineItems.map(li => <option key={li.id} value={li.id}>{li.name}</option>)}
           </select>
 
-          <label>PDF Report *</label>
-          <input type="file" required accept="application/pdf" title="Upload a PDF report" onChange={(e) => setPdfFile(e.target.files?.[0] || null)} />
+          <label>PDF Report {newInspection.pdf_url ? '(optional replacement)' : '*'}</label>
+          {newInspection.pdf_url && (
+            <p className="text-sm text-gray-300">
+              Current PDF is saved and will be kept unless you upload a replacement.
+            </p>
+          )}
+          <input
+            type="file"
+            required={!newInspection.pdf_url}
+            accept="application/pdf"
+            title="Upload a PDF report"
+            onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+          />
 
           <label htmlFor="photoFiles">Photos (optional)</label>
           <input
@@ -503,7 +539,16 @@ export default function Inspections() {
           />
 
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => { setCreating(false); setEditingId(null); }} className="bg-gray-600 px-4 py-2 rounded">Cancel</button>
+            <button
+              type="button"
+              onClick={() => {
+                setCreating(false);
+                resetInspectionForm();
+              }}
+              className="bg-gray-600 px-4 py-2 rounded"
+            >
+              Cancel
+            </button>
             <button type="submit" disabled={isSaving} className="bg-green-600 px-4 py-2 rounded disabled:cursor-not-allowed disabled:opacity-60">
               {isSaving ? 'Saving...' : 'Save'}
             </button>
