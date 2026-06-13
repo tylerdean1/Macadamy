@@ -36,6 +36,22 @@ type WeatherData = {
   safety_incidents?: unknown;
 };
 
+function getLocalDateValue(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
+function formatLocalDateLabel(dateValue: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue);
+  if (!match) return dateValue;
+
+  const [, year, month, day] = match;
+  return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString();
+}
+
 function parseWeatherData(weather: WeatherValue): WeatherData {
   if (!weather) return {};
 
@@ -61,13 +77,42 @@ function toOptionalNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+function buildWeatherData(log: DailyLog) {
+  return {
+    conditions: toOptionalString(log.weather_conditions),
+    temperature: toOptionalNumber(log.temperature),
+    work_performed: toOptionalString(log.work_performed),
+    delays_encountered: toOptionalString(log.delays_encountered),
+    visitors: toOptionalString(log.visitors),
+    safety_incidents: toOptionalString(log.safety_incidents),
+  };
+}
+
+function createDraftDailyLog(projectId: string): DailyLog {
+  return {
+    contract_id: projectId,
+    date: getLocalDateValue(),
+    notes: null,
+    project_id: projectId,
+    weather: {},
+    created_at: null,
+    updated_at: new Date().toISOString(),
+    weather_conditions: null,
+    temperature: null,
+    work_performed: null,
+    delays_encountered: null,
+    visitors: null,
+    safety_incidents: null,
+  };
+}
+
 function mapDailyLog(log: DailyLogRow, projectId: string): DailyLog {
   const weatherData = parseWeatherData(log.weather);
 
   return {
     id: typeof log.id === 'string' ? log.id : undefined,
     contract_id: projectId,
-    date: typeof log.date === 'string' ? log.date : new Date().toISOString().split('T')[0],
+    date: typeof log.date === 'string' ? log.date : getLocalDateValue(),
     notes: log.notes ?? null,
     project_id: log.project_id ?? null,
     weather: log.weather,
@@ -149,7 +194,7 @@ export default function DailyReports() {
         return;
       }
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDateValue();
       setCurrentLog(mappedLogs.find((log) => log.date === today) ?? null);
       setEditing(false);
     } catch (err) {
@@ -166,12 +211,31 @@ export default function DailyReports() {
     void fetchDailyReports();
   }, [fetchDailyReports]);
 
-  const handleUpdate = async () => {
-    if (!currentLog || typeof currentLog.id !== 'string' || currentLog.id.length === 0) return;
+  const openTodayLogForm = () => {
+    if (!projectId) {
+      setErrorMessage('Project context is missing. Return to the project and try again.');
+      return;
+    }
+
+    const today = getLocalDateValue();
+    setCurrentLog(logs.find((log) => log.date === today) ?? createDraftDailyLog(projectId));
+    setErrorMessage(null);
+    setEditing(true);
+  };
+
+  const handleCancelEditing = () => {
+    const today = getLocalDateValue();
+    setCurrentLog(logs.find((log) => log.date === today) ?? null);
+    setEditing(false);
+    setErrorMessage(null);
+  };
+
+  const handleSaveDailyLog = async () => {
+    if (isSaving || !currentLog) return;
 
     if (!user) {
-      const error = new Error('User must be authenticated to update a daily report.');
-      setErrorMessage(reportDailyReportsError('update daily report', error, projectId));
+      const error = new Error('User must be authenticated to save a daily report.');
+      setErrorMessage(reportDailyReportsError('save daily report', error, projectId));
       return;
     }
 
@@ -180,30 +244,41 @@ export default function DailyReports() {
       return;
     }
 
+    const isExistingLog = typeof currentLog.id === 'string' && currentLog.id.length > 0;
+    const weatherData = buildWeatherData(currentLog);
+
     setIsSaving(true);
     setErrorMessage(null);
 
     try {
-      const weatherData = {
-        conditions: currentLog.weather_conditions,
-        temperature: currentLog.temperature,
-        work_performed: currentLog.work_performed,
-        delays_encountered: currentLog.delays_encountered,
-        visitors: currentLog.visitors,
-        safety_incidents: currentLog.safety_incidents,
-      };
+      if (isExistingLog) {
+        await rpcClient.update_daily_logs({
+          _id: currentLog.id as string,
+          _input: {
+            weather: weatherData,
+            notes: toOptionalString(currentLog.notes),
+            updated_at: new Date().toISOString(),
+          }
+        });
+      } else {
+        await rpcClient.insert_daily_logs({
+          _input: {
+            project_id: projectId,
+            date: currentLog.date,
+            weather: weatherData,
+            notes: toOptionalString(currentLog.notes),
+          }
+        });
+      }
 
-      await rpcClient.update_daily_logs({
-        _id: currentLog.id,
-        _input: {
-          weather: weatherData,
-          notes: currentLog.notes,
-          updated_at: new Date().toISOString(),
-        }
-      });
+      toast.success(isExistingLog ? 'Daily report updated.' : 'Daily report created.');
       await fetchDailyReports();
     } catch (err) {
-      setErrorMessage(reportDailyReportsError('update daily report', err, projectId));
+      setErrorMessage(reportDailyReportsError(
+        isExistingLog ? 'update daily report' : 'create daily report',
+        err,
+        projectId,
+      ));
     } finally {
       setIsSaving(false);
     }
@@ -218,6 +293,7 @@ export default function DailyReports() {
   }
 
   const isProjectActive = contractStatus?.toLowerCase() === 'active';
+  const todayButtonLabel = currentLog ? "Edit Today's Log" : "Create Today's Log";
 
   return (
     <div className="min-h-screen bg-background">
@@ -233,12 +309,12 @@ export default function DailyReports() {
             </button>
             <h1 className="text-2xl font-bold text-white">Daily Reports</h1>
           </div>
-          {isProjectActive && currentLog && !editing && (
+          {isProjectActive && !editing && (
             <button
-              onClick={() => setEditing(true)}
+              onClick={openTodayLogForm}
               className="flex items-center px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg"
             >
-              <Plus className="w-5 h-5 mr-2" /> Edit Today’s Log
+              <Plus className="w-5 h-5 mr-2" /> {todayButtonLabel}
             </button>
           )}
         </div>
@@ -271,8 +347,20 @@ export default function DailyReports() {
           <>
             {editing && currentLog && (
               <div className="bg-background-light p-6 rounded-lg border border-background-lighter space-y-6 mb-8">
-                <h2 className="text-xl font-semibold text-white">Edit Daily Log</h2>
+                <h2 className="text-xl font-semibold text-white">
+                  {currentLog.id ? 'Edit Daily Log' : 'Create Daily Log'}
+                </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="text-gray-400 text-sm">Report Date</label>
+                    <input
+                      type="date"
+                      value={currentLog.date}
+                      disabled={Boolean(currentLog.id)}
+                      onChange={(e) => setCurrentLog({ ...currentLog, date: e.target.value })}
+                      className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded disabled:cursor-not-allowed disabled:opacity-70"
+                    />
+                  </div>
                   <div>
                     <label className="text-gray-400 text-sm">Weather Conditions</label>
                     <input
@@ -297,9 +385,6 @@ export default function DailyReports() {
                       title="Temperature input field"
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="text-gray-400 text-sm">Visitors</label>
                     <textarea
@@ -309,6 +394,26 @@ export default function DailyReports() {
                       className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded"
                       placeholder="Enter visitors"
                       title="Visitors input field"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm">Work Performed</label>
+                    <textarea
+                      rows={4}
+                      value={currentLog.work_performed ?? ''}
+                      onChange={(e) => setCurrentLog({ ...currentLog, work_performed: e.target.value })}
+                      className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded"
+                      placeholder="Summarize work performed"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm">Delays Encountered</label>
+                    <textarea
+                      rows={4}
+                      value={currentLog.delays_encountered ?? ''}
+                      onChange={(e) => setCurrentLog({ ...currentLog, delays_encountered: e.target.value })}
+                      className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded"
+                      placeholder="Describe delays or enter none"
                     />
                   </div>
                   <div>
@@ -322,19 +427,30 @@ export default function DailyReports() {
                       title="Safety incidents input field"
                     />
                   </div>
+                  <div>
+                    <label className="text-gray-400 text-sm">Notes</label>
+                    <textarea
+                      rows={3}
+                      value={currentLog.notes ?? ''}
+                      onChange={(e) => setCurrentLog({ ...currentLog, notes: e.target.value })}
+                      className="w-full px-4 py-2 bg-background border border-background-lighter text-white rounded"
+                      placeholder="Add any additional notes"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-4">
                   <button
                     type="button"
-                    onClick={() => setEditing(false)}
-                    className="px-4 py-2 rounded-md bg-gray-700 text-white hover:bg-gray-600"
+                    onClick={handleCancelEditing}
+                    disabled={isSaving}
+                    className="px-4 py-2 rounded-md bg-gray-700 text-white hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
-                    onClick={() => { void handleUpdate(); }}
+                    onClick={() => { void handleSaveDailyLog(); }}
                     disabled={isSaving}
                     className="flex items-center px-4 py-2 bg-primary text-white rounded hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
                   >
@@ -358,10 +474,10 @@ export default function DailyReports() {
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <h3 className="text-white font-semibold text-lg">
-                          {new Date(log.date).toLocaleDateString()}
+                          {formatLocalDateLabel(log.date)}
                         </h3>
                         <p className="text-gray-400 text-sm">
-                          Created at {log.created_at ? new Date(log.created_at).toLocaleDateString() : '—'}
+                          Created at {log.created_at ? formatLocalDateLabel(log.created_at.slice(0, 10)) : '—'}
                         </p>
                       </div>
                       <div className="text-sm text-gray-400">
@@ -369,10 +485,19 @@ export default function DailyReports() {
                       </div>
                     </div>
                     <p className="text-gray-300 text-sm mb-1">
+                      <strong>Work:</strong> {log.work_performed ?? '—'}
+                    </p>
+                    <p className="text-gray-300 text-sm mb-1">
+                      <strong>Delays:</strong> {log.delays_encountered ?? '—'}
+                    </p>
+                    <p className="text-gray-300 text-sm mb-1">
                       <strong>Visitors:</strong> {log.visitors ?? '—'}
                     </p>
-                    <p className="text-gray-300 text-sm">
+                    <p className="text-gray-300 text-sm mb-1">
                       <strong>Safety:</strong> {log.safety_incidents ?? '—'}
+                    </p>
+                    <p className="text-gray-300 text-sm">
+                      <strong>Notes:</strong> {log.notes ?? '—'}
                     </p>
                   </div>
                 ))
