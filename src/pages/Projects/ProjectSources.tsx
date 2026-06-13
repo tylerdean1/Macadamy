@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { Page, PageContainer } from '@/components/Layout';
+import { ErrorState } from '@/components/ui/error-state';
+import { LoadingState } from '@/components/ui/loading-state';
+import { getBackendErrorMessage, logBackendError } from '@/lib/backendErrors';
 import { invokeRpc } from '@/lib/rpc.client';
+import { toast } from 'sonner';
 import ProjectNav from './ProjectNav';
 
 type Row = Record<string, unknown>;
@@ -28,7 +32,7 @@ function asNumber(value: unknown): number {
 
 function formatBytes(value: unknown): string {
   const bytes = asNumber(value);
-  if (!bytes) return '—';
+  if (!bytes) return '-';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -52,6 +56,7 @@ export default function ProjectSources(): JSX.Element {
 
   const loadSources = useCallback(async (): Promise<void> => {
     if (!id) {
+      setSources([]);
       setLoading(false);
       setError('No project ID was provided.');
       return;
@@ -70,8 +75,16 @@ export default function ProjectSources(): JSX.Element {
       });
       setSources(asRows(result));
     } catch (err) {
-      console.error('[ProjectSources] load failed', err);
-      setError('Unable to load project source documents right now.');
+      logBackendError({
+        module: 'Project Sources',
+        operation: 'load project source documents',
+        trigger: 'user',
+        error: err,
+        ids: { projectId: id },
+      });
+      setSources([]);
+      setError(getBackendErrorMessage(err));
+      toast.error('Unable to load project source documents.');
     } finally {
       setLoading(false);
     }
@@ -117,18 +130,20 @@ export default function ProjectSources(): JSX.Element {
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-            <p className="text-sm text-muted-foreground">Total sources</p>
-            <p className="mt-2 text-3xl font-bold text-foreground">{sources.length}</p>
-          </div>
-          {Object.entries(categoryCounts).slice(0, 4).map(([category, count]) => (
-            <div key={category} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-              <p className="text-sm capitalize text-muted-foreground">{category.replaceAll('_', ' ')}</p>
-              <p className="mt-2 text-3xl font-bold text-foreground">{count}</p>
+        {!loading && !error && (
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+              <p className="text-sm text-muted-foreground">Total sources</p>
+              <p className="mt-2 text-3xl font-bold text-foreground">{sources.length}</p>
             </div>
-          ))}
-        </section>
+            {Object.entries(categoryCounts).slice(0, 4).map(([category, count]) => (
+              <div key={category} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                <p className="text-sm capitalize text-muted-foreground">{category.replaceAll('_', ' ')}</p>
+                <p className="mt-2 text-3xl font-bold text-foreground">{count}</p>
+              </div>
+            ))}
+          </section>
+        )}
 
         <section className="rounded-2xl border border-border bg-card shadow-sm">
           <div className="border-b border-border p-5">
@@ -161,9 +176,17 @@ export default function ProjectSources(): JSX.Element {
           </div>
 
           {loading ? (
-            <div className="p-5 text-sm text-muted-foreground">Loading source documents…</div>
+            <div className="p-5">
+              <LoadingState message="Loading source documents..." />
+            </div>
           ) : error ? (
-            <div className="p-5 text-sm text-destructive">{error}</div>
+            <div className="p-5">
+              <ErrorState
+                error={error}
+                onRetry={() => { void loadSources(); }}
+                title="Unable to load source documents"
+              />
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[860px] text-left text-sm">
@@ -186,8 +209,8 @@ export default function ProjectSources(): JSX.Element {
                         {asString(source.extracted_summary) && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{asString(source.extracted_summary)}</p>}
                       </td>
                       <td className="px-5 py-4"><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold capitalize text-primary">{sourceCategory(source).replaceAll('_', ' ')}</span></td>
-                      <td className="px-5 py-4 text-muted-foreground">{asString(source.folder_path) || '—'}</td>
-                      <td className="px-5 py-4 text-muted-foreground">{asString(source.mime_type) || '—'}</td>
+                      <td className="px-5 py-4 text-muted-foreground">{asString(source.folder_path) || '-'}</td>
+                      <td className="px-5 py-4 text-muted-foreground">{asString(source.mime_type) || '-'}</td>
                       <td className="px-5 py-4 text-right text-muted-foreground">{formatBytes(source.size_bytes)}</td>
                     </tr>
                   ))}
