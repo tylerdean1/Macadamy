@@ -87,15 +87,6 @@ function getProjectHealth(project: ProjectRow): ProjectHealth {
   return project.status ? 'Unknown' : 'Unknown';
 }
 
-function formatCurrency(value: number | null): string {
-  if (typeof value !== 'number' || Number.isNaN(value)) return 'No budget set';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 function formatDate(value: string | null): string {
   if (!value) return 'Not set';
   const parsed = new Date(`${value}T00:00:00`);
@@ -138,12 +129,11 @@ export default function Projects(): JSX.Element {
 
   const projectStats = useMemo(() => {
     const activeProjects = projects.filter((project) => getProjectHealth(project) === 'Active').length;
-    const totalBudget = projects.reduce((sum, project) => sum + (Number(project.budget) || 0), 0);
     const missingDates = projects.filter((project) => !project.start_date || !project.end_date).length;
 
     return {
       activeProjects,
-      totalBudget,
+      totalProjects: projects.length,
       missingDates,
     };
   }, [projects]);
@@ -175,8 +165,8 @@ export default function Projects(): JSX.Element {
               <p className="mt-2 text-3xl font-bold">{projectStats.activeProjects}</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-sm text-slate-400">Total tracked budget</p>
-              <p className="mt-2 text-3xl font-bold">{formatCurrency(projectStats.totalBudget)}</p>
+              <p className="text-sm text-slate-400">Total projects</p>
+              <p className="mt-2 text-3xl font-bold">{projectStats.totalProjects}</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <p className="text-sm text-slate-400">Projects missing schedule dates</p>
@@ -262,12 +252,12 @@ export default function Projects(): JSX.Element {
                 <Link
                   key={project.id}
                   to={`/projects/${project.id}`}
-                  className="grid gap-4 p-5 transition hover:bg-muted/40 lg:grid-cols-[minmax(0,1.4fr)_repeat(4,minmax(0,0.8fr))_auto] lg:items-center"
+                  className="grid gap-4 p-5 transition hover:bg-muted/40 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,0.8fr))_auto] lg:items-center"
                 >
                   <div>
                     <p className="font-semibold text-foreground">{project.name}</p>
                     <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                      {project.description || project.location || 'No project description yet.'}
+                      {project.description || 'No project description yet.'}
                     </p>
                   </div>
                   <div>
@@ -281,10 +271,6 @@ export default function Projects(): JSX.Element {
                   <div>
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">End</p>
                     <p className="mt-1 text-sm font-medium text-foreground">{formatDate(project.end_date)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Budget</p>
-                    <p className="mt-1 text-sm font-medium text-foreground">{formatCurrency(Number(project.budget) || null)}</p>
                   </div>
                   <div className="flex items-center justify-end text-primary">
                     <CalendarClock className="mr-2 h-4 w-4" />
