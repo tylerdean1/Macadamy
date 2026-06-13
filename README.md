@@ -226,6 +226,8 @@ wbs                       workflows
 
 - Labor records now keep explicit loading/error state around `filter_labor_records` and `insert_labor_records`; failed loads show a fail-loud toast plus retry panel instead of the empty-state card
 
+- Project registers now fail loud when RFQ, submittal, or source-document RPC loads fail: stale rows are cleared, a retry panel is shown, and failed load states do not render fake empty register tables
+
 - Shared layout components (`Page`, `PageContainer`, `SectionContainer`) live in `src/components/Layout.tsx`
 
 - `FeatureListPage` simplifies our feature pages. Find it in `src/components/FeatureListPage.tsx`
