@@ -15,7 +15,8 @@
  * - Pass/fail status flags and report export.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import { useAuthStore } from '@/lib/store';
 import { FileText, Plus, Pencil } from 'lucide-react';
 import { rpcClient } from '@/lib/rpc.client';
@@ -54,13 +55,58 @@ interface InspectionsPayload {
   inspections: Array<Record<string, unknown>>;
 }
 
+interface InspectionErrorIds {
+  inspectionId?: string | null;
+  projectId?: string | null;
+  wbsId?: string | null;
+  mapId?: string | null;
+  userId?: string | null;
+}
+
+const normalizeOptions = (items: Array<Record<string, unknown>>): Option[] =>
+  items
+    .map((item) => ({
+      id: typeof item.id === 'string' ? item.id : '',
+      name: typeof item.name === 'string' ? item.name : 'Unnamed',
+    }))
+    .filter((item) => item.id !== '');
+
+const extractResult = (raw: unknown): Record<string, unknown> =>
+  raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+
+function reportInspectionsError(
+  operation: string,
+  error: unknown,
+  ids: InspectionErrorIds,
+  trigger: 'user' | 'background' = 'user',
+): string {
+  const context = {
+    module: 'Inspections',
+    operation,
+    trigger,
+    error,
+    ids,
+  };
+
+  logBackendError(context);
+  const message = toBackendErrorToastMessage(context);
+  toast.error(message);
+  return message;
+}
+
 export default function Inspections() {
+  const { id } = useParams();
+  const routeProjectId = typeof id === 'string' && id.trim() !== '' ? id : null;
   const { user, profile } = useAuthStore((state) => ({ user: state.user, profile: state.profile }));
 
   // State variables
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [photoFiles, setPhotoFiles] = useState<FileList | null>(null);
@@ -77,7 +123,7 @@ export default function Inspections() {
   }>({
     name: '',
     description: '',
-    project_id: '',
+    project_id: routeProjectId ?? '',
     wbs_id: '',
     map_id: '',
     line_item_id: '',
@@ -93,33 +139,28 @@ export default function Inspections() {
   // Check if the user has edit permissions
   const canEdit = profile?.role === 'system_admin' || profile?.role === 'org_admin' || profile?.role === 'org_supervisor' || profile?.role === 'inspector';
 
-  const normalizeOptions = (items: Array<Record<string, unknown>>): Option[] =>
-    items
-      .map((item) => ({
-        id: typeof item.id === 'string' ? item.id : '',
-        name: typeof item.name === 'string' ? item.name : 'Unnamed',
-      }))
-      .filter((item) => item.id !== '');
+  useEffect(() => {
+    if (!routeProjectId) return;
 
-  const extractResult = (raw: unknown): Record<string, unknown> =>
-    raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+    setNewInspection((current) => (
+      current.project_id === routeProjectId ? current : { ...current, project_id: routeProjectId }
+    ));
+  }, [routeProjectId]);
 
-  async function loadPayload(): Promise<void> {
+  const loadPayload = useCallback(async (): Promise<void> => {
+    const selectedProjectId = newInspection.project_id || routeProjectId || undefined;
+    const selectedWbsId = newInspection.wbs_id || undefined;
+    const selectedMapId = newInspection.map_id || undefined;
+
+    setLoading(true);
+    setLoadFailed(false);
+    setErrorMessage(null);
+
     try {
-      const projectId = typeof newInspection.project_id === 'string' && newInspection.project_id.length > 0
-        ? newInspection.project_id
-        : undefined;
-      const wbsId = typeof newInspection.wbs_id === 'string' && newInspection.wbs_id.length > 0
-        ? newInspection.wbs_id
-        : undefined;
-      const mapId = typeof newInspection.map_id === 'string' && newInspection.map_id.length > 0
-        ? newInspection.map_id
-        : undefined;
-
       const raw = await rpcClient.rpc_inspections_payload({
-        p_project_id: projectId,
-        p_wbs_id: wbsId,
-        p_map_id: mapId,
+        p_project_id: selectedProjectId,
+        p_wbs_id: selectedWbsId,
+        p_map_id: selectedMapId,
       });
 
       const payload = raw && typeof raw === 'object' && !Array.isArray(raw)
@@ -161,24 +202,31 @@ export default function Inspections() {
 
       setInspections(normalized);
     } catch (err) {
-      logBackendError({
-        module: 'Inspections',
-        operation: 'load inspections payload',
-        trigger: 'background',
-        error: err,
-        ids: {
-          projectId: newInspection.project_id || null,
-          wbsId: newInspection.wbs_id || null,
-          mapId: newInspection.map_id || null,
+      setInspections([]);
+      setContracts([]);
+      setWbsList([]);
+      setMapList([]);
+      setLineItems([]);
+      setLoadFailed(true);
+      setErrorMessage(reportInspectionsError(
+        'load inspections payload',
+        err,
+        {
+          projectId: selectedProjectId ?? null,
+          wbsId: selectedWbsId ?? null,
+          mapId: selectedMapId ?? null,
         },
-      });
+        'background',
+      ));
+    } finally {
+      setLoading(false);
     }
-  }
+  }, [newInspection.map_id, newInspection.project_id, newInspection.wbs_id, routeProjectId]);
 
   // Initial load + refresh payload when selections change
   useEffect(() => {
     void loadPayload();
-  }, [newInspection.project_id, newInspection.wbs_id, newInspection.map_id]);
+  }, [loadPayload]);
 
   // Upload file (PDF or image) to Supabase Storage and return public URL
   async function uploadFile(file: File, folder: string): Promise<string> {
@@ -189,7 +237,7 @@ export default function Inspections() {
       trigger: 'user',
       ids: {
         userId: user?.id ?? null,
-        projectId: newInspection.project_id || null,
+        projectId: newInspection.project_id || routeProjectId || null,
       },
     });
 
@@ -199,7 +247,7 @@ export default function Inspections() {
       trigger: 'user',
       ids: {
         userId: user?.id ?? null,
-        projectId: newInspection.project_id || null,
+        projectId: newInspection.project_id || routeProjectId || null,
       },
     });
   }
@@ -207,7 +255,13 @@ export default function Inspections() {
   // Save inspection (create or update) using correct backend functions
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (!user || !newInspection.name || !newInspection.project_id || !pdfFile) return;
+    if (isSaving) return;
+
+    const selectedProjectId = newInspection.project_id || routeProjectId;
+    if (!user || !newInspection.name || !selectedProjectId || !pdfFile) return;
+
+    setIsSaving(true);
+    setErrorMessage(null);
 
     try {
       let pdfUrl = '';
@@ -223,24 +277,22 @@ export default function Inspections() {
           }
         }
       } catch (uploadError) {
-        logBackendError({
-          module: 'Inspections',
-          operation: 'upload inspection files',
-          trigger: 'user',
-          error: uploadError,
-          ids: {
+        setErrorMessage(reportInspectionsError(
+          'upload inspection files',
+          uploadError,
+          {
             inspectionId: editingId,
-            projectId: newInspection.project_id || null,
+            projectId: selectedProjectId,
             userId: user.id,
           },
-        });
+        ));
         return;
       }
 
       const insertData = {
         name: newInspection.name,
         description: newInspection.description,
-        project_id: newInspection.project_id,
+        project_id: selectedProjectId,
         wbs_id: newInspection.wbs_id || undefined,
         map_id: newInspection.map_id || undefined,
         line_item_id: newInspection.line_item_id || undefined,
@@ -283,7 +335,7 @@ export default function Inspections() {
           id: typeof savedRow.id === 'string' ? savedRow.id : undefined,
           name: typeof savedRow.name === 'string' ? savedRow.name : newInspection.name,
           description: typeof savedRow.notes === 'string' ? savedRow.notes : (newInspection.description || null),
-          project_id: typeof savedRow.project_id === 'string' ? savedRow.project_id : newInspection.project_id,
+          project_id: typeof savedRow.project_id === 'string' ? savedRow.project_id : selectedProjectId,
           wbs_id: typeof result.wbs_id === 'string' ? result.wbs_id : (newInspection.wbs_id || null),
           map_id: typeof result.map_id === 'string' ? result.map_id : (newInspection.map_id || null),
           line_item_id: typeof result.line_item_id === 'string' ? result.line_item_id : (newInspection.line_item_id || null),
@@ -310,7 +362,7 @@ export default function Inspections() {
       setNewInspection({
         name: '',
         description: '',
-        project_id: '',
+        project_id: routeProjectId ?? '',
         wbs_id: '',
         map_id: '',
         line_item_id: '',
@@ -319,21 +371,19 @@ export default function Inspections() {
       setPdfFile(null);
       setPhotoFiles(null);
     } catch (err) {
-      const context = {
-        module: 'Inspections',
-        operation: typeof editingId === 'string' && editingId.length > 0
+      setErrorMessage(reportInspectionsError(
+        typeof editingId === 'string' && editingId.length > 0
           ? 'update inspection'
           : 'create inspection',
-        trigger: 'user' as const,
-        error: err,
-        ids: {
+        err,
+        {
           inspectionId: editingId,
-          projectId: newInspection.project_id || null,
+          projectId: selectedProjectId,
           userId: user?.id ?? null,
         },
-      };
-      logBackendError(context);
-      toast.error(toBackendErrorToastMessage(context));
+      ));
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -363,6 +413,22 @@ export default function Inspections() {
           </button>
         )}
       </div>
+
+      {errorMessage && (
+        <div className="mb-6 rounded border border-red-500/20 bg-red-500/10 p-4 text-red-200">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p>{errorMessage}</p>
+            <button
+              type="button"
+              onClick={() => { void loadPayload(); }}
+              disabled={loading}
+              className="rounded-md border border-red-400/40 px-3 py-2 text-sm font-semibold text-red-100 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Inspection Form */}
       {creating && (
@@ -438,37 +504,49 @@ export default function Inspections() {
 
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => { setCreating(false); setEditingId(null); }} className="bg-gray-600 px-4 py-2 rounded">Cancel</button>
-            <button type="submit" className="bg-green-600 px-4 py-2 rounded">Save</button>
+            <button type="submit" disabled={isSaving} className="bg-green-600 px-4 py-2 rounded disabled:cursor-not-allowed disabled:opacity-60">
+              {isSaving ? 'Saving...' : 'Save'}
+            </button>
           </div>
         </form>
       )}
 
       <div className="mt-6 space-y-4">
-        {inspections.map((insp) => (
-          <div key={insp.id} className="bg-background-light p-4 rounded border">
-            <div className="flex justify-between">
-              <div>
-                <div className="text-lg font-bold">{insp.name}</div>
-                <p className="text-gray-400 text-sm">{insp.description}</p>
-                <a href={typeof insp.pdf_url === 'string' && insp.pdf_url.length > 0 ? insp.pdf_url : '#'} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline inline-flex gap-1 mt-1">
-                  <FileText className="w-4 h-4" /> View PDF
-                </a>
+        {loading ? (
+          <div className="text-center py-8 text-gray-400">
+            Loading inspections...
+          </div>
+        ) : loadFailed ? null : inspections.length === 0 ? (
+          <div className="text-center py-8 text-gray-400">
+            No inspections found.
+          </div>
+        ) : (
+          inspections.map((insp) => (
+            <div key={insp.id} className="bg-background-light p-4 rounded border">
+              <div className="flex justify-between">
+                <div>
+                  <div className="text-lg font-bold">{insp.name}</div>
+                  <p className="text-gray-400 text-sm">{insp.description}</p>
+                  <a href={typeof insp.pdf_url === 'string' && insp.pdf_url.length > 0 ? insp.pdf_url : '#'} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline inline-flex gap-1 mt-1">
+                    <FileText className="w-4 h-4" /> View PDF
+                  </a>
+                </div>
+                {canEdit && (
+                  <button onClick={() => handleEdit(insp)} className="bg-blue-600 px-2 py-1 rounded h-fit mt-1" title="Edit Inspection">
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                )}
               </div>
-              {canEdit && (
-                <button onClick={() => handleEdit(insp)} className="bg-blue-600 px-2 py-1 rounded h-fit mt-1" title="Edit Inspection">
-                  <Pencil className="w-4 h-4" />
-                </button>
+              {insp.photo_urls && insp.photo_urls.length > 0 && (
+                <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {insp.photo_urls.map((url, i) => (
+                    <img key={i} src={url} alt={`Inspection photo ${i + 1}`} className="rounded shadow-md" />
+                  ))}
+                </div>
               )}
             </div>
-            {insp.photo_urls && insp.photo_urls.length > 0 && (
-              <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2">
-                {insp.photo_urls.map((url, i) => (
-                  <img key={i} src={url} alt={`Inspection photo ${i + 1}`} className="rounded shadow-md" />
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
