@@ -180,9 +180,15 @@ export default function ProjectRegisters(): JSX.Element {
         return;
       }
 
-      setRfqs(asRows(rfqResult.value));
-      setSubmittals(asRows(submittalResult.value));
-      setSources(asRows(sourceResult.value));
+      if (
+        rfqResult.status === 'fulfilled'
+        && submittalResult.status === 'fulfilled'
+        && sourceResult.status === 'fulfilled'
+      ) {
+        setRfqs(asRows(rfqResult.value));
+        setSubmittals(asRows(submittalResult.value));
+        setSources(asRows(sourceResult.value));
+      }
     } finally {
       setLoading(false);
     }
