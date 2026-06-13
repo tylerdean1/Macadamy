@@ -23,7 +23,7 @@ import { useValidatedSelectedOrganization } from '@/hooks/useValidatedSelectedOr
 import { rpcClient } from '@/lib/rpc.client';
 import { getStoragePublicUrl, uploadStorageFile } from '@/lib/storageClient';
 import { useAuthStore } from '@/lib/store';
-import { getBackendErrorMessage } from '@/lib/backendErrors';
+import { getBackendErrorMessage, logBackendError } from '@/lib/backendErrors';
 import { resolveInviteReviewErrorMessage, resolveOrgMemberActionErrorMessage } from '@/lib/utils/inviteErrorMessages';
 import { formatPhoneUS } from '@/lib/utils/formatters';
 import {
@@ -302,6 +302,7 @@ export default function OrganizationDashboard(): JSX.Element {
     status: string | null;
   }>>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
+  const [projectsError, setProjectsError] = useState<string | null>(null);
 
   // pending org membership requests (admins only)
   const [pendingInvites, setPendingInvites] = useState<PendingInviteItem[]>([]);
@@ -505,32 +506,42 @@ export default function OrganizationDashboard(): JSX.Element {
     setPage(1);
   }, [activeOrganizationId]);
 
-  useEffect(() => {
-    const fetchProjects = async () => {
-      if (!activeOrganizationId) {
-        setProjects([]);
-        return;
-      }
+  const fetchProjects = useCallback(async (): Promise<void> => {
+    if (!activeOrganizationId) {
+      setProjects([]);
+      setProjectsError(null);
+      setProjectsLoading(false);
+      return;
+    }
 
-      setProjectsLoading(true);
-      try {
-        const data = await rpcClient.filter_projects({
-          _filters: { organization_id: activeOrganizationId },
-          _limit: 5, // Show only first 5 projects
-          _order_by: 'created_at',
-          _direction: 'desc'
-        });
-        setProjects(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error('Error fetching projects:', error);
-        setProjects([]);
-      } finally {
-        setProjectsLoading(false);
-      }
-    };
-
-    void fetchProjects();
+    setProjectsLoading(true);
+    setProjectsError(null);
+    try {
+      const data = await rpcClient.filter_projects({
+        _filters: { organization_id: activeOrganizationId },
+        _limit: 5, // Show only first 5 projects
+        _order_by: 'created_at',
+        _direction: 'desc'
+      });
+      setProjects(Array.isArray(data) ? data : []);
+    } catch (error) {
+      logBackendError({
+        module: 'OrganizationDashboard',
+        operation: 'load project summary',
+        trigger: 'system',
+        error,
+        ids: { organizationId: activeOrganizationId },
+      });
+      setProjects([]);
+      setProjectsError(getBackendErrorMessage(error));
+    } finally {
+      setProjectsLoading(false);
+    }
   }, [activeOrganizationId]);
+
+  useEffect(() => {
+    void fetchProjects();
+  }, [fetchProjects]);
 
   useEffect(() => {
     if (!isEditOpen) return;
@@ -1884,6 +1895,12 @@ export default function OrganizationDashboard(): JSX.Element {
                 <div className="text-center py-4">
                   <p className="text-sm text-gray-400">Loading projects...</p>
                 </div>
+              ) : projectsError ? (
+                <ErrorState
+                  title="Unable to load projects"
+                  error={projectsError}
+                  onRetry={() => { void fetchProjects(); }}
+                />
               ) : projects.length === 0 ? (
                 <EmptyState
                   message="No projects"
