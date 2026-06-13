@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 
 import { Page, PageContainer } from '@/components/Layout';
+import { logBackendError, toBackendErrorToastMessage } from '@/lib/backendErrors';
 import { invokeRpc } from '@/lib/rpc.client';
 import ProjectNav from './ProjectNav';
 
@@ -59,15 +61,39 @@ function lineItemLabel(lineItems: Row[], lineItemId: unknown): string {
   return row ? lineItemTitle(row) : id || 'Not linked';
 }
 
+function reportProductionError(
+  operation: string,
+  error: unknown,
+  projectId: string | null,
+  trigger: 'user' | 'background' = 'background',
+): string {
+  const context = {
+    module: 'ProjectProduction',
+    operation,
+    trigger,
+    error,
+    ids: {
+      projectId,
+    },
+  };
+
+  logBackendError(context);
+  const message = toBackendErrorToastMessage(context);
+  toast.error(message);
+  return message;
+}
+
 export default function ProjectProduction(): JSX.Element {
   const { id } = useParams<{ id: string }>();
+  const projectId = typeof id === 'string' && id.trim() !== '' ? id : null;
   const [payload, setPayload] = useState<ProductionPayload>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadProduction = useCallback(async (): Promise<void> => {
-    if (!id) {
-      setError('No project ID was provided.');
+    if (!projectId) {
+      setPayload({});
+      setError('Project context is missing. Return to the project and try again.');
       setLoading(false);
       return;
     }
@@ -76,7 +102,7 @@ export default function ProjectProduction(): JSX.Element {
     setError(null);
 
     try {
-      const result = await invokeRpc<unknown>('rpc_project_production_payload', { p_project_id: id });
+      const result = await invokeRpc<unknown>('rpc_project_production_payload', { p_project_id: projectId });
       const nextPayload = asObject(result);
       setPayload({
         summary: asObject(nextPayload.summary),
@@ -85,12 +111,12 @@ export default function ProjectProduction(): JSX.Element {
         recent_quantity_entries: asRows(nextPayload.recent_quantity_entries),
       });
     } catch (err) {
-      console.error('[ProjectProduction] load failed', err);
-      setError('Unable to load project production data.');
+      setPayload({});
+      setError(reportProductionError('load production data', err, projectId));
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [projectId]);
 
   useEffect(() => {
     void loadProduction();
@@ -123,20 +149,33 @@ export default function ProjectProduction(): JSX.Element {
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
-              {id && (
-                <Link to={`/projects/${id}/controls`} className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90">
+              {projectId && (
+                <Link to={`/projects/${projectId}/controls`} className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90">
                   Open controls
                 </Link>
               )}
-              {id && (
-                <Link to={`/projects/${id}/management`} className="inline-flex items-center justify-center rounded-xl border border-border px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-muted">
+              {projectId && (
+                <Link to={`/projects/${projectId}/management`} className="inline-flex items-center justify-center rounded-xl border border-border px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-muted">
                   Back to PM workspace
                 </Link>
               )}
             </div>
           </div>
-          {loading && <div className="mt-6 rounded-2xl border border-border bg-muted/30 p-5 text-sm text-muted-foreground">Loading production data…</div>}
-          {error && <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/10 p-5 text-sm text-destructive">{error}</div>}
+          {loading && <div className="mt-6 rounded-2xl border border-border bg-muted/30 p-5 text-sm text-muted-foreground">Loading production data...</div>}
+          {error && (
+            <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-5 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
+              <span>{error}</span>
+              {projectId && (
+                <button
+                  type="button"
+                  onClick={() => void loadProduction()}
+                  className="inline-flex items-center justify-center rounded-xl border border-destructive/30 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/10"
+                >
+                  Retry
+                </button>
+              )}
+            </div>
+          )}
         </section>
 
         {!loading && !error && (
@@ -182,7 +221,7 @@ export default function ProjectProduction(): JSX.Element {
                         <td className="px-5 py-4 text-right font-semibold text-foreground">{formatNumber(item.quantity_completed)}</td>
                         <td className="px-5 py-4 text-right font-semibold text-foreground">{formatNumber(item.labor_hours)}</td>
                         <td className="px-5 py-4 text-right text-muted-foreground">{formatNumber(item.worker_count)}</td>
-                        <td className="px-5 py-4 text-right font-semibold text-foreground">{asNumber(item.units_per_labor_hour) ? formatNumber(item.units_per_labor_hour) : '—'}</td>
+                        <td className="px-5 py-4 text-right font-semibold text-foreground">{asNumber(item.units_per_labor_hour) ? formatNumber(item.units_per_labor_hour) : '-'}</td>
                       </tr>
                     ))}
                   </tbody>
