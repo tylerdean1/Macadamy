@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
-  AlertTriangle,
   ArrowRight,
   Banknote,
   BriefcaseBusiness,
@@ -19,7 +18,11 @@ import {
 } from 'lucide-react';
 
 import { Page, PageContainer } from '@/components/Layout';
+import { ErrorState } from '@/components/ui/error-state';
+import { LoadingState } from '@/components/ui/loading-state';
+import { getBackendErrorMessage, logBackendError } from '@/lib/backendErrors';
 import { invokeRpc } from '@/lib/rpc.client';
+import { toast } from 'sonner';
 
 type JsonObject = Record<string, unknown>;
 
@@ -75,6 +78,7 @@ export default function ProjectCoreTracking(): JSX.Element {
 
   const loadPayload = useCallback(async (): Promise<void> => {
     if (!id) {
+      setPayload(null);
       setError('No project ID was provided.');
       setLoading(false);
       return;
@@ -89,8 +93,16 @@ export default function ProjectCoreTracking(): JSX.Element {
       });
       setPayload(asObject(result) as CorePayload);
     } catch (err) {
-      console.error('[ProjectCoreTracking] payload load failed', err);
-      setError('Unable to load project core tracking data.');
+      logBackendError({
+        module: 'Project Core Tracking',
+        operation: 'load project management core payload',
+        trigger: 'user',
+        error: err,
+        ids: { projectId: id },
+      });
+      setPayload(null);
+      setError(getBackendErrorMessage(err));
+      toast.error('Unable to load project core tracking data.');
     } finally {
       setLoading(false);
     }
@@ -169,15 +181,18 @@ export default function ProjectCoreTracking(): JSX.Element {
           </div>
 
           {loading && (
-            <div className="mt-6 rounded-2xl border border-border bg-muted/30 p-5 text-sm text-muted-foreground">
-              Loading core tracking coverage…
+            <div className="mt-6">
+              <LoadingState message="Loading core tracking coverage..." />
             </div>
           )}
 
           {error && (
-            <div className="mt-6 flex gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-5 text-sm text-destructive">
-              <AlertTriangle className="mt-0.5 h-5 w-5 flex-none" />
-              <span>{error}</span>
+            <div className="mt-6">
+              <ErrorState
+                error={error}
+                onRetry={() => { void loadPayload(); }}
+                title="Unable to load core tracking data"
+              />
             </div>
           )}
         </section>
