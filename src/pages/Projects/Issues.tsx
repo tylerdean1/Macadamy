@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Save, Pencil, Download } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuthStore } from '@/lib/store';
 import { rpcClient } from '@/lib/rpc.client';
 import { useParams } from 'react-router-dom';
+import { logBackendError, toBackendErrorToastMessage } from '@/lib/backendErrors';
 import jsPDF from 'jspdf';
 import type { Issues } from '@/lib/types';
 
@@ -36,8 +38,41 @@ const getStatusColor = (status: string) =>
     : status === 'In Progress' ? 'text-yellow-500'
       : 'text-green-500';
 
+const createEmptyIssueForm = (projectId: string | null, userId?: string): Partial<Issue> => ({
+  project_id: projectId,
+  name: '',
+  description: '',
+  type: '',
+  status: 'Open',
+  resolved: false,
+  reported_by: userId,
+});
+
+function reportIssuesError(
+  operation: string,
+  error: unknown,
+  projectId: string | null,
+  trigger: 'user' | 'background' = 'user',
+): string {
+  const context = {
+    module: 'Issues',
+    operation,
+    trigger,
+    error,
+    ids: {
+      projectId,
+    },
+  };
+
+  logBackendError(context);
+  const message = toBackendErrorToastMessage(context);
+  toast.error(message);
+  return message;
+}
+
 export default function Issues() {
-  const { id: project_id } = useParams();
+  const { id } = useParams();
+  const projectId = typeof id === 'string' && id.trim() !== '' ? id : null;
   const { user, profile } = useAuthStore((state) => ({
     user: state.user,
     profile: state.profile,
@@ -47,16 +82,23 @@ export default function Issues() {
   const [issues, setIssues] = useState<IssueWithProfile[]>([]);
   const [filteredIssues, setFilteredIssues] = useState<IssueWithProfile[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<Partial<Issue>>({
-    project_id,
-    name: '',
-    description: '',
-    type: '',
-    status: 'Open',
-    resolved: false,
-    reported_by: user?.id,
-  });
+  const [form, setForm] = useState<Partial<Issue>>(() => createEmptyIssueForm(projectId, user?.id));
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (editingId) return;
+
+    setForm((current) => ({
+      ...current,
+      project_id: projectId,
+      reported_by: user?.id,
+    }));
+  }, [editingId, projectId, user?.id]);
 
   const normalizeIssue = (raw: Record<string, unknown>): IssueWithProfile => {
     const rawProfiles = raw.profiles && typeof raw.profiles === 'object'
@@ -86,16 +128,30 @@ export default function Issues() {
 
   // Fetch issues via RPC payload
   const fetchIssues = useCallback(async () => {
-    if (!project_id) return;
+    if (!projectId) {
+      setIssues([]);
+      setErrorMessage('Project context is missing. Return to the project and try again.');
+      setLoadFailed(true);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setLoadFailed(false);
+    setErrorMessage(null);
 
     try {
-      const raw = await rpcClient.rpc_issues_payload({ p_project_id: project_id });
+      const raw = await rpcClient.rpc_issues_payload({ p_project_id: projectId });
       const list = toIssueList(raw);
       setIssues(list.map((item) => normalizeIssue(item)));
     } catch (error) {
-      console.error('Error fetching issues:', error);
+      setIssues([]);
+      setLoadFailed(true);
+      setErrorMessage(reportIssuesError('load issues', error, projectId, 'background'));
+    } finally {
+      setLoading(false);
     }
-  }, [project_id]);
+  }, [projectId]);
 
   // Fetch issues when component mounts
   useEffect(() => {
@@ -105,10 +161,24 @@ export default function Issues() {
   // Handle save action for form submission
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (isSaving) return;
+
+    if (!user) {
+      setErrorMessage(reportIssuesError(
+        'save issue',
+        new Error('User must be authenticated to save an issue.'),
+        projectId,
+      ));
+      return;
+    }
+
+    if (!projectId) {
+      setErrorMessage('Project context is missing. Return to the project and try again.');
+      return;
+    }
 
     const issueData = {
-      project_id: form.project_id || project_id,
+      project_id: projectId,
       name: form.name || '',
       description: form.description || '',
       type: form.type || '',
@@ -116,6 +186,9 @@ export default function Issues() {
       resolved: form.resolved || false,
       reported_by: form.reported_by || user.id,
     };
+
+    setIsSaving(true);
+    setErrorMessage(null);
 
     try {
       const savedRows = editingId
@@ -154,23 +227,17 @@ export default function Issues() {
           }
           return [normalized, ...prev];
         });
+      } else {
+        await fetchIssues();
       }
-    } catch (error) {
-      console.error('Error saving issue:', error);
-      return;
-    }
 
-    // Reset form and refresh data
-    setForm({
-      project_id,
-      name: '',
-      description: '',
-      type: '',
-      status: 'Open',
-      resolved: false,
-      reported_by: user?.id,
-    });
-    setEditingId(null);
+      setForm(createEmptyIssueForm(projectId, user.id));
+      setEditingId(null);
+    } catch (error) {
+      setErrorMessage(reportIssuesError('save issue', error, projectId));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Handle edit action
@@ -181,27 +248,25 @@ export default function Issues() {
 
   // Handle cancel action
   const handleCancel = () => {
-    setForm({
-      project_id,
-      name: '',
-      description: '',
-      type: '',
-      status: 'Open',
-      resolved: false,
-      reported_by: user?.id,
-    });
+    setForm(createEmptyIssueForm(projectId, user?.id));
     setEditingId(null);
   };
 
   // Handle delete action
   const handleDelete = async (id: string) => {
+    if (deletingId) return;
     if (!window.confirm('Are you sure you want to delete this issue?')) return;
+
+    setDeletingId(id);
+    setErrorMessage(null);
 
     try {
       await rpcClient.delete_issues({ _id: id });
       setIssues((prev) => prev.filter((issue) => issue.id !== id));
     } catch (error) {
-      console.error('Error deleting issue:', error);
+      setErrorMessage(reportIssuesError('delete issue', error, projectId));
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -273,6 +338,22 @@ export default function Issues() {
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
+
+      {errorMessage && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-900">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p>{errorMessage}</p>
+            <button
+              type="button"
+              onClick={() => { void fetchIssues(); }}
+              disabled={loading}
+              className="rounded-md border border-red-300 px-3 py-2 text-sm font-semibold text-red-800 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Form */}
       {canEdit && (
@@ -362,10 +443,11 @@ export default function Issues() {
             )}
             <button
               type="submit"
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              disabled={isSaving}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Save className="w-4 h-4 mr-2" />
-              {editingId ? 'Update' : 'Create'} Issue
+              {isSaving ? 'Saving...' : editingId ? 'Update Issue' : 'Create Issue'}
             </button>
           </div>
         </form>
@@ -373,7 +455,11 @@ export default function Issues() {
 
       {/* Issues List */}
       <div className="space-y-4">
-        {filteredIssues.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">
+            Loading issues...
+          </div>
+        ) : loadFailed ? null : filteredIssues.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             No issues found.
           </div>
@@ -396,7 +482,8 @@ export default function Issues() {
                     </button>
                     <button
                       onClick={() => handleDelete(issue.id)}
-                      className="p-1 text-red-600 hover:bg-red-50 rounded"
+                      disabled={deletingId === issue.id}
+                      className="p-1 text-red-600 hover:bg-red-50 rounded disabled:cursor-not-allowed disabled:opacity-50"
                       title="Delete issue"
                       aria-label="Delete issue"
                     >
