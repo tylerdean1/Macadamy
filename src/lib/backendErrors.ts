@@ -1,6 +1,6 @@
 export type BackendTriggerType = 'user' | 'background';
 
-type BackendErrorIds = Record<string, string | number | null | undefined>;
+type BackendErrorIds = object;
 
 export interface BackendErrorContext {
     module: string;
