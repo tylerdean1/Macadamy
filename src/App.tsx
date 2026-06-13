@@ -1,6 +1,6 @@
 // <start App.tsx>
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/react';
 
@@ -74,6 +74,14 @@ function PageFallback(): JSX.Element {
         <p className="text-gray-400 mt-4">Loading page…</p>
       </div>
     </div>
+  );
+}
+
+function ProjectWorkflowRedirect(): JSX.Element {
+  return (
+    <ProtectedRoute>
+      <Navigate to="/projects" replace />
+    </ProtectedRoute>
   );
 }
 
@@ -190,15 +198,15 @@ export default function App(): JSX.Element {
           <Route path="/projects/:id/daily-reports" element={<ProtectedRoute><DailyReports /></ProtectedRoute>} />
           <Route path="/projects/create" element={<ProtectedRoute><ContractCreation /></ProtectedRoute>} />
 
-          <Route path="/calculators" element={<ProtectedRoute><Calculators /></ProtectedRoute>} />
-          <Route path="/calculators/usage" element={<ProtectedRoute><CalculatorUsage /></ProtectedRoute>} />
-          <Route path="/calculators/create" element={<ProtectedRoute><CalculatorCreation /></ProtectedRoute>} />
+          <Route path="/calculators" element={<ProjectWorkflowRedirect />} />
+          <Route path="/calculators/usage" element={<ProjectWorkflowRedirect />} />
+          <Route path="/calculators/create" element={<ProjectWorkflowRedirect />} />
 
-          <Route path="/changeorders" element={<ProtectedRoute><ChangeOrders /></ProtectedRoute>} />
-          <Route path="/equipmentlog" element={<ProtectedRoute><EquipmentLog /></ProtectedRoute>} />
-          <Route path="/inspections" element={<ProtectedRoute><Inspections /></ProtectedRoute>} />
-          <Route path="/issues" element={<ProtectedRoute><Issues /></ProtectedRoute>} />
-          <Route path="/dailyreports" element={<ProtectedRoute><DailyReports /></ProtectedRoute>} />
+          <Route path="/changeorders" element={<ProjectWorkflowRedirect />} />
+          <Route path="/equipmentlog" element={<ProjectWorkflowRedirect />} />
+          <Route path="/inspections" element={<ProjectWorkflowRedirect />} />
+          <Route path="/issues" element={<ProjectWorkflowRedirect />} />
+          <Route path="/dailyreports" element={<ProjectWorkflowRedirect />} />
 
           <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
           <Route path="/estimates" element={<ProtectedRoute><Estimates /></ProtectedRoute>} />
