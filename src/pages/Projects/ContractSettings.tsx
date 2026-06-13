@@ -1,13 +1,15 @@
-// filepath: c:\Users\tyler\OneDrive\Desktop\Macadamy\public\src\pages\Contract\ContractSettings.tsx
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 import { Page } from '@/components/Layout';
+import { ErrorState } from '@/components/ui/error-state';
+import { LoadingState } from '@/components/ui/loading-state';
 import { Card } from '@/pages/StandardPages/StandardPageComponents/card';
 import { Button } from '@/pages/StandardPages/StandardPageComponents/button';
 import { ContractStatusSelect } from './SharedComponents/ContractStatusSelect';
 import { useAuthStore } from '@/lib/store';
+import { getBackendErrorMessage, logBackendError } from '@/lib/backendErrors';
 import { rpcClient } from '@/lib/rpc.client';
 import type { ContractWithWktRow, ProfilesByContractRow } from '@/lib/geospatial.types';
 import type { Database } from '@/lib/database.types';
@@ -16,11 +18,13 @@ type ContractStatus = Database['public']['Enums']['project_status'];
 type ContractRole = string;
 
 export default function ContractSettings() {
-  const { contractId } = useParams<{ contractId: string }>();
+  const { id: routeProjectId, contractId: legacyContractId } = useParams<{ id?: string; contractId?: string }>();
+  const projectId = routeProjectId ?? legacyContractId ?? '';
   const navigate = useNavigate();
   const { profile } = useAuthStore();
 
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [contract, setContract] = useState<ContractWithWktRow | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<ContractStatus>('planned');
@@ -28,75 +32,110 @@ export default function ContractSettings() {
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
-  // Fetch contract data
-  useEffect(() => {
-    const fetchContractData = async () => {
-      if (typeof contractId !== 'string' || contractId.length === 0) return;
-      setIsLoading(true);
-      try {
-        const contractRows = await rpcClient.get_contract_with_wkt({ p_contract_id: contractId });
-        const currentContract = Array.isArray(contractRows) ? contractRows[0] : null;
-        if (!currentContract) {
-          setContract(null);
-          setTeamMembers([]);
-          return;
-        }
+  const navigateBackToProject = useCallback(() => {
+    if (projectId) {
+      navigate(`/projects/${projectId}`);
+      return;
+    }
 
-        const members = await rpcClient.get_profiles_by_contract({ p_contract_id: contractId });
-        setContract(currentContract);
-        setSelectedStatus(currentContract.status ?? 'planned');
-        setTeamMembers(Array.isArray(members) ? members : []);
-      } catch (error) {
-        console.error('Error fetching contract data:', error);
-        toast.error('Failed to load contract data');
-      } finally {
-        setIsLoading(false);
+    navigate('/projects');
+  }, [navigate, projectId]);
+
+  const loadContractData = useCallback(async () => {
+    if (!projectId) {
+      setContract(null);
+      setTeamMembers([]);
+      setLoadError('Missing project context. Open settings from a project dashboard.');
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadError(null);
+
+    try {
+      const contractRows = await rpcClient.get_contract_with_wkt({ p_contract_id: projectId });
+      const currentContract = Array.isArray(contractRows) ? contractRows[0] : null;
+      if (!currentContract) {
+        setContract(null);
+        setTeamMembers([]);
+        return;
       }
-    };
 
-    void fetchContractData();
-  }, [contractId, navigate]);
+      const members = await rpcClient.get_profiles_by_contract({ p_contract_id: projectId });
+      setContract(currentContract);
+      setSelectedStatus(currentContract.status ?? 'planned');
+      setTeamMembers(Array.isArray(members) ? members : []);
+    } catch (error) {
+      logBackendError({
+        module: 'ContractSettings',
+        operation: 'load project settings',
+        trigger: 'user',
+        error,
+        ids: { projectId },
+      });
+      setContract(null);
+      setTeamMembers([]);
+      setLoadError(getBackendErrorMessage(error));
+      toast.error('Unable to load project settings.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [projectId]);
 
-  // Update contract status
+  useEffect(() => {
+    void loadContractData();
+  }, [loadContractData]);
+
   const handleUpdateStatus = async () => {
-    if (typeof contractId !== 'string' || contractId.length === 0 || !contract) return;
+    if (!projectId || !contract) return;
 
     setIsSaving(true);
     try {
-      await rpcClient.update_projects({ _id: contractId, _input: { status: selectedStatus } });
+      await rpcClient.update_projects({ _id: projectId, _input: { status: selectedStatus } });
 
       setContract(prev => prev ? { ...prev, status: selectedStatus } : null);
-      toast.success('Contract status updated successfully');
+      toast.success('Project status updated successfully');
     } catch (error) {
-      console.error('Error updating contract status:', error);
-      toast.error('Failed to update contract status');
+      logBackendError({
+        module: 'ContractSettings',
+        operation: 'update project status',
+        trigger: 'user',
+        error,
+        ids: { projectId },
+      });
+      toast.error('Failed to update project status');
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Remove team member
   const handleRemoveTeamMember = async (userId: string) => {
-    if (typeof contractId !== 'string' || contractId.length === 0) return;
+    if (!projectId) return;
     try {
       await rpcClient.remove_profile_from_contract({
-        p_contract_id: contractId,
+        p_contract_id: projectId,
         p_profile_id: userId,
       });
       setTeamMembers((prev) => prev.filter((member) => member.id !== userId));
       toast.success('Team member removed');
     } catch (error) {
-      console.error('Error removing team member:', error);
+      logBackendError({
+        module: 'ContractSettings',
+        operation: 'remove project team member',
+        trigger: 'user',
+        error,
+        ids: { projectId, userId },
+      });
       toast.error('Failed to remove team member');
     }
   };
 
-  // Update team member role
   const handleUpdateTeamMemberRole = async (userId: string, role: ContractRole) => {
-    if (typeof contractId !== 'string' || contractId.length === 0) return;
+    if (!projectId) return;
     try {
       await rpcClient.update_profile_contract_role({
-        p_contract_id: contractId,
+        p_contract_id: projectId,
         p_profile_id: userId,
         p_role: role,
       });
@@ -105,46 +144,75 @@ export default function ContractSettings() {
       )));
       toast.success('Role updated');
     } catch (error) {
-      console.error('Error updating team member role:', error);
+      logBackendError({
+        module: 'ContractSettings',
+        operation: 'update project team member role',
+        trigger: 'user',
+        error,
+        ids: { projectId, userId },
+      });
       toast.error('Failed to update role');
     }
   };
 
-  // Delete contract
   const handleDeleteContract = async () => {
-    if (typeof contractId !== 'string' || contractId.length === 0 || !contract || deleteConfirmation !== contract.title) return;
+    if (!projectId || !contract || deleteConfirmation !== contract.title) return;
     try {
-      await rpcClient.delete_projects({ _id: contractId });
+      await rpcClient.delete_projects({ _id: projectId });
 
-      toast.success('Contract deleted successfully');
+      toast.success('Project deleted successfully');
       navigate('/dashboard');
     } catch (error) {
-      console.error('Error deleting contract:', error);
-      toast.error('Failed to delete contract');
+      logBackendError({
+        module: 'ContractSettings',
+        operation: 'delete project',
+        trigger: 'user',
+        error,
+        ids: { projectId },
+      });
+      toast.error('Failed to delete project');
     }
   };
 
-  // Fix: Add null checks before accessing contract properties
   const contractTitle = contract?.title ?? '';
 
+  if (!isLoading && loadError) {
+    return (
+      <Page>
+        <div className="mx-auto max-w-5xl px-4 py-8">
+          <div className="mb-6 flex items-center justify-between">
+            <h1 className="text-2xl font-bold">Project Settings</h1>
+            <Button variant="outline" onClick={navigateBackToProject}>
+              Back to Dashboard
+            </Button>
+          </div>
+          <ErrorState
+            error={loadError}
+            onRetry={() => { void loadContractData(); }}
+            title="Unable to load project settings"
+          />
+        </div>
+      </Page>
+    );
+  }
 
   if (!isLoading && !contract) {
     return (
       <Page>
         <div className="max-w-5xl mx-auto px-4 py-8">
           <div className="mb-6 flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Contract Settings</h1>
+            <h1 className="text-2xl font-bold">Project Settings</h1>
             <Button
               variant="outline"
-              onClick={() => navigate(`/projects/${contractId}`)}
+              onClick={navigateBackToProject}
             >
               Back to Dashboard
             </Button>
           </div>
           <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-2">Contract not found</h2>
+            <h2 className="text-xl font-semibold mb-2">Project not found</h2>
             <p className="text-sm text-gray-300">
-              The requested contract could not be loaded.
+              The requested project could not be loaded.
             </p>
           </Card>
         </div>
@@ -156,10 +224,10 @@ export default function ContractSettings() {
     <Page>
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="mb-6 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Contract Settings</h1>
+          <h1 className="text-2xl font-bold">Project Settings</h1>
           <Button
             variant="outline"
-            onClick={() => navigate(`/projects/${contractId}`)}
+            onClick={navigateBackToProject}
           >
             Back to Dashboard
           </Button>
@@ -167,14 +235,13 @@ export default function ContractSettings() {
 
         <div className="space-y-6">
           {isLoading ? (
-            <Card className="p-8 flex justify-center items-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+            <Card className="p-8">
+              <LoadingState message="Loading project settings..." />
             </Card>
           ) : (
             <div className="space-y-6">
-              {/* Contract Status */}
               <Card className="p-6">
-                <h2 className="text-xl font-semibold mb-4">Contract Status</h2>
+                <h2 className="text-xl font-semibold mb-4">Project Status</h2>
                 <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
                   <div className="w-full md:w-64">
                     <ContractStatusSelect
@@ -194,7 +261,6 @@ export default function ContractSettings() {
                 </div>
               </Card>
 
-              {/* Team Management */}
               <Card className="p-6">
                 <h2 className="text-xl font-semibold mb-4">Team Management</h2>
 
@@ -252,18 +318,17 @@ export default function ContractSettings() {
                     </table>
                   </div>
                 ) : (
-                  <p className="text-gray-400">No team members assigned to this contract.</p>
+                  <p className="text-gray-400">No team members assigned to this project.</p>
                 )}
               </Card>
 
-              {/* Danger Zone */}
               <Card className="p-6 border border-red-900 bg-gray-850">
                 <h2 className="text-xl font-semibold mb-4 text-red-400">Danger Zone</h2>
                 <div className="space-y-4">
                   <div className="mb-4">
-                    <h3 className="text-md font-medium mb-2 text-red-400">Delete Contract</h3>
+                    <h3 className="text-md font-medium mb-2 text-red-400">Delete Project</h3>
                     <p className="text-sm text-gray-400 mb-3">
-                      This will permanently delete the contract and all associated data.
+                      This will permanently delete the project and all associated data.
                     </p>
 
                     {!showDeleteConfirmation ? (
@@ -272,7 +337,7 @@ export default function ContractSettings() {
                         size="sm"
                         onClick={() => setShowDeleteConfirmation(true)}
                       >
-                        Delete Contract
+                        Delete Project
                       </Button>
                     ) : (
                       <div>
@@ -317,6 +382,4 @@ export default function ContractSettings() {
       </div>
     </Page>
   );
-};
-
-// TODO: Fix: These RPCs are not available in the generated supabase client. Use the custom rpcClient or add them to the supabase client if needed.
+}
